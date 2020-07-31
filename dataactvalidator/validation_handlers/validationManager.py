@@ -655,39 +655,36 @@ class ValidationManager:
         for failure in validate_file_by_sql(self.job, self.file_type.name,
                                             self.short_to_long_dict[self.file_type.file_type_id],
                                             batch_results=BATCH_SQL_VAL_RESULTS):
-            self.process_failure(failure, short_colnames, writer, warning_writer)
+            # convert shorter, machine friendly column names used in the
+            # SQL validation queries back to their long names
+            if failure.field_name in short_colnames:
+                field_name = short_colnames[failure.field_name]
+            else:
+                field_name = failure.field_name
 
-    def process_failure(self, failure, short_colnames, writer, warning_writer):
-        # convert shorter, machine friendly column names used in the
-        # SQL validation queries back to their long names
-        if failure.field_name in short_colnames:
-            field_name = short_colnames[failure.field_name]
-        else:
-            field_name = failure.field_name
+            if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
+                self.error_rows.append(failure.row)
 
-        if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
-            self.error_rows.append(failure.row)
+            try:
+                # If error is an int, it's one of our prestored messages
+                error_type = int(failure.error)
+                error_msg = ValidationError.get_error_message(error_type)
+            except ValueError:
+                # If not, treat it literally
+                error_msg = failure.error
 
-        try:
-            # If error is an int, it's one of our prestored messages
-            error_type = int(failure.error)
-            error_msg = ValidationError.get_error_message(error_type)
-        except ValueError:
-            # If not, treat it literally
-            error_msg = failure.error
-
-        if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
-            writer.writerow([failure.unique_id, field_name, error_msg, failure.failed_value, failure.expected_value,
-                             failure.difference, failure.flex_fields, str(failure.row), failure.original_label])
-        elif failure.severity_id == RULE_SEVERITY_DICT['warning']:
-            # write to warnings file
-            warning_writer.writerow([failure.unique_id, field_name, error_msg, failure.failed_value,
-                                     failure.expected_value, failure.difference, failure.flex_fields,
-                                     str(failure.row), failure.original_label])
-        # labeled errors
-        self.error_list.record_row_error(self.job.job_id, self.file_name, field_name, failure.error,
-                                         self.total_rows, failure.original_label, failure.file_type_id,
-                                         failure.target_file_id, failure.severity_id)
+            if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
+                writer.writerow([failure.unique_id, field_name, error_msg, failure.failed_value, failure.expected_value,
+                                 failure.difference, failure.flex_fields, str(failure.row), failure.original_label])
+            elif failure.severity_id == RULE_SEVERITY_DICT['warning']:
+                # write to warnings file
+                warning_writer.writerow([failure.unique_id, field_name, error_msg, failure.failed_value,
+                                         failure.expected_value, failure.difference, failure.flex_fields,
+                                         str(failure.row), failure.original_label])
+            # labeled errors
+            self.error_list.record_row_error(self.job.job_id, self.file_name, field_name, failure.error,
+                                             self.total_rows, failure.original_label, failure.file_type_id,
+                                             failure.target_file_id, failure.severity_id)
 
     def run_cross_validation(self, job):
         """ Cross file validation job. Test all rules with matching rule_timing. Run each cross-file rule and create
