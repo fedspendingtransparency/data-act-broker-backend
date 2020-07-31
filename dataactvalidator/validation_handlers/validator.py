@@ -212,7 +212,8 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
             'file_type': job.file_type.name,
             'action': 'run_sql_validation_rule',
             'status': 'start',
-            'start_time': rule_start
+            'start_time': rule_start,
+            'batch_results': batch_results
         })
 
         def process_batch(failures, columns):
@@ -262,7 +263,8 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
             'status': 'finish',
             'start_time': rule_start,
             'end_time': datetime.now(),
-            'duration': rule_duration
+            'duration': rule_duration,
+            'batch_results': batch_results
         })
 
     sql_val_duration = (datetime.now()-sql_val_start).total_seconds()
