@@ -686,20 +686,17 @@ class FileHandler:
 
             # Insert all non-error, non-delete rows into published table
             column_list = [col.key for col in DetachedAwardFinancialAssistance.__table__.columns]
-            column_list.remove('created_at')
-            column_list.remove('updated_at')
-            column_list.remove('detached_award_financial_assistance_id')
-            column_list.remove('job_id')
-            column_list.remove('row_number')
-            column_list.remove('is_valid')
+            remove_cols = ['created_at', 'updated_at', 'detached_award_financial_assistance_id', 'job_id', 'row_number',
+                           'is_valid']
+            for remove_col in remove_cols:
+                column_list.remove(remove_col)
             detached_col_string = ", ".join(column_list)
 
             column_list = [col.key for col in PublishedAwardFinancialAssistance.__table__.columns]
-            column_list.remove('created_at')
-            column_list.remove('updated_at')
-            column_list.remove('modified_at')
-            column_list.remove('is_active')
-            column_list.remove('published_award_financial_assistance_id')
+            remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active',
+                           'published_award_financial_assistance_id']
+            for remove_col in remove_cols:
+                column_list.remove(remove_col)
             published_col_string = ", ".join(column_list)
 
             log_derivation('Beginning transfer of publishable records to temp table', submission_id)

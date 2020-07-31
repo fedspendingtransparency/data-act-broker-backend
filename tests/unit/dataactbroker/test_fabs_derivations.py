@@ -123,10 +123,10 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
                         awardee_or_recipient_uniqu=None, submission_id=9999):
     """ Initialize the values in the object being run through the fabs_derivations function """
     column_list = [col.key for col in PublishedAwardFinancialAssistance.__table__.columns]
-    column_list.remove('created_at')
-    column_list.remove('updated_at')
-    column_list.remove('modified_at')
-    column_list.remove('published_award_financial_assistance_id')
+    remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active',
+                   'published_award_financial_assistance_id']
+    for remove_col in remove_cols:
+        column_list.remove(remove_col)
     col_string = ", ".join(column_list)
 
     create_query = """
@@ -144,6 +144,8 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
     """
     db.session.execute(create_query.format(submission_id=submission_id, cols=col_string))
 
+    stringify = lambda value: '\'{}\''.format(value) if value else 'NULL'
+
     insert_query = """
         INSERT INTO tmp_fabs_{submission_id} (federal_action_obligation, non_federal_funding_amount, cfda_number,
             awarding_sub_tier_agency_c, funding_sub_tier_agency_co, place_of_performance_code,
@@ -159,31 +161,30 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
     """.format(submission_id=submission_id,
                fao=fao if fao else 'NULL',
                nffa=nffa if nffa else 'NULL',
-               cfda_num='\'{}\''.format(cfda_num) if cfda_num else 'NULL',
-               sub_tier_code='\'{}\''.format(sub_tier_code) if sub_tier_code else 'NULL',
-               sub_fund_agency_code='\'{}\''.format(sub_fund_agency_code) if sub_fund_agency_code else 'NULL',
-               ppop_code='\'{}\''.format(ppop_code) if ppop_code else 'NULL',
-               ppop_zip4a='\'{}\''.format(ppop_zip4a) if ppop_zip4a else 'NULL',
-               ppop_cd='\'{}\''.format(ppop_cd) if ppop_cd else 'NULL',
-               le_zip5='\'{}\''.format(le_zip5) if le_zip5 else 'NULL',
-               le_zip4='\'{}\''.format(le_zip4) if le_zip4 else 'NULL',
+               cfda_num=stringify(cfda_num),
+               sub_tier_code=stringify(sub_tier_code),
+               sub_fund_agency_code=stringify(sub_fund_agency_code),
+               ppop_code=stringify(ppop_code),
+               ppop_zip4a=stringify(ppop_zip4a),
+               ppop_cd=stringify(ppop_cd),
+               le_zip5=stringify(le_zip5),
+               le_zip4=stringify(le_zip4),
                record_type=record_type if record_type else 'NULL',
-               award_mod_amend='\'{}\''.format(award_mod_amend) if award_mod_amend else 'NULL',
-               fain='\'{}\''.format(fain) if fain else 'NULL',
-               uri='\'{}\''.format(uri) if uri else 'NULL',
-               cdi='\'{}\''.format(cdi) if cdi else 'NULL',
-               awarding_office='\'{}\''.format(awarding_office) if awarding_office else 'NULL',
-               funding_office='\'{}\''.format(funding_office) if funding_office else 'NULL',
-               legal_congr='\'{}\''.format(legal_congr) if legal_congr else 'NULL',
-               primary_place_country='\'{}\''.format(primary_place_country) if primary_place_country else 'NULL',
-               legal_country='\'{}\''.format(legal_country) if legal_country else 'NULL',
-               legal_foreign_city='\'{}\''.format(legal_foreign_city) if legal_foreign_city else 'NULL',
-               awardee_or_recipient_uniqu='\'{}\''.format(awardee_or_recipient_uniqu) if awardee_or_recipient_uniqu
-                    else 'NULL',
-               action_type='\'{}\''.format(action_type) if action_type else 'NULL',
-               assist_type='\'{}\''.format(assist_type) if assist_type else 'NULL',
-               busi_type='\'{}\''.format(busi_type) if busi_type else 'NULL',
-               busi_fund='\'{}\''.format(busi_fund) if busi_fund else 'NULL')
+               award_mod_amend=stringify(award_mod_amend),
+               fain=stringify(fain),
+               uri=stringify(uri),
+               cdi=stringify(cdi),
+               awarding_office=stringify(awarding_office),
+               funding_office=stringify(funding_office),
+               legal_congr=stringify(legal_congr),
+               primary_place_country=stringify(primary_place_country),
+               legal_country=stringify(legal_country),
+               legal_foreign_city=stringify(legal_foreign_city),
+               awardee_or_recipient_uniqu=stringify(awardee_or_recipient_uniqu),
+               action_type=stringify(action_type),
+               assist_type=stringify(assist_type),
+               busi_type=stringify(busi_type),
+               busi_fund=stringify(busi_fund))
     db.session.execute(insert_query)
     db.session.commit()
     return submission_id
