@@ -1,7 +1,6 @@
 -- AwardeeOrRecipientUniqueIdentifier is required for AssistanceType of 02, 03, 04, or 05 where ActionDate is after
 -- October 1, 2010, unless the record is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3) or
 -- individual recipient (BusinessTypes includes "P").
-
 SELECT
     row_number,
     assistance_type,

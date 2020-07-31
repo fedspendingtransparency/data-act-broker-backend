@@ -1,7 +1,6 @@
 -- Must be a valid program activity name and code for the corresponding TAS/TAFS as defined in Section 82 of OMB
 -- Circular A-11. If the program activity is unknown, enter "0000" and "Unknown/Other" as your code and name,
 -- respectively. The rule should not trigger at all for re-certifications of FY17Q2 and FY17Q3.
-
 WITH object_class_program_activity_b9_{0} AS
     (SELECT *
     FROM object_class_program_activity

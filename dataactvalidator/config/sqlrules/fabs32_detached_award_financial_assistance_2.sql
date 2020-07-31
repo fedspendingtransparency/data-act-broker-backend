@@ -1,5 +1,4 @@
 -- When provided, PeriodOfPerformanceStartDate should be a valid date between 19991001 and 20991231.
-
 SELECT
     row_number,
     period_of_performance_star,

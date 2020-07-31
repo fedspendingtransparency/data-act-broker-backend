@@ -1,5 +1,4 @@
 -- Value of action date must be between 19991001 and 20991231 (i.e., a date between 10/01/1999 and 12/31/2099)
-
 SELECT
     row_number,
     action_date,

@@ -1,7 +1,6 @@
 -- Must be valid 3-digit object class as defined in OMB Circular A-11 Section 83.6, or a 4-digit code which includes a
 -- 1-digit prefix that distinguishes direct, reimbursable, and allocation obligations. Do not include decimal points
 -- when reporting in the Schema. Object Class Codes of 000 will prompt a warning.
-
 SELECT
     row_number,
     object_class,

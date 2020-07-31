@@ -1,5 +1,4 @@
 -- A future ActionDate is valid only if it occurs within the current fiscal year
-
 SELECT
     row_number,
     action_date,

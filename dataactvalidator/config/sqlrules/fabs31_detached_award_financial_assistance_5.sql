@@ -3,7 +3,6 @@
 -- or PII-redacted non-aggregate record (RecordType=1 or 3) awarded to an or individual recipient (BusinessTypes
 -- includes 'P'). This is an error because CorrectionDeleteIndicator is not C or the action date is after
 -- January 1, 2017.
-
 WITH detached_award_financial_assistance_fabs31_5_{0} AS
     (SELECT
         dafa_31_5.row_number,

@@ -1,6 +1,5 @@
 -- AwardingOfficeCode must be submitted for new awards (ActionType = A) or mixed aggregate records (ActionType = E)
 -- whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either Blank or C.
-
 SELECT
     row_number,
     awarding_office_code,

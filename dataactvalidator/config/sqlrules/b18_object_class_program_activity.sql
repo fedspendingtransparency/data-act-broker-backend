@@ -1,7 +1,6 @@
 -- File B (object class program activity): Reimbursable flag indicator is not required if object class is 4 digits. But
 -- if either "D" or "R" are given, then they have to correspond to the first digit of object class,
 -- R for 1XXX and D for 2XXX.
-
 SELECT
     row_number,
     object_class,

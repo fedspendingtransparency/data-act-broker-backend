@@ -2,7 +2,6 @@
 -- and ActionType = B, C, or D, AwardeeOrRecipientUniqueIdentifier should be active
 -- on the ActionDate, unless the record is an aggregate or PII-redacted non-aggregate record (RecordType=1 or 3) or
 -- awarded to an individual recipient (BusinessTypes includes 'P').
-
 WITH detached_award_financial_assistance_fabs31_7_{0} AS
     (SELECT row_number,
         assistance_type,

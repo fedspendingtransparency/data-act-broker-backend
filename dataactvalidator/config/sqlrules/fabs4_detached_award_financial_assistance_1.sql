@@ -1,5 +1,4 @@
 -- Action date must follow YYYYMMDD format
-
 SELECT
     row_number,
     action_date,

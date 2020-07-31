@@ -1,5 +1,4 @@
 -- PeriodOfPerformanceCurrentEndDate is an optional field, but when provided, must follow YYYYMMDD format
-
 SELECT
     row_number,
     period_of_performance_curr,

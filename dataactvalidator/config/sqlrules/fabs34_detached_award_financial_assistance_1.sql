@@ -1,5 +1,4 @@
 -- When both are provided, PeriodOfPerformanceStartDate must occur on or before PeriodOfPerformanceCurrentEndDate.
-
 SELECT
     row_number,
     period_of_performance_star,

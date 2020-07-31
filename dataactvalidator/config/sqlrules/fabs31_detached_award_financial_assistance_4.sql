@@ -2,7 +2,6 @@
 -- AwardeeOrRecipientUniqueIdentifier must be found in our records, unless the record
 -- is an aggregate or PII-redacted non-aggregate record (RecordType=1 or 3) or awarded to an individual recipient
 -- (BusinessTypes includes 'P').
-
 WITH detached_award_financial_assistance_fabs31_4_{0} AS
     (SELECT
         submission_id,

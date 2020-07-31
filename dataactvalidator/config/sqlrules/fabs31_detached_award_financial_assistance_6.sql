@@ -2,7 +2,6 @@
 -- AwardeeOrRecipientUniqueIdentifier should be active as of the ActionDate, unless the record is an aggregate
 -- or PII-redacted non-aggregate record (RecordType=1 or 3) awarded to an or individual recipient (BusinessTypes
 -- includes 'P'). This is a warning because CorrectionDeleteIndicator is C and the action date is before January 1, 2017
-
 WITH detached_award_financial_assistance_fabs31_6_{0} AS
     (SELECT row_number,
         assistance_type,
