@@ -324,6 +324,9 @@ class ValidationManager:
                 region_name: the region to pull the file
         """
         loading_start = datetime.now()
+        num_proc = 1
+        if PARALLEL:
+            num_proc = MULTIPROCESSING_POOLS or os.cpu_count()
         logger.info({
             'message': 'Beginning data loading {}'.format(self.log_str),
             'message_type': 'ValidatorInfo',
@@ -332,7 +335,9 @@ class ValidationManager:
             'file_type': self.file_type.name,
             'action': 'data_loading',
             'status': 'start',
-            'start_time': loading_start
+            'start_time': loading_start,
+            'parallel': PARALLEL,
+            'num_proc': num_proc
         })
 
         # Extension Check
@@ -425,7 +430,9 @@ class ValidationManager:
             'start_time': loading_start,
             'end_time': datetime.now(),
             'duration': loading_duration,
-            'total_rows': self.total_rows
+            'total_rows': self.total_rows,
+            'parallel': PARALLEL,
+            'num_proc': num_proc
         })
 
         return file_row_count
@@ -446,27 +453,10 @@ class ValidationManager:
 
             m_lock = server_manager.Lock()
             pool = Pool(MULTIPROCESSING_POOLS)
-            pool_size = MULTIPROCESSING_POOLS or os.cpu_count()
-            start_load = time.time()
-            logger.info({
-                'message': 'Starting parallel data loading with {} processes'.format(pool_size),
-                'message_type': 'ValidatorInfo',
-                'submission_id': self.submission_id,
-                'job_id': self.job.job_id,
-                'file_type': self.file_type.name,
-            })
             for chunk_df in reader_obj:
                 pool.apply_async(func=self.process_data_chunk, args=(chunk_df, shared_data, m_lock))
             pool.close()
             pool.join()
-            logger.info({
-                'message': 'Finished parallel data loading with {} processes'.format(pool_size),
-                'message_type': 'ValidatorInfo',
-                'submission_id': self.submission_id,
-                'job_id': self.job.job_id,
-                'file_type': self.file_type.name,
-                'duration': time.time() - start_load
-            })
 
             # Resetting these out here as they are used later in the process
             self.total_rows = shared_data['total_rows']
