@@ -446,10 +446,27 @@ class ValidationManager:
 
             m_lock = server_manager.Lock()
             pool = Pool(MULTIPROCESSING_POOLS)
+            pool_size = MULTIPROCESSING_POOLS or os.cpu_count()
+            start_load = time.time()
+            logger.info({
+                'message': 'Starting parallel data loading with {} processes'.format(pool_size),
+                'message_type': 'ValidatorInfo',
+                'submission_id': self.submission_id,
+                'job_id': self.job.job_id,
+                'file_type': self.file_type.name,
+            })
             for chunk_df in reader_obj:
                 pool.apply_async(func=self.process_data_chunk, args=(chunk_df, shared_data, m_lock))
             pool.close()
             pool.join()
+            logger.info({
+                'message': 'Finished parallel data loading with {} processes'.format(pool_size),
+                'message_type': 'ValidatorInfo',
+                'submission_id': self.submission_id,
+                'job_id': self.job.job_id,
+                'file_type': self.file_type.name,
+                'duration': time.time() - start_load
+            })
 
             # Resetting these out here as they are used later in the process
             self.total_rows = shared_data['total_rows']
