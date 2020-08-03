@@ -384,6 +384,9 @@ class ValidationManager:
         self.reader.file.seek(0)
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
                                  na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
+        # Setting this outside of reader object which may not be used during processing
+        self.flex_fields = self.reader.flex_fields
+        self.header_dict = self.reader.header_dict
 
         if PARALLEL:
             self.parallel_data_loading(reader_obj)
@@ -444,9 +447,7 @@ class ValidationManager:
                 total_rows=self.total_rows,
                 has_data=self.has_data,
                 error_rows=self.error_rows,
-                error_list=self.error_list,
-                header_dict=self.reader.header_dict,
-                flex_fields=self.reader.flex_fields
+                error_list=self.error_list
             )
             # setting reader to none as multiprocess can't pickle it, it'll get reset
             temp_reader = self.reader
@@ -471,9 +472,7 @@ class ValidationManager:
             total_rows=self.total_rows,
             has_data=self.has_data,
             error_rows=self.error_rows,
-            error_list=self.error_list,
-            header_dict=self.reader.header_dict,
-            flex_fields=self.reader.flex_fields
+            error_list=self.error_list
         )
         for chunk_df in reader_obj:
             self.process_data_chunk(chunk_df, shared_data)
@@ -523,7 +522,7 @@ class ValidationManager:
         office_list = {}
 
         # Replace whatever the user included so we're using the database headers
-        chunk_df.rename(columns=shared_data['header_dict'], inplace=True)
+        chunk_df.rename(columns=self.header_dict, inplace=True)
 
         # Do a cleanup of any empty/vacuous rows/cells
         chunk_df = clean_frame_vectorized(chunk_df)
@@ -592,11 +591,10 @@ class ValidationManager:
             del offices
 
         # Gathering flex data (must be done before chunk limiting)
-        with lockable:
-            if shared_data['flex_fields']:
-                flex_data = chunk_df.loc[:, list(shared_data['flex_fields'] + ['row_number'])]
-            if flex_data is not None and not flex_data.empty:
-                flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
+        if self.flex_fields:
+            flex_data = chunk_df.loc[:, list(self.flex_fields + ['row_number'])]
+        if flex_data is not None and not flex_data.empty:
+            flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
 
         # Dropping any extraneous fields included + flex data (must be done before file type checking)
         chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
@@ -686,9 +684,8 @@ class ValidationManager:
             flex_data.drop(['concatted'], axis=1, inplace=True)
             flex_data = flex_data[flex_data['row_number'].isin(chunk_df['row_number'])]
 
-            with lockable:
-                flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=shared_data['flex_fields'],
-                                    var_name='header', value_name='cell')
+            flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=self.flex_fields, var_name='header',
+                                value_name='cell')
 
             # Filling in all the shared data for these flex fields
             now = datetime.now()
