@@ -59,6 +59,7 @@ PARALLEL = CONFIG_BROKER['parallel_loading']
 
 
 class NoLock():
+    """ Simple no-op object that bypasses any with statements that'd be used for locking """
     def __enter__(self):
         return None
 
@@ -498,6 +499,7 @@ class ValidationManager:
             lockable = m_lock
         else:
             sess = GlobalDB.db().session
+            # Using our no-op object to bypass locking for iterating loads
             lockable = NoLock()
 
         # Short-circuit if provided an empty dataframe
