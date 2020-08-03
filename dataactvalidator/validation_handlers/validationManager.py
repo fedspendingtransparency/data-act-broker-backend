@@ -440,13 +440,14 @@ class ValidationManager:
     def parallel_data_loading(self, reader_obj):
         with Manager() as server_manager:
             # These variables will need to be shared among the processes and used later overall
-            shared_data = server_manager.dict()
-            shared_data['total_rows'] = self.total_rows
-            shared_data['has_data'] = self.has_data
-            shared_data['error_rows'] = self.error_rows
-            shared_data['error_list'] = self.error_list
-            shared_data['header_dict'] = self.reader.header_dict
-            shared_data['flex_fields'] = self.reader.flex_fields
+            shared_data = server_manager.dict(
+                total_rows=self.total_rows,
+                has_data=self.has_data,
+                error_rows=self.error_rows,
+                error_list=self.error_list,
+                header_dict=self.reader.header_dict,
+                flex_fields=self.reader.flex_fields
+            )
             # setting reader to none as multiprocess can't pickle it, it'll get reset
             temp_reader = self.reader
             self.reader = None
@@ -466,14 +467,14 @@ class ValidationManager:
             self.reader = temp_reader
 
     def iterative_data_loading(self, reader_obj):
-        shared_data = {
-            'total_rows': self.total_rows,
-            'has_data': self.has_data,
-            'error_rows': self.error_rows,
-            'error_list': self.error_list,
-            'header_dict': self.reader.header_dict,
-            'flex_fields': self.reader.flex_fields
-        }
+        shared_data = dict(
+            total_rows=self.total_rows,
+            has_data=self.has_data,
+            error_rows=self.error_rows,
+            error_list=self.error_list,
+            header_dict=self.reader.header_dict,
+            flex_fields=self.reader.flex_fields
+        )
         for chunk_df in reader_obj:
             self.process_data_chunk(chunk_df, shared_data)
 
