@@ -638,25 +638,59 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
         fh.check_submission_dates(start_date, end_date, quarter_flag, submission)
 
 
-def test_submission_report_url_local(monkeypatch, tmpdir):
+@pytest.mark.usefixtures('job_constants')
+def test_submission_report_url_local(monkeypatch, tmpdir, database):
+    old_sub = SubmissionFactory(submission_id=4, d2_submission=False)
+    new_sub = SubmissionFactory(submission_id=5, d2_submission=False)
+    old_job = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
+                         job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
+                         updated_at='2017-01-01')
+    new_job = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
+                         job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
+                         updated_at='2020-08-01')
+    add_models(database, [old_sub, old_job, new_sub, new_job])
+
     file_path = str(tmpdir) + os.path.sep
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True, 'broker_files': file_path})
-    json_response = fileHandler.submission_report_url(
-        SubmissionFactory(submission_id=4), True, 'award_financial', 'award')
+
+    json_response = fileHandler.submission_report_url(old_sub, True, 'award_financial', 'award')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
-    assert url == os.path.join(file_path, 'submission_4_crossfile_warning_File_C_to_D2_award_financial_award.csv')
+    assert url == os.path.join(file_path, 'submission_4_cross_warning_award_financial_award.csv')
+
+    json_response = fileHandler.submission_report_url(new_sub, True, 'award_financial', 'award')
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == os.path.join(file_path, 'submission_5_crossfile_warning_File_C_to_D2_award_financial_award.csv')
 
 
-def test_submission_report_url_s3(monkeypatch):
+@pytest.mark.usefixtures('job_constants')
+def test_submission_report_url_s3(monkeypatch, database):
+    old_sub = SubmissionFactory(submission_id=4, d2_submission=False)
+    new_sub = SubmissionFactory(submission_id=5, d2_submission=False)
+    old_job = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
+                         job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                         file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2017-01-01')
+    new_job = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
+                         job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                         file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2020-08-01')
+    add_models(database, [old_sub, old_job, new_sub, new_job])
+
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False, 'submission_bucket_mapping': 'test/path'})
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
-    json_response = fileHandler.submission_report_url(SubmissionFactory(submission_id=2), False, 'appropriations', None)
+
+    json_response = fileHandler.submission_report_url(old_sub, False, 'appropriations', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
-        ('errors', 'submission_2_File_A_appropriations_error_report.csv'),
+        ('errors', 'submission_4_appropriations_error_report.csv'),
+        {'method': 'get_object', 'url_mapping': 'test/path'}
+    )
+    json_response = fileHandler.submission_report_url(new_sub, False, 'appropriations', None)
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == 'some/url/here.csv'
+    assert s3_url_handler.return_value.get_signed_url.call_args == (
+        ('errors', 'submission_5_File_A_appropriations_error_report.csv'),
         {'method': 'get_object', 'url_mapping': 'test/path'}
     )
 
@@ -801,20 +835,34 @@ def test_move_published_files(database, monkeypatch):
 
     finished_job = JOB_STATUS_DICT['finished']
     upload_job = JOB_TYPE_DICT['file_upload']
+    val_job = JOB_TYPE_DICT['csv_record_validation']
+    cross_job = JOB_TYPE_DICT['validation']
     appropriations_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/appropriations/file_a.csv',
                                         file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
                                         job_status_id=finished_job)
+    val_appropriations_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/appropriations/file_a.csv',
+                                            file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=val_job,
+                                            job_status_id=finished_job)
     prog_act_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/prog/act/file_b.csv',
                                   file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
                                   job_status_id=finished_job)
+    val_prog_act_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/prog/act/file_b.csv',
+                                      file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=val_job,
+                                      job_status_id=finished_job)
     award_fin_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/fin/file_c.csv',
                                    file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
                                    job_status_id=finished_job)
+    val_award_fin_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/fin/file_c.csv',
+                                       file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=val_job,
+                                       job_status_id=finished_job)
     award_proc_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/proc/file_d1.csv',
                                     file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
                                     job_status_id=finished_job)
     award_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/file_d2.csv',
                                file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
+                               job_status_id=finished_job)
+    cross_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/cross_file.csv',
+                               file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=cross_job,
                                job_status_id=finished_job)
     exec_comp_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/exec/comp/file_e.csv',
                                    file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
@@ -829,17 +877,29 @@ def test_move_published_files(database, monkeypatch):
     appropriations_job_mon = JobFactory(submission=mon_sub, filename='/path/to/appropriations/file_a.csv',
                                         file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
                                         job_status_id=finished_job)
+    val_appropriations_job_mon = JobFactory(submission=mon_sub, filename='/path/to/appropriations/file_a.csv',
+                                            file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=val_job,
+                                            job_status_id=finished_job)
     prog_act_job_mon = JobFactory(submission=mon_sub, filename='/path/to/prog/act/file_b.csv',
                                   file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
                                   job_status_id=finished_job)
+    val_prog_act_job_mon = JobFactory(submission=mon_sub, filename='/path/to/prog/act/file_b.csv',
+                                      file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=val_job,
+                                      job_status_id=finished_job)
     award_fin_job_mon = JobFactory(submission=mon_sub, filename='/path/to/award/fin/file_c.csv',
                                    file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
                                    job_status_id=finished_job)
+    val_award_fin_job_mon = JobFactory(submission=mon_sub, filename='/path/to/award/fin/file_c.csv',
+                                       file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=val_job,
+                                       job_status_id=finished_job)
     award_proc_job_mon = JobFactory(submission=mon_sub, filename='/path/to/award/proc/file_d1.csv',
                                     file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
                                     job_status_id=finished_job)
     award_job_mon = JobFactory(submission=mon_sub, filename='/path/to/award/file_d2.csv',
                                file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
+                               job_status_id=finished_job)
+    cross_job_mon = JobFactory(submission=mon_sub, filename='/path/to/award/cross_file.csv',
+                               file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=cross_job,
                                job_status_id=finished_job)
     exec_comp_job_mon = JobFactory(submission=mon_sub, filename='/path/to/exec/comp/file_e.csv',
                                    file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
@@ -849,11 +909,13 @@ def test_move_published_files(database, monkeypatch):
                                    job_status_id=finished_job)
 
     database.session.add_all([pub_hist_local, pub_hist_remote_qtr, cert_hist_local, cert_hist_remote_qtr,
-                              appropriations_job_qtr, prog_act_job_qtr, award_fin_job_qtr, award_proc_job_qtr,
-                              award_job_qtr, exec_comp_job_qtr, sub_award_job_qtr, award_fin_narr_qtr,
-                              pub_hist_remote_mon, cert_hist_remote_mon, appropriations_job_mon, prog_act_job_mon,
-                              award_fin_job_mon, award_proc_job_mon, award_job_mon, exec_comp_job_mon,
-                              sub_award_job_mon])
+                              appropriations_job_qtr, val_appropriations_job_qtr, prog_act_job_qtr,
+                              val_prog_act_job_qtr, award_fin_job_qtr, val_award_fin_job_qtr, award_proc_job_qtr,
+                              award_job_qtr, cross_job_qtr, exec_comp_job_qtr, sub_award_job_qtr,
+                              award_fin_narr_qtr, pub_hist_remote_mon, cert_hist_remote_mon, appropriations_job_mon,
+                              val_appropriations_job_mon, prog_act_job_mon, val_prog_act_job_mon, award_fin_job_mon,
+                              val_award_fin_job_mon, award_proc_job_mon, award_job_mon, cross_job_mon,
+                              exec_comp_job_mon, sub_award_job_mon])
     database.session.commit()
 
     s3_url_handler = Mock()
