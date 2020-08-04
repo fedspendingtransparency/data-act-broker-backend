@@ -94,7 +94,7 @@ def group_zips(sess):
         UPDATE temp_zips_grouped
         SET created_at = NOW(),
             updated_at = NOW(),
-            congressional_district_no = CASE WHEN cd_count > 1
+            congressional_district_no = CASE WHEN cd_count <> 1
                                              THEN '90'
                                              END
         FROM district_counts AS dc

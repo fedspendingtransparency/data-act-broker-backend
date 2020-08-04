@@ -57,7 +57,7 @@ def test_group_zips(database):
     sess.execute("""
         CREATE TABLE temp_zips AS
         SELECT * FROM zips;
-        
+
         CREATE TABLE temp_zips_grouped (LIKE zips_grouped INCLUDING ALL);
     """)
     sess.commit()
