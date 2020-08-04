@@ -864,7 +864,9 @@ def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database
 
         job = JobFactory(submission_id=submission.submission_id, last_validated=now,
                          job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        sess.add(job)
+        c_job = JobFactory(submission_id=submission.submission_id, last_validated=now,
+                           job_type_id=JOB_TYPE_DICT['validation'])
+        sess.add_all([job, c_job])
         sess.commit()
 
         g.user = user
