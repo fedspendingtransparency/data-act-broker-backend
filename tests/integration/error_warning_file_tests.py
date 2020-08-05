@@ -8,10 +8,10 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
 from dataactcore.models.domainModels import concat_tas_dict
 from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
-from dataactcore.models.jobModels import Submission
+from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity
+from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, FlexField
 from dataactvalidator.health_check import create_app
 import dataactvalidator.validation_handlers.validationManager
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
@@ -189,18 +189,16 @@ class ErrorWarningTests(BaseTestValidator):
         return os.path.join(CONFIG_SERVICES['error_report_path'], filename)
 
     def setup_csv_record_validation(self, file, file_type):
-        self.val_job.filename = file
-        self.val_job.file_type_id = FILE_TYPE_DICT[file_type]
-        self.val_job.job_status_id = JOB_STATUS_DICT['ready']
-        self.val_job.job_type_id = JOB_TYPE_DICT['csv_record_validation']
-        self.session.commit()
+        self.session.query(Job).delete(synchronize_session='fetch')
+        self.val_job = insert_job(self.session, FILE_TYPE_DICT[file_type], JOB_STATUS_DICT['ready'],
+                                  JOB_TYPE_DICT['csv_record_validation'], self.submission_id,
+                                  filename=file)
 
     def setup_validation(self):
-        self.val_job.filename = None
-        self.val_job.file_type_id = None
-        self.val_job.job_status_id = JOB_STATUS_DICT['ready']
-        self.val_job.job_type_id = JOB_TYPE_DICT['validation']
-        self.session.commit()
+        self.session.query(Job).delete(synchronize_session='fetch')
+        self.val_job = insert_job(self.session, None, JOB_STATUS_DICT['ready'],
+                                  JOB_TYPE_DICT['validation'], self.submission_id,
+                                  filename=None)
 
     def get_report_content(self, report_path):
         report_content = []
@@ -255,6 +253,7 @@ class ErrorWarningTests(BaseTestValidator):
         self.session.query(Appropriation).delete(synchronize_session='fetch')
         self.session.query(ObjectClassProgramActivity).delete(synchronize_session='fetch')
         self.session.query(ErrorMetadata).delete(synchronize_session='fetch')
+        self.session.query(FlexField).delete(synchronize_session='fetch')
         self.session.commit()
 
     def test_single_file_warnings(self):
@@ -541,7 +540,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
-                'Source Flex Field': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '5',
                 'Rule Label': 'A18'
             },
@@ -557,7 +556,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
                 'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
                 'Difference': '18000',
-                'Source Flex Field': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '5',
                 'Rule Label': 'A19'
             },
@@ -576,7 +575,7 @@ class ErrorWarningTests(BaseTestValidator):
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
                                          ' ussgl497200_downward_adjus_cpe_sum: 2000',
                 'Difference': '9600',
-                'Source Flex Field': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '5',
                 'Rule Label': 'A35'
             }
@@ -618,7 +617,7 @@ class ErrorWarningTests(BaseTestValidator):
                                          ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
                 'Target Value Provided': '',
                 'Difference': '',
-                'Source Flex Field': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '2',
                 'Rule Label': 'A30.1'
             }
