@@ -298,7 +298,8 @@ class ValidationManager:
 
         finally:
             # Ensure the files always close
-            self.reader.close()
+            if self.reader:
+                self.reader.close()
 
             validation_duration = (datetime.now()-validation_start).total_seconds()
             logger.info({
@@ -385,12 +386,15 @@ class ValidationManager:
         self.reader.file.seek(0)
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
                                  na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
-        # Setting this outside of reader object which may not be used during processing
+        # Setting this outside of reader/file type objects which may not be used during processing
         self.flex_fields = self.reader.flex_fields
         self.header_dict = self.reader.header_dict
+        self.file_type_name = self.file_type.name
+        self.file_type_id = self.file_type.file_type_id
+        self.job_id = self.job.job_id
 
         if PARALLEL:
-            self.parallel_data_loading(reader_obj)
+            self.parallel_data_loading(sess, reader_obj)
         else:
             self.iterative_data_loading(reader_obj)
 
@@ -441,7 +445,23 @@ class ValidationManager:
 
         return file_row_count
 
-    def parallel_data_loading(self, reader_obj):
+    def parallel_data_loading(self, sess, reader_obj):
+        # making a temp table of the data and doing a transfer in case something goes wrong in a subprocess
+        create_temp_table_sql = """
+            CREATE TABLE tmp_{file_type}_{submission_id}
+            AS
+                SELECT {cols}
+                FROM {table}
+                WHERE false;
+        """
+        table_cols = [col.key for col in self.model.__table__.columns if col not in self.model.__mapper__.primary_key]
+        sess.execute(create_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id,
+                                                  table=self.model.__table__.name, cols=','.join(table_cols)))
+        flex_cols = [col.key for col in FlexField.__table__.columns if col not in FlexField.__mapper__.primary_key]
+        sess.execute(create_temp_table_sql.format(file_type='flex', submission_id=self.submission_id,
+                                                  table=FlexField.__table__.name, cols=','.join(flex_cols)))
+        sess.commit()
+
         with Manager() as server_manager:
             # These variables will need to be shared among the processes and used later overall
             shared_data = server_manager.dict(
@@ -467,6 +487,24 @@ class ValidationManager:
             self.error_rows = shared_data['error_rows']
             self.error_list = shared_data['error_list']
             self.reader = temp_reader
+
+        # transfer the new records to their intended tables
+        copy_temp_table_sql = """
+            INSERT INTO {table} ({cols})
+            SELECT {cols}
+            FROM tmp_{file_type}_{submission_id};
+        """
+        sess.execute(copy_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id,
+                                                table=self.model.__table__.name, cols=','.join(table_cols)))
+        sess.execute(copy_temp_table_sql.format(file_type='flex', submission_id=self.submission_id,
+                                                table=FlexField.__table__.name, cols=','.join(flex_cols)))
+
+        # drop the new tables
+        drop_temp_table_sql = """
+            DROP TABLE tmp_{file_type}_{submission_id};
+        """
+        sess.execute(drop_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id))
+        sess.execute(drop_temp_table_sql.format(file_type='flex', submission_id=self.submission_id))
 
     def iterative_data_loading(self, reader_obj):
         shared_data = dict(
@@ -508,8 +546,8 @@ class ValidationManager:
                 'message': 'Empty chunk provided.',
                 'message_type': 'ValidatorWarning',
                 'submission_id': self.submission_id,
-                'job_id': self.job.job_id,
-                'file_type': self.file_type.name,
+                'job_id': self.job_id,
+                'file_type': self.file_type_name,
                 'action': 'data_loading',
                 'status': 'end'
             })
@@ -545,8 +583,8 @@ class ValidationManager:
             'message': 'Loading rows starting from {}'.format(chunk_df['row_number'].iloc[0]),
             'message_type': 'ValidatorInfo',
             'submission_id': self.submission_id,
-            'job_id': self.job.job_id,
-            'file_type': self.file_type.name,
+            'job_id': self.job_id,
+            'file_type': self.file_type_name,
             'action': 'data_loading',
             'status': 'start'
         })
@@ -567,8 +605,8 @@ class ValidationManager:
                 'message': 'Only empty rows found. No data loaded in this chunk',
                 'message_type': 'ValidatorWarning',
                 'submission_id': self.submission_id,
-                'job_id': self.job.job_id,
-                'file_type': self.file_type.name,
+                'job_id': self.job_id,
+                'file_type': self.file_type_name,
                 'action': 'data_loading',
                 'status': 'end'
             })
@@ -602,7 +640,7 @@ class ValidationManager:
         chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
 
         # Only do validations if it's not a D file
-        if self.file_type.name not in ['award', 'award_procurement']:
+        if self.file_type_name not in ['award', 'award_procurement']:
 
             # Padding specific fields
             for field in self.parsed_fields['padded']:
@@ -629,18 +667,18 @@ class ValidationManager:
 
             # Separate each of the checks to their own dataframes, then concat them together
             req_errors = check_required(chunk_df, self.parsed_fields['required'], required_list,
-                                        self.report_headers, self.short_to_long_dict[self.file_type.file_type_id],
+                                        self.report_headers, self.short_to_long_dict[self.file_type_id],
                                         flex_data, is_fabs=self.is_fabs)
             type_errors = check_type(chunk_df, self.parsed_fields['number'] + self.parsed_fields['boolean'],
                                      type_list, self.report_headers, self.csv_schema,
-                                     self.short_to_long_dict[self.file_type.file_type_id], flex_data,
+                                     self.short_to_long_dict[self.file_type_id], flex_data,
                                      is_fabs=self.is_fabs)
             type_error_rows = type_errors['Row Number'].tolist()
             length_errors = check_length(chunk_df, self.parsed_fields['length'], self.report_headers,
-                                         self.csv_schema, self.short_to_long_dict[self.file_type.file_type_id],
+                                         self.csv_schema, self.short_to_long_dict[self.file_type_id],
                                          flex_data, type_error_rows)
             field_format_errors = check_field_format(chunk_df, self.parsed_fields['format'], self.report_headers,
-                                                     self.short_to_long_dict[self.file_type.file_type_id],
+                                                     self.short_to_long_dict[self.file_type_id],
                                                      flex_data)
             field_format_error_rows = field_format_errors['Row Number'].tolist()
 
@@ -655,9 +693,9 @@ class ValidationManager:
 
             with lockable:
                 for index, row in total_errors.iterrows():
-                    shared_data['error_list'].record_row_error(self.job.job_id, self.file_name, row['Field Name'],
+                    shared_data['error_list'].record_row_error(self.job_id, self.file_name, row['Field Name'],
                                                                row['error_type'], row['Row Number'], row['Rule Label'],
-                                                               self.file_type.file_type_id, None,
+                                                               self.file_type_id, None,
                                                                RULE_SEVERITY_DICT['fatal'])
 
             total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
@@ -677,9 +715,14 @@ class ValidationManager:
         now = datetime.now()
         chunk_df['created_at'] = now
         chunk_df['updated_at'] = now
-        chunk_df['job_id'] = self.job.job_id
+        chunk_df['job_id'] = self.job_id
         chunk_df['submission_id'] = self.submission_id
-        insert_dataframe(chunk_df, self.model.__table__.name, sess.connection(), method='copy')
+
+        if m_lock:
+            insert_table = 'tmp_{}_{}'.format(self.file_type_name, self.submission_id)
+        else:
+            insert_table = self.model.__table__.name
+        insert_dataframe(chunk_df, insert_table, sess.connection(), method='copy')
 
         # Flex Fields
         if flex_data is not None:
@@ -693,18 +736,22 @@ class ValidationManager:
             now = datetime.now()
             flex_rows['created_at'] = now
             flex_rows['updated_at'] = now
-            flex_rows['job_id'] = self.job.job_id
+            flex_rows['job_id'] = self.job_id
             flex_rows['submission_id'] = self.submission_id
-            flex_rows['file_type_id'] = self.file_type.file_type_id
+            flex_rows['file_type_id'] = self.file_type_id
 
             # Adding the entire set of flex fields
-            rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection(), method='copy')
+            if m_lock:
+                insert_flex = 'tmp_flex_{}'.format(self.submission_id)
+            else:
+                insert_flex = FlexField.__table__.name
+            rows_inserted = insert_dataframe(flex_rows, insert_flex, sess.connection(), method='copy')
             logger.info({
                 'message': 'Loaded {} flex field rows for batch'.format(rows_inserted),
                 'message_type': 'ValidatorInfo',
                 'submission_id': self.submission_id,
-                'job_id': self.job.job_id,
-                'file_type': self.file_type.name,
+                'job_id': self.job_id,
+                'file_type': self.file_type_name,
                 'action': 'data_loading',
                 'status': 'end'
             })
@@ -716,8 +763,8 @@ class ValidationManager:
             'message': 'Loaded rows up to {}'.format(chunk_df['row_number'].iloc[-1]),
             'message_type': 'ValidatorInfo',
             'submission_id': self.submission_id,
-            'job_id': self.job.job_id,
-            'file_type': self.file_type.name,
+            'job_id': self.job_id,
+            'file_type': self.file_type_name,
             'action': 'data_loading',
             'status': 'end'
         })
