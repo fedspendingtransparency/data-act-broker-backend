@@ -49,8 +49,12 @@ def test_group_zips(database):
     zip_state_cd2 = Zips(zip5='33333', zip_last4='3334', state_abbreviation='WA', county_number='000',
                          congressional_district_no='02')
 
+    # Null congressional district
+    zip_null_cd = Zips(zip5='44444', zip_last4='4444', state_abbreviation='WA', county_number='000',
+                       congressional_district_no=None)
+
     sess.add_all([zip_same1, zip_same2, zip_state1, zip_state2, zip_county1, zip_county2, zip_cd1, zip_cd2,
-                  zip_state_cd1, zip_state_cd2])
+                  zip_state_cd1, zip_state_cd2, zip_null_cd])
     sess.commit()
 
     # Creating the temp tables to use for testing
@@ -123,3 +127,11 @@ def test_group_zips(database):
     assert zips[1].state_abbreviation == zip_state_cd2.state_abbreviation
     assert zips[1].county_number == zip_state_cd2.county_number
     assert zips[1].congressional_district_no == '90'
+
+    # Null congressional district
+    zips = sess.query(ZipsGrouped).filter_by(zip5=zip_null_cd.zip5).all()
+    assert len(zips) == 1
+    assert zips[0].zip5 == zip_null_cd.zip5
+    assert zips[0].state_abbreviation == zip_null_cd.state_abbreviation
+    assert zips[0].county_number == zip_null_cd.county_number
+    assert zips[0].congressional_district_no == '90'
