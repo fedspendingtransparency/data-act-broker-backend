@@ -342,3 +342,4 @@ class FileGeneration(Base):
     is_cached_file = Column(Boolean, nullable=False, default=False)
     file_format = Column(Enum('csv', 'txt', name='generation_file_format'), nullable=False, index=True,
                          default='csv', server_default='csv')
+    element_numbers = Column(Boolean, nullable=False, default=False)
