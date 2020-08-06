@@ -12,6 +12,11 @@ from botocore.exceptions import ClientError, EndpointConnectionError, NoCredenti
 
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactvalidator.validator_logging import log_job_message
+from dataactvalidator.queue_exceptions import (
+    QueueWorkDispatcherError,
+    QueueWorkerProcessError,
+    ExecutionTimeout,
+)
 
 # Not a complete list of signals
 # NOTE: 1-15 are relatively standard on unix platforms; > 15 can change from platform to platform
@@ -56,7 +61,8 @@ class SQSWorkDispatcher:
     # So we do NOT want to handle that
 
     def __init__(self, sqs_queue_instance, worker_process_name=None, default_visibility_timeout=60,
-                 long_poll_seconds=None, monitor_sleep_time=5, exit_handling_timeout=30):
+                 long_poll_seconds=None, monitor_sleep_time=5, exit_handling_timeout=30,
+                 worker_can_start_child_processes=False):
         """
             Args:
                 sqs_queue_instance (SQS.Queue): the SQS queue to get work from
@@ -71,12 +77,20 @@ class SQSWorkDispatcher:
                 exit_handling_timeout (int): expected window of time during which cleanup should complete (not
                     guaranteed). This for example would be the time to finish cleanup before the messages is re-queued
                     or DLQ'd
+                worker_can_start_child_processes (bool): Controls the multiprocessing.Process daemon attribute. When
+                    ``daemon=True``, it would ensure that if the parent dispatcher dies, it will kill its child
+                    worker. However, from the docs "a daemonic process is not allowed to create child processes",
+                    because termination is not cascaded, so a terminated parent killing a direct child would leave
+                    orphaned grand-children. So if the worker process needs to start its own child processes in order to
+                    do its work, set this to ``True``, so that ``Process.daemon`` will be set to ``False``,
+                    allowing the creation of grandchild processes from the dispatcher's child worker process.
         """
         self.sqs_queue_instance = sqs_queue_instance
         self.worker_process_name = worker_process_name
         self._default_visibility_timeout = default_visibility_timeout
         self._monitor_sleep_time = monitor_sleep_time
         self._exit_handling_timeout = exit_handling_timeout
+        self._worker_can_start_child_processes = worker_can_start_child_processes
         self._current_sqs_message = None
         self._worker_process = None
         self._job_args = ()
@@ -102,7 +116,9 @@ class SQSWorkDispatcher:
         if self._monitor_sleep_time >= self._default_visibility_timeout:
             msg = "_monitor_sleep_time must be less than _default_visibility_timeout. " \
                   "Otherwise job duplication can occur"
-            raise QueueWorkDispatcherError(msg)
+            raise QueueWorkDispatcherError(
+                msg, worker_process_name=self.worker_process_name, queue_message=self._current_sqs_message
+            )
 
         # Map handler functions for each of the exit signals we want to handle on the parent dispatcher process
         for sig in self.EXIT_SIGNALS:
@@ -127,6 +143,22 @@ class SQSWorkDispatcher:
         redrive_json = json.loads(redrive_policy)
         retries = redrive_json.get("maxReceiveCount")
         return retries and retries > 1
+
+    @property
+    def message_try_attempt(self):
+        """ int: Give an approximation of which attempt this is to process this message
+
+            Will return None if the message has not been received yet or if the receive count is not being tracked
+            This can be used to determine if this is a retry of this message (if return value > 1)
+        """
+        if not self._current_sqs_message:
+            return None
+        # get the non-user-defined (queue-defined) attributes on the message
+        q_msg_attr = self._current_sqs_message.attributes
+        if q_msg_attr.get("ApproximateReceiveCount") is None:
+            return None
+        else:
+            return int(q_msg_attr.get("ApproximateReceiveCount"))
 
     def _dispatch(self, job, worker_process_name=None, exit_handler=None, *job_args, **job_kwargs):
         """ Dispatch work to be performed in a newly started worker process.
@@ -187,7 +219,7 @@ class SQSWorkDispatcher:
             name=self.worker_process_name,
             target=signal_reset_wrapper,
             args=(job, job_args, job_kwargs),
-            daemon=False  # daemon=True ensures that if the parent dispatcher dies, it will kill this child worker
+            daemon=not self._worker_can_start_child_processes,
         )
         self._worker_process.start()
         log_job_message(
@@ -421,13 +453,13 @@ class SQSWorkDispatcher:
             self._current_sqs_message.delete()
             self._current_sqs_message = None
         except Exception as exc:
+            message = "Unable to delete SQS message from queue. " \
+                      "Message might have previously been deleted upon completion or failure"
             log_job_message(
-                logger=self._logger,
-                message="Unable to delete SQS message from queue. "
-                        "Message might have previously been deleted upon completion or failure",
-                is_exception=True
-            )
-            raise QueueWorkDispatcherError() from exc
+                logger=self._logger, message=message, is_exception=True)
+            raise QueueWorkDispatcherError(
+                message, worker_process_name=self.worker_process_name, queue_message=self._current_sqs_message
+            ) from exc
 
     def surrender_message_to_other_consumers(self, delay=0):
         """ Return the message back into its original queue for other consumers to process it.
@@ -490,7 +522,9 @@ class SQSWorkDispatcher:
                         "It was not set, or was not included as an attribute to be " \
                         "retrieved with this queue.".format(self.sqs_queue_instance)
                 log_job_message(logger=self._logger, message=error, is_error=True)
-                raise QueueWorkDispatcherError(error)
+                raise QueueWorkDispatcherError(
+                    error, worker_process_name=self.worker_process_name, queue_message=self._current_sqs_message,
+                )
 
             redrive_json = json.loads(redrive_policy)
             dlq_arn = redrive_json.get("deadLetterTargetArn")
@@ -499,7 +533,9 @@ class SQSWorkDispatcher:
                         "Cannot find a dead letter queue in the RedrivePolicy " \
                         "for SQS queue \"{}\"".format(self.sqs_queue_instance)
                 log_job_message(logger=self._logger, message=error, is_error=True)
-                raise QueueWorkDispatcherError(error)
+                raise QueueWorkDispatcherError(
+                    error, worker_process_name=self.worker_process_name, queue_message=self._current_sqs_message,
+                )
             dlq_name = dlq_arn.split(':')[-1]
 
             # Copy the message to the designated dead letter queue
@@ -515,7 +551,9 @@ class SQSWorkDispatcher:
                     "for worker process with PID [{}] " \
                     "to the dead letter queue [{}].".format(os.getpid(), self._worker_process.pid, dlq_name)
             log_job_message(logger=self._logger, message=error, is_exception=True)
-            raise QueueWorkDispatcherError(error) from exc
+            raise QueueWorkDispatcherError(
+                error, worker_process_name=self.worker_process_name, queue_message=self._current_sqs_message,
+            ) from exc
 
         log_job_message(
             logger=self._logger,
@@ -585,7 +623,9 @@ class SQSWorkDispatcher:
                     self._worker_process.exitcode
                 )
                 log_job_message(logger=self._logger, message=message, is_error=True)
-                raise QueueWorkerProcessError(message)
+                raise QueueWorkerProcessError(
+                    message, worker_process_name=self.worker_process_name, queue_message=self._current_sqs_message,
+                )
             elif self._worker_process.exitcode < 0:
                 # If process exits with a negative code, process was terminated by a signal since
                 # a Python subprocess returns the negative value of the signal.
@@ -650,10 +690,8 @@ class SQSWorkDispatcher:
                         "Exiting worker process with original exit signal.".format(os.getpid(), signal_or_human),
                 is_warning=True
             )
+            self._kill_worker(with_signal=signum)
 
-            # Ensure the worker exits as would have occurred if not handling its signals
-            signal.signal(signum, signal.SIG_DFL)
-            os.kill(self._worker_process.pid, signum)
         elif not parent_dispatcher_signaled:
             log_job_message(
                 logger=self._logger,
@@ -666,6 +704,9 @@ class SQSWorkDispatcher:
                         ),
                 is_error=True
             )
+            # Attempt to cleanup children, but likely will be a no-op because the worker has already exited and
+            # orphaned them
+            self._kill_worker(with_signal=signum, just_kill_descendants=True)
 
         else:  # dispatcher signaled
             log_job_message(
@@ -713,7 +754,7 @@ class SQSWorkDispatcher:
                             self._worker_process.pid),
                         is_debug=True
                     )
-                    worker.kill()
+                    self._kill_worker()
             else:
                 try_attempt = "second" if is_retry else "first"
                 log_job_message(
@@ -770,7 +811,11 @@ class SQSWorkDispatcher:
                             message=message,
                             is_error=True
                         )
-                        raise QueueWorkDispatcherError(message)
+                        raise QueueWorkDispatcherError(
+                            message,
+                            worker_process_name=self.worker_process_name,
+                            queue_message=self._current_sqs_message
+                        )
                 except Exception as exc:
                     exit_handling_failed = True
                     message = "Execution of exit_handler failed for unknown reason. See Traceback."
@@ -779,7 +824,9 @@ class SQSWorkDispatcher:
                         message=message,
                         is_exception=True
                     )
-                    raise QueueWorkDispatcherError(message) from exc
+                    raise QueueWorkDispatcherError(
+                        message, worker_process_name=self.worker_process_name, queue_message=self._current_sqs_message
+                    ) from exc
 
             if self.allow_retries:
                 log_job_message(
@@ -799,16 +846,13 @@ class SQSWorkDispatcher:
 
             # Now that SQS message has been handled, ensure worker process is dead
             if self._worker_process.is_alive():
-                worker = ps.Process(self._worker_process.pid)
-                # Use kill instead of multiprocess.Process.terminate() or psutil.Process.terminate(), since each of
-                # those send a signal.SIGTERM which is not as immediate and final as kill (signal.SIGKILL)
                 log_job_message(
                     logger=self._logger,
                     message="Message handled. Now killing worker process with PID [{}] "
-                            "as it is alive but has no more work to do.".format(worker.pid),
+                            "as it is alive but has no more work to do.".format(self._worker_process.pid),
                     is_debug=True
                 )
-                worker.kill()
+                self._kill_worker()
         finally:
             if exit_handling_failed:
                 # Don't perform final logic if we got here after failing to execute the exit handler
@@ -878,35 +922,56 @@ class SQSWorkDispatcher:
             message = "Unable to set VisibilityTimeout. " \
                       "Message might have previously been deleted upon completion or failure"
             log_job_message(logger=self._logger, message=message, is_exception=True)
-            raise QueueWorkDispatcherError(message) from exc
+            raise QueueWorkDispatcherError(
+                message, worker_process_name=self.worker_process_name, queue_message=self._current_sqs_message
+            ) from exc
 
+    def _kill_worker(self, with_signal=None, just_kill_descendants=False):
+        """
+        Cleanup (kill) a worker process and its spawned descendant processes
+        Args:
+            with_signal: Use this termination signal when killing. Otherwise, hard kill (-9)
+            just_kill_descendants: Set to True to leave the worker and only kill its descendants
+        """
+        if not self._worker_process or not ps.pid_exists(self._worker_process.pid):
+            return
+        try:
+            worker = ps.Process(self._worker_process.pid)
+        except ps.NoSuchProcess:
+            return
 
-class QueueWorkerProcessError(Exception):
-    """ Custom exception representing the scenario where the spawned worker process has failed
-        with a non-zero exit code, indicating some kind of failure.
-    """
-    pass
-
-
-class QueueWorkDispatcherError(Exception):
-    """ Custom exception representing the scenario where the parent process dispatching to and monitoring the worker
-        process has failed with some kind of unexpected exception.
-    """
-    pass
-
-
-class ExecutionTimeout:
-    def __init__(self, seconds=0, error_message='Execution took longer than the allotted time'):
-        self.seconds = seconds
-        self.error_message = error_message
-
-    def _timeout_handler(self, signum, frame):
-        raise TimeoutError(self.error_message)
-
-    def __enter__(self):
-        if self.seconds > 0:
-            signal.signal(signal.SIGALRM, self._timeout_handler)
-            signal.alarm(self.seconds)
-
-    def __exit__(self, type, value, traceback):
-        signal.alarm(0)
+        if self._worker_can_start_child_processes:
+            # First kill any other processes the worker may have spawned
+            for spawn_of_worker in worker.children(recursive=True):
+                if with_signal:
+                    log_job_message(
+                        logger=self._logger,
+                        message="Attempting to terminate child process with PID {} and name {} using signal {}"
+                                .format(spawn_of_worker.pid, spawn_of_worker.name, with_signal),
+                        is_warning=True,
+                    )
+                    try:
+                        spawn_of_worker.send_signal(with_signal)
+                    except ps.NoSuchProcess:
+                        pass
+                else:
+                    log_job_message(
+                        logger=self._logger,
+                        message="Attempting to terminate child process with PID {} and name {}"
+                                .format(spawn_of_worker.pid, spawn_of_worker.name),
+                        is_warning=True,
+                    )
+                    try:
+                        spawn_of_worker.kill()
+                    except ps.NoSuchProcess:
+                        pass
+        if not just_kill_descendants:
+            if with_signal:
+                # Ensure the worker exits as would have occurred if not handling its signals
+                signal.signal(with_signal, signal.SIG_DFL)
+                worker.send_signal(with_signal)
+            else:
+                try:
+                    worker.kill()
+                except ps.NoSuchProcess:
+                    pass
