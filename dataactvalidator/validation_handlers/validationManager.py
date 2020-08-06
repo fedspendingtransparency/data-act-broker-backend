@@ -4,6 +4,7 @@ import logging
 import os
 import traceback
 import pandas as pd
+import psutil as ps
 from multiprocessing import Pool, Manager
 import time
 from datetime import timedelta
@@ -314,6 +315,8 @@ class ValidationManager:
                 'end_time': datetime.now(),
                 'duration': validation_duration
             })
+
+            self._kill_spawned_processes()
 
         return True
 
@@ -974,6 +977,19 @@ class ValidationManager:
         job.last_validated = datetime.utcnow()
         sess.commit()
         return JsonResponse.create(StatusCode.OK, {'message': 'Validation complete'})
+
+    def _kill_spawned_processes(self):
+        """Cleanup (kill) any spawned child processes during this job run"""
+        job = ps.Process(os.getpid())
+        for spawn_of_job in job.children(recursive=True):
+            logger.error({
+                'message': 'Attempting to terminate child process with PID: {} and name {}'.format(spawn_of_job.pid,
+                                                                                                   spawn_of_job.name),
+                'message_type': 'ValidatorInfo',
+                'submission_id': self.submission_id,
+                'job_id': job.job_id,
+            })
+            spawn_of_job.kill()
 
 
 def update_tas_ids(model_class, submission_id):
