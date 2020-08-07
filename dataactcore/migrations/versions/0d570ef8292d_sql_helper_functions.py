@@ -1,14 +1,14 @@
 """ Adding SQL helper functions
 
 Revision ID: 0d570ef8292d
-Revises: be4dcb9eede6
+Revises: 3b9dffe063a6
 Create Date: 2020-07-29 18:22:24.057600
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '0d570ef8292d'
-down_revision = 'be4dcb9eede6'
+down_revision = '3b9dffe063a6'
 branch_labels = None
 depends_on = None
 
