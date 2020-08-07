@@ -466,8 +466,9 @@ class ValidationManager:
         sess.execute(create_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id,
                                                   table=self.model.__table__.name, cols=','.join(table_cols)))
         flex_cols = [col.key for col in FlexField.__table__.columns if col not in FlexField.__mapper__.primary_key]
-        sess.execute(create_temp_table_sql.format(file_type='flex', submission_id=self.submission_id,
-                                                  table=FlexField.__table__.name, cols=','.join(flex_cols)))
+        sess.execute(create_temp_table_sql.format(file_type='flex_' + self.file_type.name,
+                                                  submission_id=self.submission_id, table=FlexField.__table__.name,
+                                                  cols=','.join(flex_cols)))
         sess.commit()
 
         try:
@@ -513,7 +514,8 @@ class ValidationManager:
                 """
                 sess.execute(copy_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id,
                                                         table=self.model.__table__.name, cols=','.join(table_cols)))
-                sess.execute(copy_temp_table_sql.format(file_type='flex', submission_id=self.submission_id,
+                sess.execute(copy_temp_table_sql.format(file_type='flex_' + self.file_type.name,
+                                                        submission_id=self.submission_id,
                                                         table=FlexField.__table__.name, cols=','.join(flex_cols)))
         except Exception as e:
             raise e
@@ -523,7 +525,8 @@ class ValidationManager:
                 DROP TABLE tmp_{file_type}_{submission_id};
             """
             sess.execute(drop_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id))
-            sess.execute(drop_temp_table_sql.format(file_type='flex', submission_id=self.submission_id))
+            sess.execute(drop_temp_table_sql.format(file_type='flex_' + self.file_type.name,
+                                                    submission_id=self.submission_id))
 
     def iterative_data_loading(self, reader_obj):
         """ The normal version of data loading that iterates over each chunk
@@ -784,7 +787,7 @@ class ValidationManager:
 
             # Adding the entire set of flex fields
             if m_lock:
-                insert_flex = 'tmp_flex_{}'.format(self.submission_id)
+                insert_flex = 'tmp_flex_{}_{}'.format(self.file_type_name, self.submission_id)
             else:
                 insert_flex = FlexField.__table__.name
             rows_inserted = insert_dataframe(flex_rows, insert_flex, sess.connection(), method='copy')
