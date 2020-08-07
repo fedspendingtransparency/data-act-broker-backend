@@ -877,6 +877,8 @@ class FileTests(BaseTestAPI):
                    JOB_TYPE_DICT['csv_record_validation'], self.test_monthly_submission_id, num_valid_rows=1)
         insert_job(self.session, FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['finished'],
                    JOB_TYPE_DICT['csv_record_validation'], self.test_monthly_submission_id, num_valid_rows=1)
+        insert_job(self.session, None, JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['validation'], self.test_monthly_submission_id, num_valid_rows=1)
         post_json = {'submission_id': self.test_monthly_submission_id}
         response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
                                       headers={'x-session-id': self.session_id}, expect_errors=False)
@@ -887,6 +889,8 @@ class FileTests(BaseTestAPI):
                    JOB_TYPE_DICT['csv_record_validation'], self.dup_test_monthly_submission_id, num_valid_rows=1)
         insert_job(self.session, FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['finished'],
                    JOB_TYPE_DICT['csv_record_validation'], self.dup_test_monthly_submission_id, num_valid_rows=1)
+        insert_job(self.session, None, JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['validation'], self.dup_test_monthly_submission_id, num_valid_rows=1)
         post_json = {'submission_id': self.dup_test_monthly_submission_id}
         response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
                                       headers={'x-session-id': self.session_id}, expect_errors=True)

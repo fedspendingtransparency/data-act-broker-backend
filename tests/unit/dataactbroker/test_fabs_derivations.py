@@ -3,10 +3,10 @@ from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, 
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 
-from tests.unit.dataactcore.factories.domain import (ZipCityFactory, ZipsFactory, CityCodeFactory, DunsFactory,
-                                                     CFDAProgramFactory, CGACFactory, FRECFactory, SubTierAgencyFactory,
-                                                     OfficeFactory, StatesFactory, CountyCodeFactory,
-                                                     CountryCodeFactory)
+from tests.unit.dataactcore.factories.domain import (ZipCityFactory, ZipsFactory, ZipsGroupedFactory, CityCodeFactory,
+                                                     DunsFactory, CFDAProgramFactory, CGACFactory, FRECFactory,
+                                                     SubTierAgencyFactory, OfficeFactory, StatesFactory,
+                                                     CountyCodeFactory, CountryCodeFactory)
 from tests.unit.dataactcore.factories.staging import PublishedAwardFinancialAssistanceFactory
 
 
@@ -21,6 +21,13 @@ def initialize_db_values(db):
                              congressional_district_no='05')
     zip_code_4 = ZipsFactory(zip5='98765', zip_last4='4321', state_abbreviation='NY', county_number='001',
                              congressional_district_no=None)
+    # Grouped zips (we are assuming a correct SQL query on creation of this table)
+    zips_grouped_1 = ZipsGroupedFactory(zip5='12345', state_abbreviation='NY', county_number='001',
+                                        congressional_district_no='90')
+    zips_grouped_2 = ZipsGroupedFactory(zip5='54321', state_abbreviation='NY', county_number='001',
+                                        congressional_district_no='05')
+    zips_grouped_3 = ZipsGroupedFactory(zip5='98765', state_abbreviation='NY', county_number='001',
+                                        congressional_district_no='90')
     # Cities
     zip_city = ZipCityFactory(zip_code=zip_code_1.zip5, city_name='Test City')
     zip_city_2 = ZipCityFactory(zip_code=zip_code_3.zip5, city_name='Test City 2')
@@ -108,10 +115,10 @@ def initialize_db_values(db):
                                                       action_date='04/28/2000', funding_office_code='654321',
                                                       awarding_office_code='654321', is_active=True, record_type=1,
                                                       award_modification_amendme='0', submission_id=1)
-    db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_city, zip_city_2, zip_city_3, city_code,
-                        state, county, country_1, country_2, duns_1, duns_2a, duns_2b, duns_3, cfda, cgac_1, cgac_2,
-                        frec_1, frec_2, cgac_sub_tier, frec_sub_tier, valid_office, invalid_office, pafa_1, pafa_2,
-                        pafa_3, pafa_4, pafa_5, pafa_6])
+    db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zips_grouped_1, zips_grouped_2, zips_grouped_3,
+                        zip_city, zip_city_2, zip_city_3, city_code, state, county, country_1, country_2, duns_1,
+                        duns_2a, duns_2b, duns_3, cfda, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier, frec_sub_tier,
+                        valid_office, invalid_office, pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
     db.session.commit()
 
 
