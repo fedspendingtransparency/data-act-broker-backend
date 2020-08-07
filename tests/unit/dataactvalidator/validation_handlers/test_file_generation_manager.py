@@ -193,7 +193,7 @@ def test_generate_a(database):
 
     # check headers
     file_rows = read_file_rows(job.filename)
-    assert file_rows[0] == [key for key in file_generation_manager.fileA.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileA.mapping.items()]
 
     # check body
     sf1 = sess.query(SF133).filter_by(tas=tas1_str).first()
@@ -255,7 +255,7 @@ def test_generate_awarding_d1(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD1.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD1.mapping.items()]
 
     # check body
     dap_one = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
@@ -297,7 +297,7 @@ def test_generate_funding_d1(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD1.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD1.mapping.items()]
 
     # check body
     dap_one = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
@@ -340,7 +340,7 @@ def test_generate_awarding_d2(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD2.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD2.mapping.items()]
 
     # check body
     pafa1 = sess.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
@@ -382,7 +382,7 @@ def test_generate_funding_d2(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD2.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD2.mapping.items()]
 
     # check body
     pafa1 = sess.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
@@ -424,7 +424,7 @@ def test_generate_txt_d1(database):
     # check headers
     file_rows = read_file_rows(file_gen.file_path, delimiter='|')
     print(file_rows)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD1.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD1.mapping.items()]
 
     # check body
     dap_one = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()

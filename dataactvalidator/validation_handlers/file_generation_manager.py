@@ -114,7 +114,7 @@ class FileGenerationManager:
         else:
             raise ResponseException('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(
                 self.file_type))
-        headers = [key for key in file_utils.mapping]
+        headers = [val[0] for key, val in file_utils.mapping.items()]
 
         log_data['message'] = 'Writing {} file {}: {}'.format(self.file_type, self.file_generation.file_format.upper(),
                                                               original_filename)
@@ -189,7 +189,7 @@ class FileGenerationManager:
         logger.info(log_data)
 
         local_file = "".join([CONFIG_BROKER['d_file_storage_path'], self.job.original_filename])
-        headers = [key for key in fileA.mapping]
+        headers = [val[0] for key, val in fileA.mapping.items()]
         # add 3 months to account for fiscal year
         period_date = self.job.end_date + relativedelta(months=3)
 
