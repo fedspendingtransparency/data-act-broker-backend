@@ -199,7 +199,7 @@ def check_file_generation(job_id):
     return response_dict
 
 
-def retrieve_cached_file_generation(job, agency_type, agency_code, file_format, element_numbers):
+def retrieve_cached_file_generation(job, agency_type, agency_code, file_format, element_numbers=False):
     """ Retrieves a cached FileGeneration for the D file request, if there is one.
 
         Args:
@@ -207,6 +207,7 @@ def retrieve_cached_file_generation(job, agency_type, agency_code, file_format, 
             agency_type: Type of Agency to generate files by: 'awarding' or 'funding'
             agency_code: Agency code to generate file for
             file_format: File format to generate file in (txt or csv)
+            element_numbers: determines if the alternate headers with FPDS element numbers should be used
 
         Returns:
             FileGeneration object matching the criteria, or None

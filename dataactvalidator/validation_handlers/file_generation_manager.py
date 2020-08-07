@@ -45,6 +45,7 @@ class FileGenerationManager:
         self.file_generation = file_generation
         self.job = job
         self.file_type = job.file_type.letter_name if job else file_generation.file_type
+        self.element_numbers = file_generation.element_numbers if file_generation else False
 
     def generate_file(self, agency_code=None):
         """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
@@ -99,22 +100,26 @@ class FileGenerationManager:
             'agency_code': self.file_generation.agency_code, 'agency_type': self.file_generation.agency_type,
             'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
             'file_generation_id': self.file_generation.file_generation_id, 'file_type': self.file_type,
-            'file_format': self.file_generation.file_format, 'file_path': file_path
+            'file_format': self.file_generation.file_format, 'file_path': file_path,
+            'element_numbers': self.element_numbers
         }
         logger.info(log_data)
 
         original_filename = file_path.split('/')[-1]
         local_file = "".join([CONFIG_BROKER['d_file_storage_path'], original_filename])
 
+        header_index = 0
         # Prepare file data
         if self.file_type == 'D1':
             file_utils = fileD1
+            if self.file_generation.element_numbers:
+                header_index = 1
         elif self.file_type == 'D2':
             file_utils = fileD2
         else:
             raise ResponseException('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(
                 self.file_type))
-        headers = [val[0] for key, val in file_utils.mapping.items()]
+        headers = [val[header_index] for key, val in file_utils.mapping.items()]
 
         log_data['message'] = 'Writing {} file {}: {}'.format(self.file_type, self.file_generation.file_format.upper(),
                                                               original_filename)
