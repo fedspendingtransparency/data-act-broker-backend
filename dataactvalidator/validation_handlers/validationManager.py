@@ -449,6 +449,11 @@ class ValidationManager:
         return file_row_count
 
     def parallel_data_loading(self, sess, reader_obj):
+        """ The parallelized version of data loading that processes multiple chunks simultaneously
+
+            Args:
+                reader_obj: the iterator reader object to iterate over all the chunks
+        """
         # making a temp table of the data and doing a transfer in case something goes wrong in a subprocess
         create_temp_table_sql = """
             CREATE TABLE tmp_{file_type}_{submission_id}
@@ -465,51 +470,67 @@ class ValidationManager:
                                                   table=FlexField.__table__.name, cols=','.join(flex_cols)))
         sess.commit()
 
-        with Manager() as server_manager:
-            # These variables will need to be shared among the processes and used later overall
-            shared_data = server_manager.dict(
-                total_rows=self.total_rows,
-                has_data=self.has_data,
-                error_rows=self.error_rows,
-                error_list=self.error_list
-            )
-            # setting reader to none as multiprocess can't pickle it, it'll get reset
-            temp_reader = self.reader
-            self.reader = None
+        try:
+            with Manager() as server_manager:
+                # These variables will need to be shared among the processes and used later overall
+                shared_data = server_manager.dict(
+                    total_rows=self.total_rows,
+                    has_data=self.has_data,
+                    error_rows=self.error_rows,
+                    error_list=self.error_list,
+                    errored=False
+                )
+                # setting reader to none as multiprocess can't pickle it, it'll get reset
+                temp_reader = self.reader
+                self.reader = None
 
-            m_lock = server_manager.Lock()
-            pool = Pool(MULTIPROCESSING_POOLS)
-            for chunk_df in reader_obj:
-                pool.apply_async(func=self.process_data_chunk, args=(chunk_df, shared_data, m_lock))
-            pool.close()
-            pool.join()
+                m_lock = server_manager.Lock()
+                pool = Pool(MULTIPROCESSING_POOLS)
+                results = []
+                for chunk_df in reader_obj:
+                    result = pool.apply_async(func=self.parallel_process_data_chunk, args=(chunk_df, shared_data,
+                                                                                           m_lock))
+                    results.append(result)
+                pool.close()
+                pool.join()
 
-            # Resetting these out here as they are used later in the process
-            self.total_rows = shared_data['total_rows']
-            self.has_data = shared_data['has_data']
-            self.error_rows = shared_data['error_rows']
-            self.error_list = shared_data['error_list']
-            self.reader = temp_reader
+                # Raises any exceptions if such occur
+                for result in results:
+                    result.get()
 
-        # transfer the new records to their intended tables
-        copy_temp_table_sql = """
-            INSERT INTO {table} ({cols})
-            SELECT {cols}
-            FROM tmp_{file_type}_{submission_id};
-        """
-        sess.execute(copy_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id,
-                                                table=self.model.__table__.name, cols=','.join(table_cols)))
-        sess.execute(copy_temp_table_sql.format(file_type='flex', submission_id=self.submission_id,
-                                                table=FlexField.__table__.name, cols=','.join(flex_cols)))
+                # Resetting these out here as they are used later in the process
+                self.total_rows = shared_data['total_rows']
+                self.has_data = shared_data['has_data']
+                self.error_rows = shared_data['error_rows']
+                self.error_list = shared_data['error_list']
+                self.reader = temp_reader
 
-        # drop the new tables
-        drop_temp_table_sql = """
-            DROP TABLE tmp_{file_type}_{submission_id};
-        """
-        sess.execute(drop_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id))
-        sess.execute(drop_temp_table_sql.format(file_type='flex', submission_id=self.submission_id))
+                # transfer the new records to their intended tables
+                copy_temp_table_sql = """
+                    INSERT INTO {table} ({cols})
+                    SELECT {cols}
+                    FROM tmp_{file_type}_{submission_id};
+                """
+                sess.execute(copy_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id,
+                                                        table=self.model.__table__.name, cols=','.join(table_cols)))
+                sess.execute(copy_temp_table_sql.format(file_type='flex', submission_id=self.submission_id,
+                                                        table=FlexField.__table__.name, cols=','.join(flex_cols)))
+        except Exception as e:
+            raise e
+        finally:
+            # drop the new tables
+            drop_temp_table_sql = """
+                DROP TABLE tmp_{file_type}_{submission_id};
+            """
+            sess.execute(drop_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id))
+            sess.execute(drop_temp_table_sql.format(file_type='flex', submission_id=self.submission_id))
 
     def iterative_data_loading(self, reader_obj):
+        """ The normal version of data loading that iterates over each chunk
+
+            Args:
+                reader_obj: the iterator reader object to iterate over all the chunks
+        """
         shared_data = dict(
             total_rows=self.total_rows,
             has_data=self.has_data,
@@ -524,6 +545,24 @@ class ValidationManager:
         self.has_data = shared_data['has_data']
         self.error_rows = shared_data['error_rows']
         self.error_list = shared_data['error_list']
+
+    def parallel_process_data_chunk(self, chunk_df, shared_data, m_lock=None):
+        """ Wrapper around process_data_chunk for parallelization and error catching
+
+            Args:
+                chunk_df: the chunk of the file to process as a dataframe
+                shared_data: dictionary of shared data among the chunks
+                m_lock: manager lock if provided to ensure processes don't override each other
+        """
+        # If one of the processes has errored, we don't want to run any more chunks
+        if shared_data['errored']:
+            return
+
+        try:
+            self.process_data_chunk(chunk_df, shared_data, m_lock=m_lock)
+        except Exception as e:
+            shared_data['errored'] = True
+            raise e
 
     def process_data_chunk(self, chunk_df, shared_data, m_lock=None):
         """ Loads in a chunk of the file and performs initial validations

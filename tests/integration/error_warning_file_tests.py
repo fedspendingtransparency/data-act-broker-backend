@@ -2,19 +2,23 @@ import os
 import csv
 import logging
 import itertools
+import pandas as pd
+import psutil as ps
 from _pytest.monkeypatch import MonkeyPatch
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
 from dataactcore.models.domainModels import concat_tas_dict
 from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
-from dataactcore.models.jobModels import Submission, Job
+from dataactcore.models.jobModels import Submission, Job, FileType
 from dataactcore.models.userModel import User
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, FlexField
 from dataactvalidator.health_check import create_app
 import dataactvalidator.validation_handlers.validationManager
-from dataactvalidator.validation_handlers.validationManager import ValidationManager
+from dataactvalidator.validation_handlers.validationManager import (
+    ValidationManager, FileColumn, CsvReader, parse_fields, ErrorInterface
+)
 from dataactbroker.handlers.fileHandler import report_file_name
 
 from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
@@ -623,3 +627,96 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+
+    def test_validation_parallelize_error(self):
+        # Test the parallelize function with a broken call to see if the process is properly cleaned up
+        self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'MULTIPROCESSING_POOLS', 2)
+
+        # Setting up all the other elements of the validator to simulate the integration test
+        self.validator.submission_id = 1
+        self.validator.file_type = self.session.query(FileType).filter_by(
+            file_type_id=FILE_TYPE_DICT['appropriations']).one()
+        self.validator.file_name = APPROP_FILE
+        self.validator.is_fabs = False
+        self.validator.reader = CsvReader()
+        self.validator.error_list = ErrorInterface()
+        self.validator.error_rows = []
+        self.validator.total_rows = 1
+        self.validator.short_rows = []
+        self.validator.long_rows = []
+        self.validator.has_data = False
+        self.validator.model = Appropriation
+
+        self.validator.error_file_name = report_file_name(self.validator.submission_id, False,
+                                                          self.validator.file_type.name)
+        self.validator.error_file_path = ''.join([CONFIG_SERVICES['error_report_path'],
+                                                  self.validator.error_file_name])
+        self.validator.warning_file_name = report_file_name(self.validator.submission_id, True,
+                                                            self.validator.file_type.name)
+        self.validator.warning_file_path = ''.join([CONFIG_SERVICES['error_report_path'],
+                                                    self.validator.warning_file_name])
+
+        fields = self.session.query(FileColumn) \
+            .filter(FileColumn.file_id == FILE_TYPE_DICT[self.validator.file_type.name]) \
+            .order_by(FileColumn.daims_name.asc()).all()
+        self.validator.expected_headers, self.validator.parsed_fields = parse_fields(self.session, fields)
+        self.validator.csv_schema = {row.name_short: row for row in fields}
+
+        with open(self.validator.error_file_path, 'w', newline='') as error_file, \
+                open(self.validator.warning_file_path, 'w', newline='') as warning_file:
+            error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            error_csv.writerow(self.validator.report_headers)
+            warning_csv.writerow(self.validator.report_headers)
+
+        # Finally open the file for loading into the database with baseline validations
+        self.validator.filename = self.validator.reader.get_filename(None, None, self.validator.file_name)
+        self.validator.reader.open_file(None, None, self.validator.file_name, self.validator.fields, None,
+                                        self.validator.get_file_name(self.validator.error_file_name),
+                                        self.validator.daims_to_short_dict[self.validator.file_type.file_type_id],
+                                        self.validator.short_to_daims_dict[self.validator.file_type.file_type_id],
+                                        is_local=self.validator.is_local)
+
+        # Going back to reprocess the header row
+        self.validator.reader.file.seek(0)
+        reader_obj = pd.read_csv(self.validator.reader.file, dtype=str, delimiter=',', error_bad_lines=False,
+                                 na_filter=False, chunksize=2, warn_bad_lines=False)
+        # Setting this outside of reader/file type objects which may not be used during processing
+        self.validator.flex_fields = ['flex_field_a', 'flex_field_b']
+        self.validator.header_dict = self.validator.reader.header_dict
+        self.validator.file_type_name = self.validator.file_type.name
+        self.validator.file_type_id = self.validator.file_type.file_type_id
+        self.validator.job_id = 2
+
+        # Making a broken list of chunks (one that should process fine, another with an error, another fine)
+        # This way we can tell that the latter chunks processed later are ignored due to the error
+        normal_chunks = list(reader_obj)
+        broken_chunks = [normal_chunks[0], 'BREAK', normal_chunks[1], normal_chunks[2]]
+
+        with self.assertRaises(Exception) as val_except:
+            # making the reader object a list of strings instead, causing the inner function to break
+            self.validator.parallel_data_loading(self.session, broken_chunks)
+        self.assertTrue(type(val_except.exception) == AttributeError)
+        self.assertTrue(str(val_except.exception) == "'str' object has no attribute 'empty'")
+
+        # Check to see the database is unchanged (no data added, temp table removed)
+        file_a_data = self.session.query(Appropriation).filter_by(submission_id=self.validator.submission_id).count()
+        assert file_a_data == 0
+
+        temp_table_exists = self.session.execute('SELECT to_regclass(\'schema_name.tmp_appropriation_1\');')
+        temp_table_exists = temp_table_exists.fetchall()[0][0]
+        assert temp_table_exists is None
+
+        # Check to see if the e/w files are not updated
+        with open(self.validator.error_file_path, 'r', newline='') as error_file, \
+                open(self.validator.warning_file_path, 'r', newline='') as warning_file:
+            error_csv = csv.reader(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            warning_csv = csv.reader(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            error_row_count = sum(1 for row in error_csv)
+            warning_row_count = sum(1 for row in warning_csv)
+        assert error_row_count == 1
+        assert warning_row_count == 1
+
+        # Check to see the processes are killed
+        job = ps.Process(os.getpid())
+        assert len(job.children(recursive=True)) == 0
