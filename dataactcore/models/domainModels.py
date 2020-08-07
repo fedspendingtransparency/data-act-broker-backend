@@ -441,6 +441,24 @@ class Zips(Base):
     __table_args__ = (UniqueConstraint('zip5', 'zip_last4', name='uniq_zip5_zip_last4'),)
 
 
+Index("ix_zips_zip5_state_abbreviation_county_number",
+      Zips.zip5,
+      Zips.state_abbreviation,
+      Zips.county_number,
+      unique=False)
+
+
+class ZipsGrouped(Base):
+    """ Zip and other address data without the final 4 digits for derivation """
+    __tablename__ = "zips_grouped"
+
+    zips_grouped_id = Column(Integer, primary_key=True)
+    zip5 = Column(Text, index=True)
+    state_abbreviation = Column(Text)
+    county_number = Column(Text)
+    congressional_district_no = Column(Text)
+
+
 class CityCode(Base):
     """ City code data and other useful, identifying location data """
     __tablename__ = "city_code"
