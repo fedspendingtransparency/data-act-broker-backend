@@ -454,22 +454,6 @@ class ValidationManager:
             Args:
                 reader_obj: the iterator reader object to iterate over all the chunks
         """
-        # making a temp table of the data and doing a transfer in case something goes wrong in a subprocess
-        create_temp_table_sql = """
-            CREATE TABLE tmp_{file_type}_{submission_id}
-            AS
-                SELECT {cols}
-                FROM {table}
-                WHERE false;
-        """
-        table_cols = [col.key for col in self.model.__table__.columns if col not in self.model.__mapper__.primary_key]
-        sess.execute(create_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id,
-                                                  table=self.model.__table__.name, cols=','.join(table_cols)))
-        flex_cols = [col.key for col in FlexField.__table__.columns if col not in FlexField.__mapper__.primary_key]
-        sess.execute(create_temp_table_sql.format(file_type='flex_' + self.file_type.name,
-                                                  submission_id=self.submission_id, table=FlexField.__table__.name,
-                                                  cols=','.join(flex_cols)))
-        sess.commit()
 
         try:
             with Manager() as server_manager:
@@ -506,27 +490,16 @@ class ValidationManager:
                 self.error_list = shared_data['error_list']
                 self.reader = temp_reader
 
-                # transfer the new records to their intended tables
-                copy_temp_table_sql = """
-                    INSERT INTO {table} ({cols})
-                    SELECT {cols}
-                    FROM tmp_{file_type}_{submission_id};
-                """
-                sess.execute(copy_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id,
-                                                        table=self.model.__table__.name, cols=','.join(table_cols)))
-                sess.execute(copy_temp_table_sql.format(file_type='flex_' + self.file_type.name,
-                                                        submission_id=self.submission_id,
-                                                        table=FlexField.__table__.name, cols=','.join(flex_cols)))
         except Exception as e:
-            raise e
-        finally:
-            # drop the new tables
+            # drop any data loaded thus far
             drop_temp_table_sql = """
-                DROP TABLE tmp_{file_type}_{submission_id};
+                DELETE FROM {table}
+                WHERE submission_id = {submission_id}
             """
-            sess.execute(drop_temp_table_sql.format(file_type=self.file_type.name, submission_id=self.submission_id))
-            sess.execute(drop_temp_table_sql.format(file_type='flex_' + self.file_type.name,
-                                                    submission_id=self.submission_id))
+            sess.execute(drop_temp_table_sql.format(table=self.model.__table__.name, submission_id=self.submission_id))
+            sess.execute(drop_temp_table_sql.format(table=FlexField.__table__.name, submission_id=self.submission_id))
+            sess.commit()
+            raise e
 
     def iterative_data_loading(self, reader_obj):
         """ The normal version of data loading that iterates over each chunk
@@ -763,11 +736,7 @@ class ValidationManager:
         chunk_df['job_id'] = self.job_id
         chunk_df['submission_id'] = self.submission_id
 
-        if m_lock:
-            insert_table = 'tmp_{}_{}'.format(self.file_type_name, self.submission_id)
-        else:
-            insert_table = self.model.__table__.name
-        insert_dataframe(chunk_df, insert_table, sess.connection(), method='copy')
+        insert_dataframe(chunk_df, self.model.__table__.name, sess.connection(), method='copy')
 
         # Flex Fields
         if flex_data is not None:
@@ -786,11 +755,7 @@ class ValidationManager:
             flex_rows['file_type_id'] = self.file_type_id
 
             # Adding the entire set of flex fields
-            if m_lock:
-                insert_flex = 'tmp_flex_{}_{}'.format(self.file_type_name, self.submission_id)
-            else:
-                insert_flex = FlexField.__table__.name
-            rows_inserted = insert_dataframe(flex_rows, insert_flex, sess.connection(), method='copy')
+            rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection(), method='copy')
             logger.info({
                 'message': 'Loaded {} flex field rows for batch'.format(rows_inserted),
                 'message_type': 'ValidatorInfo',
