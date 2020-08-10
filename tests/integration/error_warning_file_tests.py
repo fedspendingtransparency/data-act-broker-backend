@@ -1,6 +1,8 @@
 import os
 import csv
 import logging
+import itertools
+from _pytest.monkeypatch import MonkeyPatch
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
@@ -11,6 +13,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, FlexField
 from dataactvalidator.health_check import create_app
+import dataactvalidator.validation_handlers.validationManager
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactbroker.handlers.fileHandler import report_file_name
 
@@ -57,6 +60,10 @@ class ErrorWarningTests(BaseTestValidator):
             submission: the submission foundation to be used for all the tests
             val_job: the validation job to be used for all the tests
     """
+    CHUNK_SIZES = [5]
+    BATCH_SQL_OPTIONS = [True, False]
+
+    CONFIGS = list(itertools.product(CHUNK_SIZES, BATCH_SQL_OPTIONS))
 
     @classmethod
     def setUpClass(cls):
@@ -67,6 +74,8 @@ class ErrorWarningTests(BaseTestValidator):
         logging.getLogger('dataactvalidator').setLevel(logging.ERROR)
 
         with create_app().app_context():
+            cls.monkeypatch = MonkeyPatch()
+
             # get the submission test users
             sess = GlobalDB.db().session
             cls.session = sess
@@ -249,6 +258,13 @@ class ErrorWarningTests(BaseTestValidator):
         self.session.commit()
 
     def test_single_file_warnings(self):
+        for chunk_size, batch_sql in self.CONFIGS:
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
+            self.single_file_warnings()
+
+    def single_file_warnings(self):
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=True)
         assert report_headers == self.validator.report_headers
@@ -294,6 +310,13 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_single_file_errors(self):
+        for chunk_size, batch_sql in self.CONFIGS:
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
+            self.single_file_errors()
+
+    def single_file_errors(self):
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=False)
         assert report_headers == self.validator.report_headers
@@ -488,6 +511,13 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_cross_file_warnings(self):
+        for chunk_size, batch_sql in self.CONFIGS:
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
+            self.cross_file_warnings()
+
+    def cross_file_warnings(self):
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
@@ -557,6 +587,13 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_cross_file_errors(self):
+        for chunk_size, batch_sql in self.CONFIGS:
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
+            self.cross_file_errors()
+
+    def cross_file_errors(self):
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
