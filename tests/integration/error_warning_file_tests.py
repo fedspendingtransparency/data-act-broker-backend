@@ -1,17 +1,24 @@
 import os
 import csv
 import logging
+import itertools
+import pandas as pd
+import psutil as ps
+from _pytest.monkeypatch import MonkeyPatch
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
 from dataactcore.models.domainModels import concat_tas_dict
 from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
-from dataactcore.models.jobModels import Submission
+from dataactcore.models.jobModels import Submission, Job, FileType
 from dataactcore.models.userModel import User
 from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity
+from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, FlexField
 from dataactvalidator.health_check import create_app
-from dataactvalidator.validation_handlers.validationManager import ValidationManager
+import dataactvalidator.validation_handlers.validationManager
+from dataactvalidator.validation_handlers.validationManager import (
+    ValidationManager, FileColumn, CsvReader, parse_fields, ErrorInterface
+)
 from dataactbroker.handlers.fileHandler import report_file_name
 
 from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
@@ -57,6 +64,10 @@ class ErrorWarningTests(BaseTestValidator):
             submission: the submission foundation to be used for all the tests
             val_job: the validation job to be used for all the tests
     """
+    CHUNK_SIZES = [5]
+    PARALLEL_OPTIONS = [True, False]
+    BATCH_SQL_OPTIONS = [True, False]
+    CONFIGS = list(itertools.product(CHUNK_SIZES, PARALLEL_OPTIONS, BATCH_SQL_OPTIONS))
 
     @classmethod
     def setUpClass(cls):
@@ -67,6 +78,8 @@ class ErrorWarningTests(BaseTestValidator):
         logging.getLogger('dataactvalidator').setLevel(logging.ERROR)
 
         with create_app().app_context():
+            cls.monkeypatch = MonkeyPatch()
+
             # get the submission test users
             sess = GlobalDB.db().session
             cls.session = sess
@@ -181,18 +194,16 @@ class ErrorWarningTests(BaseTestValidator):
         return os.path.join(CONFIG_SERVICES['error_report_path'], filename)
 
     def setup_csv_record_validation(self, file, file_type):
-        self.val_job.filename = file
-        self.val_job.file_type_id = FILE_TYPE_DICT[file_type]
-        self.val_job.job_status_id = JOB_STATUS_DICT['ready']
-        self.val_job.job_type_id = JOB_TYPE_DICT['csv_record_validation']
-        self.session.commit()
+        self.session.query(Job).delete(synchronize_session='fetch')
+        self.val_job = insert_job(self.session, FILE_TYPE_DICT[file_type], JOB_STATUS_DICT['ready'],
+                                  JOB_TYPE_DICT['csv_record_validation'], self.submission_id,
+                                  filename=file)
 
     def setup_validation(self):
-        self.val_job.filename = None
-        self.val_job.file_type_id = None
-        self.val_job.job_status_id = JOB_STATUS_DICT['ready']
-        self.val_job.job_type_id = JOB_TYPE_DICT['validation']
-        self.session.commit()
+        self.session.query(Job).delete(synchronize_session='fetch')
+        self.val_job = insert_job(self.session, None, JOB_STATUS_DICT['ready'],
+                                  JOB_TYPE_DICT['validation'], self.submission_id,
+                                  filename=None)
 
     def get_report_content(self, report_path):
         report_content = []
@@ -247,9 +258,18 @@ class ErrorWarningTests(BaseTestValidator):
         self.session.query(Appropriation).delete(synchronize_session='fetch')
         self.session.query(ObjectClassProgramActivity).delete(synchronize_session='fetch')
         self.session.query(ErrorMetadata).delete(synchronize_session='fetch')
+        self.session.query(FlexField).delete(synchronize_session='fetch')
         self.session.commit()
 
     def test_single_file_warnings(self):
+        for chunk_size, parallel, batch_sql in self.CONFIGS:
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
+            self.single_file_warnings()
+
+    def single_file_warnings(self):
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=True)
         assert report_headers == self.validator.report_headers
@@ -295,6 +315,14 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_single_file_errors(self):
+        for chunk_size, parallel, batch_sql in self.CONFIGS:
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
+            self.single_file_errors()
+
+    def single_file_errors(self):
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=False)
         assert report_headers == self.validator.report_headers
@@ -489,6 +517,14 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_cross_file_warnings(self):
+        for chunk_size, parallel, batch_sql in self.CONFIGS:
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
+            self.cross_file_warnings()
+
+    def cross_file_warnings(self):
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
@@ -515,7 +551,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
-                'Source Flex Field': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '5',
                 'Rule Label': 'A18'
             },
@@ -531,7 +567,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
                 'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
                 'Difference': '18000',
-                'Source Flex Field': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '5',
                 'Rule Label': 'A19'
             },
@@ -550,7 +586,7 @@ class ErrorWarningTests(BaseTestValidator):
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
                                          ' ussgl497200_downward_adjus_cpe_sum: 2000',
                 'Difference': '9600',
-                'Source Flex Field': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '5',
                 'Rule Label': 'A35'
             }
@@ -558,6 +594,14 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_cross_file_errors(self):
+        for chunk_size, parallel, batch_sql in self.CONFIGS:
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
+            self.cross_file_errors()
+
+    def cross_file_errors(self):
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
@@ -586,9 +630,84 @@ class ErrorWarningTests(BaseTestValidator):
                                          ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
                 'Target Value Provided': '',
                 'Difference': '',
-                'Source Flex Field': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '2',
                 'Rule Label': 'A30.1'
             }
         ]
         assert report_content == expected_values
+
+    def test_validation_parallelize_error(self):
+        # Test the parallelize function with a broken call to see if the process is properly cleaned up
+        self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'MULTIPROCESSING_POOLS', 2)
+
+        # Setting up all the other elements of the validator to simulate the integration test
+        self.validator.submission_id = 1
+        self.validator.file_type = self.session.query(FileType).filter_by(
+            file_type_id=FILE_TYPE_DICT['appropriations']).one()
+        self.validator.file_name = APPROP_FILE
+        self.validator.is_fabs = False
+        self.validator.reader = CsvReader()
+        self.validator.error_list = ErrorInterface()
+        self.validator.error_rows = []
+        self.validator.total_rows = 1
+        self.validator.short_rows = []
+        self.validator.long_rows = []
+        self.validator.has_data = False
+        self.validator.model = Appropriation
+
+        self.validator.error_file_name = report_file_name(self.validator.submission_id, False,
+                                                          self.validator.file_type.name)
+        self.validator.error_file_path = ''.join([CONFIG_SERVICES['error_report_path'],
+                                                  self.validator.error_file_name])
+        self.validator.warning_file_name = report_file_name(self.validator.submission_id, True,
+                                                            self.validator.file_type.name)
+        self.validator.warning_file_path = ''.join([CONFIG_SERVICES['error_report_path'],
+                                                    self.validator.warning_file_name])
+
+        fields = self.session.query(FileColumn) \
+            .filter(FileColumn.file_id == FILE_TYPE_DICT[self.validator.file_type.name]) \
+            .order_by(FileColumn.daims_name.asc()).all()
+        self.validator.expected_headers, self.validator.parsed_fields = parse_fields(self.session, fields)
+        self.validator.csv_schema = {row.name_short: row for row in fields}
+
+        with open(self.validator.error_file_path, 'w', newline='') as error_file, \
+                open(self.validator.warning_file_path, 'w', newline='') as warning_file:
+            error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            error_csv.writerow(self.validator.report_headers)
+            warning_csv.writerow(self.validator.report_headers)
+
+        # Finally open the file for loading into the database with baseline validations
+        self.validator.filename = self.validator.reader.get_filename(None, None, self.validator.file_name)
+        self.validator.reader.open_file(None, None, self.validator.file_name, self.validator.fields, None,
+                                        self.validator.get_file_name(self.validator.error_file_name),
+                                        self.validator.daims_to_short_dict[self.validator.file_type.file_type_id],
+                                        self.validator.short_to_daims_dict[self.validator.file_type.file_type_id],
+                                        is_local=self.validator.is_local)
+
+        # Going back to reprocess the header row
+        self.validator.reader.file.seek(0)
+        reader_obj = pd.read_csv(self.validator.reader.file, dtype=str, delimiter=',', error_bad_lines=False,
+                                 na_filter=False, chunksize=2, warn_bad_lines=False)
+        # Setting this outside of reader/file type objects which may not be used during processing
+        self.validator.flex_fields = ['flex_field_a', 'flex_field_b']
+        self.validator.header_dict = self.validator.reader.header_dict
+        self.validator.file_type_name = self.validator.file_type.name
+        self.validator.file_type_id = self.validator.file_type.file_type_id
+        self.validator.job_id = 2
+
+        # Making a broken list of chunks (one that should process fine, another with an error, another fine)
+        # This way we can tell that the latter chunks processed later are ignored due to the error
+        normal_chunks = list(reader_obj)
+        broken_chunks = [normal_chunks[0], 'BREAK', normal_chunks[1], normal_chunks[2]]
+
+        with self.assertRaises(Exception) as val_except:
+            # making the reader object a list of strings instead, causing the inner function to break
+            self.validator.parallel_data_loading(self.session, broken_chunks)
+        self.assertTrue(type(val_except.exception) == AttributeError)
+        self.assertTrue(str(val_except.exception) == "'str' object has no attribute 'empty'")
+
+        # Check to see the processes are killed
+        job = ps.Process(os.getpid())
+        assert len(job.children(recursive=True)) == 0

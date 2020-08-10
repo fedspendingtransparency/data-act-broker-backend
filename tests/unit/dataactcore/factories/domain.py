@@ -144,6 +144,17 @@ class ZipsFactory(factory.Factory):
     congressional_district_no = fuzzy.FuzzyText()
 
 
+class ZipsGroupedFactory(factory.Factory):
+    class Meta:
+        model = domainModels.ZipsGrouped
+
+    zips_grouped_id = None
+    zip5 = fuzzy.FuzzyText()
+    state_abbreviation = fuzzy.FuzzyText()
+    county_number = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
+
+
 class SubTierAgencyFactory(factory.Factory):
     class Meta:
         model = domainModels.SubTierAgency
@@ -154,6 +165,7 @@ class SubTierAgencyFactory(factory.Factory):
     cgac = factory.SubFactory(CGACFactory)
     frec = factory.SubFactory(FRECFactory)
     priority = fuzzy.FuzzyInteger(1, 2)
+    is_frec = False
 
 
 class OfficeFactory(factory.Factory):
