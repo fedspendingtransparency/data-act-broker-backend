@@ -454,52 +454,39 @@ class ValidationManager:
             Args:
                 reader_obj: the iterator reader object to iterate over all the chunks
         """
+        with Manager() as server_manager:
+            # These variables will need to be shared among the processes and used later overall
+            shared_data = server_manager.dict(
+                total_rows=self.total_rows,
+                has_data=self.has_data,
+                error_rows=self.error_rows,
+                error_list=self.error_list,
+                errored=False
+            )
+            # setting reader to none as multiprocess can't pickle it, it'll get reset
+            temp_reader = self.reader
+            self.reader = None
 
-        try:
-            with Manager() as server_manager:
-                # These variables will need to be shared among the processes and used later overall
-                shared_data = server_manager.dict(
-                    total_rows=self.total_rows,
-                    has_data=self.has_data,
-                    error_rows=self.error_rows,
-                    error_list=self.error_list,
-                    errored=False
-                )
-                # setting reader to none as multiprocess can't pickle it, it'll get reset
-                temp_reader = self.reader
-                self.reader = None
+            m_lock = server_manager.Lock()
+            pool = Pool(MULTIPROCESSING_POOLS)
+            results = []
+            for chunk_df in reader_obj:
+                result = pool.apply_async(func=self.parallel_process_data_chunk, args=(chunk_df, shared_data,
+                                                                                       m_lock))
+                results.append(result)
+            pool.close()
+            pool.join()
 
-                m_lock = server_manager.Lock()
-                pool = Pool(MULTIPROCESSING_POOLS)
-                results = []
-                for chunk_df in reader_obj:
-                    result = pool.apply_async(func=self.parallel_process_data_chunk, args=(chunk_df, shared_data,
-                                                                                           m_lock))
-                    results.append(result)
-                pool.close()
-                pool.join()
+            # Raises any exceptions if such occur
+            for result in results:
+                result.get()
 
-                # Raises any exceptions if such occur
-                for result in results:
-                    result.get()
-
-                # Resetting these out here as they are used later in the process
-                self.total_rows = shared_data['total_rows']
-                self.has_data = shared_data['has_data']
-                self.error_rows = shared_data['error_rows']
-                self.error_list = shared_data['error_list']
-                self.reader = temp_reader
-
-        except Exception as e:
-            # drop any data loaded thus far
-            drop_temp_table_sql = """
-                DELETE FROM {table}
-                WHERE submission_id = {submission_id}
-            """
-            sess.execute(drop_temp_table_sql.format(table=self.model.__table__.name, submission_id=self.submission_id))
-            sess.execute(drop_temp_table_sql.format(table=FlexField.__table__.name, submission_id=self.submission_id))
-            sess.commit()
-            raise e
+            # Resetting these out here as they are used later in the process
+            self.total_rows = shared_data['total_rows']
+            self.has_data = shared_data['has_data']
+            self.error_rows = shared_data['error_rows']
+            self.error_list = shared_data['error_list']
+            self.reader = temp_reader
 
     def iterative_data_loading(self, reader_obj):
         """ The normal version of data loading that iterates over each chunk
