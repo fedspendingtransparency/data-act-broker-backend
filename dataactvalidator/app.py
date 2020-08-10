@@ -73,7 +73,7 @@ def run_app():
             ) as span:
 
                 # With cleanup handling engaged, allowing retries
-                dispatcher = SQSWorkDispatcher(queue)
+                dispatcher = SQSWorkDispatcher(queue, worker_can_start_child_processes=True)
 
                 def choose_job_by_message_attributes(message):
                     # Determine if this is a retry of this message, in which case job execution should know so it can
