@@ -1701,10 +1701,20 @@ Index("ix_pafa_fain_awarding_sub_tier_is_active",
       PublishedAwardFinancialAssistance.is_active,
       unique=False)
 
+Index("ix_pafa_fain_awarding_subtier_upper",
+      func.upper(PublishedAwardFinancialAssistance.fain),
+      func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c),
+      unique=False)
+
 Index("ix_pafa_uri_awarding_sub_tier_is_active",
       PublishedAwardFinancialAssistance.uri,
       PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
       PublishedAwardFinancialAssistance.is_active,
+      unique=False)
+
+Index("ix_pafa_uri_awarding_subtier_upper",
+      func.upper(PublishedAwardFinancialAssistance.uri),
+      func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c),
       unique=False)
 
 Index("ix_pafa_fain_upper", func.upper(PublishedAwardFinancialAssistance.fain))
