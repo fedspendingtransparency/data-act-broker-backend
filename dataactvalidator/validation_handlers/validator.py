@@ -127,14 +127,12 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                         if failure_key.startswith(diff_start):
                             diff_header = failure_key[len(diff_start):]
                             diff_array.append('{}: {}'.format(diff_header, str(row[failure_key] if
-                                                                               row[
-                                                                                   failure_key] is not None else '')))
+                                                                               row[failure_key] is not None else '')))
                         # Unique key
                         if failure_key.startswith(unique_start):
                             unique_header = failure_key[len(unique_start):]
                             unique_key.append('{}: {}'.format(unique_header, str(row[failure_key] if
-                                                                                 row[
-                                                                                     failure_key] is not None else '')))
+                                                                                 row[failure_key] is not None else '')))
                     # If we have multiple differences, join them
                     if diff_array:
                         difference = ', '.join(diff_array)
