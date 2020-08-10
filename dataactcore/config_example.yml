@@ -8,6 +8,11 @@ broker:
     # Specify the number or rows to process at a time during submission validation
     validator_batch_size: 10000
 
+    # Set to true to run multiple processes concurrently when loading in data
+    parallel_loading: false
+    # Specify the number of multiprocessing pools (0 uses python's os.cpu_count())
+    multiprocessing_pools: 0
+
     # batch the results of SQL Validations (to save on memory)
     batch_sql_validation_results: true
 
