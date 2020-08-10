@@ -66,7 +66,8 @@ class ErrorWarningTests(BaseTestValidator):
     """
     CHUNK_SIZES = [5]
     PARALLEL_OPTIONS = [True, False]
-    CONFIGS = list(itertools.product(CHUNK_SIZES, PARALLEL_OPTIONS))
+    BATCH_SQL_OPTIONS = [True, False]
+    CONFIGS = list(itertools.product(CHUNK_SIZES, PARALLEL_OPTIONS, BATCH_SQL_OPTIONS))
 
     @classmethod
     def setUpClass(cls):
@@ -261,9 +262,11 @@ class ErrorWarningTests(BaseTestValidator):
         self.session.commit()
 
     def test_single_file_warnings(self):
-        for chunk_size, parallel in self.CONFIGS:
+        for chunk_size, parallel, batch_sql in self.CONFIGS:
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
             self.single_file_warnings()
 
     def single_file_warnings(self):
@@ -312,9 +315,11 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_single_file_errors(self):
-        for chunk_size, parallel in self.CONFIGS:
+        for chunk_size, parallel, batch_sql in self.CONFIGS:
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
             self.single_file_errors()
 
     def single_file_errors(self):
@@ -512,9 +517,11 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_cross_file_warnings(self):
-        for chunk_size, parallel in self.CONFIGS:
+        for chunk_size, parallel, batch_sql in self.CONFIGS:
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
             self.cross_file_warnings()
 
     def cross_file_warnings(self):
@@ -587,9 +594,11 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_content == expected_values
 
     def test_cross_file_errors(self):
-        for chunk_size, parallel in self.CONFIGS:
+        for chunk_size, parallel, batch_sql in self.CONFIGS:
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
+                                     batch_sql)
             self.cross_file_errors()
 
     def cross_file_errors(self):

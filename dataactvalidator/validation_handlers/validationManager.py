@@ -57,6 +57,7 @@ logger = logging.getLogger(__name__)
 CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
 MULTIPROCESSING_POOLS = CONFIG_BROKER['multiprocessing_pools'] or None
 PARALLEL = CONFIG_BROKER['parallel_loading']
+BATCH_SQL_VAL_RESULTS = CONFIG_BROKER['batch_sql_validation_results']
 
 
 class NoLock():
@@ -235,9 +236,7 @@ class ValidationManager:
 
                 # third phase of validations: run validation rules as specified in the schema guidance. These
                 # validations are sql-based.
-                sql_error_rows = self.run_sql_validations(self.short_to_long_dict[self.file_type.file_type_id],
-                                                          error_csv, warning_csv)
-                self.error_rows.extend(sql_error_rows)
+                self.run_sql_validations(self.short_to_long_dict[self.file_type.file_type_id], error_csv, warning_csv)
             error_file.close()
             warning_file.close()
 
@@ -777,10 +776,9 @@ class ValidationManager:
         Returns:
             a list of the row numbers that failed one of the sql-based validations
         """
-        error_rows = []
-        sql_failures = validate_file_by_sql(self.job, self.file_type.name,
-                                            self.short_to_long_dict[self.file_type.file_type_id])
-        for failure in sql_failures:
+        for failure in validate_file_by_sql(self.job, self.file_type.name,
+                                            self.short_to_long_dict[self.file_type.file_type_id],
+                                            batch_results=BATCH_SQL_VAL_RESULTS):
             # convert shorter, machine friendly column names used in the
             # SQL validation queries back to their long names
             if failure.field_name in short_colnames:
@@ -789,7 +787,7 @@ class ValidationManager:
                 field_name = failure.field_name
 
             if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
-                error_rows.append(failure.row)
+                self.error_rows.append(failure.row)
 
             try:
                 # If error is an int, it's one of our prestored messages
@@ -811,7 +809,6 @@ class ValidationManager:
             self.error_list.record_row_error(self.job.job_id, self.file_name, field_name, failure.error,
                                              self.total_rows, failure.original_label, failure.file_type_id,
                                              failure.target_file_id, failure.severity_id)
-        return error_rows
 
     def run_cross_validation(self, job):
         """ Cross file validation job. Test all rules with matching rule_timing. Run each cross-file rule and create
@@ -875,7 +872,7 @@ class ValidationManager:
                 current_cols_short_to_long = self.short_to_long_dict[first_file.id].copy()
                 current_cols_short_to_long.update(self.short_to_long_dict[second_file.id].copy())
                 cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, job_id, error_csv,
-                                   warning_csv, error_list)
+                                   warning_csv, error_list, batch_results=BATCH_SQL_VAL_RESULTS)
             # close files
             error_file.close()
             warning_file.close()

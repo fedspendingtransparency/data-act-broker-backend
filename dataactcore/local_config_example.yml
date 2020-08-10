@@ -9,6 +9,7 @@ broker:
     validator_batch_size: 10000
     parallel_loading: false
     multiprocessing_pools: 0
+    batch_sql_validation_results: true
     full_url: http://127.0.0.1:3000
     reply_to_email: valid.developer.email@domain.com
     broker_files: ./tmp/data_act_broker
