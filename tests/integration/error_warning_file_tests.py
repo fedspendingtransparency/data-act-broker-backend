@@ -699,24 +699,6 @@ class ErrorWarningTests(BaseTestValidator):
         self.assertTrue(type(val_except.exception) == AttributeError)
         self.assertTrue(str(val_except.exception) == "'str' object has no attribute 'empty'")
 
-        # Check to see the database is unchanged (no data added, temp table removed)
-        file_a_data = self.session.query(Appropriation).filter_by(submission_id=self.validator.submission_id).count()
-        assert file_a_data == 0
-
-        temp_table_exists = self.session.execute('SELECT to_regclass(\'schema_name.tmp_appropriation_1\');')
-        temp_table_exists = temp_table_exists.fetchall()[0][0]
-        assert temp_table_exists is None
-
-        # Check to see if the e/w files are not updated
-        with open(self.validator.error_file_path, 'r', newline='') as error_file, \
-                open(self.validator.warning_file_path, 'r', newline='') as warning_file:
-            error_csv = csv.reader(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-            warning_csv = csv.reader(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-            error_row_count = sum(1 for row in error_csv)
-            warning_row_count = sum(1 for row in warning_csv)
-        assert error_row_count == 1
-        assert warning_row_count == 1
-
         # Check to see the processes are killed
         job = ps.Process(os.getpid())
         assert len(job.children(recursive=True)) == 0
