@@ -193,7 +193,7 @@ def test_generate_a(database):
 
     # check headers
     file_rows = read_file_rows(job.filename)
-    assert file_rows[0] == [key for key in file_generation_manager.fileA.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileA.mapping.items()]
 
     # check body
     sf1 = sess.query(SF133).filter_by(tas=tas1_str).first()
@@ -255,7 +255,49 @@ def test_generate_awarding_d1(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD1.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD1.mapping.items()]
+
+    # check body
+    dap_one = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
+    dap_two = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique2').first()
+    expected1, expected2 = [], []
+    for value in file_generation_manager.fileD1.db_columns:
+        # loop through all values and format date columns
+        if value in ['period_of_performance_star', 'period_of_performance_curr', 'period_of_perf_potential_e',
+                     'ordering_period_end_date', 'action_date', 'last_modified', 'solicitation_date']:
+            expected1.append(re.sub(r"[-]", r"", str(dap_one.__dict__[value]))[0:8])
+            expected2.append(re.sub(r"[-]", r"", str(dap_two.__dict__[value]))[0:8])
+        else:
+            expected1.append(str(dap_one.__dict__[value]))
+            expected2.append(str(dap_two.__dict__[value]))
+
+    assert expected1 in file_rows
+    assert expected2 in file_rows
+
+
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
+def test_generate_awarding_d1_alternate_headers(database):
+    sess = database.session
+    dap_model = DetachedAwardProcurementFactory
+    dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
+    dap_2 = dap_model(awarding_agency_code='123', action_date='20170131', detached_award_proc_unique='unique2')
+    dap_3 = dap_model(awarding_agency_code='123', action_date='20170201', detached_award_proc_unique='unique3')
+    dap_4 = dap_model(awarding_agency_code='123', action_date='20161231', detached_award_proc_unique='unique4')
+    dap_5 = dap_model(awarding_agency_code='234', action_date='20170115', detached_award_proc_unique='unique5')
+    file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
+                                     file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=True,
+                                     file_path=None, file_format='csv', element_numbers=True)
+    sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5, file_gen])
+    sess.commit()
+
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
+    file_gen_manager.generate_file()
+
+    assert file_gen.file_path is not None
+
+    # check headers
+    file_rows = read_file_rows(file_gen.file_path)
+    assert file_rows[0] == [val[1] for key, val in file_generation_manager.fileD1.mapping.items()]
 
     # check body
     dap_one = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
@@ -297,7 +339,7 @@ def test_generate_funding_d1(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD1.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD1.mapping.items()]
 
     # check body
     dap_one = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
@@ -340,7 +382,7 @@ def test_generate_awarding_d2(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD2.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD2.mapping.items()]
 
     # check body
     pafa1 = sess.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
@@ -382,7 +424,7 @@ def test_generate_funding_d2(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD2.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD2.mapping.items()]
 
     # check body
     pafa1 = sess.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
@@ -424,7 +466,7 @@ def test_generate_txt_d1(database):
     # check headers
     file_rows = read_file_rows(file_gen.file_path, delimiter='|')
     print(file_rows)
-    assert file_rows[0] == [key for key in file_generation_manager.fileD1.mapping]
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD1.mapping.items()]
 
     # check body
     dap_one = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()

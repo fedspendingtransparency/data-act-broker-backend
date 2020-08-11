@@ -1787,7 +1787,7 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
 
 ### POST "/v1/generate\_detached\_file/"
 
-This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how files are generated, see the [FileLogic.md](../FileLogic.md) file.
+This route sends a request to the backend to generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how A files are generated, see the [FileLogic.md](../FileLogic.md) file.
 
 #### Body (JSON)
 
@@ -1800,30 +1800,32 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "year": 2017,
     "period": 3,
     "agency_type": "awarding",
-    "file_format": "csv"
+    "file_format": "csv",
+    "element_numbers": True
 }
 ```
 
 #### Body Description
 
-- `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
-    - `D1` - generate a D1 file
-    - `D2` - generate a D2 file
-    - `A` - generate an A file
-- `cgac_code` - **required if frec\_code not provided** - the cgac of the agency for which to generate the files for
-- `frec_code` - **required if cgac\_code not provided** - the frec of the agency for which to generate the files for
-- `start` - **required for D file generation** - the start date of the requested date range, in `MM/DD/YYYY` string format
-- `end` - **required for D file generation** - the end date of the requested date range, in `MM/DD/YYYY` string format
-- `year` - **required for A file generation** - an integer indicating the year for which to generate an A file
-- `period` - **required for A file generation** - an integer indicating the period for which to generate an A file
+- `file_type`: (required, string) indicates the file type to generate. Allowable values are:
+    - `D1`: generate a D1 file
+    - `D2`: generate a D2 file
+    - `A`: generate an A file
+- `cgac_code`: (string) The cgac of the agency for which to generate the files. Required if `frec_code` is not provided.
+- `frec_code`: (string) The frec of the agency for which to generate the files. Required if `cgac_code` is not provided.
+- `start`: (string) The start date of the requested date range, in `MM/DD/YYYY` string format. Required for D file generation, ignored in A file generation.
+- `end`: (string) The end date of the requested date range, in `MM/DD/YYYY` string format. Required for D file generation, ignored in A file generation.
+- `year`: (integer) Indicates the year for which to generate an A file. Required for A file generation, ignored in D file generation.
+- `period`: (integer) Indicates the period for which to generate an A file. Required for A file generation, ignored in D file generation.
     - Allowed values: 2-12
     - 2 indicates November of the previous year, 12 indicates September of the selected year
-- `agency_type` - **optional, used only in D1/D2** - a string indicating if the file generated should be based on awarding or funding agency. Defaults to `awarding` if not provided. Only allowed values are:
+- `agency_type`: (string) Indicates if the file generated should be based on awarding or funding agency. Used only in D file generation. Defaults to `awarding` if not provided. Only allowed values are:
     - `awarding`
     - `funding`
-- `file_format` - **optional, used only in D1/D2** - a string indicating if the file generated should be a comma delimited csv or a pipe delimited txt. Defaults to `csv` if not provided. Only allowed values are:
+- `file_format`: (string) Indicates if the file generated should be a comma delimited csv or a pipe delimited txt. Used only in D file generation. Defaults to `csv` if not provided. Only allowed values are:
     - `csv`
     - `txt`
+- `element_numbers`: (boolean) Indicates whether to include FPDS element numbers in the D1 headers. Used only in D1 file generation, ignored in all others. Defaults to `False`
 
 #### Response (JSON)
 Response will be the same format as those returned from `/v1/check_generation_status/` endpoint with the exception that only D1, D2, and A files will ever be present, never E or F.

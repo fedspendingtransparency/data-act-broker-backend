@@ -92,7 +92,8 @@ def add_generation_routes(app, is_local, server_path):
             missing='csv',
             validate=webargs_validate.OneOf(('csv', 'txt'),
                                             error="Must be either csv or txt if provided")
-        )
+        ),
+        'element_numbers': webargs_fields.Bool(missing=False),
     })
     def generate_detached_file(file_type, **kwargs):
         """ Generate a file from external API, independent from a submission
@@ -116,8 +117,9 @@ def add_generation_routes(app, is_local, server_path):
         period = kwargs.get('period')
         agency_type = kwargs.get('agency_type')
         file_format = kwargs.get('file_format')
+        element_numbers = kwargs.get('element_numbers')
         return generation_handler.generate_detached_file(file_type, cgac_code, frec_code, start, end, year, period,
-                                                         agency_type, file_format)
+                                                         agency_type, file_format, element_numbers)
 
     @app.route("/v1/check_detached_generation_status/", methods=["GET"])
     @requires_login
