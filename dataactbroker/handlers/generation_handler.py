@@ -106,7 +106,7 @@ def check_generation(submission, file_type):
 
 
 def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date, year, period, agency_type,
-                           file_format):
+                           file_format, element_numbers):
     """ Start a file generation job for the specified file type not connected to a submission
 
         Args:
@@ -119,6 +119,8 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
             period: period to generate for, integer (2-12)
             agency_type: The type of agency (awarding or funding) to generate the file for
             file_format: determines if the file generated is a txt or a csv (only used for D file generation)
+            element_numbers: a boolean that determines if the alternate headers with FPDS element numbers should be
+                used (used only for file D1 generation)
 
         Returns:
             JSONResponse object with keys job_id, status, file_type, url, message, start_date, and end_date.
@@ -172,7 +174,7 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
     try:
         if file_type in ['D1', 'D2']:
             generation_helper.start_d_generation(new_job, start_date, end_date, agency_type, agency_code=agency_code,
-                                                 file_format=file_format)
+                                                 file_format=file_format, element_numbers=element_numbers)
         else:
             generation_helper.start_a_generation(new_job, start_date, end_date, agency_code)
     except Exception as e:
