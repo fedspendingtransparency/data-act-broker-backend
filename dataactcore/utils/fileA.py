@@ -31,7 +31,6 @@ mapping = OrderedDict([
     ('deobligations_recoveries_r_cpe', ['DeobligationsRecoveriesRefundsByTAS_CPE'])
 ])
 db_columns = [key for key in mapping]
-# db_columns = [val for key, val in mapping.items()]
 
 
 def query_data(session, agency_code, period, year):

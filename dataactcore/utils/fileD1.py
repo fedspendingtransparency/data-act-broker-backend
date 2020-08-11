@@ -341,7 +341,6 @@ mapping = OrderedDict([
     ('last_modified', ['LastModifiedDate', 'LastModifiedDate (247)'])
 ])
 db_columns = [key for key in mapping]
-# db_columns = [val for key, val in mapping.items()]
 
 
 def query_data(session, agency_code, agency_type, start, end):
