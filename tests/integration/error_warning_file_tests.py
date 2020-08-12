@@ -64,7 +64,7 @@ class ErrorWarningTests(BaseTestValidator):
             submission: the submission foundation to be used for all the tests
             val_job: the validation job to be used for all the tests
     """
-    CHUNK_SIZES = [5]
+    CHUNK_SIZES = [2]
     PARALLEL_OPTIONS = [True, False]
     BATCH_SQL_OPTIONS = [True, False]
     CONFIGS = list(itertools.product(CHUNK_SIZES, PARALLEL_OPTIONS, BATCH_SQL_OPTIONS))

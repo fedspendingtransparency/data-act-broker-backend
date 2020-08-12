@@ -72,7 +72,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
             while slice_start <= num_failed_rows:
                 # finding out row numbers for logger
                 last_error_curr_slice = slice_start + slice_size
-                failed_row_subset = failed_rows[slice_start:last_error_curr_slice]
+                failed_row_subset = failed_rows if batch_num else failed_rows[slice_start:last_error_curr_slice]
                 if last_error_curr_slice > num_failed_rows:
                     last_error_curr_slice = num_failed_rows
                 logger.info({
