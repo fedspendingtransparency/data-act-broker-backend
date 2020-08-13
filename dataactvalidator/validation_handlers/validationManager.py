@@ -517,13 +517,16 @@ class ValidationManager:
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
         # If one of the processes has errored, we don't want to run any more chunks
-        if shared_data['errored']:
-            return
+        lockable = m_lock if m_lock else NoLock
+        with lockable:
+            if shared_data['errored']:
+                return
 
         try:
             self.process_data_chunk(chunk_df, shared_data, m_lock=m_lock)
         except Exception as e:
-            shared_data['errored'] = True
+            with lockable:
+                shared_data['errored'] = True
             raise e
 
     def process_data_chunk(self, chunk_df, shared_data, m_lock=None):
@@ -755,15 +758,16 @@ class ValidationManager:
         if m_lock:
             conn.close()
 
-        logger.info({
-            'message': 'Loaded rows up to {}'.format(chunk_df['row_number'].iloc[-1]),
-            'message_type': 'ValidatorInfo',
-            'submission_id': self.submission_id,
-            'job_id': self.job_id,
-            'file_type': self.file_type_name,
-            'action': 'data_loading',
-            'status': 'end'
-        })
+        if not chunk_df.empty:
+            logger.info({
+                'message': 'Loaded rows up to {}'.format(chunk_df['row_number'].iloc[-1]),
+                'message_type': 'ValidatorInfo',
+                'submission_id': self.submission_id,
+                'job_id': self.job_id,
+                'file_type': self.file_type_name,
+                'action': 'data_loading',
+                'status': 'end'
+            })
 
     def run_sql_validations(self, short_colnames, writer, warning_writer):
         """ Run all SQL rules for this file type
