@@ -19,6 +19,7 @@ import dataactvalidator.validation_handlers.validationManager
 from dataactvalidator.validation_handlers.validationManager import (
     ValidationManager, FileColumn, CsvReader, parse_fields, ErrorInterface
 )
+import dataactvalidator.validation_handlers.validator
 from dataactbroker.handlers.fileHandler import report_file_name
 
 from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
@@ -205,7 +206,7 @@ class ErrorWarningTests(BaseTestValidator):
                                   JOB_TYPE_DICT['validation'], self.submission_id,
                                   filename=None)
 
-    def get_report_content(self, report_path):
+    def get_report_content(self, report_path, cross_file=False):
         report_content = []
         report_headers = None
         with open(report_path, 'r') as report_csv:
@@ -213,6 +214,9 @@ class ErrorWarningTests(BaseTestValidator):
             for row in reader:
                 report_content.append(row)
             report_headers = reader.fieldnames
+        row_number_col = 'Row Number' if not cross_file else 'Source Row Number'
+        if row_number_col in report_headers:
+            report_content = list(sorted(report_content, key=lambda x: int(x[row_number_col] or 0)))
         return report_headers, report_content
 
     def generate_file_report(self, file, file_type, warning=False, ignore_error=False, cleanup=True):
@@ -225,7 +229,7 @@ class ErrorWarningTests(BaseTestValidator):
         else:
             self.validator.validate_job(self.val_job.job_id)
         report_path = self.get_report_path(file_type, warning=warning)
-        report_content = self.get_report_content(report_path)
+        report_content = self.get_report_content(report_path, cross_file=False)
         if cleanup:
             self.cleanup()
         return report_content
@@ -246,7 +250,7 @@ class ErrorWarningTests(BaseTestValidator):
         else:
             self.validator.validate_job(self.val_job.job_id)
         report_path = self.get_report_path(cross_types[0], cross_type=cross_types[1], warning=warning)
-        report_content = self.get_report_content(report_path)
+        report_content = self.get_report_content(report_path, cross_file=True)
         if cleanup:
             self.cleanup()
         return report_content
@@ -267,6 +271,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
                                      batch_sql)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validator, 'SQL_VALIDATION_BATCH_SIZE',
+                                     chunk_size)
             self.single_file_warnings()
 
     def single_file_warnings(self):
@@ -320,6 +326,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
                                      batch_sql)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validator, 'SQL_VALIDATION_BATCH_SIZE',
+                                     chunk_size)
             self.single_file_errors()
 
     def single_file_errors(self):
@@ -522,6 +530,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
                                      batch_sql)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validator, 'SQL_VALIDATION_BATCH_SIZE',
+                                     chunk_size)
             self.cross_file_warnings()
 
     def cross_file_warnings(self):
@@ -589,6 +599,110 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '5',
                 'Rule Label': 'A35'
+            },
+            {
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
+                'Source File': 'appropriations',
+                'Source Field Name': 'grossoutlayamountbytas_cpe',
+                'Target File': 'program_activity',
+                'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
+                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the'
+                                ' sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the'
+                                ' award financial file (B). {This value is the sum of all Gross Outlay Amounts reported'
+                                ' in file B, to indicate year-to-date activity by TAS/Subaccount.}',
+                'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
+                'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
+                'Difference': '4000',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Source Row Number': '10',
+                'Rule Label': 'A18'
+            },
+            {
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
+                'Source File': 'appropriations',
+                'Source Field Name': 'obligationsincurredtotalbytas_cpe',
+                'Target File': 'program_activity',
+                'Target Field Name': 'obligations_incurred_by_pr_cpe_sum',
+                'Rule Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not'
+                                ' equal the negative sum of the corresponding'
+                                ' ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).',
+                'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
+                'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
+                'Difference': '18000',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Source Row Number': '10',
+                'Rule Label': 'A19'
+            },
+            {
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
+                'Source File': 'appropriations',
+                'Source Field Name': 'deobligationsrecoveriesrefundsbytas_cpe',
+                'Target File': 'program_activity',
+                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
+                                     ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
+                'Rule Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
+                                ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
+                'Source Value Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
+                'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
+                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
+                                         ' ussgl487200_downward_adjus_cpe_sum: 400,'
+                                         ' ussgl497200_downward_adjus_cpe_sum: 2000',
+                'Difference': '9600',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Source Row Number': '10',
+                'Rule Label': 'A35'
+            },
+            {
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
+                'Source File': 'appropriations',
+                'Source Field Name': 'grossoutlayamountbytas_cpe',
+                'Target File': 'program_activity',
+                'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
+                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the'
+                                ' sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the'
+                                ' award financial file (B). {This value is the sum of all Gross Outlay Amounts reported'
+                                ' in file B, to indicate year-to-date activity by TAS/Subaccount.}',
+                'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
+                'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
+                'Difference': '4000',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Source Row Number': '15',
+                'Rule Label': 'A18'
+            },
+            {
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
+                'Source File': 'appropriations',
+                'Source Field Name': 'obligationsincurredtotalbytas_cpe',
+                'Target File': 'program_activity',
+                'Target Field Name': 'obligations_incurred_by_pr_cpe_sum',
+                'Rule Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not'
+                                ' equal the negative sum of the corresponding'
+                                ' ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).',
+                'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
+                'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
+                'Difference': '18000',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Source Row Number': '15',
+                'Rule Label': 'A19'
+            },
+            {
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
+                'Source File': 'appropriations',
+                'Source Field Name': 'deobligationsrecoveriesrefundsbytas_cpe',
+                'Target File': 'program_activity',
+                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
+                                     ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
+                'Rule Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
+                                ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
+                'Source Value Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
+                'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
+                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
+                                         ' ussgl487200_downward_adjus_cpe_sum: 400,'
+                                         ' ussgl497200_downward_adjus_cpe_sum: 2000',
+                'Difference': '9600',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Source Row Number': '15',
+                'Rule Label': 'A35'
             }
         ]
         assert report_content == expected_values
@@ -599,6 +713,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'PARALLEL', parallel)
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'BATCH_SQL_VAL_RESULTS',
                                      batch_sql)
+            self.monkeypatch.setattr(dataactvalidator.validation_handlers.validator, 'SQL_VALIDATION_BATCH_SIZE',
+                                     chunk_size)
             self.cross_file_errors()
 
     def cross_file_errors(self):
@@ -632,6 +748,44 @@ class ErrorWarningTests(BaseTestValidator):
                 'Difference': '',
                 'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Source Row Number': '2',
+                'Rule Label': 'A30.1'
+            },
+            {
+                'Unique ID': 'TAS: 019-072-X-0306-000',
+                'Source File': 'appropriations',
+                'Source Field Name': 'allocationtransferagencyidentifier, agencyidentifier,'
+                                     ' beginningperiodofavailability, endingperiodofavailability,'
+                                     ' availabilitytypecode, mainaccountcode, subaccountcode',
+                'Target File': 'program_activity',
+                'Target Field Name': '',
+                'Rule Message': 'All TAS values in File A (appropriations) should exist in File B'
+                                ' (object class program activity)',
+                'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
+                                         ' beginningperiodofavailability: , endingperiodofavailability: ,'
+                                         ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
+                'Target Value Provided': '',
+                'Difference': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Source Row Number': '7',
+                'Rule Label': 'A30.1'
+            },
+            {
+                'Unique ID': 'TAS: 019-072-X-0306-000',
+                'Source File': 'appropriations',
+                'Source Field Name': 'allocationtransferagencyidentifier, agencyidentifier,'
+                                     ' beginningperiodofavailability, endingperiodofavailability,'
+                                     ' availabilitytypecode, mainaccountcode, subaccountcode',
+                'Target File': 'program_activity',
+                'Target Field Name': '',
+                'Rule Message': 'All TAS values in File A (appropriations) should exist in File B'
+                                ' (object class program activity)',
+                'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
+                                         ' beginningperiodofavailability: , endingperiodofavailability: ,'
+                                         ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
+                'Target Value Provided': '',
+                'Difference': '',
+                'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Source Row Number': '12',
                 'Rule Label': 'A30.1'
             }
         ]
