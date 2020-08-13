@@ -6,6 +6,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.interfaces.db import GlobalDB
+from dataactbroker.scripts.update_historical_duns import batch as batcher
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
             'start': rule_start
         })
 
-        def process_failures(failures, columns, batch_num=0):
+        def process_failures(failures, columns):
             # get list of fields involved in this validation
             source_len = len('source_value_')
             target_len = len('target_value_')
@@ -59,116 +60,96 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                     source_cols.append(col)
                 elif col.startswith('target_value_'):
                     target_cols.append(col)
-            source_headers = [short_to_long_dict.get(field[source_len:], field[source_len:]) for field in
-                              source_cols]
-            target_headers = [short_to_long_dict.get(field[target_len:], field[target_len:]) for field in
-                              target_cols]
+            source_headers = [short_to_long_dict.get(field[source_len:], field[source_len:]) for field in source_cols]
+            target_headers = [short_to_long_dict.get(field[target_len:], field[target_len:]) for field in target_cols]
 
-            # materialize as we'll iterate over the failed_rows twice
-            failed_rows = list(failures)
-            num_failed_rows = len(failed_rows)
-            slice_size = SQL_VALIDATION_BATCH_SIZE
-            slice_start = 0
-            while slice_start <= num_failed_rows:
-                # finding out row numbers for logger
-                slice_end = slice_start + slice_size
-                failed_row_subset = failed_rows if batch_num else failed_rows[slice_start:slice_end]
-                if slice_end > num_failed_rows:
-                    slice_end = num_failed_rows
-                logger.info({
-                    'message': 'Starting flex field gathering for cross-file rule ' +
-                               '{} on submission_id: {} for '.format(rule.query_name, str(submission_id)) +
-                               'failure rows: {}-{}'.format(str(slice_start), str(slice_end)),
-                    'message_type': 'ValidatorInfo',
-                    'rule': rule.query_name,
-                    'job_id': job_id,
-                    'submission_id': submission_id
-                })
-                source_flex_data = relevant_cross_flex_data(failed_row_subset, submission_id, rule.file_id)
-                logger.info({
-                    'message': 'Finished flex field gathering for cross-file rule ' +
-                               '{} on submission_id: {} for '.format(rule.query_name, str(submission_id)) +
-                               'failure rows: {}-{}'.format(str(slice_start), str(slice_end)),
-                    'message_type': 'ValidatorInfo',
-                    'rule': rule.query_name,
-                    'job_id': job_id,
-                    'submission_id': submission_id
-                })
+            logger.info({
+                'message': 'Starting flex field gathering for cross-file rule ' +
+                           '{} on submission_id: {}'.format(rule.query_name, str(submission_id)),
+                'message_type': 'ValidatorInfo',
+                'rule': rule.query_name,
+                'job_id': job_id,
+                'submission_id': submission_id
+            })
+            source_flex_data = relevant_cross_flex_data(failures, submission_id, rule.file_id)
+            logger.info({
+                'message': 'Finished flex field gathering for cross-file rule ' +
+                           '{} on submission_id: {}'.format(rule.query_name, str(submission_id)),
+                'message_type': 'ValidatorInfo',
+                'rule': rule.query_name,
+                'job_id': job_id,
+                'submission_id': submission_id
+            })
 
-                for row in failed_row_subset:
-                    # Getting row numbers
-                    source_row_number = row['source_row_number'] if 'source_row_number' in columns else ''
+            for row in failures:
+                # Getting row numbers
+                source_row_number = row['source_row_number'] if 'source_row_number' in columns else ''
 
-                    # get list of values for each column
-                    source_values = ['{}: {}'.format(short_to_long_dict.get(c[source_len:], c[source_len:]),
-                                                     str(row[c] if row[c] is not None else '')) for c in
-                                     source_cols]
-                    target_values = ['{}: {}'.format(short_to_long_dict.get(c[target_len:], c[target_len:]),
-                                                     str(row[c] if row[c] is not None else '')) for c in
-                                     target_cols]
+                # get list of values for each column
+                source_values = ['{}: {}'.format(short_to_long_dict.get(c[source_len:], c[source_len:]),
+                                                 str(row[c] if row[c] is not None else '')) for c in source_cols]
+                target_values = ['{}: {}'.format(short_to_long_dict.get(c[target_len:], c[target_len:]),
+                                                 str(row[c] if row[c] is not None else '')) for c in target_cols]
 
-                    # Getting all flex fields organized
-                    source_flex_list = []
-                    if source_flex_data:
-                        source_flex_list = ['{}: {}'.format(flex_field.header,
-                                                            flex_field.cell if flex_field.cell is not None else '')
-                                            for flex_field in source_flex_data[source_row_number]]
+                # Getting all flex fields organized
+                source_flex_list = []
+                if source_flex_data:
+                    source_flex_list = ['{}: {}'.format(flex_field.header,
+                                                        flex_field.cell if flex_field.cell is not None else '')
+                                        for flex_field in source_flex_data[source_row_number]]
 
-                    # Getting the difference and unique IDs
-                    difference = ''
-                    diff_start = 'difference_'
-                    unique_start = 'uniqueid_'
-                    diff_array = []
-                    unique_key = []
-                    for failure_key in columns:
-                        # Difference
-                        if failure_key == 'difference':
-                            difference = str(row[failure_key] if row[failure_key] is not None else '')
-                        if failure_key.startswith(diff_start):
-                            diff_header = failure_key[len(diff_start):]
-                            diff_array.append('{}: {}'.format(diff_header, str(row[failure_key] if
-                                                                               row[failure_key] is not None else '')))
-                        # Unique key
-                        if failure_key.startswith(unique_start):
-                            unique_header = failure_key[len(unique_start):]
-                            unique_key.append('{}: {}'.format(unique_header, str(row[failure_key] if
-                                                                                 row[failure_key] is not None else '')))
-                    # If we have multiple differences, join them
-                    if diff_array:
-                        difference = ', '.join(diff_array)
+                # Getting the difference and unique IDs
+                difference = ''
+                diff_start = 'difference_'
+                unique_start = 'uniqueid_'
+                diff_array = []
+                unique_key = []
+                for failure_key in columns:
+                    # Difference
+                    if failure_key == 'difference':
+                        difference = str(row[failure_key] if row[failure_key] is not None else '')
+                    if failure_key.startswith(diff_start):
+                        diff_header = failure_key[len(diff_start):]
+                        diff_array.append('{}: {}'.format(diff_header, str(row[failure_key] if
+                                                                           row[failure_key] is not None else '')))
+                    # Unique key
+                    if failure_key.startswith(unique_start):
+                        unique_header = failure_key[len(unique_start):]
+                        unique_key.append('{}: {}'.format(unique_header, str(row[failure_key] if
+                                                                             row[failure_key] is not None else '')))
+                # If we have multiple differences, join them
+                if diff_array:
+                    difference = ', '.join(diff_array)
 
-                    # Creating a failure array for both writing the row and recording the error metadata
-                    failure = [', '.join(unique_key), rule.file.name, ', '.join(source_headers),
-                               rule.target_file.name,
-                               ', '.join(target_headers), str(rule.rule_error_message), ', '.join(source_values),
-                               ', '.join(target_values), difference, ', '.join(source_flex_list), source_row_number,
-                               str(rule.rule_label), rule.file_id, rule.target_file_id, rule.rule_severity_id]
-                    if failure[14] == RULE_SEVERITY_DICT['fatal']:
-                        error_csv.writerow(failure[0:12])
-                    if failure[14] == RULE_SEVERITY_DICT['warning']:
-                        warning_csv.writerow(failure[0:12])
-                    error_list.record_row_error(job_id, 'cross_file', failure[1], failure[5], failure[10],
-                                                failure[11],
-                                                failure[12], failure[13], severity_id=failure[14])
-                slice_start = slice_start + slice_size
+                # Creating a failure array for both writing the row and recording the error metadata
+                failure = [', '.join(unique_key), rule.file.name, ', '.join(source_headers), rule.target_file.name,
+                           ', '.join(target_headers), str(rule.rule_error_message), ', '.join(source_values),
+                           ', '.join(target_values), difference, ', '.join(source_flex_list), source_row_number,
+                           str(rule.rule_label), rule.file_id, rule.target_file_id, rule.rule_severity_id]
+                if failure[14] == RULE_SEVERITY_DICT['fatal']:
+                    error_csv.writerow(failure[0:12])
+                if failure[14] == RULE_SEVERITY_DICT['warning']:
+                    warning_csv.writerow(failure[0:12])
+                error_list.record_row_error(job_id, 'cross_file', failure[1], failure[5], failure[10], failure[11],
+                                            failure[12], failure[13], severity_id=failure[14])
 
         sub_rule_sql = rule.rule_sql.format(submission_id)
         if batch_results:
             # Only run the SQL in batches to save on memory
             proxy = conn.execution_options(stream_results=True).execute(sub_rule_sql)
-            batch_num = 0
             while True:
                 failures = proxy.fetchmany(SQL_VALIDATION_BATCH_SIZE)
                 if not failures:
                     break
-                process_failures(failures, failures[0].keys(), batch_num)
-                batch_num += 1
+                process_failures(list(failures), failures[0].keys())
             proxy.close()
         else:
             # Run the full SQL and fetch the results
             failures = conn.execute(sub_rule_sql)
             if failures.rowcount:
-                process_failures(failures, failures.keys())
+                # python batching to ensure the flex data calls are safe
+                for failure_batch in batcher(list(failures), n=SQL_VALIDATION_BATCH_SIZE):
+                    process_failures(failure_batch, failures.keys())
 
         rule_duration = (datetime.now() - rule_start).total_seconds()
         logger.info({
