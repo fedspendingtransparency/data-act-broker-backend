@@ -67,18 +67,21 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
             # materialize as we'll iterate over the failed_rows twice
             failed_rows = list(failures)
             num_failed_rows = len(failed_rows)
-            slice_size = 10000
-            slice_start = (slice_size * batch_num)
+            slice_size = SQL_VALIDATION_BATCH_SIZE
+            slice_start = 0
             while slice_start <= num_failed_rows:
                 # finding out row numbers for logger
-                last_error_curr_slice = slice_start + slice_size
-                failed_row_subset = failed_rows if batch_num else failed_rows[slice_start:last_error_curr_slice]
-                if last_error_curr_slice > num_failed_rows:
-                    last_error_curr_slice = num_failed_rows
+                slice_end = slice_start + slice_size
+                batch_start = (slice_size * batch_num)
+                batch_end = ((slice_size + 1) * batch_num)
+                failed_row_subset = failed_rows if batch_num else failed_rows[slice_start:slice_end]
+                if slice_end > num_failed_rows:
+                    slice_end = num_failed_rows
+                    batch_end = batch_start + slice_end
                 logger.info({
                     'message': 'Starting flex field gathering for cross-file rule ' +
                                '{} on submission_id: {} for '.format(rule.query_name, str(submission_id)) +
-                               'failure rows: {}-{}'.format(str(slice_start), str(last_error_curr_slice)),
+                               'failure rows: {}-{}'.format(str(batch_start), str(batch_end)),
                     'message_type': 'ValidatorInfo',
                     'rule': rule.query_name,
                     'job_id': job_id,
@@ -88,7 +91,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                 logger.info({
                     'message': 'Finished flex field gathering for cross-file rule ' +
                                '{} on submission_id: {} for '.format(rule.query_name, str(submission_id)) +
-                               'failure rows: {}-{}'.format(str(slice_start), str(last_error_curr_slice)),
+                               'failure rows: {}-{}'.format(str(batch_start), str(batch_end)),
                     'message_type': 'ValidatorInfo',
                     'rule': rule.query_name,
                     'job_id': job_id,
