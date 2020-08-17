@@ -1352,7 +1352,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `reporting_end`: reporting end date
     - `agency`: agency name
     - `submitted_by`: name of user that created the submission
-    - `published_date`: latest published date
+    - `last_pub_or_cert `: most recent date the submission was either published or certified
     - `quarterly_submission`: quarterly submission or not
 - `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
@@ -1387,7 +1387,7 @@ This endpoint lists submissions for all agencies for which the current user is a
       "publish_status": "published",
       "test_submission": false,
       "publishing_user": "Certifier",
-      "published_on": "2016-08-30 12:53:37.053424",
+      "last_pub_or_cert": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
       "certified": true,
       "time_period": "FY 16 / Q4"
@@ -1407,7 +1407,7 @@ This endpoint lists submissions for all agencies for which the current user is a
       "publish_status": "unpublished",
       "test_submission": false,
       "publishing_user": "",
-      "published_on": "",
+      "last_pub_or_cert": "",
       "quarterly_submission": true,
       "certified": true,
       "time_period": "FY 15 / Q4"
@@ -1452,7 +1452,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `test_submission`: (boolean) whether the submission is a test submission
     - `publishing_user`: (string) the name of the last user to publish the submission
     - `certified`: (boolean) whether the submission has been certified or not
-    - `published_on`: (string) the last time/date the submission was published. (`YYYY-MM-DD HH:mm:ss`)
+    - `last_pub_or_cert `: (string) the last time/date the submission was published or certified. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
     - `time_period`: (string) the time frame for the submission
 
