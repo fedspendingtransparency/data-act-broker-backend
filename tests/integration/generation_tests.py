@@ -183,7 +183,7 @@ class GenerationTests(BaseTestAPI):
         self.assertEqual(json["message"], "User does not have permission to access that submission")
 
     def test_detached_d_file_generation(self):
-        """ Test the generate and check routes for external D files """
+        """ Test the generate and check routes for D files """
         # For file generation submission, call generate route for D1 and check results
         post_json = {'file_type': 'D1', 'start': '01/02/2016', 'end': '02/03/2016', 'cgac_code': '020'}
         response = self.app.post_json("/v1/generate_detached_file/", post_json,
@@ -209,6 +209,16 @@ class GenerationTests(BaseTestAPI):
         response = self.app.get("/v1/check_detached_generation_status/", post_json,
                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.json["message"], 'No generation job found with the specified ID')
+
+    def test_detached_d_file_generation_element_numbers(self):
+        """ Test the generate for detached D files with element numbers in the header """
+        # For file generation submission, call generate route for D1 and check results
+        post_json = {'file_type': 'D1', 'start': '01/02/2016', 'end': '02/03/2016', 'cgac_code': '020',
+                     'element_numbers': True}
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
 
     def test_detached_d_file_generation_quarter_fail(self):
         """ Test that detached D file generation fails if only the quarter is provided """

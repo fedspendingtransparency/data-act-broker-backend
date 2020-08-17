@@ -82,6 +82,14 @@ class SQSMockMessage:
         sess.delete(self.sqs)
         sess.commit()
 
+    def __eq__(self, other):
+        return self.__hash__() == other.__hash__()
+
+    def __str__(self):
+        return (
+            "SQSMockMessage(body={}, message_attributes={})".format(self.body, self.message_attributes)
+        )
+
     def change_visibility(self, VisibilityTimeout): # noqa
         # Do nothing
         pass

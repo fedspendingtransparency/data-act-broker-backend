@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import Zips, StateCongressional
+from dataactcore.models.domainModels import Zips, ZipsGrouped, StateCongressional
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 from dataactvalidator.health_check import create_app
@@ -32,21 +32,26 @@ def hot_swap_zip_tables(sess):
     """
     # Getting indexes before dropping the table
     indexes = Zips.__table__.indexes
+    grouped_indexes = ZipsGrouped.__table__.indexes
 
     logger.info("Hot swapping temporary zips table to official zips table.")
 
     sql_string = """-- Do everything in a transaction so it doesn't affect anything until it's completely done
                     BEGIN;
 
-                    -- Make sure the sequence remains
+                    -- Make sure the sequences remain
                     ALTER SEQUENCE zips_zips_id_seq OWNED BY temp_zips.zips_id;
+                    ALTER SEQUENCE zips_grouped_zips_grouped_id_seq OWNED BY temp_zips_grouped.zips_grouped_id;
 
                     -- Drop old zips table and rename the temporary one
                     DROP TABLE zips;
+                    DROP TABLE zips_grouped;
                     ALTER TABLE temp_zips RENAME TO zips;
+                    ALTER TABLE temp_zips_grouped RENAME TO zips_grouped;
 
                     -- Rename the PKs and constraints to match what they were in the original zips table
                     ALTER INDEX temp_zips_pkey RENAME TO zips_pkey;
+                    ALTER INDEX temp_zips_grouped_pkey RENAME TO zips_grouped_pkey;
                     ALTER INDEX temp_zips_zip5_zip_last4_key RENAME TO uniq_zip5_zip_last4;
 
                     -- Swap out indexes"""
@@ -55,8 +60,58 @@ def hot_swap_zip_tables(sess):
     for index in indexes:
         index_name = index.name.replace('ix_', '')
         sql_string += "\nALTER INDEX temp_{}_idx RENAME TO ix_{};".format(index_name, index_name)
+    for index in grouped_indexes:
+        index_name = index.name.replace('ix_', '')
+        sql_string += "\nALTER INDEX temp_{}_idx RENAME TO ix_{};".format(index_name, index_name)
     sql_string += "COMMIT;"
     sess.execute(sql_string)
+
+
+def group_zips(sess):
+    """ Run SQL to group the zips in the zips table into the zips_grouped table
+
+        Args:
+            sess: the database connection
+    """
+    logger.info("Grouping zips into temporary zips_grouped table.")
+
+    # Inserting basic information
+    insert_query = """
+        INSERT INTO temp_zips_grouped (zip5, state_abbreviation, county_number)
+        SELECT zip5, state_abbreviation, county_number
+        FROM temp_zips
+        GROUP BY zip5, state_abbreviation, county_number;
+    """
+    sess.execute(insert_query)
+    sess.commit()
+
+    # Updating congressional districts with a count greater than 1 (also
+    update_query = """
+        WITH district_counts AS (
+            SELECT zip5, COUNT(DISTINCT temp_zips.congressional_district_no) AS cd_count
+            FROM temp_zips
+            GROUP BY zip5)
+        UPDATE temp_zips_grouped
+        SET created_at = NOW(),
+            updated_at = NOW(),
+            congressional_district_no = CASE WHEN cd_count <> 1
+                                             THEN '90'
+                                             END
+        FROM district_counts AS dc
+        WHERE dc.zip5 = temp_zips_grouped.zip5;
+    """
+    sess.execute(update_query)
+    sess.commit()
+
+    update_query = """
+        UPDATE temp_zips_grouped
+        SET congressional_district_no = temp_zips.congressional_district_no
+        FROM temp_zips
+        WHERE temp_zips_grouped.congressional_district_no IS NULL
+            AND temp_zips.zip5 = temp_zips_grouped.zip5;
+    """
+    sess.execute(update_query)
+    sess.commit()
 
 
 def update_state_congr_table_current(sess):
@@ -318,8 +373,13 @@ def read_zips():
 
         # Create temporary table to do work in so we don't disrupt the site for too long by altering the actual table
         sess.execute('CREATE TABLE IF NOT EXISTS temp_zips (LIKE zips INCLUDING ALL);')
+        sess.execute('CREATE TABLE IF NOT EXISTS temp_zips_grouped (LIKE zips_grouped INCLUDING ALL);')
         # Truncating in case we didn't clear out this table after a failure in the script
         sess.execute('TRUNCATE TABLE temp_zips;')
+        sess.execute('TRUNCATE TABLE temp_zips_grouped;')
+        # Resetting the pk sequence
+        sess.execute('SELECT setval(\'zips_zips_id_seq\', 1, false);')
+        sess.execute('SELECT setval(\'zips_grouped_zips_grouped_id_seq\', 1, false);')
         sess.commit()
 
         if CONFIG_BROKER["use_aws"]:
@@ -354,6 +414,7 @@ def read_zips():
 
             census_file = os.path.join(base_path, "census_congressional_districts.csv")
 
+        group_zips(sess)
         hot_swap_zip_tables(sess)
         update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)

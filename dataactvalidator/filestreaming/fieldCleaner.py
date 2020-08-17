@@ -1,8 +1,10 @@
 import csv
+import pandas as pd
 
 from dataactcore.logging import configure_logging
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID
+from dataactcore.models.validationModels import FileColumn
 
 
 class FieldCleaner(StringCleaner):
@@ -163,6 +165,25 @@ class FieldCleaner(StringCleaner):
             return value.zfill(field.length)
         else:
             return value
+
+    @staticmethod
+    def pad_field_vectorized(series: pd.Series, field: FileColumn):
+        """ In-place padding of values in cells of the given series with appropriate number of leading zeros, if needed
+
+        Args:
+            series: pd.Series whose values to pad
+            field: FileColumn object
+
+        Returns:
+            A new series with all values padded, or the original if padding is not needed
+        """
+        # Check padded flag for this field and file
+        if field.padded_flag and field.length is not None:
+            # Pad to specified length with leading zeros
+            return series.str.zfill(field.length)
+        else:
+            return series
+
 
 if __name__ == '__main__':
     configure_logging()

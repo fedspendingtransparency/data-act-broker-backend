@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (
-    publish_checks, process_dabs_publish, process_dabs_certify, publish_dabs_submission, certify_dabs_submission,
+    publish_checks, process_dabs_publish, process_dabs_certify, publish_dabs_submission,
     publish_and_certify_dabs_submission, get_submission_metadata, get_revalidation_threshold, get_submission_data,
     move_published_data, get_latest_publication_period, revert_to_certified)
 
@@ -69,11 +69,12 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'last_updated': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
         'reporting_period': 'Q1/2017',
+        'reporting_start_date': sub.reporting_start_date.strftime('%m/%d/%Y'),
+        'reporting_end_date': sub.reporting_end_date.strftime('%m/%d/%Y'),
         'publish_status': 'updated',
         'quarterly_submission': True,
         'test_submission': False,
         'published_submission_ids': [],
-        'certified_submission': None,
         'certified': False,
         'certification_deadline': '',
         'fabs_submission': False,
@@ -113,11 +114,12 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
         'reporting_period': 'Q2/2010',
+        'reporting_start_date': sub.reporting_start_date.strftime('%m/%d/%Y'),
+        'reporting_end_date': sub.reporting_end_date.strftime('%m/%d/%Y'),
         'publish_status': 'published',
         'quarterly_submission': True,
         'test_submission': False,
         'published_submission_ids': [],
-        'certified_submission': None,
         'certified': True,
         'certification_deadline': '',
         'fabs_submission': False,
@@ -157,12 +159,13 @@ def test_get_submission_metadata_monthly_dabs(database):
         'created_on': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_updated': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
-        'reporting_period': start_date.strftime('%m/%Y'),
+        'reporting_period': 'P04/2016',
+        'reporting_start_date': sub.reporting_start_date.strftime('%m/%d/%Y'),
+        'reporting_end_date': sub.reporting_end_date.strftime('%m/%d/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
         'test_submission': False,
         'published_submission_ids': [],
-        'certified_submission': None,
         'certified': False,
         'certification_deadline': '',
         'fabs_submission': False,
@@ -185,7 +188,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=4, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
-                            reporting_fiscal_period=1, reporting_fiscal_year=2015, is_quarter_format=False,
+                            reporting_fiscal_period=2, reporting_fiscal_year=2015, is_quarter_format=False,
                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=True,
                             reporting_start_date=start_date, number_of_errors=4, number_of_warnings=1)
 
@@ -203,12 +206,13 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'created_on': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
-        'reporting_period': start_date.strftime('%m/%Y'),
+        'reporting_period': 'P01-P02/2015',
+        'reporting_start_date': sub.reporting_start_date.strftime('%m/%d/%Y'),
+        'reporting_end_date': sub.reporting_end_date.strftime('%m/%d/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
         'test_submission': False,
         'published_submission_ids': [],
-        'certified_submission': None,
         'certified': False,
         'certification_deadline': '',
         'fabs_submission': True,
@@ -255,12 +259,13 @@ def test_get_submission_metadata_published_fabs(database):
         'created_on': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
-        'reporting_period': start_date.strftime('%m/%Y'),
+        'reporting_period': 'P05/2010',
+        'reporting_start_date': sub.reporting_start_date.strftime('%m/%d/%Y'),
+        'reporting_end_date': sub.reporting_end_date.strftime('%m/%d/%Y'),
         'publish_status': 'published',
         'quarterly_submission': False,
         'test_submission': False,
         'published_submission_ids': [],
-        'certified_submission': None,
         'certified': False,
         'certification_deadline': '',
         'fabs_submission': True,
@@ -310,11 +315,12 @@ def test_get_submission_metadata_test_submission(database):
         'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
         'reporting_period': 'Q1/2017',
+        'reporting_start_date': sub2.reporting_start_date.strftime('%m/%d/%Y'),
+        'reporting_end_date': sub2.reporting_end_date.strftime('%m/%d/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': True,
         'test_submission': True,
         'published_submission_ids': [1],
-        'certified_submission': 1,
         'certified': False,
         'certification_deadline': '',
         'fabs_submission': False,
@@ -858,7 +864,9 @@ def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database
 
         job = JobFactory(submission_id=submission.submission_id, last_validated=now,
                          job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        sess.add(job)
+        c_job = JobFactory(submission_id=submission.submission_id, last_validated=now,
+                           job_type_id=JOB_TYPE_DICT['validation'])
+        sess.add_all([job, c_job])
         sess.commit()
 
         g.user = user
@@ -909,31 +917,6 @@ def test_publish_dabs_submission_past_due(database):
 
     file_handler = fileHandler.FileHandler({}, is_local=True)
     results = publish_dabs_submission(submission, file_handler)
-
-    assert results.status_code == 400
-    assert results.json['message'] == 'Monthly submissions past their certification deadline must be published and' \
-                                      ' certified at the same time. Use the publish_and_certify_dabs_submission' \
-                                      ' endpoint.'
-
-
-@pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_past_due(database):
-    """ Tests that a DABS submission cannot be certified without republishing if it is past its certification date. """
-    now = datetime.datetime.utcnow()
-    sess = database.session
-
-    user = UserFactory()
-    cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
-    submission = SubmissionFactory(cgac_code=cgac.cgac_code, reporting_fiscal_period=3, reporting_fiscal_year=2017,
-                                   reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
-                                   publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
-                                   number_of_errors=0, number_of_warnings=200, certifying_user_id=None)
-    sched = SubmissionWindowScheduleFactory(period=3, year=2017, period_start=now - datetime.timedelta(5),
-                                            certification_deadline=now - datetime.timedelta(1))
-    sess.add_all([user, cgac, submission, sched])
-    sess.commit()
-
-    results = certify_dabs_submission(submission)
 
     assert results.status_code == 400
     assert results.json['message'] == 'Monthly submissions past their certification deadline must be published and' \

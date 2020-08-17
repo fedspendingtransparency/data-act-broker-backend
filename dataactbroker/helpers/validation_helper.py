@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import csv
 
@@ -25,8 +26,8 @@ def is_valid_type(data, data_type):
     if data_type is None:
         # If no type specified, don't need to check anything
         return True
-    if data.strip() == '':
-        # An empty string matches all types
+    if data is None or data.strip() == '':
+        # All types can be None, and an empty string matches all types
         return True
     if data_type == 'STRING':
         return len(data) > 0
@@ -80,6 +81,41 @@ def clean_col(value, clean_quotes=True):
     return value
 
 
+def clean_frame_vectorized(frame: pd.DataFrame, convert_to_str=False, clean_quotes=True):
+    """ In-place strip of surrounding whitespace, make None if empty, and remove surrounding quotes.
+
+        Args:
+            frame: pd.DataFrame to clean
+            convert_to_str: whether to apply .astype(str) on all Series in the DataFrame
+                - If the DataFrame was created or read in from CSV with dtype=str already, this may be unnecessary
+                  and will save on performance if avoided
+                - If left as False and there are mixed types, such as int or float, they will be set to None rather
+                  than converted to their str form
+                - If set as True, any non-null, non-string types provided (like int or float) will be converted to
+                  their string format in the final result.
+            clean_quotes: whether to clean extra quotes or not
+
+        Returns:
+            The cleaned DataFrame
+    """
+    if convert_to_str:
+        frame = frame.apply(lambda series: series[series.notnull()].astype(str))
+    # Do initial strip of surrounding whitespace
+    frame = frame.apply(lambda series: series.str.strip())
+    if clean_quotes:
+        # NOTE: Need to find symmetry in the surrounding quotes in order to remove them.
+        # Unbalanced quotes will not be removed
+        for col, s in frame.items():
+            s.update(s[(s.str.startswith('"')) & (s.str.endswith('"'))].str.strip('"').str.strip())
+    # Null-out all empty strings remaining
+    # NOTE: Must use python None here rather than numpy.NaN, because of downstream python code that is not NaN-aware
+    frame = frame.mask(frame == "", other=None)
+    # Favor None over np.NaN for downstream Python code that is not NaN-aware.
+    # Must use dict here since method signature does not allow None for param value
+    frame = frame.replace({np.NaN: None})
+    return frame
+
+
 def clean_numbers(value):
     """ Removes commas from strings representing numbers
 
@@ -94,6 +130,53 @@ def clean_numbers(value):
         if FieldCleaner.is_numeric(temp_value):
             return temp_value
     return value
+
+
+def clean_numbers_vectorized(series: pd.Series, convert_to_str=False):
+    """ In-place removal of commas from strings representing numbers, or leaves them as-is if it cannot make a number
+
+        Caveats (by Example):
+                        A        B           C        D
+            0  10,003,234  bad,and  2242424242  -10,000
+            1           0        8     9.424.2      -10
+            2     9.24242   ,209,4         ,01    ,-0,0
+            3        1,45     0055        None      NaN
+        Yields this evaluation of whether it can be cleaned:
+                        A        B           C     D
+            0        True    False        True  True
+            1        True     True       False  True
+            2        True     True        True  True
+            3        True     True       False  True
+        And these results when commas are replaced from those that can be cleaned
+                        A        B           C       D
+            0    10003234  bad,and  2242424242  -10000
+            1           0        8     9.424.2     -10
+            2     9.24242     2094          01     -00
+            3         145     0055        None     NaN
+
+        Args:
+            series: the series that will be cleaned (updated in-place)
+            convert_to_str: whether to apply .astype(str) on all Series in the DataFrame
+                - If the DataFrame was created or read in from CSV with dtype=str already, this may be unnecessary
+                  and will save on performance if avoided
+                - If left as False and there are mixed types, such as int or float, they will be set to None rather
+                  than converted to their str form
+                - If set as True, any non-null, non-string types provided (like int or float) will be converted to
+                  their string format in the final result.
+
+        Returns:
+            None (in-place update of given Series)
+    """
+    if convert_to_str:
+        s = series[series.notnull()].astype(str)
+    else:
+        s = series
+    # Get subset of values in series that had ',' replaced
+    replacements = s[s.str.contains(",", na=False)].str.replace(",", "")
+    # Check if their result is numeric
+    cleanable = replacements.str.replace(".", "", 1).str.replace("-", "", 1).str.isdigit()
+    # For those that are numeric, update the original series with their non-comma value
+    series.update(replacements[cleanable])
 
 
 def concat_flex(row):
@@ -124,6 +207,23 @@ def derive_unique_id(row, is_fabs):
     else:
         unique_id = 'AssistanceTransactionUniqueKey: {}'.format(row['afa_generated_unique'])
     return unique_id
+
+
+def derive_unique_id_vectorized(frame: pd.DataFrame, is_fabs):
+    """ Derives the unique ID of a row and puts it in the proper format for the error/warning report.
+
+        Args:
+            frame: the pd.DataFrame whose 'unique_id' column's values will be updated
+            is_fabs: a boolean indicating if the submission is a FABS submission or not
+
+        Returns:
+            A Series with properly formatted unique ID all rows depending on if it's a FABS or DABS submission
+    """
+    if not is_fabs:
+        return 'TAS: ' + frame['display_tas'][frame['display_tas'].notnull()].astype(str)
+    else:
+        return 'AssistanceTransactionUniqueKey: ' + \
+               frame['afa_generated_unique'][frame['afa_generated_unique'].notnull()].astype(str)
 
 
 def derive_fabs_awarding_sub_tier(row, office_list):
@@ -223,6 +323,54 @@ def valid_type(row, csv_schema):
     return is_valid_type(row['Value Provided'], FIELD_TYPE_DICT_ID[current_field.field_types_id])
 
 
+def valid_type_bool_vector(series: pd.Series, csv_schema, type_field=None, match_invalid=False):
+    """ Check datatype validity of each cell in a Series in a vectorized execution
+
+        True/False will be determined by whether the value of the cell matches the datatype for the given
+        series, according to the schema, and on the value of the `match_valid` toggle (see below).
+
+
+        The returned bool vector can be used for Boolean Indexing of a DataFrame or Series, to pick on the
+        valid/invalid values.
+
+        Args:
+            series: the pd.Series to act on, often provided as a column slice of a DataFrame.
+            csv_schema: the schema containing the details about the columns for this file
+            type_field: the column name this series represents. Used to lookup type information from the schema,
+                        and should be provided if the `series.name` is not populated on the given `series`.
+            match_invalid:
+                - When left as `match_invalid=False`: True if the value matches its type; False otherwise.
+                - When `match_invalid=True`: False if the value matches its type, True if it has an invalid type
+
+        Returns:
+            A boolean vector as a Series with True or False as values in the vector
+    """
+    field = type_field or series.name
+    if not field:
+        raise ValueError("Cannot lookup field type info from schema because the given Series has no name and "
+                         "type_field was not provided. One or the other must be set.")
+    required_type = FIELD_TYPE_DICT_ID[csv_schema[field].field_types_id]
+    if match_invalid:
+        return series.map(lambda x: not is_valid_type(x, required_type))
+    return series.map(lambda x: is_valid_type(x, required_type))
+
+
+def invalid_type_vector(series: pd.Series, csv_schema, type_field=None):
+    """ Provide a Series in a vectorized operation where values with valid datatypes are nulled-out (set to NaN),
+        only leaving invalid values. Useful for building error reports.
+
+        Args:
+            series: the pd.Series to act on, often provided as a column slice of a DataFrame.
+            csv_schema: the schema containing the details about the columns for this file
+            type_field: the column name this series represents. Used to lookup type information from the schema,
+                        and should be provided if the `series.name` is not populated on the given `series`.
+
+        Returns:
+            A new Series with only invalid datatypes remaining from the one provided.
+    """
+    return series.where(valid_type_bool_vector(series, csv_schema, type_field, match_invalid=True))
+
+
 def expected_type(row, csv_schema):
     """ Formats and returns an error message explaining what the expected type of a field is.
 
@@ -251,6 +399,54 @@ def valid_length(row, csv_schema):
     if current_field.length:
         return len(row['Value Provided']) <= current_field.length
     return True
+
+
+def valid_length_bool_vector(series: pd.Series, csv_schema, type_field=None, match_invalid=False):
+    """ Check length validity of each cell in a Series in a vectorized execution
+
+        True/False will be determined by whether the value of the cell does not exceed the max length fo the field
+        for the given series, according to the schema, and on the value of the `match_valid` toggle (see below).
+
+        The returned bool vector can be used for Boolean Indexing of a DataFrame or Series, to pick on the
+        valid/invalid values.
+
+        Args:
+            series: the pd.Series to act on, often provided as a column slice of a DataFrame.
+                - NOTE: The values must be strings (or null/NaN) to evaluate their length
+            csv_schema: the schema containing the details about the columns for this file
+            type_field: the column name this series represents. Used to lookup type information from the schema,
+                        and should be provided if the `series.name` is not populated on the given `series`.
+            match_invalid:
+                - When left as `match_invalid=False`: True if the value is within max length; False otherwise.
+                - When `match_invalid=True`: False if the value is within max length, True if it exceeds max length
+
+        Returns:
+            A boolean vector as a Series with True or False as values in the vector
+    """
+    field = type_field or series.name
+    if not field:
+        raise ValueError("Cannot lookup field type info from schema because the given Series has no name and "
+                         "type_field was not provided. One or the other must be set.")
+    if match_invalid:
+        return series.str.len() > csv_schema[field].length
+    return series.str.len() <= csv_schema[field].length
+
+
+def invalid_length_vector(series: pd.Series, csv_schema, type_field=None):
+    """ Provide a Series in a vectorized operation where values with that meet there string length requirements are
+        nulled-out (set to NaN), only leaving invalid values exceeding max length. Useful for building error reports.
+
+        Args:
+            series: the pd.Series to act on, often provided as a column slice of a DataFrame.
+                - NOTE: The values must be strings (or null/NaN) to evaluate their length
+            csv_schema: the schema containing the details about the columns for this file
+            type_field: the column name this series represents. Used to lookup type information from the schema,
+                        and should be provided if the `series.name` is not populated on the given `series`.
+
+        Returns:
+            A new Series with only invalid values (exceeding max length) remaining from the one provided.
+    """
+    return series.where(valid_length_bool_vector(series, csv_schema, type_field, match_invalid=True))
 
 
 def expected_length(row, csv_schema):
@@ -373,17 +569,18 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
             A dataframe containing error text that can be turned into an error report for non-string fields
     """
     # Get just the non-string columns along with the row number and unique ID
-    type_data = data[type_fields + ['row_number', 'unique_id']]
+    # We will be modifying, by nulling the valid types, so get a copy so as to not modify the original data
+    invalid_datatype = data[type_fields + ['row_number', 'unique_id']].copy()
+
+    for type_field in type_fields:
+        # For each col-Series, null-out (set to NaN) any cells that meet datatype requirements
+        invalid_datatype[type_field] = invalid_type_vector(invalid_datatype[type_field], csv_schema)
     # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
-    errors = pd.melt(type_data, id_vars=['row_number', 'unique_id'], value_vars=type_fields,
+    errors = pd.melt(invalid_datatype, id_vars=['row_number', 'unique_id'], value_vars=type_fields,
                      var_name='Field Name', value_name='Value Provided')
-    # Throw out all rows that don't have data, they don't have a type
-    errors = errors[~errors['Value Provided'].isnull()]
-    # If there is data that needs checking, keep only the data that doesn't have the right type
-    if not errors.empty:
-        errors['matches_type'] = errors.apply(lambda x: valid_type(x, csv_schema), axis=1)
-        errors = errors[~errors['matches_type']]
-        errors.drop(['matches_type'], axis=1, inplace=True)
+
+    # Throw out rows for all cell values that were compliant or originally null
+    errors = errors[~(errors['Value Provided'].isnull())]
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
     errors['Rule Message'] = ValidationError.typeErrorMsg
@@ -419,18 +616,22 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
         Returns:
             A dataframe containing error text that can be turned into an error report for fields that are too long
     """
+    # Drop all rows that have a type error
+    exceeds_length = data[~(data['row_number'].isin(type_error_rows))]
+
     # Get just the columns with a maximum length along with the row number and unique ID
-    length_data = data[length_fields + ['row_number', 'unique_id']]
-    # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
-    errors = pd.melt(length_data, id_vars=['row_number', 'unique_id'], value_vars=length_fields,
+    # We will be modifying, by nulling the valid types, so get a copy so as to not modify the original data
+    exceeds_length = exceeds_length[length_fields + ['row_number', 'unique_id']].copy()
+
+    for length_field in length_fields:
+        # For each col-Series, null-out (set to NaN) any cells that meet max length requirements
+        exceeds_length[length_field] = invalid_length_vector(exceeds_length[length_field], csv_schema)
+
+    # Flip the data so each header + cell combination is its own row, keeping the dfrelevant row numbers and unique IDs
+    errors = pd.melt(exceeds_length, id_vars=['row_number', 'unique_id'], value_vars=length_fields,
                      var_name='Field Name', value_name='Value Provided')
-    # Throw out all rows that don't have data or have a type error
-    errors = errors[~errors['Value Provided'].isnull() & ~errors['row_number'].isin(type_error_rows)]
-    # If there is data that needs checking, keep only the data that is too long
-    if not errors.empty:
-        errors['valid_length'] = errors.apply(lambda x: valid_length(x, csv_schema), axis=1)
-        errors = errors[~errors['valid_length']]
-        errors.drop(['valid_length'], axis=1, inplace=True)
+    # Throw out rows for all cell values that were compliant or originally null
+    errors = errors[~(errors['Value Provided'].isnull())]
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
     errors['Rule Message'] = ValidationError.lengthErrorMsg

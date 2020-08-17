@@ -551,11 +551,12 @@ This endpoint returns metadata for the requested submission.
     "last_updated": "2018-04-16T18:48:09",
     "last_validated": "2018-04-16T18:48:09",
     "reporting_period": "Q2/2018",
+    "reporting_start_date": "01/01/2018",
+    "reporting_end_date": "03/31/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
     "test_submission": false,
     "published_submission_ids": [],
-    "certified_submission": 2,
     "certified": false,
     "certification_deadline": "2020-05-24",
     "fabs_submission": true,
@@ -579,7 +580,9 @@ This endpoint returns metadata for the requested submission.
 - `created_on`: (string) date submission was created (YYYY-MM-DDTHH:mm:ss)
 - `last_updated`: (string) date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
 - `last_validated`: (string) date the most recent validations were completed (YYYY-MM-DDTHH:mm:ss)
-- `reporting_period`: (string) reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
+- `reporting_period`: (string) reporting period of the submission (Q#/YYYY for quarterly submissions, P##/YYYY for monthly, P01-P02/YYYY for period 2)
+- `reporting_start_date`: (string) the start date of the reporting period the submission is made for (MM/DD/YYYY format)
+- `reporting_end_date`: (string) the end date of the reporting period the submission is made for (MM/DD/YYYY format)
 - `publish_status`: (string) whether the submission is published or not. Can contain only the following values:
     - `unpublished`
     - `published`
@@ -588,7 +591,6 @@ This endpoint returns metadata for the requested submission.
 - `quarterly_submission`: (boolean) whether the submission is quarterly or monthly
 - `test_submission`: (boolean) whether the submission is a test submission
 - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
-- `certified_submission`: (integer) an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `certified`: (boolean) whether the submission has been certified or not
 - `certification_deadline`: (string) represents the deadline for certification after which a submission is officially "late" to certify.
 - `fabs_submission`: (boolean) whether the submission is FABS or DABS (True for FABS)
@@ -1172,7 +1174,6 @@ Possible HTTP Status Codes:
   - Submission is not published
   - Submission is already certified
   - Submission is a quarterly submission
-  - It is past the certification window for the submission
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
@@ -1385,11 +1386,9 @@ This endpoint lists submissions for all agencies for which the current user is a
       "last_modified": "2016-08-30 12:59:37.053424",
       "publish_status": "published",
       "test_submission": false,
-      "published_submission_ids": [],
       "publishing_user": "Certifier",
       "published_on": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
-      "certification_deadline": "2016-10-05",
       "certified": true,
       "time_period": "FY 16 / Q4"
     },
@@ -1407,11 +1406,9 @@ This endpoint lists submissions for all agencies for which the current user is a
       "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
       "test_submission": false,
-      "published_submission_ids": [],
       "publishing_user": "",
       "published_on": "",
       "quarterly_submission": true,
-      "certification_deadline": "2015-10-05",
       "certified": true,
       "time_period": "FY 15 / Q4"
     }
@@ -1453,12 +1450,10 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `updated`
         - `publishing`
     - `test_submission`: (boolean) whether the submission is a test submission
-    - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
     - `publishing_user`: (string) the name of the last user to publish the submission
     - `certified`: (boolean) whether the submission has been certified or not
     - `published_on`: (string) the last time/date the submission was published. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
-    - `certification_deadline `: (string) the last date of the submission window, when the certification is due
     - `time_period`: (string) the time frame for the submission
 
 ##### Errors
@@ -1792,7 +1787,7 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
 
 ### POST "/v1/generate\_detached\_file/"
 
-This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how files are generated, see the [FileLogic.md](../FileLogic.md) file.
+This route sends a request to the backend to generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how A files are generated, see the [FileLogic.md](../FileLogic.md) file.
 
 #### Body (JSON)
 
@@ -1805,30 +1800,32 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "year": 2017,
     "period": 3,
     "agency_type": "awarding",
-    "file_format": "csv"
+    "file_format": "csv",
+    "element_numbers": True
 }
 ```
 
 #### Body Description
 
-- `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
-    - `D1` - generate a D1 file
-    - `D2` - generate a D2 file
-    - `A` - generate an A file
-- `cgac_code` - **required if frec\_code not provided** - the cgac of the agency for which to generate the files for
-- `frec_code` - **required if cgac\_code not provided** - the frec of the agency for which to generate the files for
-- `start` - **required for D file generation** - the start date of the requested date range, in `MM/DD/YYYY` string format
-- `end` - **required for D file generation** - the end date of the requested date range, in `MM/DD/YYYY` string format
-- `year` - **required for A file generation** - an integer indicating the year for which to generate an A file
-- `period` - **required for A file generation** - an integer indicating the period for which to generate an A file
+- `file_type`: (required, string) indicates the file type to generate. Allowable values are:
+    - `D1`: generate a D1 file
+    - `D2`: generate a D2 file
+    - `A`: generate an A file
+- `cgac_code`: (string) The cgac of the agency for which to generate the files. Required if `frec_code` is not provided.
+- `frec_code`: (string) The frec of the agency for which to generate the files. Required if `cgac_code` is not provided.
+- `start`: (string) The start date of the requested date range, in `MM/DD/YYYY` string format. Required for D file generation, ignored in A file generation.
+- `end`: (string) The end date of the requested date range, in `MM/DD/YYYY` string format. Required for D file generation, ignored in A file generation.
+- `year`: (integer) Indicates the year for which to generate an A file. Required for A file generation, ignored in D file generation.
+- `period`: (integer) Indicates the period for which to generate an A file. Required for A file generation, ignored in D file generation.
     - Allowed values: 2-12
     - 2 indicates November of the previous year, 12 indicates September of the selected year
-- `agency_type` - **optional, used only in D1/D2** - a string indicating if the file generated should be based on awarding or funding agency. Defaults to `awarding` if not provided. Only allowed values are:
+- `agency_type`: (string) Indicates if the file generated should be based on awarding or funding agency. Used only in D file generation. Defaults to `awarding` if not provided. Only allowed values are:
     - `awarding`
     - `funding`
-- `file_format` - **optional, used only in D1/D2** - a string indicating if the file generated should be a comma delimited csv or a pipe delimited txt. Defaults to `csv` if not provided. Only allowed values are:
+- `file_format`: (string) Indicates if the file generated should be a comma delimited csv or a pipe delimited txt. Used only in D file generation. Defaults to `csv` if not provided. Only allowed values are:
     - `csv`
     - `txt`
+- `element_numbers`: (boolean) Indicates whether to include FPDS element numbers in the D1 headers. Used only in D1 file generation, ignored in all others. Defaults to `False`
 
 #### Response (JSON)
 Response will be the same format as those returned from `/v1/check_generation_status/` endpoint with the exception that only D1, D2, and A files will ever be present, never E or F.

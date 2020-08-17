@@ -4,7 +4,6 @@ import logging
 import os
 import requests
 import threading
-import math
 import csv
 
 from collections import namedtuple
@@ -16,8 +15,8 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
-                                                       reporting_date, job_to_dict, get_submissions_in_period)
-from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
+                                                       get_submissions_in_period)
+from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
 
@@ -25,16 +24,13 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
-    get_latest_published_date, get_certification_deadline, get_time_period)
+from dataactcore.interfaces.function_bag import (create_jobs, get_error_metrics_by_job_id, mark_job_status,
+                                                 get_latest_published_date, get_time_period)
 
-from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
-                                             Office, DUNS)
-from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, PublishHistory, PublishedFilesHistory,
-                                          FileGeneration, FileType, CertifiedComment, generate_fiscal_year,
-                                          generate_fiscal_period)
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
+from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
+                                          PublishHistory, PublishedFilesHistory, FileGeneration, FileType,
+                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -633,12 +629,7 @@ class FileHandler:
             raise ResponseException('Submission has unfinished jobs and cannot be published', StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission that has only finished jobs, we can start the process
-        log_data = {
-            'message': 'Starting FABS submission publishing',
-            'message_type': 'BrokerDebug',
-            'submission_id': submission_id
-        }
-        logger.info(log_data)
+        log_derivation('Starting FABS submission publishing', submission_id)
 
         # set publish_status to "publishing"
         sess.query(Submission).filter_by(submission_id=submission_id).\
@@ -688,149 +679,208 @@ class FileHandler:
                                         'publish.',
                                         StatusCode.CLIENT_ERROR)
 
-            # Create lookup dictionaries so we don't have to query the API every time. We do biggest to smallest
-            # to save the most possible space, although none of these should take that much.
-            state_dict = {}
-            country_dict = {}
-            sub_tier_dict = {}
-            cfda_dict = {}
-            county_dict = {}
-            office_dict = {}
-            exec_comp_dict = {}
-
-            # This table is big enough that we want to only grab 2 columns
-            offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code,
-                                 Office.financial_assistance_awards_office, Office.contract_funding_office,
-                                 Office.financial_assistance_funding_office).all()
-            for office in offices:
-                code = office.office_code.upper()
-                office_dict[code] = {'office_name': office.office_name,
-                                     'sub_tier_code': office.sub_tier_code,
-                                     'agency_code': office.agency_code,
-                                     'financial_assistance_awards_office': office.financial_assistance_awards_office,
-                                     'funding_office': (office.contract_funding_office or
-                                                        office.financial_assistance_funding_office)}
-            del offices
-
-            counties = sess.query(CountyCode).all()
-            for county in counties:
-                # We ony ever get county name by state + code so we can make the keys a combination
-                county_dict[county.state_code.upper() + county.county_number] = county.county_name
-            del counties
-
-            # Only grabbing the 2 columns we need because, unlike the other lookups, this has a ton of columns and
-            # they can be pretty big
-            cfdas = sess.query(CFDAProgram.program_number, CFDAProgram.program_title).all()
-            for cfda in cfdas:
-                # This is so the key is always "##.###", which is what's required based on the SQL
-                # Could also be "###.###" which this will still pad correctly
-                cfda_dict['%06.3f' % cfda.program_number] = cfda.program_title
-            del cfdas
-
-            sub_tiers = sess.query(SubTierAgency).all()
-            for sub_tier in sub_tiers:
-                sub_tier_dict[sub_tier.sub_tier_agency_code.upper()] = {
-                    'is_frec': sub_tier.is_frec,
-                    'cgac_code': sub_tier.cgac.cgac_code,
-                    'frec_code': sub_tier.frec.frec_code,
-                    'sub_tier_agency_name': sub_tier.sub_tier_agency_name,
-                    'agency_name': sub_tier.frec.agency_name if sub_tier.is_frec else sub_tier.cgac.agency_name
-                }
-            del sub_tiers
-
-            countries = sess.query(CountryCode).all()
-            for country in countries:
-                country_dict[country.country_code.upper()] = country.country_name
-            del countries
-
-            states = sess.query(States).all()
-            for state in states:
-                state_dict[state.state_code.upper()] = state.state_name
-            del states
-
-            duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None)).all()
-            for duns in duns_list:
-                exec_comp_dict[duns.awardee_or_recipient_uniqu] =\
-                    {'officer1_name': duns.high_comp_officer1_full_na, 'officer1_amt': duns.high_comp_officer1_amount,
-                     'officer2_name': duns.high_comp_officer2_full_na, 'officer2_amt': duns.high_comp_officer2_amount,
-                     'officer3_name': duns.high_comp_officer3_full_na, 'officer3_amt': duns.high_comp_officer3_amount,
-                     'officer4_name': duns.high_comp_officer4_full_na, 'officer4_amt': duns.high_comp_officer4_amount,
-                     'officer5_name': duns.high_comp_officer5_full_na, 'officer5_amt': duns.high_comp_officer5_amount}
-            del duns_list
-
-            agency_codes_list = []
-            row_count = 1
             total_count = sess.query(DetachedAwardFinancialAssistance). \
                 filter_by(is_valid=True, submission_id=submission_id).count()
-            batch_percent = math.floor(total_count/LOG_BATCH_PERCENT)
-            loop_num = 0
-            query = []
-            log_data['message'] = 'Starting derivations for FABS submission (total count: {})'.format(total_count)
-            logger.info(log_data)
+            log_derivation('Starting derivations for FABS submission (total count: {})'.format(total_count),
+                           submission_id)
 
-            while len(query) == ROWS_PER_LOOP or loop_num == 0:
-                # get next set of valid lines for this submission
-                query = sess.query(DetachedAwardFinancialAssistance). \
-                    filter_by(is_valid=True, submission_id=submission_id). \
-                    order_by(DetachedAwardFinancialAssistance.detached_award_financial_assistance_id).\
-                    slice(ROWS_PER_LOOP * loop_num, ROWS_PER_LOOP * (loop_num + 1)).all()
+            # Insert all non-error, non-delete rows into published table
+            column_list = [col.key for col in DetachedAwardFinancialAssistance.__table__.columns]
+            remove_cols = ['created_at', 'updated_at', 'detached_award_financial_assistance_id', 'job_id', 'row_number',
+                           'is_valid']
+            for remove_col in remove_cols:
+                column_list.remove(remove_col)
+            detached_col_string = ", ".join(column_list)
 
-                for row in query:
-                    # remove all keys in the row that are not in the intermediate table
-                    temp_obj = row.__dict__
+            column_list = [col.key for col in PublishedAwardFinancialAssistance.__table__.columns]
+            remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active',
+                           'published_award_financial_assistance_id']
+            for remove_col in remove_cols:
+                column_list.remove(remove_col)
+            published_col_string = ", ".join(column_list)
 
-                    temp_obj.pop('row_number', None)
-                    temp_obj.pop('is_valid', None)
-                    temp_obj.pop('created_at', None)
-                    temp_obj.pop('updated_at', None)
-                    temp_obj.pop('_sa_instance_state', None)
+            log_derivation('Beginning transfer of publishable records to temp table', submission_id)
+            create_table_sql = """
+                CREATE TEMP TABLE tmp_fabs_{submission_id}
+                ON COMMIT DROP
+                AS
+                    SELECT {cols}
+                    FROM published_award_financial_assistance
+                    WHERE false;
 
-                    temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                                county_dict, office_dict, exec_comp_dict)
+                ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_award_financial_assistance_id
+                    SERIAL PRIMARY KEY;
+            """.format(submission_id=submission_id, cols=published_col_string)
+            sess.execute(create_table_sql)
 
-                    # if it's a correction or deletion row and an old row is active, update the old row to be inactive
-                    if row.correction_delete_indicatr is not None:
-                        check_row = sess.query(pafa).\
-                            filter(func.upper(pafa.afa_generated_unique) == row.afa_generated_unique.upper(),
-                                   pafa.is_active.is_(True)).one_or_none()
-                        if check_row:
-                            # just creating this as a variable because flake thinks the row is too long
-                            row_id = check_row.published_award_financial_assistance_id
-                            sess.query(pafa).\
-                                filter_by(published_award_financial_assistance_id=row_id).\
-                                update({'is_active': False, 'updated_at': row.modified_at}, synchronize_session=False)
+            create_indexes_sql = """
+                CREATE INDEX ix_tmp_fabs_{submission_id}_funding_office_code_upper ON
+                    tmp_fabs_{submission_id} (upper(funding_office_code));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_awarding_office_code_upper ON
+                    tmp_fabs_{submission_id} (upper(awarding_office_code));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_business_funds_indicator_upper ON
+                    tmp_fabs_{submission_id} (upper(business_funds_indicator));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_country_code_upper ON
+                    tmp_fabs_{submission_id} (upper(legal_entity_country_code));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_state_code_upper ON
+                    tmp_fabs_{submission_id} (upper(legal_entity_state_code));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_city_name_upper ON
+                    tmp_fabs_{submission_id} (upper(legal_entity_city_name));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_business_types ON tmp_fabs_{submission_id} (business_types);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_award_mod ON
+                    tmp_fabs_{submission_id} (award_modification_amendme);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_zip_last4 ON
+                    tmp_fabs_{submission_id} (legal_entity_zip_last4);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_zip5 ON tmp_fabs_{submission_id} (legal_entity_zip5);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_state_code ON
+                    tmp_fabs_{submission_id} (legal_entity_state_code);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_county_code ON
+                    tmp_fabs_{submission_id} (legal_entity_county_code);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_congressional ON
+                    tmp_fabs_{submission_id} (legal_entity_congressional);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_state_code ON
+                    tmp_fabs_{submission_id} (place_of_perfor_state_code);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_zip5 ON
+                    tmp_fabs_{submission_id} (place_of_performance_zip5);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_county_code ON
+                    tmp_fabs_{submission_id} (place_of_perform_county_co);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_zip_last4 ON
+                    tmp_fabs_{submission_id} (place_of_perform_zip_last4);
 
-                    # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
-                    new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                    sess.add(new_row)
+                CREATE INDEX ix_tmp_fabs_{submission_id}_uri_awarding_sub_tier_upper ON
+                    tmp_fabs_{submission_id} (UPPER(uri), UPPER(awarding_sub_tier_agency_c));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_fain_awarding_sub_tier_upper ON
+                    tmp_fabs_{submission_id} (UPPER(fain), UPPER(awarding_sub_tier_agency_c));
 
-                    # update the list of affected awarding_agency_codes
-                    if temp_obj['awarding_agency_code'] not in agency_codes_list:
-                        agency_codes_list.append(temp_obj['awarding_agency_code'])
+                CREATE INDEX ix_tmp_fabs_{submission_id}_awarding_sub_tier_upper ON
+                    tmp_fabs_{submission_id} (upper(awarding_sub_tier_agency_c));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_uri_upper ON
+                    tmp_fabs_{submission_id} (upper(uri));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_fain_upper ON
+                    tmp_fabs_{submission_id} (upper(fain));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_cdi_upper ON
+                    tmp_fabs_{submission_id} (upper(correction_delete_indicatr));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_cast_action_date_as_date ON
+                    tmp_fabs_{submission_id} (cast_as_date(action_date));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_record_type ON
+                    tmp_fabs_{submission_id} (record_type);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_congr ON
+                    tmp_fabs_{submission_id} (place_of_performance_congr);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_country_upper ON
+                    tmp_fabs_{submission_id} (UPPER(place_of_perform_country_c));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_funding_sub_tier_upper ON
+                    tmp_fabs_{submission_id} (UPPER(funding_sub_tier_agency_co));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_cfda_num ON
+                    tmp_fabs_{submission_id} (cfda_number);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_awardee_unique ON
+                    tmp_fabs_{submission_id} (awardee_or_recipient_uniqu);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_assistance_type_upper ON
+                    tmp_fabs_{submission_id} (upper(assistance_type));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_action_type_upper ON
+                    tmp_fabs_{submission_id} (upper(action_type));
+            """.format(submission_id=submission_id)
+            sess.execute(create_indexes_sql)
 
-                    # update the list of affected funding_agency_codes
-                    if temp_obj['funding_agency_code'] not in agency_codes_list:
-                        agency_codes_list.append(temp_obj['funding_agency_code'])
+            insert_query = """
+                INSERT INTO tmp_fabs_{submission_id} ({cols})
+                SELECT {cols}
+                FROM detached_award_financial_assistance AS dafa
+                WHERE dafa.submission_id = {submission_id}
+                    AND dafa.is_valid IS TRUE
+                    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
+            """
+            sess.execute(insert_query.format(cols=detached_col_string, submission_id=submission_id))
+            log_derivation('Completed transfer of publishable records to temp table', submission_id)
 
-                    if total_count > MIN_ROWS_LOG_BATCH and (row_count % batch_percent) == 0:
-                        percent = math.floor((row_count/total_count)*100)
-                        log_data['message'] = 'Completed derivations for {} rows ({}%)'.format(row_count, percent)
-                        logger.info(log_data)
-                    row_count += 1
-                loop_num += 1
+            fabs_start = datetime.now()
+            log_derivation('Beginning main FABS derivations', submission_id)
+            fabs_derivations(sess, submission_id)
+            log_derivation('Completed main FABS derivations', submission_id, fabs_start)
 
-            # update all cached D2 FileGeneration objects that could have been affected by the publish
-            sess.query(FileGeneration).\
-                filter(FileGeneration.agency_code.in_(agency_codes_list),
-                       FileGeneration.is_cached_file.is_(True),
-                       FileGeneration.file_type == 'D2').\
-                update({'is_cached_file': False}, synchronize_session=False)
+            log_derivation('Beginning transfer of records from temp table to published table', submission_id)
+
+            # Inserting non-delete records
+            insert_query = """
+                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols}, modified_at,
+                                                                  is_active)
+                SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at, TRUE AS is_active
+                FROM tmp_fabs_{submission_id} AS tmp_fabs;
+            """
+            sess.execute(insert_query.format(cols=published_col_string, submission_id=submission_id))
+
+            # Inserting delete records, we didn't have to process these
+            insert_query = """
+                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols}, modified_at)
+                SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at
+                FROM detached_award_financial_assistance AS dafa
+                WHERE dafa.submission_id = {submission_id}
+                    AND dafa.is_valid IS TRUE
+                    AND UPPER(COALESCE(correction_delete_indicatr, '')) = 'D';
+            """
+            sess.execute(insert_query.format(cols=detached_col_string, submission_id=submission_id))
+
+            log_derivation('Completed transfer of records from temp table to published table', submission_id)
+
+            log_derivation('Beginning uncaching old files and deactivating old records', submission_id)
+            # Deactivate all old records that have been updated with this submission
+            deactivate_query = """
+                WITH new_record_keys AS
+                    (SELECT UPPER(afa_generated_unique) AS afa_generated_unique,
+                        modified_at
+                    FROM published_award_financial_assistance
+                    WHERE submission_id={submission_id}
+                        AND UPPER(correction_delete_indicatr) IN ('C', 'D'))
+                UPDATE published_award_financial_assistance AS pafa
+                SET is_active = FALSE,
+                    updated_at = nrk.modified_at
+                FROM new_record_keys AS nrk
+                WHERE pafa.submission_id <> {submission_id}
+                    AND UPPER(pafa.afa_generated_unique) = nrk.afa_generated_unique
+                    AND is_active IS TRUE;
+            """
+            sess.execute(deactivate_query.format(submission_id=submission_id))
+
+            # Uncache related files
+            # Awarding agencies
+            uncache_query = """
+                WITH affected_agencies AS
+                    (SELECT DISTINCT awarding_agency_code
+                    FROM published_award_financial_assistance
+                    WHERE submission_id={submission_id})
+                UPDATE file_generation
+                SET is_cached_file = FALSE
+                FROM affected_agencies
+                WHERE awarding_agency_code = agency_code
+                    AND is_cached_file IS TRUE
+                    AND file_type = 'D2';
+            """
+            sess.execute(uncache_query.format(submission_id=submission_id))
+
+            # Funding agencies
+            uncache_query = """
+                WITH affected_agencies AS
+                    (SELECT DISTINCT funding_agency_code
+                    FROM published_award_financial_assistance
+                    WHERE submission_id={submission_id})
+                UPDATE file_generation
+                SET is_cached_file = FALSE
+                FROM affected_agencies
+                WHERE funding_agency_code = agency_code
+                    AND is_cached_file IS TRUE
+                    AND file_type = 'D2';
+            """
+            sess.execute(uncache_query.format(submission_id=submission_id))
+            log_derivation('Completed uncaching old files and deactivating old records', submission_id)
+
             sess.commit()
         except Exception as e:
-            log_data['message'] = 'An error occurred while publishing a FABS submission'
-            log_data['message_type'] = 'BrokerError'
-            log_data['error_message'] = str(e)
-            logger.error(log_data)
+            log_message = {
+                'message': 'An error occurred while publishing a FABS submission',
+                'message_type': 'BrokerError',
+                'error_message': str(e),
+                'submission_id': submission_id
+            }
+            logger.error(log_message)
 
             # rollback the changes if there are any errors. We want to submit everything together
             sess.rollback()
@@ -846,8 +896,7 @@ class FileHandler:
                 return JsonResponse.error(e, e.status)
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-        log_data['message'] = 'Completed derivations for FABS submission'
-        logger.info(log_data)
+        log_derivation('Completed derivations for FABS submission', submission_id)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({'publish_status_id': PUBLISH_STATUS_DICT['published'], 'certifying_user_id': g.user.user_id,
@@ -1028,7 +1077,9 @@ class FileHandler:
             created_at_date = publish_history.created_at
             route_vars = ['FABS', agency_code, created_at_date.year, '{:02d}'.format(created_at_date.month)]
         else:
-            route_vars = [agency_code, submission.reporting_fiscal_year, submission.reporting_fiscal_period // 3,
+            time_period = 'P{}'.format(str(submission.reporting_fiscal_period).zfill(2)) \
+                if not submission.is_quarter_format else 'Q{}'.format(submission.reporting_fiscal_period // 3)
+            route_vars = [agency_code, submission.reporting_fiscal_year, time_period,
                           publish_history.publish_history_id]
         new_route = '/'.join([str(var) for var in route_vars]) + '/'
 
@@ -1299,7 +1350,7 @@ def create_fabs_published_file(sess, submission_id, new_route):
 
     # write file and stream to S3
     fabs_query = published_fabs_query({'sess': sess, 'submission_id': submission_id})
-    headers = [key for key in fileD2.mapping]
+    headers = [val[0] for key, val in fileD2.mapping.items()]
     write_stream_query(sess, fabs_query, local_filename, upload_name, g.is_local, header=headers, is_certified=True)
     return local_filename if g.is_local else upload_name
 
@@ -1315,63 +1366,6 @@ def published_fabs_query(data_utils):
             A list of published FABS rows.
     """
     return fileD2.query_published_fabs_data(data_utils['sess'], data_utils['submission_id'])
-
-
-def submission_to_dict_for_status(submission):
-    """ Convert a Submission model into a dictionary, ready to be serialized as JSON for the get_status function
-
-        Args:
-            submission: submission to be converted to a dictionary
-
-        Returns:
-            A dictionary of submission information.
-    """
-    sess = GlobalDB.db().session
-
-    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
-        filter_by(submission_id=submission.submission_id).\
-        scalar() or 0
-
-    # @todo replace with a relationship
-    # Determine the agency name
-    cgac = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one_or_none()
-    frec = sess.query(FREC).filter_by(frec_code=submission.frec_code).one_or_none()
-    if cgac:
-        agency_name = cgac.agency_name
-    elif frec:
-        agency_name = frec.agency_name
-    else:
-        agency_name = ''
-
-    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
-    relevant_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
-                                           Job.job_type_id.in_(relevant_job_types))
-
-    revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
-    last_validated = get_last_validated_date(submission.submission_id)
-
-    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
-
-    return {
-        'cgac_code': submission.cgac_code,
-        'frec_code': submission.frec_code,
-        'agency_name': agency_name,
-        'created_on': submission.created_at.strftime('%m/%d/%Y'),
-        'number_of_errors': submission.number_of_errors,
-        'number_of_rows': number_of_rows,
-        'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
-        'last_validated': last_validated,
-        'revalidation_threshold':
-            revalidation_threshold.revalidation_date.strftime('%Y-%m-%dT%H:%M:%S') if revalidation_threshold else '',
-        # Broker allows submission for a single quarter or a single month, so reporting_period start and end dates
-        # reported by check_status are always equal
-        'reporting_period_start_date': reporting_date(submission),
-        'reporting_period_end_date': reporting_date(submission),
-        'jobs': [job_to_dict(job) for job in relevant_jobs],
-        'publish_status': submission.publish_status.name,
-        'quarterly_submission': submission.is_quarter_format,
-        'fabs_meta': fabs_meta
-    }
 
 
 def get_status(submission, file_type=''):
@@ -1908,7 +1902,6 @@ def serialize_submission(submission):
     files = get_submission_files(jobs)
     status = get_submission_status(submission, jobs)
     published_on = get_latest_published_date(submission)
-    certification_deadline = get_certification_deadline(submission)
     time_period = get_time_period(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
     return {
@@ -1923,11 +1916,9 @@ def serialize_submission(submission):
         'user': {'user_id': submission.user_id, 'name': submission.name if submission.name else 'No User'},
         'publishing_user': submission.publishing_user_name if submission.publishing_user_name else '',
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
-        'published_submission_ids': submission.published_submission_ids,
         'test_submission': submission.test_submission,
         'published_on': str(published_on) if published_on else '',
         'quarterly_submission': submission.is_quarter_format,
-        'certification_deadline': str(certification_deadline) if certification_deadline else '',
         'certified': submission.certified,
         'time_period': time_period
     }

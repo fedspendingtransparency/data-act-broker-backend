@@ -144,14 +144,9 @@ def get_submission_metadata(submission):
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
-    test_sub = filter_submissions(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
-                                  submission.reporting_fiscal_period, submission.submission_id)
-    certified_submission = None
-
-    if test_sub.count() > 0:
-        certified_submission = test_sub[0].submission_id
-
     certification_deadline = get_certification_deadline(submission)
+    reporting_start = submission.reporting_start_date.strftime('%m/%d/%Y') if submission.reporting_start_date else None
+    reporting_end = submission.reporting_end_date.strftime('%m/%d/%Y') if submission.reporting_end_date else None
 
     return {
         'cgac_code': submission.cgac_code,
@@ -165,11 +160,12 @@ def get_submission_metadata(submission):
         'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': last_validated,
         'reporting_period': reporting_date(submission),
+        'reporting_start_date': reporting_start,
+        'reporting_end_date': reporting_end,
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
         'test_submission': submission.test_submission,
         'published_submission_ids': submission.published_submission_ids,
-        'certified_submission': certified_submission,
         'certified': submission.certified,
         'certification_deadline': str(certification_deadline) if certification_deadline else '',
         'fabs_submission': submission.d2_submission,
@@ -256,8 +252,9 @@ def reporting_date(submission):
         return None
     if submission.is_quarter_format:
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
-    else:
-        return submission.reporting_start_date.strftime('%m/%Y')
+    if submission.reporting_fiscal_period == 2:
+        return 'P01-P02/{}'.format(str(submission.reporting_fiscal_year))
+    return 'P{:02d}/{}'.format(submission.reporting_fiscal_period, submission.reporting_fiscal_year)
 
 
 def job_to_dict(job):
@@ -952,18 +949,6 @@ def certify_dabs_submission(submission):
         return JsonResponse.error(ValueError('Submissions that have been certified cannot be recertified separately.'
                                              ' Use the publish_and_certify_dabs_submission endpoint to recertify.'),
                                   StatusCode.CLIENT_ERROR)
-
-    # Get the year/period of the submission and filter by them
-    sess = GlobalDB.db().session
-    sub_period = submission.reporting_fiscal_period
-    sub_year = submission.reporting_fiscal_year
-    sub_schedule = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).one_or_none()
-
-    # If this is a monthly submission and the certification deadline has passed they have to publish/certify together
-    if sub_schedule and sub_schedule.certification_deadline < datetime.utcnow():
-        return JsonResponse.error(ValueError('Monthly submissions past their certification deadline must be published'
-                                             ' and certified at the same time. Use the'
-                                             ' publish_and_certify_dabs_submission endpoint.'), StatusCode.CLIENT_ERROR)
 
     try:
         process_dabs_certify(submission)

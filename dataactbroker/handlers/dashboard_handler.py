@@ -6,12 +6,12 @@ from datetime import datetime
 from sqlalchemy import case, func, and_
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import get_time_period
+from dataactcore.interfaces.function_bag import get_time_period, get_certification_deadline
 from dataactcore.models.domainModels import CGAC, FREC, is_not_distinct_from
 from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         FILE_TYPE_DICT_LETTER, RULE_IMPACT_DICT_ID)
-from dataactcore.models.jobModels import Submission, Job, SubmissionWindowSchedule
+from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
 
@@ -568,10 +568,8 @@ def active_submission_overview(submission, file, error_level):
 
     # Deadline information, updates the default values of N/A only if it's not a test and the deadline exists
     if not submission.test_submission:
-        deadline = sess.query(SubmissionWindowSchedule.certification_deadline).\
-            filter_by(year=submission.reporting_fiscal_year, period=submission.reporting_fiscal_period).first()
+        deadline = get_certification_deadline(submission)
         if deadline:
-            deadline = deadline.certification_deadline.date()
             today = datetime.now().date()
             if today > deadline:
                 response['certification_deadline'] = 'Past Due'
