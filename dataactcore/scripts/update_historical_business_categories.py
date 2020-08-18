@@ -806,7 +806,7 @@ def main():
     sess.commit()
     logger.info("Finished recreating business category SQL functions in %s seconds" % str(datetime.now() - start))
 
-    if not (args.fpds and args.fabs):
+    if (args.fpds and args.fabs) or not (args.fpds or args.fabs):
         update_fpds_business_categories(sess)
         update_fabs_business_categories(sess)
     elif args.fpds:
