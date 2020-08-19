@@ -817,6 +817,7 @@ def main():
         update_fpds_business_categories(sess, args.update_empty)
     elif args.fabs:
         update_fabs_business_categories(sess, args.update_empty)
+    sess.commit()
 
     logger.info("Completed business categories updates in %s seconds" % str(datetime.now() - overall_start))
 
