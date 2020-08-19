@@ -763,28 +763,31 @@ FPDS_UPDATE_SQL = """
         port_authority::BOOLEAN,
         transit_authority::BOOLEAN,
         planning_commission::BOOLEAN
-    );
+    )
+    {};
 """
 
 FABS_UPDATE_SQL = """
     UPDATE published_award_financial_assistance
     SET business_categories = compile_fabs_business_categories(UPPER(business_types))
-    WHERE is_active IS TRUE;
+    WHERE is_active IS TRUE{};
 """
 
 
-def update_fpds_business_categories(sess):
+def update_fpds_business_categories(sess, update_empty=False):
     start = datetime.now()
     logger.info('Updating business categories for FPDS')
-    result = sess.execute(FPDS_UPDATE_SQL)
+    empty_sql = 'WHERE business_categories = \'{}\'' if update_empty else ''
+    result = sess.execute(FPDS_UPDATE_SQL.format(empty_sql))
     logger.info('Finished updating business categories for FDPS in %s seconds (%s rows updated)' %
                 (str(datetime.now() - start), result.rowcount))
 
 
-def update_fabs_business_categories(sess):
+def update_fabs_business_categories(sess, update_empty=False):
     start = datetime.now()
     logger.info('Updating business categories for FABS')
-    result = sess.execute(FABS_UPDATE_SQL)
+    empty_sql = 'AND business_categories = \'{}\'' if update_empty else ''
+    result = sess.execute(FABS_UPDATE_SQL.format(empty_sql))
     logger.info('Finished updating business categories for FABS in %s seconds (%s rows updated)' %
                 (str(datetime.now() - start), result.rowcount))
 
@@ -795,6 +798,7 @@ def main():
     parser = argparse.ArgumentParser(description='Update business categories for existing transaction data')
     parser.add_argument('-fpds', help='Update only FPDS business categories', action='store_true')
     parser.add_argument('-fabs', help='Update only FABS business categories', action='store_true')
+    parser.add_argument('-update_empty', help='Only update ones without categories', action='store_true')
     args = parser.parse_args()
 
     overall_start = datetime.now()
@@ -807,12 +811,12 @@ def main():
     logger.info("Finished recreating business category SQL functions in %s seconds" % str(datetime.now() - start))
 
     if (args.fpds and args.fabs) or not (args.fpds or args.fabs):
-        update_fpds_business_categories(sess)
-        update_fabs_business_categories(sess)
+        update_fpds_business_categories(sess, args.update_empty)
+        update_fabs_business_categories(sess, args.update_empty)
     elif args.fpds:
-        update_fpds_business_categories(sess)
+        update_fpds_business_categories(sess, args.update_empty)
     elif args.fabs:
-        update_fabs_business_categories(sess)
+        update_fabs_business_categories(sess, args.update_empty)
 
     logger.info("Completed business categories updates in %s seconds" % str(datetime.now() - overall_start))
 
