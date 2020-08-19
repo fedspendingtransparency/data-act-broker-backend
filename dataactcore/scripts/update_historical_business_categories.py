@@ -777,7 +777,7 @@ FABS_UPDATE_SQL = """
 def update_fpds_business_categories(sess, update_empty=False):
     start = datetime.now()
     logger.info('Updating business categories for FPDS')
-    empty_sql = 'WHERE business_categories = \'{}\'' if update_empty else ''
+    empty_sql = ' WHERE business_categories = \'{}\'' if update_empty else ''
     result = sess.execute(FPDS_UPDATE_SQL.format(empty_sql))
     logger.info('Finished updating business categories for FDPS in %s seconds (%s rows updated)' %
                 (str(datetime.now() - start), result.rowcount))
@@ -786,7 +786,7 @@ def update_fpds_business_categories(sess, update_empty=False):
 def update_fabs_business_categories(sess, update_empty=False):
     start = datetime.now()
     logger.info('Updating business categories for FABS')
-    empty_sql = 'AND business_categories = \'{}\'' if update_empty else ''
+    empty_sql = ' AND business_categories = \'{}\'' if update_empty else ''
     result = sess.execute(FABS_UPDATE_SQL.format(empty_sql))
     logger.info('Finished updating business categories for FABS in %s seconds (%s rows updated)' %
                 (str(datetime.now() - start), result.rowcount))
