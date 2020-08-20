@@ -7,5 +7,8 @@ SELECT
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM object_class_program_activity
 WHERE submission_id = {0}
-    AND UPPER(disaster_emergency_fund_code) NOT IN ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-                                                    'N', 'O', 'P', 'Q', 'R', 'S', 'T', '9');
+    AND NOT EXISTS (
+        SELECT 1
+        FROM defc
+        WHERE defc.code = UPPER(disaster_emergency_fund_code)
+    );
