@@ -139,36 +139,36 @@ def setup_submissions(sess, admin=False):
 
     # Setup submissions
     sub1 = SubmissionFactory(submission_id=1, reporting_fiscal_period=9, reporting_fiscal_year=2017,
-                             certifying_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
+                             publishing_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
                              publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False,
                              user_id=agency_user.user_id, is_quarter_format=True, test_submission=False)
     sub2 = SubmissionFactory(submission_id=2, reporting_fiscal_period=3, reporting_fiscal_year=2019,
-                             certifying_user_id=admin_user.user_id, cgac_code=None,
+                             publishing_user_id=admin_user.user_id, cgac_code=None,
                              frec_code=frec.frec_code, publish_status_id=PUBLISH_STATUS_DICT['published'],
                              d2_submission=False, user_id=admin_user.user_id, is_quarter_format=True,
                              test_submission=False)
     sub3 = SubmissionFactory(submission_id=3, reporting_fiscal_period=3, reporting_fiscal_year=2019,
-                             certifying_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
+                             publishing_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'],
                              d2_submission=False, user_id=agency_user.user_id, is_quarter_format=True,
                              test_submission=False)
     sub4 = SubmissionFactory(submission_id=4, reporting_fiscal_period=6, reporting_fiscal_year=2018,
-                             certifying_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
+                             publishing_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                              d2_submission=False, user_id=agency_user.user_id, is_quarter_format=True,
                              test_submission=False)
     fabs_sub = SubmissionFactory(submission_id=5, reporting_fiscal_period=3, reporting_fiscal_year=2019,
-                                 certifying_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
+                                 publishing_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                                  frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'],
                                  d2_submission=True, user_id=agency_user.user_id, is_quarter_format=False,
                                  test_submission=False)
     monthly_sub = SubmissionFactory(submission_id=6, reporting_fiscal_period=9, reporting_fiscal_year=2017,
-                                    certifying_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
+                                    publishing_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
                                     publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
                                     user_id=agency_user.user_id, is_quarter_format=False,
                                     reporting_start_date=datetime(2017, 6, 1), test_submission=False)
     test_sub = SubmissionFactory(submission_id=7, reporting_fiscal_period=9, reporting_fiscal_year=2017,
-                                 certifying_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
+                                 publishing_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
                                  publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
                                  user_id=agency_user.user_id, is_quarter_format=True, test_submission=True)
     db_objects.extend([sub1, sub2, sub3, sub4, fabs_sub, monthly_sub, test_sub])

@@ -832,7 +832,7 @@ def process_dabs_publish(submission, file_manager):
     file_manager.move_published_files(submission, publish_history, None, file_manager.is_local)
 
     # set submission contents
-    submission.certifying_user_id = current_user_id
+    submission.publishing_user_id = current_user_id
     submission.publish_status_id = PUBLISH_STATUS_DICT['published']
 
     if first_publish:
