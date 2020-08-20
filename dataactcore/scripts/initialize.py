@@ -28,6 +28,7 @@ from dataactvalidator.scripts.load_tas import load_tas
 from dataactvalidator.scripts.load_location_data import load_location_data
 from dataactvalidator.scripts.read_zips import read_zips
 from dataactvalidator.scripts.load_agencies import load_agency_data
+from dataactvalidator.scripts.load_defc import load_defc
 from dataactvalidator.scripts.load_program_activity import load_program_activity_data
 from dataactvalidator.scripts.load_submission_window_schedule import load_submission_window_schedule
 
@@ -166,6 +167,7 @@ def main():
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-sch', '--load_submission_schedule', help='Load submission window schedule',
                         action='store_true')
+    parser.add_argument('-defc', '--load_defc', help='Load DEFC to database', action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
     parser.add_argument('--force', help='Forces actions to occur in certain scripts regardless of checks',
                         action='store_true')
@@ -183,6 +185,7 @@ def main():
         load_location_codes(args.force)
         load_zip_codes()
         load_submission_schedule()
+        load_defc()
         return
 
     if args.setup_db:
@@ -233,6 +236,9 @@ def main():
 
     if args.load_submission_schedule:
         load_submission_schedule()
+
+    if args.load_defc:
+        load_defc()
 
     if args.uncache_all_files:
         uncache_all_files()
