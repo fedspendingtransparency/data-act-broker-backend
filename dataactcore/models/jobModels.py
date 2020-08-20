@@ -304,10 +304,10 @@ class PublishedFilesHistory(Base):
     comment = Column(Text)
 
 
-class SubmissionWindow(Base):
-    __tablename__ = "submission_window"
+class Banner(Base):
+    __tablename__ = "banner"
 
-    window_id = Column(Integer, primary_key=True)
+    banner_id = Column(Integer, primary_key=True)
     start_date = Column(Date)
     end_date = Column(Date)
     block_certification = Column(Boolean, default=False)
