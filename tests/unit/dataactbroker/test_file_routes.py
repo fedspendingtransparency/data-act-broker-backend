@@ -31,7 +31,7 @@ def test_is_period(file_app, database):
                          message='first', application_type=application)
     database.session.add(gtas)
 
-    response = file_app.get("/v1/window/")
+    response = file_app.get("/v1/list_banners/")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['data'] is None
 
@@ -39,7 +39,7 @@ def test_is_period(file_app, database):
                          message='second', application_type=application)
     database.session.add(gtas)
 
-    response = file_app.get("/v1/window/")
+    response = file_app.get("/v1/list_banners/")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['data'] is None
 
@@ -49,7 +49,7 @@ def test_is_period(file_app, database):
                                  message='third', application_type=application)
     database.session.add(gtas_current)
 
-    response = file_app.get("/v1/window/")
+    response = file_app.get("/v1/list_banners/")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['data'][0]['notice_block'] is False
 
@@ -59,7 +59,7 @@ def test_is_period(file_app, database):
                                  message='fourth', application_type=application)
     database.session.add(gtas_current)
 
-    response = file_app.get("/v1/window/")
+    response = file_app.get("/v1/list_banners/")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['data'][1]['notice_block'] is True
 
