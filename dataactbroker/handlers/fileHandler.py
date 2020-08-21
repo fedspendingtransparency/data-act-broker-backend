@@ -834,7 +834,7 @@ class FileHandler:
                 SET is_active = FALSE,
                     updated_at = nrk.modified_at
                 FROM new_record_keys AS nrk
-                WHERE pafa.submission_id <> {submission_id}
+                WHERE COALESCE(pafa.submission_id, 0) <> {submission_id}
                     AND UPPER(pafa.afa_generated_unique) = nrk.afa_generated_unique
                     AND is_active IS TRUE;
             """
