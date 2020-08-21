@@ -834,7 +834,7 @@ class FileHandler:
                 SET is_active = FALSE,
                     updated_at = nrk.modified_at
                 FROM new_record_keys AS nrk
-                WHERE pafa.submission_id <> {submission_id}
+                WHERE COALESCE(pafa.submission_id, 0) <> {submission_id}
                     AND UPPER(pafa.afa_generated_unique) = nrk.afa_generated_unique
                     AND is_active IS TRUE;
             """
@@ -899,7 +899,7 @@ class FileHandler:
         log_derivation('Completed derivations for FABS submission', submission_id)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
-            update({'publish_status_id': PUBLISH_STATUS_DICT['published'], 'certifying_user_id': g.user.user_id,
+            update({'publish_status_id': PUBLISH_STATUS_DICT['published'], 'publishing_user_id': g.user.user_id,
                     'updated_at': datetime.utcnow()}, synchronize_session=False)
 
         # create the publish_history and certify_history entries
@@ -1628,6 +1628,13 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             query = query.filter(Submission.user_id.in_(user_list))
         elif user_list:
             raise ResponseException('user_ids filter must be null or an array', StatusCode.CLIENT_ERROR)
+    # Test submission filter
+    if 'submission_type' in filters:
+        submission_type = filters['submission_type']
+        if str(submission_type).upper() in ['TEST', 'CERTIFIABLE']:
+            query = query.filter(Submission.test_submission.is_(submission_type.upper() == 'TEST'))
+        else:
+            raise ResponseException('submission_type filter must be "test" or "certifiable"', StatusCode.CLIENT_ERROR)
     return query
 
 
@@ -1655,7 +1662,7 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
-                          Submission.reporting_end_date, Submission.certifying_user_id,
+                          Submission.reporting_end_date, Submission.publishing_user_id,
                           Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
                           Submission.is_quarter_format, Submission.published_submission_ids, Submission.certified,
                           Submission.test_submission]
@@ -1679,7 +1686,7 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
     # Base query that is shared among all submission lists
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
-        outerjoin(publishing_user, Submission.certifying_user_id == publishing_user.user_id).\
+        outerjoin(publishing_user, Submission.publishing_user_id == publishing_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\

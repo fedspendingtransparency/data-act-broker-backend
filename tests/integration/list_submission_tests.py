@@ -43,6 +43,11 @@ class ListSubmissionTests(BaseTestAPI):
                                                       publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                                                       updated_at='01/01/2012')
 
+            cls.test_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code='SYS',
+                                                start_date='10/2015', end_date='12/2015', is_quarter=True,
+                                                is_fabs=False, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                updated_at='01/02/2012', test_submission=True)
+
             # This is the min date, but the date everything should be using is the one in the job (MAX_UPDATED_AT)
             cls.certified_dabs_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code='SYS',
                                                           start_date='10/2015', end_date='12/2015', is_quarter=True,
@@ -103,13 +108,13 @@ class ListSubmissionTests(BaseTestAPI):
         response = self.app.post_json('/v1/list_submissions/', {'published': 'mixed'},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id,
-                                                  self.certified_dabs_sub_id})
+                                                  self.certified_dabs_sub_id, self.test_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
         response = self.app.post_json('/v1/list_submissions/', {'published': 'false'},
                                       headers={'x-session-id': self.session_id})
-        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id, self.test_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
@@ -446,3 +451,32 @@ class ListSubmissionTests(BaseTestAPI):
         }
         response = self.app.post_json('/v1/list_submissions/', post_json, headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id})
+
+    def test_list_submissions_filter_test_sub(self):
+        """ Test listing submissions with a submission_type filter applied. """
+        # Listing only test submissions
+        post_json = {
+            'published': 'mixed',
+            'filters': {
+                'submission_type': 'TeSt'
+            }
+        }
+        response = self.app.post_json('/v1/list_submissions/', post_json, headers={'x-session-id': self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.test_sub_id})
+
+        # Listing only certifiable submissions
+        post_json['filters'] = {
+            'submission_type': 'CertiFiaBle'
+        }
+        response = self.app.post_json('/v1/list_submissions/', post_json, headers={'x-session-id': self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id,
+                                                  self.certified_dabs_sub_id})
+
+        # Anything other than the allowed values throws an error
+        post_json['filters'] = {
+            'submission_type': 'Both'
+        }
+        response = self.app.post_json('/v1/list_submissions/', post_json, headers={'x-session-id': self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'submission_type filter must be "test" or "certifiable"')

@@ -7,7 +7,7 @@ from dataactbroker.handlers.fileHandler import (
     get_detached_upload_file_url, get_submission_comments, submission_report_url, update_submission_comments,
     list_history, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
-    delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
+    delete_all_submission_data, get_submission_stats, list_banners, check_current_submission_page,
     publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, get_published_submission_ids,
     get_submission_metadata, get_submission_data, get_revalidation_threshold, get_latest_publication_period,
     revert_to_certified)
@@ -67,9 +67,9 @@ def add_file_routes(app, is_local, server_path):
     def latest_publication_period():
         return JsonResponse.create(StatusCode.OK, get_latest_publication_period())
 
-    @app.route("/v1/window/", methods=["GET"])
-    def window():
-        return list_windows()
+    @app.route("/v1/list_banners/", methods=["GET"])
+    def get_banner_list():
+        return list_banners()
 
     @app.route("/v1/error_metrics/", methods=["POST"])
     @convert_to_submission_id
