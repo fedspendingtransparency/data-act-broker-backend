@@ -109,10 +109,10 @@ class Submission(Base):
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
     d2_submission = Column(Boolean, nullable=False, default=False, server_default="False")
-    certifying_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL",
-                                                    name="fk_submission_certifying_user"),
+    publishing_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL",
+                                                    name="fk_submission_publishing_user"),
                                 nullable=True)
-    certifying_user = relationship("User", foreign_keys=[certifying_user_id])
+    publishing_user = relationship("User", foreign_keys=[publishing_user_id])
     test_submission = Column(Boolean, nullable=False, default=False, server_default="False")
     certified = Column(Boolean, nullable=False, default=False, server_default="False")
 
