@@ -1318,12 +1318,12 @@ This endpoint lists submissions for all agencies for which the current user is a
 ##### Body (JSON)
 ```
 {
-    "page": 2
+    "page": 2,
     "limit": 5,
-    "certified": "true",
+    "published": "true",
     "sort": "modified",
     "order": "desc",
-    "fabs": False,
+    "fabs": false,
     "filters": {
         "submission_ids": [123, 456],
         "last_modified_range": {
@@ -1332,7 +1332,8 @@ This endpoint lists submissions for all agencies for which the current user is a
         },
         "agency_codes": ["123", "4567"],
         "file_names": ["file_a", "test"],
-        "user_ids: [1, 2]
+        "user_ids": [1, 2],
+        "submission_type": "test"
     }
 }
 ```
@@ -1366,6 +1367,9 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `agency_codes`: ([string]) CGAC and FREC codes
     - `file_names`: ([string]) total or partial matches to file names (including timestamps), will match any file name including generated ones
     - `user_ids`: ([string, integer]) limits the list of submissions to only ones created by users within the array.
+    - `submission_type`: (string) if present, limits to only showing test or only showing certifiable submissions in the list. Can be used with any other filters or parameters but only unpublished DABS submissions can be tests. Allowable values:
+      - `test`
+      - `certifiable`
 
 ##### Response (JSON)
 

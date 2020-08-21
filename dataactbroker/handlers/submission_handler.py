@@ -749,7 +749,6 @@ def publish_checks(submission):
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         raise ValueError('Submission has already been published')
 
-    # TODO actually set it to publishing one day
     if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
         raise ValueError('Submission is publishing or reverting')
 
@@ -815,6 +814,9 @@ def process_dabs_publish(submission, file_manager):
     # Determine if this is the first time this submission is being published
     first_publish = (submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
+    # set publish_status to "publishing"
+    submission.publish_status_id = PUBLISH_STATUS_DICT['publishing']
+
     # create the publish_history entry
     publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=current_user_id,
                                      submission_id=submission.submission_id)
@@ -834,6 +836,7 @@ def process_dabs_publish(submission, file_manager):
     # set submission contents
     submission.publishing_user_id = current_user_id
     submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+    sess.commit()
 
     if first_publish:
         # update any other submissions by the same agency in the same quarter/period to point to this submission
