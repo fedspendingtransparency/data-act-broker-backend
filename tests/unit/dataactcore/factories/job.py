@@ -132,11 +132,11 @@ class ApplicationTypeFactory(factory.Factory):
     application_name = fuzzy.FuzzyText()
 
 
-class SubmissionWindowFactory(factory.Factory):
+class BannerFactory(factory.Factory):
     class Meta:
-        model = jobModels.SubmissionWindow
+        model = jobModels.Banner
 
-    window_id = fuzzy.FuzzyInteger(9999)
+    banner_id = fuzzy.FuzzyInteger(9999)
     start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     block_certification = False

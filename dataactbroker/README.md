@@ -479,11 +479,11 @@ Possible HTTP Status Codes:
 
 - 401: Login required
 
-#### GET "/v1/window/"
+#### GET "/v1/list\_banners/"
 This endpoint returns a list of temporary messages to display on the Broker frontend as a banner.
 
 ##### Sample Request
-`/v1/window/`
+`/v1/list_banners/`
 
 ##### Request Params
 N/A
