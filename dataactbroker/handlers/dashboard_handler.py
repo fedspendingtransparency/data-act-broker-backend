@@ -229,7 +229,7 @@ def historic_dabs_warning_summary(filters):
             (FREC.agency_name.isnot(None), FREC.agency_name),
             (CGAC.agency_name.isnot(None), CGAC.agency_name)
         ]).label('agency_name')
-    ).join(User, User.user_id == Submission.certifying_user_id).\
+    ).join(User, User.user_id == Submission.publishing_user_id).\
         outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code).\
         outerjoin(FREC, FREC.frec_code == Submission.frec_code).\
         filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\

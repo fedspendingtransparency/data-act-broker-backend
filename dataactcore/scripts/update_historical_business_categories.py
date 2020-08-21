@@ -566,18 +566,20 @@ end;
 $$  language plpgsql;
 
 create or replace function compile_fabs_business_categories(business_types text)
-returns text[] as $$
+returns text[]
+immutable parallel safe
+as $$
 declare
     bc_arr text[];
 begin
 
 -- BUSINESS (FOR-PROFIT ORGANIZATION)
-    if business_types in ('R', '23')
+    if business_types ~ '(R|23)'
     then
         bc_arr := bc_arr || array['small_business'];
     end if;
 
-    if business_types in ('Q', '22')
+    if business_types ~ '(Q|22)'
     then
         bc_arr := bc_arr || array['other_than_small_business'];
     end if;
@@ -588,23 +590,23 @@ begin
     end if;
 
 -- NON-PROFIT
-    if business_types in ('M', 'N', '12')
+    if business_types ~ '(M|N|12)'
     then
         bc_arr := bc_arr || array['nonprofit'];
     end if;
 
 -- HIGHER EDUCATION
-    if business_types in ('H', '06')
+    if business_types ~ '(H|06)'
     then
         bc_arr := bc_arr || array['public_institution_of_higher_education'];
     end if;
 
-    if business_types in ('O', '20')
+    if business_types ~ '(O|20)'
     then
         bc_arr := bc_arr || array['private_institution_of_higher_education'];
     end if;
 
-    if business_types in ('T', 'U', 'V', 'S')
+    if business_types ~ '(T|U|V|S)'
     then
         bc_arr := bc_arr || array['minority_serving_institution_of_higher_education'];
     end if;
@@ -619,32 +621,32 @@ begin
     end if;
 
 -- GOVERNMENT
-    if business_types in ('A', '00')
+    if business_types ~ '(A|00)'
     then
         bc_arr := bc_arr || array['regional_and_state_government'];
     end if;
 
-    if business_types in ('E')
+    if business_types ~ '(E)'
     then
         bc_arr := bc_arr || array['regional_organization'];
     end if;
 
-    if business_types in ('F')
+    if business_types ~ '(F)'
     then
         bc_arr := bc_arr || array['us_territory_or_possession'];
     end if;
 
-    if business_types in ('B', 'C', 'D', 'G', '01', '02', '04', '05')
+    if business_types ~ '(B|C|D|G|01|02|04|05)'
     then
         bc_arr := bc_arr || array['local_government'];
     end if;
 
-    if business_types in ('I', 'J', 'K', '11')
+    if business_types ~ '(I|J|K|11)'
     then
         bc_arr := bc_arr || array['indian_native_american_tribal_government'];
     end if;
 
-    if business_types in ('L')
+    if business_types ~ '(L)'
     then
         bc_arr := bc_arr || array['authorities_and_commissions'];
     end if;
@@ -662,12 +664,13 @@ begin
     end if;
 
 -- INDIVIDUALS
-    if business_types in ('P', '21')
+    if business_types ~ '(P|21)'
     then
         bc_arr := bc_arr || array['individuals'];
     end if;
 
-    return bc_arr;
+    -- Sort and return the array.
+    return array(select unnest(bc_arr) order by 1);
 end;
 $$  language plpgsql;
 """
@@ -760,28 +763,31 @@ FPDS_UPDATE_SQL = """
         port_authority::BOOLEAN,
         transit_authority::BOOLEAN,
         planning_commission::BOOLEAN
-    );
+    )
+    {};
 """
 
 FABS_UPDATE_SQL = """
     UPDATE published_award_financial_assistance
-    SET business_categories = compile_fabs_business_categories(business_types)
-    WHERE is_active IS TRUE;
+    SET business_categories = compile_fabs_business_categories(UPPER(business_types))
+    WHERE is_active IS TRUE{};
 """
 
 
-def update_fpds_business_categories(sess):
+def update_fpds_business_categories(sess, update_empty=False):
     start = datetime.now()
     logger.info('Updating business categories for FPDS')
-    result = sess.execute(FPDS_UPDATE_SQL)
+    empty_sql = ' WHERE business_categories = \'{}\'' if update_empty else ''
+    result = sess.execute(FPDS_UPDATE_SQL.format(empty_sql))
     logger.info('Finished updating business categories for FDPS in %s seconds (%s rows updated)' %
                 (str(datetime.now() - start), result.rowcount))
 
 
-def update_fabs_business_categories(sess):
+def update_fabs_business_categories(sess, update_empty=False):
     start = datetime.now()
     logger.info('Updating business categories for FABS')
-    result = sess.execute(FABS_UPDATE_SQL)
+    empty_sql = ' AND business_categories = \'{}\'' if update_empty else ''
+    result = sess.execute(FABS_UPDATE_SQL.format(empty_sql))
     logger.info('Finished updating business categories for FABS in %s seconds (%s rows updated)' %
                 (str(datetime.now() - start), result.rowcount))
 
@@ -792,6 +798,7 @@ def main():
     parser = argparse.ArgumentParser(description='Update business categories for existing transaction data')
     parser.add_argument('-fpds', help='Update only FPDS business categories', action='store_true')
     parser.add_argument('-fabs', help='Update only FABS business categories', action='store_true')
+    parser.add_argument('-update_empty', help='Only update ones without categories', action='store_true')
     args = parser.parse_args()
 
     overall_start = datetime.now()
@@ -803,13 +810,14 @@ def main():
     sess.commit()
     logger.info("Finished recreating business category SQL functions in %s seconds" % str(datetime.now() - start))
 
-    if not (args.fpds and args.fabs):
-        update_fpds_business_categories(sess)
-        update_fabs_business_categories(sess)
+    if (args.fpds and args.fabs) or not (args.fpds or args.fabs):
+        update_fpds_business_categories(sess, args.update_empty)
+        update_fabs_business_categories(sess, args.update_empty)
     elif args.fpds:
-        update_fpds_business_categories(sess)
+        update_fpds_business_categories(sess, args.update_empty)
     elif args.fabs:
-        update_fabs_business_categories(sess)
+        update_fabs_business_categories(sess, args.update_empty)
+    sess.commit()
 
     logger.info("Completed business categories updates in %s seconds" % str(datetime.now() - overall_start))
 
