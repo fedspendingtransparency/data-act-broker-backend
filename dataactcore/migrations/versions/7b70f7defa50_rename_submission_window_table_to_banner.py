@@ -1,14 +1,14 @@
 """Rename submission_window table to banner
 
 Revision ID: 7b70f7defa50
-Revises: c5449ab3577f
+Revises: 6f9353ce5ae9
 Create Date: 2020-08-20 12:14:46.382634
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '7b70f7defa50'
-down_revision = 'c5449ab3577f'
+down_revision = '6f9353ce5ae9'
 branch_labels = None
 depends_on = None
 
