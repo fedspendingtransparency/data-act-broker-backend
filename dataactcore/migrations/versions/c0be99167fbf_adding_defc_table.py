@@ -1,14 +1,14 @@
 """ Adding DEFC table
 
 Revision ID: c0be99167fbf
-Revises: c5449ab3577f
+Revises: 7b70f7defa50
 Create Date: 2020-08-20 20:14:46.265694
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'c0be99167fbf'
-down_revision = 'c5449ab3577f'
+down_revision = '7b70f7defa50'
 branch_labels = None
 depends_on = None
 
