@@ -749,7 +749,6 @@ def publish_checks(submission):
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         raise ValueError('Submission has already been published')
 
-    # TODO actually set it to publishing one day
     if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
         raise ValueError('Submission is publishing or reverting')
 
