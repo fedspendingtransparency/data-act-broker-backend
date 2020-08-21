@@ -1628,6 +1628,13 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             query = query.filter(Submission.user_id.in_(user_list))
         elif user_list:
             raise ResponseException('user_ids filter must be null or an array', StatusCode.CLIENT_ERROR)
+    # Test submission filter
+    if 'submission_type' in filters:
+        submission_type = filters['submission_type']
+        if str(submission_type).upper() in ['TEST', 'CERTIFIABLE']:
+            query = query.filter(Submission.test_submission.is_(submission_type.upper() == 'TEST'))
+        else:
+            raise ResponseException('submission_type filter must be "test" or "certifiable"', StatusCode.CLIENT_ERROR)
     return query
 
 
