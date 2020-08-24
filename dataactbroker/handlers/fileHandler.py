@@ -834,7 +834,7 @@ class FileHandler:
                 SET is_active = FALSE,
                     updated_at = nrk.modified_at
                 FROM new_record_keys AS nrk
-                WHERE pafa.submission_id <> {submission_id}
+                WHERE COALESCE(pafa.submission_id, 0) <> {submission_id}
                     AND UPPER(pafa.afa_generated_unique) = nrk.afa_generated_unique
                     AND is_active IS TRUE;
             """
@@ -1350,7 +1350,7 @@ def create_fabs_published_file(sess, submission_id, new_route):
 
     # write file and stream to S3
     fabs_query = published_fabs_query({'sess': sess, 'submission_id': submission_id})
-    headers = [key for key in fileD2.mapping]
+    headers = [val[0] for key, val in fileD2.mapping.items()]
     write_stream_query(sess, fabs_query, local_filename, upload_name, g.is_local, header=headers, is_certified=True)
     return local_filename if g.is_local else upload_name
 

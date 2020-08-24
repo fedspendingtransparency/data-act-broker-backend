@@ -9,28 +9,28 @@ gtas_model = SF133
 tas_model = TASLookup
 
 mapping = OrderedDict([
-    ('AllocationTransferAgencyIdentifier', 'allocation_transfer_agency'),
-    ('AgencyIdentifier', 'agency_identifier'),
-    ('BeginningPeriodOfAvailability', 'beginning_period_of_availa'),
-    ('EndingPeriodOfAvailability', 'ending_period_of_availabil'),
-    ('AvailabilityTypeCode', 'availability_type_code'),
-    ('MainAccountCode', 'main_account_code'),
-    ('SubAccountCode', 'sub_account_code'),
-    ('TotalBudgetaryResources_CPE', 'total_budgetary_resources_cpe'),
-    ('BudgetAuthorityAppropriatedAmount_CPE', 'budget_authority_appropria_cpe'),
-    ('BudgetAuthorityUnobligatedBalanceBroughtForward_FYB', 'budget_authority_unobligat_fyb'),
-    ('AdjustmentsToUnobligatedBalanceBroughtForward_CPE', 'adjustments_to_unobligated_cpe'),
-    ('OtherBudgetaryResourcesAmount_CPE', 'other_budgetary_resources_cpe'),
-    ('ContractAuthorityAmountTotal_CPE', 'contract_authority_amount_cpe'),
-    ('BorrowingAuthorityAmountTotal_CPE', 'borrowing_authority_amount_cpe'),
-    ('SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE', 'spending_authority_from_of_cpe'),
-    ('StatusOfBudgetaryResourcesTotal_CPE', 'status_of_budgetary_resour_cpe'),
-    ('ObligationsIncurredTotalByTAS_CPE', 'obligations_incurred_total_cpe'),
-    ('GrossOutlayAmountByTAS_CPE', 'gross_outlay_amount_by_tas_cpe'),
-    ('UnobligatedBalance_CPE', 'unobligated_balance_cpe'),
-    ('DeobligationsRecoveriesRefundsByTAS_CPE', 'deobligations_recoveries_r_cpe')
+    ('allocation_transfer_agency', ['AllocationTransferAgencyIdentifier']),
+    ('agency_identifier', ['AgencyIdentifier']),
+    ('beginning_period_of_availa', ['BeginningPeriodOfAvailability']),
+    ('ending_period_of_availabil', ['EndingPeriodOfAvailability']),
+    ('availability_type_code', ['AvailabilityTypeCode']),
+    ('main_account_code', ['MainAccountCode']),
+    ('sub_account_code', ['SubAccountCode']),
+    ('total_budgetary_resources_cpe', ['TotalBudgetaryResources_CPE']),
+    ('budget_authority_appropria_cpe', ['BudgetAuthorityAppropriatedAmount_CPE']),
+    ('budget_authority_unobligat_fyb', ['BudgetAuthorityUnobligatedBalanceBroughtForward_FYB']),
+    ('adjustments_to_unobligated_cpe', ['AdjustmentsToUnobligatedBalanceBroughtForward_CPE']),
+    ('other_budgetary_resources_cpe', ['OtherBudgetaryResourcesAmount_CPE']),
+    ('contract_authority_amount_cpe', ['ContractAuthorityAmountTotal_CPE']),
+    ('borrowing_authority_amount_cpe', ['BorrowingAuthorityAmountTotal_CPE']),
+    ('spending_authority_from_of_cpe', ['SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE']),
+    ('status_of_budgetary_resour_cpe', ['StatusOfBudgetaryResourcesTotal_CPE']),
+    ('obligations_incurred_total_cpe', ['ObligationsIncurredTotalByTAS_CPE']),
+    ('gross_outlay_amount_by_tas_cpe', ['GrossOutlayAmountByTAS_CPE']),
+    ('unobligated_balance_cpe', ['UnobligatedBalance_CPE']),
+    ('deobligations_recoveries_r_cpe', ['DeobligationsRecoveriesRefundsByTAS_CPE'])
 ])
-db_columns = [val for key, val in mapping.items()]
+db_columns = [key for key in mapping]
 
 
 def query_data(session, agency_code, period, year):
