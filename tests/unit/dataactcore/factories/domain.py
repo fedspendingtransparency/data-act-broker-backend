@@ -283,6 +283,7 @@ class StateCongressionalFactory(factory.Factory):
     congressional_district_no = fuzzy.FuzzyText()
     census_year = fuzzy.FuzzyInteger(1990, 2040)
 
+
 class DEFCFactory(factory.Factory):
     class Meta:
         model = domainModels.DEFC
