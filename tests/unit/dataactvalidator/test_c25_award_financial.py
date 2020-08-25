@@ -1,4 +1,5 @@
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
+from tests.unit.dataactcore.factories.domain import DEFCFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'c25_award_financial'
@@ -24,11 +25,18 @@ def test_success(database):
     # wrong DEFC
     op3 = AwardFinancialFactory(disaster_emergency_fund_code='z', transaction_obligated_amou=None,
                                 gross_outlay_amount_by_awa_cpe=0)
+    # DEFC but not COVID
+    op4 = AwardFinancialFactory(disaster_emergency_fund_code='z', transaction_obligated_amou=None,
+                                gross_outlay_amount_by_awa_cpe=0)
     # populated TOA
-    op4 = AwardFinancialFactory(disaster_emergency_fund_code='n', transaction_obligated_amou=1,
+    op5 = AwardFinancialFactory(disaster_emergency_fund_code='n', transaction_obligated_amou=1,
                                 gross_outlay_amount_by_awa_cpe=None)
+    defc1 = DEFCFactory(code='L', group='covid_19')
+    defc2 = DEFCFactory(code='M', group='covid_19')
+    defc3 = DEFCFactory(code='N', group='covid_19')
+    defc4 = DEFCFactory(code='A')
 
-    errors = number_of_errors(_FILE, database, models=[op1, op2, op3, op4])
+    errors = number_of_errors(_FILE, database, models=[op1, op2, op3, op4, op5, defc1, defc2, defc3, defc4])
     assert errors == 0
 
 
@@ -38,6 +46,7 @@ def test_failure(database):
     """
     op1 = AwardFinancialFactory(disaster_emergency_fund_code='p', transaction_obligated_amou=None,
                                 gross_outlay_amount_by_awa_cpe=None)
+    defc1 = DEFCFactory(code='P', group='covid_19')
 
-    errors = number_of_errors(_FILE, database, models=[op1])
+    errors = number_of_errors(_FILE, database, models=[op1, defc1])
     assert errors == 1

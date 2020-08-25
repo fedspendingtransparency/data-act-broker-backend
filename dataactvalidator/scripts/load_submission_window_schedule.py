@@ -3,6 +3,8 @@ import logging
 import boto3
 import pandas as pd
 
+from datetime import datetime, timedelta
+
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
@@ -12,6 +14,17 @@ from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
+
+
+def add_day(row, col):
+    """ Adds 1 day to whatever date is provided (used for adding a day to the deadlines)
+
+        Args:
+            row: the row to update
+            col: the name of the
+    """
+    new_date = datetime.strptime(row[col], '%m/%d/%y') + timedelta(days=1)
+    return new_date.strftime('%m/%d/%y')
 
 
 def load_submission_window_schedule():
@@ -41,6 +54,10 @@ def load_submission_window_schedule():
             },
             {}
         )
+
+        # Add a day to the deadlines because the dates in the file are supposed to be inclusive
+        data['publish_deadline'] = data.apply(lambda x: add_day(x, 'publish_deadline'), axis=1)
+        data['certification_deadline'] = data.apply(lambda x: add_day(x, 'certification_deadline'), axis=1)
 
         sess = GlobalDB.db().session
         # delete any data in the SubmissionWindowSchedule table
