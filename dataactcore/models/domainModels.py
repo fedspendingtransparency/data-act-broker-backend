@@ -519,6 +519,13 @@ Index("ix_sc_state_cd",
       unique=True)
 
 
+class DEFC(Base):
+    __tablename__ = "defc"
+    defc_id = Column(Integer, primary_key=True)
+    code = Column(Text, nullable=False, index=True, unique=True)
+    group = Column(Text)
+
+
 class ExternalDataType(Base):
     """ external data type mapping """
     __tablename__ = "external_data_type"
