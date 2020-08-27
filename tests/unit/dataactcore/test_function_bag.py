@@ -139,13 +139,20 @@ def test_get_time_period(database):
     assert get_time_period(month_sub) == '09 / 2020'
 
 
+@pytest.mark.usefixtures("job_constants")
 def test_get_last_modified(database):
     """ Tests get_last_modified """
     now = datetime.datetime.now()
     sess = database.session
-    sub = SubmissionFactory(submission_id=1, reporting_fiscal_year=2020, reporting_fiscal_period=6, d2_submission=False,
-                            is_quarter_format=True, updated_at=now)
-    sess.add(sub)
+    sub_1 = SubmissionFactory(submission_id=1, reporting_fiscal_year=2020, reporting_fiscal_period=6,
+                              d2_submission=False, is_quarter_format=True, updated_at=now)
+    sub_2 = SubmissionFactory(submission_id=2, reporting_fiscal_year=2020, reporting_fiscal_period=6,
+                              d2_submission=False, is_quarter_format=True, updated_at=now)
+    job = JobFactory(submission_id=sub_2.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
+                     updated_at=now + datetime.timedelta(days=1))
+    sess.add_all([sub_1, sub_2, job])
 
-    assert get_last_modified(1) == now
+    assert get_last_modified(sub_1.submission_id) == now
+    assert get_last_modified(sub_2.submission_id) == now + datetime.timedelta(days=1)
     assert get_last_modified(0) is None
