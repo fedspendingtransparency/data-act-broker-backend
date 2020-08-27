@@ -98,7 +98,7 @@ def test_failure(database):
 
     # Not ignored with TOA of 0
     af_4 = AwardFinancialFactory(transaction_obligated_amou=0, piid=piid_4.lower(), parent_award_id=None,
-                                    allocation_transfer_agency='123', agency_identifier='123')
+                                 allocation_transfer_agency='123', agency_identifier='123')
 
     # Award Procurement portion of checks
     # Sum of all these would be sum of piid_1 af if one wasn't ignored
