@@ -5,7 +5,8 @@ from unittest.mock import patch
 from dataactcore.aws.sqsHandler import SQSMockQueue
 from dataactcore.models.jobModels import JobDependency
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
-from dataactcore.interfaces.function_bag import check_job_dependencies, get_certification_deadline, get_time_period
+from dataactcore.interfaces.function_bag import (check_job_dependencies, get_certification_deadline, get_time_period,
+                                                 get_last_modified)
 
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, SubmissionWindowScheduleFactory
 
@@ -136,3 +137,15 @@ def test_get_time_period(database):
     # Pass cases
     assert get_time_period(quart_sub) == 'FY 20 / Q2'
     assert get_time_period(month_sub) == '09 / 2020'
+
+
+def test_get_last_modified(database):
+    """ Tests get_last_modified """
+    now = datetime.datetime.now()
+    sess = database.session
+    sub = SubmissionFactory(submission_id=1, reporting_fiscal_year=2020, reporting_fiscal_period=6, d2_submission=False,
+                            is_quarter_format=True, updated_at=now)
+    sess.add(sub)
+
+    assert get_last_modified(1) == now
+    assert get_last_modified(0) is None

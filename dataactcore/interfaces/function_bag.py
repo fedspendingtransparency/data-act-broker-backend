@@ -688,5 +688,5 @@ def get_last_modified(submission_id):
     submission_updated_view = SubmissionUpdatedView()
     sess = GlobalDB.db().session
     last_modified = sess.query(submission_updated_view.updated_at).\
-        filter(submission_updated_view.submission_id == submission_id).first().updated_at
-    return last_modified
+        filter(submission_updated_view.submission_id == submission_id).first()
+    return last_modified.updated_at if last_modified else None
