@@ -15,6 +15,7 @@ from dataactcore.models.jobModels import (Job, Submission, JobDependency, Publis
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
+from dataactcore.models.views import SubmissionUpdatedView
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
 from dataactcore.interfaces.db import GlobalDB
@@ -660,12 +661,12 @@ def get_fabs_meta(submission_id):
 def get_action_dates(submission_id):
     """ Pull the earliest/latest action dates from the DetachedAwardFinancialAssistance table
 
-    Arguments:
-        submission_id: submission ID pull action dates from
+        Args:
+            submission_id: submission ID pull action dates from
 
-    Returns:
-        the earliest action date (str) or None if not found
-        the latest action date (str) or None if not found
+        Returns:
+            the earliest action date (str) or None if not found
+            the latest action date (str) or None if not found
     """
 
     sess = GlobalDB.db().session
@@ -673,3 +674,19 @@ def get_action_dates(submission_id):
                       func.max(DetachedAwardFinancialAssistance.action_date).label("max_action_date"))\
         .filter(DetachedAwardFinancialAssistance.submission_id == submission_id,
                 DetachedAwardFinancialAssistance.is_valid.is_(True)).one()
+
+
+def get_last_modified(submission_id):
+    """ Get the last modified date for a submission
+
+        Args:
+            submission_id: submission ID to get the last modified for
+
+        Returns:
+            the last modified date of the provided submission or None if the submission doesn't exist
+    """
+    submission_updated_view = SubmissionUpdatedView()
+    sess = GlobalDB.db().session
+    last_modified = sess.query(submission_updated_view.updated_at).\
+        filter(submission_updated_view.submission_id == submission_id).first().updated_at
+    return last_modified
