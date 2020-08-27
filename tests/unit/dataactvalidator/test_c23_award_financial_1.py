@@ -23,6 +23,7 @@ def test_success(database):
     piid_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_3 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
+    piid_4 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # First piid rows
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, piid=piid_1.lower(), parent_award_id='',
@@ -49,6 +50,10 @@ def test_success(database):
     af_3_row_2 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid_3, parent_award_id=None,
                                        allocation_transfer_agency=None)
 
+    # No TOA in File C, ignored
+    af_4 = AwardFinancialFactory(transaction_obligated_amou=None, piid=piid_4.lower(), parent_award_id=None,
+                                 allocation_transfer_agency='123', agency_identifier='123')
+
     # Sum all of these should be equal to that of first piid
     ap_1_row_1 = AwardProcurementFactory(piid=piid_1, parent_award_id=None, federal_action_obligation=-1100)
     ap_1_row_2 = AwardProcurementFactory(piid=piid_1.lower(), parent_award_id=None, federal_action_obligation=-10)
@@ -57,10 +62,12 @@ def test_success(database):
     ap_2 = AwardProcurementFactory(piid=piid_2, parent_award_id='1234', federal_action_obligation=-9999)
     # This one doesn't match but will be ignored
     ap_3 = AwardProcurementFactory(piid=piid_3, parent_award_id=None, federal_action_obligation=-9999)
+    # This one matches but will be ignored
+    ap_4 = AwardProcurementFactory(piid=piid_4, parent_award_id=None, federal_action_obligation=-9999)
 
     errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_1_row_3, af_2_row_1, af_2_row_2,
-                                                       af_2_row_3, af_3_row_1, af_3_row_2, ap_1_row_1, ap_1_row_2,
-                                                       ap_1_row_3, ap_2, ap_3])
+                                                       af_2_row_3, af_3_row_1, af_3_row_2, af_4, ap_1_row_1, ap_1_row_2,
+                                                       ap_1_row_3, ap_2, ap_3, ap_4])
     assert errors == 0
 
 
@@ -73,6 +80,7 @@ def test_failure(database):
     piid_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_3 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
+    piid_4 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # No ATA, not matching (off by 1)
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, piid=piid_1, parent_award_id='',
@@ -88,6 +96,10 @@ def test_failure(database):
     af_3 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_3, parent_award_id=None,
                                  allocation_transfer_agency='123', agency_identifier='123')
 
+    # Not ignored with TOA of 0
+    af_4 = AwardFinancialFactory(transaction_obligated_amou=0, piid=piid_4.lower(), parent_award_id=None,
+                                    allocation_transfer_agency='123', agency_identifier='123')
+
     # Award Procurement portion of checks
     # Sum of all these would be sum of piid_1 af if one wasn't ignored
     ap_1_row_1 = AwardProcurementFactory(piid=piid_1, parent_award_id=None, federal_action_obligation=-1100)
@@ -96,7 +108,9 @@ def test_failure(database):
     ap_2 = AwardProcurementFactory(piid=piid_2, parent_award_id=None, federal_action_obligation=-1111)
     # third piid that should not be ignored because ATA is present but matches
     ap_3 = AwardProcurementFactory(piid=piid_3, parent_award_id=None, federal_action_obligation=0)
+    # fourth piid that should not be ignored because TOA is present
+    ap_4 = AwardProcurementFactory(piid=piid_4, parent_award_id=None, federal_action_obligation=1)
 
-    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2, af_3, ap_1_row_1, ap_1_row_2, ap_2,
-                                                       ap_3])
-    assert errors == 3
+    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2, af_3, af_4, ap_1_row_1, ap_1_row_2,
+                                                       ap_2, ap_3, ap_4])
+    assert errors == 4
