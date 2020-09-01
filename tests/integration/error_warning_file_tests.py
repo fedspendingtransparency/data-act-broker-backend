@@ -9,7 +9,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
 from dataactcore.models.domainModels import concat_tas_dict
-from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
+from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT, RULE_SEVERITY_DICT)
 from dataactcore.models.jobModels import Submission, Job, FileType
 from dataactcore.models.userModel import User
 from dataactcore.models.errorModels import ErrorMetadata
@@ -17,7 +17,7 @@ from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramAc
 from dataactvalidator.health_check import create_app
 import dataactvalidator.validation_handlers.validationManager
 from dataactvalidator.validation_handlers.validationManager import (
-    ValidationManager, FileColumn, CsvReader, parse_fields, ErrorInterface
+    ValidationManager, FileColumn, CsvReader, parse_fields
 )
 import dataactvalidator.validation_handlers.validator
 from dataactbroker.handlers.fileHandler import report_file_name
@@ -219,7 +219,7 @@ class ErrorWarningTests(BaseTestValidator):
             report_content = list(sorted(report_content, key=lambda x: int(x[row_number_col] or 0)))
         return report_headers, report_content
 
-    def generate_file_report(self, file, file_type, warning=False, ignore_error=False, cleanup=True):
+    def generate_file_report(self, file, file_type, warning=False, ignore_error=False):
         self.setup_csv_record_validation(file, file_type)
         if ignore_error:
             try:
@@ -230,16 +230,13 @@ class ErrorWarningTests(BaseTestValidator):
             self.validator.validate_job(self.val_job.job_id)
         report_path = self.get_report_path(file_type, warning=warning)
         report_content = self.get_report_content(report_path, cross_file=False)
-        if cleanup:
-            self.cleanup()
         return report_content
 
-    def generate_cross_file_report(self, cross_files, warning=False, ignore_error=False, cleanup=True):
+    def generate_cross_file_report(self, cross_files, warning=False, ignore_error=False):
         cross_types = []
         for cross_file in cross_files:
             cross_types.append(cross_file[1])
-            self.generate_file_report(cross_file[0], cross_file[1], warning=warning, ignore_error=ignore_error,
-                                      cleanup=False)
+            self.generate_file_report(cross_file[0], cross_file[1], warning=warning, ignore_error=ignore_error)
 
         self.setup_validation()
         if ignore_error:
@@ -251,8 +248,6 @@ class ErrorWarningTests(BaseTestValidator):
             self.validator.validate_job(self.val_job.job_id)
         report_path = self.get_report_path(cross_types[0], cross_type=cross_types[1], warning=warning)
         report_content = self.get_report_content(report_path, cross_file=True)
-        if cleanup:
-            self.cleanup()
         return report_content
 
     def cleanup(self):
@@ -280,6 +275,10 @@ class ErrorWarningTests(BaseTestValidator):
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=True)
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert error_count == 0
+        self.cleanup()
 
         # Blank File
         report_headers, report_content = self.generate_file_report(BLANK_C, 'award_financial', warning=True)
@@ -299,6 +298,10 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert error_count == 1
+        self.cleanup()
 
         # SQL Validation
         report_headers, report_content = self.generate_file_report(RULE_FAILED_WARNING, 'appropriations', warning=True)
@@ -319,6 +322,10 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert error_count == 1
+        self.cleanup()
 
     def test_single_file_errors(self):
         for chunk_size, parallel, batch_sql in self.CONFIGS:
@@ -335,6 +342,10 @@ class ErrorWarningTests(BaseTestValidator):
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=False)
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 0
+        self.cleanup()
 
         # Header Error
         report_headers, report_content = self.generate_file_report(HEADER_ERROR, 'appropriations', warning=False,
@@ -375,6 +386,11 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        # Header errors do not get saved to the database
+        assert error_count == 0
+        self.cleanup()
 
         # Read Error
         report_headers, report_content = self.generate_file_report(READ_ERROR, 'appropriations', warning=False)
@@ -404,6 +420,11 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        format_errors = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                    severity_id=RULE_SEVERITY_DICT['fatal']).one()
+        format_errors = format_errors.occurrences
+        assert format_errors == 2
+        self.cleanup()
 
         # Type Error
         report_headers, report_content = self.generate_file_report(TYPE_ERROR, 'appropriations', warning=False)
@@ -423,6 +444,10 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 1
+        self.cleanup()
 
         # Length Error
         report_headers, report_content = self.generate_file_report(LENGTH_ERROR, 'appropriations', warning=False)
@@ -441,6 +466,10 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 1
+        self.cleanup()
 
         # Required Error + SQL Validation
         report_headers, report_content = self.generate_file_report(REQUIRED_ERROR, 'appropriations', warning=False)
@@ -491,6 +520,10 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 3
+        self.cleanup()
 
         # SQL Validation (with difference)
         report_headers, report_content = self.generate_file_report(RULE_FAILED_ERROR, 'appropriations', warning=False)
@@ -523,6 +556,10 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 1
+        self.cleanup()
 
     def test_cross_file_warnings(self):
         for chunk_size, parallel, batch_sql in self.CONFIGS:
@@ -541,6 +578,10 @@ class ErrorWarningTests(BaseTestValidator):
                                                                          warning=True)
         assert report_headers == self.validator.cross_file_report_headers
         assert len(report_content) == 0
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert error_count == 0
+        self.cleanup()
 
         # SQL Validation
         report_headers, report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
@@ -706,6 +747,13 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        warnings = list(self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                    severity_id=RULE_SEVERITY_DICT['warning']).all())
+        assert len(warnings) == 3
+        assert warnings[0].occurrences == 3
+        assert warnings[1].occurrences == 3
+        assert warnings[2].occurrences == 3
+        self.cleanup()
 
     def test_cross_file_errors(self):
         for chunk_size, parallel, batch_sql in self.CONFIGS:
@@ -724,6 +772,10 @@ class ErrorWarningTests(BaseTestValidator):
                                                                          warning=False)
         assert report_headers == self.validator.cross_file_report_headers
         assert len(report_content) == 0
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 0
+        self.cleanup()
 
         # SQL Validation
         report_headers, report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
@@ -790,6 +842,11 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
+        warnings = list(self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                    severity_id=RULE_SEVERITY_DICT['fatal']).all())
+        assert len(warnings) == 1
+        assert warnings[0].occurrences == 3
+        self.cleanup()
 
     def test_validation_parallelize_error(self):
         # Test the parallelize function with a broken call to see if the process is properly cleaned up
@@ -802,7 +859,7 @@ class ErrorWarningTests(BaseTestValidator):
         self.validator.file_name = APPROP_FILE
         self.validator.is_fabs = False
         self.validator.reader = CsvReader()
-        self.validator.error_list = ErrorInterface()
+        self.validator.error_list = {}
         self.validator.error_rows = []
         self.validator.total_rows = 1
         self.validator.short_rows = []
