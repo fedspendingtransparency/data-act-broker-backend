@@ -13,7 +13,7 @@ from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATU
 from dataactcore.models.jobModels import Submission, Job, FileType
 from dataactcore.models.userModel import User
 from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, FlexField
+from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, AwardFinancial, FlexField
 from dataactvalidator.health_check import create_app
 import dataactvalidator.validation_handlers.validationManager
 from dataactvalidator.validation_handlers.validationManager import (
@@ -256,6 +256,7 @@ class ErrorWarningTests(BaseTestValidator):
             os.remove(os.path.join(CONFIG_SERVICES['error_report_path'], new_report))
         self.session.query(Appropriation).delete(synchronize_session='fetch')
         self.session.query(ObjectClassProgramActivity).delete(synchronize_session='fetch')
+        self.session.query(AwardFinancial).delete(synchronize_session='fetch')
         self.session.query(ErrorMetadata).delete(synchronize_session='fetch')
         self.session.query(FlexField).delete(synchronize_session='fetch')
         self.session.commit()
@@ -273,15 +274,26 @@ class ErrorWarningTests(BaseTestValidator):
     def single_file_warnings(self):
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=True)
-        assert report_headers == self.validator.report_headers
-        assert len(report_content) == 0
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 10
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 20
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
         assert error_count == 0
+        assert report_headers == self.validator.report_headers
+        assert len(report_content) == 0
         self.cleanup()
 
         # Blank File
         report_headers, report_content = self.generate_file_report(BLANK_C, 'award_financial', warning=True)
+        awfin_count = self.session.query(AwardFinancial).filter_by(submission_id=self.submission_id).count()
+        assert awfin_count == 0
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 0
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -298,13 +310,17 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                  severity_id=RULE_SEVERITY_DICT['warning']).count()
-        assert error_count == 1
         self.cleanup()
 
         # SQL Validation
         report_headers, report_content = self.generate_file_report(RULE_FAILED_WARNING, 'appropriations', warning=True)
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 10
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 20
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -322,9 +338,6 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                  severity_id=RULE_SEVERITY_DICT['warning']).count()
-        assert error_count == 1
         self.cleanup()
 
     def test_single_file_errors(self):
@@ -340,16 +353,28 @@ class ErrorWarningTests(BaseTestValidator):
     def single_file_errors(self):
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=False)
-        assert report_headers == self.validator.report_headers
-        assert len(report_content) == 0
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 10
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 20
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 0
+        assert report_headers == self.validator.report_headers
+        assert len(report_content) == 0
         self.cleanup()
 
         # Header Error
         report_headers, report_content = self.generate_file_report(HEADER_ERROR, 'appropriations', warning=False,
                                                                    ignore_error=True)
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 0
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 0
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        # Header errors do not get saved to the database
+        assert error_count == 0
         assert report_headers == ['Error type', 'Header name']
         expected_values = [
             {
@@ -386,14 +411,18 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
-        # Header errors do not get saved to the database
-        assert error_count == 0
         self.cleanup()
 
         # Read Error
         report_headers, report_content = self.generate_file_report(READ_ERROR, 'appropriations', warning=False)
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 8
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 16
+        format_errors = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                    severity_id=RULE_SEVERITY_DICT['fatal']).one()
+        format_error_count = format_errors.occurrences
+        assert format_error_count == 2
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -420,14 +449,17 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        format_errors = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                    severity_id=RULE_SEVERITY_DICT['fatal']).one()
-        format_errors = format_errors.occurrences
-        assert format_errors == 2
         self.cleanup()
 
         # Type Error
         report_headers, report_content = self.generate_file_report(TYPE_ERROR, 'appropriations', warning=False)
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 9
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 18
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -444,13 +476,17 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
-        assert error_count == 1
         self.cleanup()
 
         # Length Error
         report_headers, report_content = self.generate_file_report(LENGTH_ERROR, 'appropriations', warning=False)
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 10
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 20
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -466,13 +502,17 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
-        assert error_count == 1
         self.cleanup()
 
         # Required Error + SQL Validation
         report_headers, report_content = self.generate_file_report(REQUIRED_ERROR, 'appropriations', warning=False)
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 10
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 20
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 3
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -520,13 +560,17 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
-        assert error_count == 3
         self.cleanup()
 
         # SQL Validation (with difference)
         report_headers, report_content = self.generate_file_report(RULE_FAILED_ERROR, 'appropriations', warning=False)
+        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
+        assert appro_count == 10
+        flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
+        assert flex_count == 20
+        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -556,9 +600,6 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                  severity_id=RULE_SEVERITY_DICT['fatal']).count()
-        assert error_count == 1
         self.cleanup()
 
     def test_cross_file_warnings(self):
@@ -576,17 +617,23 @@ class ErrorWarningTests(BaseTestValidator):
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
                                                                          warning=True)
-        assert report_headers == self.validator.cross_file_report_headers
-        assert len(report_content) == 0
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
         assert error_count == 0
+        assert report_headers == self.validator.cross_file_report_headers
+        assert len(report_content) == 0
         self.cleanup()
 
         # SQL Validation
         report_headers, report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
                                                                           (INVALID_CROSS_B, 'program_activity')],
                                                                          warning=True)
+        warnings = list(self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                    severity_id=RULE_SEVERITY_DICT['warning']).all())
+        assert len(warnings) == 3
+        assert warnings[0].occurrences == 3
+        assert warnings[1].occurrences == 3
+        assert warnings[2].occurrences == 3
         assert report_headers == self.validator.cross_file_report_headers
         expected_values = [
             {
@@ -747,12 +794,6 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        warnings = list(self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                    severity_id=RULE_SEVERITY_DICT['warning']).all())
-        assert len(warnings) == 3
-        assert warnings[0].occurrences == 3
-        assert warnings[1].occurrences == 3
-        assert warnings[2].occurrences == 3
         self.cleanup()
 
     def test_cross_file_errors(self):
@@ -770,17 +811,21 @@ class ErrorWarningTests(BaseTestValidator):
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
                                                                          warning=False)
-        assert report_headers == self.validator.cross_file_report_headers
-        assert len(report_content) == 0
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 0
+        assert report_headers == self.validator.cross_file_report_headers
+        assert len(report_content) == 0
         self.cleanup()
 
         # SQL Validation
         report_headers, report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
                                                                           (INVALID_CROSS_B, 'program_activity')],
                                                                          warning=False)
+        warnings = list(self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
+                                                                    severity_id=RULE_SEVERITY_DICT['fatal']).all())
+        assert len(warnings) == 1
+        assert warnings[0].occurrences == 3
         assert report_headers == self.validator.cross_file_report_headers
         expected_values = [
             {
@@ -842,10 +887,6 @@ class ErrorWarningTests(BaseTestValidator):
             }
         ]
         assert report_content == expected_values
-        warnings = list(self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
-                                                                    severity_id=RULE_SEVERITY_DICT['fatal']).all())
-        assert len(warnings) == 1
-        assert warnings[0].occurrences == 3
         self.cleanup()
 
     def test_validation_parallelize_error(self):
