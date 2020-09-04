@@ -11,6 +11,7 @@ def record_row_error(error_list, job_id, filename, field_name, error_type, row, 
     """ Add this error to running sum of error types
 
     Args:
+        error_list: dict keeping track of error metadata to be updated
         job_id: ID of job in job tracker
         filename: name of error report in S3
         field_name: name of field where error occurred
@@ -38,6 +39,7 @@ def write_all_row_errors(error_list, job_id):
     """ Writes all recorded errors to database
 
     Args:
+        error_list: dict keeping track of error metadata to be updated
         job_id: ID to write errors for
     """
     sess = GlobalDB.db().session
