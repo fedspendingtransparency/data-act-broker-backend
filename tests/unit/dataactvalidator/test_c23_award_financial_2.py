@@ -24,6 +24,7 @@ def test_success(database):
     paid_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     paid_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     paid_3 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
+    paid_4 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     piid = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
@@ -47,6 +48,10 @@ def test_success(database):
     af_3 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid, parent_award_id=paid_3,
                                  allocation_transfer_agency='good', agency_identifier='bad')
 
+    # No TOA in File C, ignored
+    af_4 = AwardFinancialFactory(transaction_obligated_amou=None, piid=piid.lower(), parent_award_id=paid_4,
+                                 allocation_transfer_agency='good', agency_identifier='good')
+
     # Combine these to match paid_1
     ap_1_row_1 = AwardProcurementFactory(parent_award_id=paid_1.lower(), piid=piid.lower(),
                                          federal_action_obligation=-1100)
@@ -56,10 +61,12 @@ def test_success(database):
     ap_2 = AwardProcurementFactory(parent_award_id=paid_2, piid=piid, federal_action_obligation=-9999)
     # This is ignored because the ATA/AID for this one don't match
     ap_3 = AwardProcurementFactory(parent_award_id=paid_3, piid=piid, federal_action_obligation=-9999)
+    # This one matches but will be ignored
+    ap_4 = AwardProcurementFactory(parent_award_id=paid_4, piid=piid, federal_action_obligation=-9999)
 
     errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_1_row_3, af_1_row_4, af_2_row_1,
-                                                       af_2_row_2, af_3, ap_1_row_1, ap_1_row_2, ap_1_row_3, ap_2,
-                                                       ap_3])
+                                                       af_2_row_2, af_3, af_4, ap_1_row_1, ap_1_row_2, ap_1_row_3, ap_2,
+                                                       ap_3, ap_4])
     assert errors == 0
 
 
@@ -71,6 +78,7 @@ def test_failure(database):
     # Create a 12 character random parent_award_id
     paid_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     paid_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
+    paid_3 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     piid = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
@@ -86,6 +94,9 @@ def test_failure(database):
                                        allocation_transfer_agency=None)
     af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=1111, piid=piid.lower(), parent_award_id=paid_2,
                                        allocation_transfer_agency='good', agency_identifier='good')
+    # Not ignored with TOA of 0
+    af_3 = AwardFinancialFactory(transaction_obligated_amou=0, piid=piid.lower(), parent_award_id=paid_3.lower(),
+                                 allocation_transfer_agency='good', agency_identifier='good')
 
     # Sum of these values doesn't add up (ignoring third one because it has a different paid)
     ap_1_row_1 = AwardProcurementFactory(parent_award_id=paid_1, piid=piid.lower(), federal_action_obligation=-1100)
@@ -93,7 +104,9 @@ def test_failure(database):
     ap_1_row_3 = AwardProcurementFactory(parent_award_id='1234', piid=piid.upper(), federal_action_obligation=-1)
     # Sum of the two above should be both of them, not just one
     ap_2 = AwardProcurementFactory(parent_award_id=paid_2, piid=piid, federal_action_obligation=-1111)
+    # Should not be ignored because TOA is present
+    ap_3 = AwardProcurementFactory(parent_award_id=paid_3, piid=piid, federal_action_obligation=1)
 
     errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_1_row_3, af_2_row_1, af_2_row_2,
-                                                       ap_1_row_1, ap_1_row_2, ap_1_row_3, ap_2])
-    assert errors == 2
+                                                       af_3, ap_1_row_1, ap_1_row_2, ap_1_row_3, ap_2, ap_3])
+    assert errors == 3
