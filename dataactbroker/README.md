@@ -479,11 +479,11 @@ Possible HTTP Status Codes:
 
 - 401: Login required
 
-#### GET "/v1/window/"
+#### GET "/v1/list\_banners/"
 This endpoint returns a list of temporary messages to display on the Broker frontend as a banner.
 
 ##### Sample Request
-`/v1/window/`
+`/v1/list_banners/`
 
 ##### Request Params
 N/A
@@ -1318,12 +1318,12 @@ This endpoint lists submissions for all agencies for which the current user is a
 ##### Body (JSON)
 ```
 {
-    "page": 2
+    "page": 2,
     "limit": 5,
-    "certified": "true",
+    "published": "true",
     "sort": "modified",
     "order": "desc",
-    "fabs": False,
+    "fabs": false,
     "filters": {
         "submission_ids": [123, 456],
         "last_modified_range": {
@@ -1332,7 +1332,8 @@ This endpoint lists submissions for all agencies for which the current user is a
         },
         "agency_codes": ["123", "4567"],
         "file_names": ["file_a", "test"],
-        "user_ids: [1, 2]
+        "user_ids": [1, 2],
+        "submission_type": "test"
     }
 }
 ```
@@ -1352,7 +1353,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `reporting_end`: reporting end date
     - `agency`: agency name
     - `submitted_by`: name of user that created the submission
-    - `published_date`: latest published date
+    - `last_pub_or_cert `: most recent date the submission was either published or certified
     - `quarterly_submission`: quarterly submission or not
 - `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
@@ -1366,6 +1367,9 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `agency_codes`: ([string]) CGAC and FREC codes
     - `file_names`: ([string]) total or partial matches to file names (including timestamps), will match any file name including generated ones
     - `user_ids`: ([string, integer]) limits the list of submissions to only ones created by users within the array.
+    - `submission_type`: (string) if present, limits to only showing test or only showing certifiable submissions in the list. Can be used with any other filters or parameters but only unpublished DABS submissions can be tests. Allowable values:
+      - `test`
+      - `certifiable`
 
 ##### Response (JSON)
 
@@ -1387,7 +1391,7 @@ This endpoint lists submissions for all agencies for which the current user is a
       "publish_status": "published",
       "test_submission": false,
       "publishing_user": "Certifier",
-      "published_on": "2016-08-30 12:53:37.053424",
+      "last_pub_or_cert": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
       "certified": true,
       "time_period": "FY 16 / Q4"
@@ -1407,7 +1411,7 @@ This endpoint lists submissions for all agencies for which the current user is a
       "publish_status": "unpublished",
       "test_submission": false,
       "publishing_user": "",
-      "published_on": "",
+      "last_pub_or_cert": "",
       "quarterly_submission": true,
       "certified": true,
       "time_period": "FY 15 / Q4"
@@ -1452,7 +1456,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `test_submission`: (boolean) whether the submission is a test submission
     - `publishing_user`: (string) the name of the last user to publish the submission
     - `certified`: (boolean) whether the submission has been certified or not
-    - `published_on`: (string) the last time/date the submission was published. (`YYYY-MM-DD HH:mm:ss`)
+    - `last_pub_or_cert `: (string) the last time/date the submission was published or certified. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
     - `time_period`: (string) the time frame for the submission
 

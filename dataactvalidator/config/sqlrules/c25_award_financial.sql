@@ -9,6 +9,11 @@ SELECT
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM award_financial
 WHERE submission_id = {0}
-    AND UPPER(disaster_emergency_fund_code) IN ('L', 'M', 'N', 'O', 'P')
+    AND EXISTS (
+        SELECT 1
+        FROM defc
+        WHERE defc.code = UPPER(disaster_emergency_fund_code) AND
+            defc.group = 'covid_19'
+    )
     AND COALESCE(transaction_obligated_amou, 0) = 0
     AND gross_outlay_amount_by_awa_cpe IS NULL;

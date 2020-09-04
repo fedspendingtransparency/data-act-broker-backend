@@ -4,8 +4,8 @@ import glob
 import logging
 import os
 import re
-import sys
 import json
+import argparse
 
 import boto3
 import pandas as pd
@@ -21,12 +21,13 @@ from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 logger = logging.getLogger(__name__)
 
 
-def load_all_sf133(sf133_path=None, force_sf133_load=False):
+def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133'):
     """ Load any SF-133 files that are not yet in the database.
 
         Args:
             sf133_path: path to the SF133 files
             force_sf133_load: boolean to indicate whether to force a reload of the data
+            aws_prefix: prefix to filter which files to pull from AWS
     """
     now = datetime.now()
     metrics_json = {
@@ -36,7 +37,7 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False):
         'records_inserted': 0
     }
     # get a list of SF 133 files to load
-    sf133_list = get_sf133_list(sf133_path)
+    sf133_list = get_sf133_list(sf133_path, aws_prefix=aws_prefix)
     sf_re = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
     for sf133 in sf133_list:
         # for each SF file, parse out fiscal year and period and call the SF 133 loader
@@ -239,11 +240,12 @@ def clean_sf133_data(filename, sf133_data):
     return data
 
 
-def get_sf133_list(sf133_path):
+def get_sf133_list(sf133_path, aws_prefix='sf_133'):
     """ Get the list of SF133 files to load
 
         Args:
             sf133_path: path to where SF133 files are stored
+            aws_prefix: prefix to filter which files to pull from AWS
 
         Returns:
             A list of tuples containing information about existing SF133 files
@@ -259,7 +261,7 @@ def get_sf133_list(sf133_path):
         if CONFIG_BROKER["use_aws"]:
             # get list of SF 133 files in the config bucket on S3
             s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-            response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'], Prefix='sf_133')
+            response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'], Prefix=aws_prefix)
             sf133_list = []
             for obj in response.get('Contents', []):
                 if obj['Key'] != 'sf_133':
@@ -274,5 +276,17 @@ def get_sf133_list(sf133_path):
 
 if __name__ == '__main__':
     configure_logging()
-    force_load = '-f' in sys.argv or '--force' in sys.argv
-    load_all_sf133(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"), force_load)
+    parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
+    parser.add_argument('-r', '--remote', help='Whether to run remote or not', action='store_true')
+    parser.add_argument('-p', '--local_path', help='Local path of folder to check', type=str,
+                        default=os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"), required=False)
+    parser.add_argument('-pre', '--aws_prefix', help='When loading via AWS, this filters which files to run', type=str,
+                        default="sf_133")
+    parser.add_argument('-f', '--force', help='Forces actions to occur in certain scripts regardless of checks',
+                        action='store_true')
+    args = parser.parse_args()
+
+    if not args.remote:
+        load_all_sf133(args.local_path, args.force)
+    else:
+        load_all_sf133(None, args.force, args.aws_prefix)

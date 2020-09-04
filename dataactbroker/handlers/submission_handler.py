@@ -18,9 +18,9 @@ from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JO
                                         FILE_TYPE_DICT)
 from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
-from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
-                                          CertifyHistory, PublishHistory, RevalidationThreshold,
-                                          SubmissionWindowSchedule, Comment, CertifiedComment, PublishedFilesHistory)
+from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, Banner, CertifyHistory,
+                                          PublishHistory, RevalidationThreshold, SubmissionWindowSchedule, Comment,
+                                          CertifiedComment, PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
@@ -406,46 +406,45 @@ def delete_all_submission_data(submission):
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
-def list_windows():
-    """ List all the windows (submission or otherwise) that are open at the time this is called.
+def list_banners():
+    """ List all the banners that are open at the time this is called.
 
         Returns:
-            A JsonResponse containing data for each currently open window including start_date, end_date,
+            A JsonResponse containing data for each currently open banner including start_date, end_date,
             notice_block, message, and type
     """
-    current_windows = get_windows()
+    current_banners = get_banners()
 
     data = []
 
-    if current_windows.count() is 0:
+    if current_banners.count() is 0:
         data = None
     else:
-        for window in current_windows:
+        for banner in current_banners:
             data.append({
-                'start_date': str(window.start_date),
-                'end_date': str(window.end_date),
-                'notice_block': window.block_certification,
-                'header': window.header,
-                'message': window.message,
-                'type': window.application_type.application_name,
-                'banner_type': window.banner_type
+                'start_date': str(banner.start_date),
+                'end_date': str(banner.end_date),
+                'notice_block': banner.block_certification,
+                'header': banner.header,
+                'message': banner.message,
+                'type': banner.application_type.application_name,
+                'banner_type': banner.banner_type
             })
 
     return JsonResponse.create(StatusCode.OK, {'data': data})
 
 
-def get_windows():
-    """ Get all submissions that start before and end after the current date
+def get_banners():
+    """ Get all banners that start before and end after the current date
 
         Returns:
-            A query to get all the windows surrounding the current date
+            A query to get all the banners surrounding the current date
     """
     sess = GlobalDB.db().session
 
     curr_date = datetime.now().date()
 
-    return sess.query(SubmissionWindow).filter(SubmissionWindow.start_date <= curr_date,
-                                               SubmissionWindow.end_date >= curr_date)
+    return sess.query(Banner).filter(Banner.start_date <= curr_date, Banner.end_date >= curr_date)
 
 
 def check_current_submission_page(submission):
@@ -749,14 +748,13 @@ def publish_checks(submission):
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         raise ValueError('Submission has already been published')
 
-    # TODO actually set it to publishing one day
     if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
         raise ValueError('Submission is publishing or reverting')
 
-    windows = get_windows()
-    for window in windows:
-        if window.block_certification:
-            raise ValueError(window.message)
+    banners = get_banners()
+    for banner in banners:
+        if banner.block_certification:
+            raise ValueError(banner.message)
 
     sess = GlobalDB.db().session
     # Check revalidation threshold
@@ -815,6 +813,9 @@ def process_dabs_publish(submission, file_manager):
     # Determine if this is the first time this submission is being published
     first_publish = (submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
+    # set publish_status to "publishing"
+    submission.publish_status_id = PUBLISH_STATUS_DICT['publishing']
+
     # create the publish_history entry
     publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=current_user_id,
                                      submission_id=submission.submission_id)
@@ -832,8 +833,9 @@ def process_dabs_publish(submission, file_manager):
     file_manager.move_published_files(submission, publish_history, None, file_manager.is_local)
 
     # set submission contents
-    submission.certifying_user_id = current_user_id
+    submission.publishing_user_id = current_user_id
     submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+    sess.commit()
 
     if first_publish:
         # update any other submissions by the same agency in the same quarter/period to point to this submission
