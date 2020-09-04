@@ -22,6 +22,9 @@ def record_row_error(error_list, job_id, filename, field_name, error_type, row, 
         file_type_id: Id of source file type
         target_file_id: Id of target file type
         severity_id: Id of error severity
+
+    Returns:
+        updated error_list with new/updated record rows
     """
     key = "".join([str(job_id), field_name, str(error_type)])
     if key in error_list:
