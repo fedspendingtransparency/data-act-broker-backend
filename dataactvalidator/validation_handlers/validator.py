@@ -7,6 +7,7 @@ from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.interfaces.db import GlobalDB
 from dataactbroker.scripts.update_historical_duns import batch as batcher
+from dataactvalidator.validation_handlers.errorInterface import record_row_error
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
             job_id: the id of the cross-file job
             error_csv: the csv to write errors to
             warning_csv: the csv to write warnings to
-            error_list: instance of ErrorInterface to keep track of errors
+            error_list: dict to keep track of errors
             batch_results: instead of storing the results in memory, batch the results (for memory)
     """
     conn = GlobalDB.db().connection
@@ -130,8 +131,8 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                     error_csv.writerow(failure[0:12])
                 if failure[14] == RULE_SEVERITY_DICT['warning']:
                     warning_csv.writerow(failure[0:12])
-                error_list.record_row_error(job_id, 'cross_file', failure[1], failure[5], failure[10], failure[11],
-                                            failure[12], failure[13], severity_id=failure[14])
+                record_row_error(error_list, job_id, 'cross_file', failure[1], failure[5], failure[10], failure[11],
+                                 failure[12], failure[13], severity_id=failure[14])
 
         sub_rule_sql = rule.rule_sql.format(submission_id)
         if batch_results:
