@@ -14,8 +14,9 @@ WITH award_financial_c23_2_{0} AS
 award_financial_grouped_c23_2_{0} AS
     (SELECT UPPER(piid) AS piid,
     UPPER(parent_award_id) AS parent_award_id,
-        COALESCE(SUM(transaction_obligated_amou), 0) AS sum_ob_amount
+        SUM(transaction_obligated_amou) AS sum_ob_amount
     FROM award_financial_c23_2_{0}
+    WHERE transaction_obligated_amou IS NOT NULL
     GROUP BY UPPER(parent_award_id),
         UPPER(piid)),
 -- gather the grouped sum for award procurement data
