@@ -12,7 +12,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
                                                  get_fabs_meta, get_error_type, get_error_metrics_by_job_id,
-                                                 get_certification_deadline)
+                                                 get_certification_deadline, get_last_modified)
 
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT)
@@ -147,6 +147,7 @@ def get_submission_metadata(submission):
     certification_deadline = get_certification_deadline(submission)
     reporting_start = submission.reporting_start_date.strftime('%m/%d/%Y') if submission.reporting_start_date else None
     reporting_end = submission.reporting_end_date.strftime('%m/%d/%Y') if submission.reporting_end_date else None
+    last_modified = get_last_modified(submission.submission_id)
 
     return {
         'cgac_code': submission.cgac_code,
@@ -157,7 +158,7 @@ def get_submission_metadata(submission):
         'number_of_rows': number_of_rows,
         'total_size': total_size,
         'created_on': submission.created_at.strftime('%Y-%m-%dT%H:%M:%S'),
-        'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
+        'last_updated': last_modified.strftime('%Y-%m-%dT%H:%M:%S') if last_modified else '',
         'last_validated': last_validated,
         'reporting_period': reporting_date(submission),
         'reporting_start_date': reporting_start,
