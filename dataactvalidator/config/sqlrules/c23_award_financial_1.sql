@@ -13,9 +13,10 @@ WITH award_financial_c23_1_{0} AS
 -- gather the grouped sum from the previous WITH (we need both so we can do the NOT EXISTS later)
 award_financial_grouped_c23_1_{0} AS
     (SELECT UPPER(piid) AS piid,
-        COALESCE(SUM(transaction_obligated_amou), 0) AS sum_ob_amount
+        SUM(transaction_obligated_amou) AS sum_ob_amount
     FROM award_financial_c23_1_{0}
     WHERE COALESCE(parent_award_id, '') = ''
+        AND transaction_obligated_amou IS NOT NULL
     GROUP BY UPPER(piid)),
 -- gather the grouped sum for award procurement data
 award_procurement_c23_1_{0} AS

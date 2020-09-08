@@ -12,8 +12,9 @@ WITH award_financial_c23_4_{0} AS
 -- gather the grouped sum from the previous WITH (we need both so we can do the NOT EXISTS later)
 award_financial_grouped_c23_4_{0} AS
     (SELECT UPPER(uri) AS uri,
-        COALESCE(SUM(transaction_obligated_amou), 0) AS sum_ob_amount
+        SUM(transaction_obligated_amou) AS sum_ob_amount
     FROM award_financial_c23_4_{0}
+    WHERE transaction_obligated_amou IS NOT NULL
     GROUP BY UPPER(uri)),
 -- gather the grouped sum for award financial assistance data
 award_financial_assistance_c23_4_{0} AS

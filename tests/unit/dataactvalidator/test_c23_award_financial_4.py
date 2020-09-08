@@ -24,6 +24,7 @@ def test_success(database):
     uri_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     uri_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     uri_3 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
+    uri_4 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # Simple sum
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, uri=uri_1, allocation_transfer_agency=None)
@@ -36,6 +37,9 @@ def test_success(database):
     # Ignored row with non-matching ATA/AID
     af_3 = AwardFinancialFactory(transaction_obligated_amou=8888, uri=uri_3, allocation_transfer_agency='good',
                                  agency_identifier='bad')
+    # No TOA in File C, ignored
+    af_4 = AwardFinancialFactory(transaction_obligated_amou=None, uri=uri_4.lower(),
+                                 allocation_transfer_agency='good', agency_identifier='good')
 
     # Correct sum
     afa_1_row_1 = AwardFinancialAssistanceFactory(uri=uri_1, federal_action_obligation=-1100,
@@ -57,9 +61,12 @@ def test_success(database):
     # Uri 3 test for ignoring a non-matching ATA/AID
     afa_3 = AwardFinancialAssistanceFactory(uri=uri_3, federal_action_obligation=-9999, record_type='1')
 
-    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2_row_1, af_2_row_2, af_3,
+    # This one matches but will be ignored
+    afa_4 = AwardFinancialAssistanceFactory(uri=uri_4, federal_action_obligation=-9999)
+
+    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2_row_1, af_2_row_2, af_3, af_4,
                                                        afa_1_row_1, afa_1_row_2, afa_1_row_3, afa_1_row_4, afa_1_row_5,
-                                                       afa_2, afa_3])
+                                                       afa_2, afa_3, afa_4])
     assert errors == 0
 
 
@@ -72,6 +79,7 @@ def test_failure(database):
     uri_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     uri_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     uri_3 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
+    uri_4 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # Simple addition that doesn't add up right
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, uri=uri_1, allocation_transfer_agency=None)
@@ -81,6 +89,9 @@ def test_failure(database):
     af_2 = AwardFinancialFactory(transaction_obligated_amou=9999, uri=uri_2, allocation_transfer_agency=None)
     # Don't ignore when ATA and AID match
     af_3 = AwardFinancialFactory(transaction_obligated_amou=1100, uri=uri_3, allocation_transfer_agency='good',
+                                 agency_identifier='good')
+    # Not ignored with TOA of 0
+    af_4 = AwardFinancialFactory(transaction_obligated_amou=0, uri=uri_4, allocation_transfer_agency='good',
                                  agency_identifier='good')
 
     # Sum of this uri doesn't add up to af uri sum
@@ -97,7 +108,10 @@ def test_failure(database):
     # This shouldn't be ignored
     afa_3 = AwardFinancialAssistanceFactory(uri=uri_3, federal_action_obligation=0, original_loan_subsidy_cost=None,
                                             record_type='1')
+    # This shouldn't be ignored
+    afa_4 = AwardFinancialAssistanceFactory(uri=uri_4, federal_action_obligation=1, original_loan_subsidy_cost=None,
+                                            record_type='1')
 
-    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2, af_3, afa_1_row_1, afa_1_row_2,
-                                                       afa_2_row_1, afa_2_row_2, afa_3])
-    assert errors == 3
+    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2, af_3, af_4, afa_1_row_1,
+                                                       afa_1_row_2, afa_2_row_1, afa_2_row_2, afa_3, afa_4])
+    assert errors == 4
