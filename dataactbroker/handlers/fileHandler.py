@@ -1963,7 +1963,7 @@ def submission_report_url(submission, warning, file_type, cross_type):
     # Get the url
     file_name = report_file_name(submission.submission_id, warning, file_type, cross_type)
     if CONFIG_BROKER['local']:
-        url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
+        url = os.path.join(CONFIG_SERVICES['error_report_path'], file_name)
     else:
         url = S3Handler().get_signed_url('errors', file_name,
                                          url_mapping=CONFIG_BROKER['submission_bucket_mapping'],
