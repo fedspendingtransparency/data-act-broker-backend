@@ -399,7 +399,7 @@ def delete_all_submission_data(submission):
     })
 
     if CONFIG_BROKER["use_aws"]:
-        s3 = boto3.resource('s3', region=CONFIG_BROKER['aws_region'])
+        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         bucket = s3.Bucket(CONFIG_BROKER['aws_bucket'])
         # submission files + historic submission files
         bucket.objects.filter(Prefix="{}/".format(submission.submission_id)).delete()
