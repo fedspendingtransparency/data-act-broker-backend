@@ -18,6 +18,7 @@ from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
+
 def clean_expired_submissions(fy17q1_subs=False):
     """ Cleans the database of expired submissions
 
