@@ -369,6 +369,39 @@ def get_submission_files(jobs):
     return job_list
 
 
+def delete_submission_files(sess, submission_id):
+    """ Deletes the files associated with a submission.
+
+        Args:
+            sess: the database connection
+            submission_id: ID of the submission whose files to delete
+    """
+
+    logger.info({
+        'message': 'Deleting submission files with id {}'.format(submission_id),
+        'message_type': 'BrokerInfo',
+        'submission_id': submission_id
+    })
+
+    if CONFIG_BROKER["use_aws"]:
+        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+        bucket = s3.Bucket(CONFIG_BROKER['aws_bucket'])
+        # submission files + historic submission files
+        bucket.objects.filter(Prefix="{}/".format(submission_id)).delete()
+        # all error warning files tied to the submission
+        bucket.objects.filter(Prefix="errors/submission_{}_".format(submission_id)).delete()
+    else:
+        # submission files tied to jobs
+        jobs = sess.query(Job).filter_by(submission_id=submission_id)
+        for sub_file in get_submission_files(jobs):
+            if sub_file and os.path.exists(sub_file):
+                os.remove(sub_file)
+        # all error warning files tied to the submission
+        for file_path in os.listdir(CONFIG_SERVICES['error_report_path']):
+            if re.search('submission_{}_.*'.format(submission_id), file_path):
+                os.remove(os.path.join(CONFIG_SERVICES['error_report_path'], file_path))
+
+
 def delete_all_submission_data(submission):
     """ Delete a submission.
 
@@ -392,29 +425,7 @@ def delete_all_submission_data(submission):
         return JsonResponse.error(ValueError('Submissions with running jobs cannot be deleted'),
                                   StatusCode.CLIENT_ERROR)
 
-    logger.info({
-        'message': 'Deleting submission files with id {}'.format(submission.submission_id),
-        'message_type': 'BrokerInfo',
-        'submission_id': submission.submission_id
-    })
-
-    if CONFIG_BROKER["use_aws"]:
-        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-        bucket = s3.Bucket(CONFIG_BROKER['aws_bucket'])
-        # submission files + historic submission files
-        bucket.objects.filter(Prefix="{}/".format(submission.submission_id)).delete()
-        # all error warning files tied to the submission
-        bucket.objects.filter(Prefix="errors/submission_{}_".format(submission.submission_id)).delete()
-    else:
-        # submission files tied to jobs
-        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
-        for sub_file in get_submission_files(jobs):
-            if sub_file and os.path.exists(sub_file):
-                os.remove(sub_file)
-        # all error warning files tied to the submission
-        for file_path in os.listdir(CONFIG_SERVICES['error_report_path']):
-            if re.search('submission_{}_.*'.format(submission.submission_id), file_path):
-                os.remove(os.path.join(CONFIG_SERVICES['error_report_path'], file_path))
+    delete_submission_files(sess, submission.submission_id)
 
     logger.info({
         'message': 'Deleting submission database data with id {}'.format(submission.submission_id),
