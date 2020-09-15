@@ -11,7 +11,7 @@ from dataactbroker.handlers.submission_handler import delete_all_submission_data
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.stagingModels import AwardProcurement, ObjectClassProgramActivity, AwardFinancial
+from dataactcore.models.stagingModels import AwardProcurement, ObjectClassProgramActivity, AwardFinancial, FlexField
 from dataactcore.models.views import SubmissionUpdatedView
 
 from dataactvalidator.health_check import create_app
@@ -62,7 +62,7 @@ def clean_expired_submissions(fy17q1_subs=False):
     conn = GlobalDB.db().engine.raw_connection()
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     cursor = conn.cursor()
-    vacuum_models = [Submission, AwardProcurement, ObjectClassProgramActivity, AwardFinancial, ErrorMetadata]
+    vacuum_models = [Submission, AwardProcurement, ObjectClassProgramActivity, AwardFinancial, ErrorMetadata, FlexField]
     vacuum_tables = [vacuum_model.__table__.name for vacuum_model in vacuum_models]
     for vacuum_table in vacuum_tables:
         cursor.execute("VACUUM ANALYZE {};".format(vacuum_table))
