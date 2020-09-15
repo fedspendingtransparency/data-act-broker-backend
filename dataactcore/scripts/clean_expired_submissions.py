@@ -55,7 +55,7 @@ def clean_expired_submissions(fy17q1_subs=False):
     logger.info("Deleting expired submissions")
     for submission in expired_submissions:
         delete_all_submission_data(submission)
-    sess.commit()
+        sess.commit()
     logger.info("Deleted expired submissions")
 
     logger.info("Running vacuum")
