@@ -1,5 +1,6 @@
 import logging
 import argparse
+import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
@@ -56,6 +57,8 @@ def clean_expired_submissions(fy17q1_subs=False):
         sess.commit()
     logger.info("Database cleaned of expired submissions")
 
+    return expired_submission_ids
+
 
 if __name__ == '__main__':
     with create_app().app_context():
@@ -66,4 +69,16 @@ if __name__ == '__main__':
                             action='store_true')
         args = parser.parse_args()
 
-        clean_expired_submissions(args.fy17q1)
+        start_time = datetime.utcnow()
+        metrics = {
+            'script_name': 'clean_expired_submissions.py',
+            'start_time': str(start_time),
+        }
+
+        expired_subs = clean_expired_submissions(args.fy17q1)
+
+        metrics['subs_removed'] = expired_subs
+        metrics['subs_removed_count'] = len(expired_subs)
+        metrics['duration'] = str(datetime.utcnow() - start_time)
+        with open('clean_expired_subs_metrics.json', 'w+') as metrics_file:
+            json.dump(metrics, metrics_file)
