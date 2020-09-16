@@ -2,17 +2,13 @@ import logging
 import argparse
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 
 from dataactbroker.handlers.submission_handler import delete_all_submission_data
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import Submission, Comment
-from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.stagingModels import AwardProcurement, ObjectClassProgramActivity, AwardFinancial, FlexField, \
-    AwardFinancialAssistance, Appropriation
+from dataactcore.models.jobModels import Submission
 from dataactcore.models.views import SubmissionUpdatedView
 
 from dataactvalidator.health_check import create_app
@@ -58,18 +54,6 @@ def clean_expired_submissions(fy17q1_subs=False):
     for submission in expired_submissions:
         delete_all_submission_data(submission)
         sess.commit()
-    logger.info("Deleted expired submissions")
-
-    logger.info("Running vacuum")
-    conn = GlobalDB.db().engine.raw_connection()
-    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cursor = conn.cursor()
-    vacuum_models = [Submission, AwardProcurement, ObjectClassProgramActivity, AwardFinancial, ErrorMetadata, FlexField,
-                     Comment, AwardFinancialAssistance, Appropriation]
-    vacuum_tables = [vacuum_model.__table__.name for vacuum_model in vacuum_models]
-    for vacuum_table in vacuum_tables:
-        cursor.execute("VACUUM ANALYZE {};".format(vacuum_table))
-
     logger.info("Database cleaned of expired submissions")
 
 
