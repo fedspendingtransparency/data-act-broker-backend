@@ -201,20 +201,21 @@ Code blocks should be surrounded by three backticks, not indented.
 
 ## General
 - All rules in the MD Files section should be followed
-- API Endpoints should be fourth-level headers (`####`)
-- Details about an API endpoint should be fifth-level headers (`#####`)
+- Each API endpoint should have its own file titled the same as the endpoint and placed in the folder relating to the `routes` file it is found in.
+- API endpoints should be top-level headers (`#`)
+- Details about an API endpoint should be second-level headers (`##`)
 - Required body values, params, and request values must go before non-required ones.
 
 ## GET Endpoints
 Sample GET endpoint:
 
-    #### GET "/v1/end\_point/"
+    # GET "/v1/end\_point/"
     Details about endpoint
     
-    ##### Sample Request
+    ## Sample Request
     `/v1/end_point/?params=here&other=params`
     
-    ##### Request Params
+    ## Request Params
     Any general details (if needed) about the params. Otherwise leave this paragraph out.
     
     - `params`: (required, string) This param does something. Acceptable values:
@@ -222,7 +223,7 @@ Sample GET endpoint:
         - `there`
     - `other`: (string) This param does other things
     
-    ##### Response (JSON)
+    ## Response (JSON)
     ```
     {
         "response_1": 1234,
@@ -230,13 +231,13 @@ Sample GET endpoint:
     }
     ```
     
-    ##### Response Attributes
+    ## Response Attributes
     - `response_1`: (integer) what the response describes
     - `response_2`: (string) what the second response describes. Possible values:
         - `The first one`: a value
         - `Another one`: a second value
     
-    ##### Errors
+    ## Errors
     Possible HTTP Status Codes:
     
     - 400:
@@ -247,10 +248,10 @@ Sample GET endpoint:
 ## POST Endpoints
 Sample POST endpoint:
 
-    #### POST "/v1/end\_point/"
+    # POST "/v1/end\_point/"
     Details about endpoint
     
-    ##### Body (JSON)
+    ## Body (JSON)
     ```
         {
             "A": "Contents",
@@ -258,13 +259,13 @@ Sample POST endpoint:
         }
     ```
     
-    ##### Body Description
+    ## Body Description
     Any general details (if needed) about the body. Otherwise leave this paragraph out.
     
     - `A`: (required, string) Does something.
     - `B`: (integer) Does other things
     
-    ##### Response (JSON)
+    ## Response (JSON)
     ```
     {
         "response_1": 1234,
@@ -272,13 +273,13 @@ Sample POST endpoint:
     }
     ```
     
-    ##### Response Attributes
+    ## Response Attributes
     - `response_1`: (integer) what the response describes
     - `response_2`: (string) what the second response describes. Possible values:
         - `The first one`: a value
         - `Another one`: a second value
     
-    ##### Errors
+    ## Errors
     Possible HTTP Status Codes:
     
     - 400:
