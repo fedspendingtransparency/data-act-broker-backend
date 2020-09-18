@@ -761,19 +761,6 @@ class FileTests(BaseTestAPI):
         assert response.status_code == 200
         assert 'total_obligations' in response.json
 
-    def check_metrics(self, submission_id, exists, type_file):
-        """Get error metrics for specified submission."""
-        post_json = {'submission_id': submission_id}
-        response = self.app.post_json('/v1/error_metrics/', post_json, headers={'x-session-id': self.session_id})
-
-        self.assertEqual(response.status_code, 200)
-
-        type_file_length = len(response.json[type_file])
-        if exists:
-            self.assertGreater(type_file_length, 0)
-        else:
-            self.assertEqual(type_file_length, 0)
-
     def test_metrics(self):
         """Test broker status record handling."""
         # Check the route

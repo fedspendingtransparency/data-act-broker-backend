@@ -3,7 +3,7 @@ from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
-    FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
+    FileHandler, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
     get_detached_upload_file_url, get_submission_comments, submission_report_url, update_submission_comments,
     list_history, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
@@ -70,12 +70,6 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/list_banners/", methods=["GET"])
     def get_banner_list():
         return list_banners()
-
-    @app.route("/v1/error_metrics/", methods=["POST"])
-    @convert_to_submission_id
-    @requires_submission_perms('reader')
-    def submission_error_metrics(submission):
-        return get_error_metrics(submission)
 
     @app.route("/v1/list_submissions/", methods=["POST"])
     @requires_login
