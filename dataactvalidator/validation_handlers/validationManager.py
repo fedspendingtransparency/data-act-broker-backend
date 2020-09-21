@@ -48,7 +48,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner, StringCleaner
 
-from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
+from dataactvalidator.validation_handlers.errorInterface import record_row_error, write_all_row_errors
 from dataactvalidator.validation_handlers.validator import cross_validate_sql, validate_file_by_sql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -166,7 +166,7 @@ class ValidationManager:
 
         # initializing processing metadata vars for a new validation
         self.reader = CsvReader()
-        self.error_list = ErrorInterface()
+        self.error_list = {}
         self.error_rows = []
         self.total_rows = 0
         self.short_rows = []
@@ -273,7 +273,7 @@ class ValidationManager:
             self.job.number_of_rows_valid = valid_rows
             sess.commit()
 
-            self.error_list.write_all_row_errors(self.job.job_id)
+            write_all_row_errors(self.error_list, self.job.job_id)
             # Update error info for submission
             populate_job_error_info(self.job)
 
@@ -372,9 +372,9 @@ class ValidationManager:
         # Adding formatting errors to error file
         format_error_df = process_formatting_errors(self.short_rows, self.long_rows, self.report_headers)
         for index, row in format_error_df.iterrows():
-            self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                             row['error_type'], row['Row Number'], row['Rule Label'],
-                                             self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+            record_row_error(self.error_list, self.job.job_id, self.file_name, row['Field Name'], row['error_type'],
+                             row['Row Number'], row['Rule Label'], self.file_type.file_type_id, None,
+                             RULE_SEVERITY_DICT['fatal'])
         format_error_df.to_csv(self.error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
                                mode='a', header=False)
 
@@ -421,10 +421,9 @@ class ValidationManager:
                 'error_type': ValidationError.blankFileError
             }
             empty_file_df = pd.DataFrame([empty_file], columns=list(self.report_headers + ['error_type']))
-            self.error_list.record_row_error(self.job.job_id, self.file_name, empty_file['Field Name'],
-                                             empty_file['error_type'], empty_file['Row Number'],
-                                             empty_file['Rule Label'], self.file_type.file_type_id, None,
-                                             RULE_SEVERITY_DICT['warning'])
+            record_row_error(self.error_list, self.job.job_id, self.file_name, empty_file['Field Name'],
+                             empty_file['error_type'], empty_file['Row Number'], empty_file['Rule Label'],
+                             self.file_type.file_type_id, None, RULE_SEVERITY_DICT['warning'])
             empty_file_df.to_csv(self.warning_file_path, columns=self.report_headers, index=False,
                                  quoting=csv.QUOTE_ALL, mode='a', header=False)
 
@@ -470,8 +469,7 @@ class ValidationManager:
             pool = Pool(MULTIPROCESSING_POOLS)
             results = []
             for chunk_df in reader_obj:
-                result = pool.apply_async(func=self.parallel_process_data_chunk, args=(chunk_df, shared_data,
-                                                                                       m_lock))
+                result = pool.apply_async(func=self.parallel_process_data_chunk, args=(chunk_df, shared_data, m_lock))
                 results.append(result)
             pool.close()
             pool.join()
@@ -696,14 +694,15 @@ class ValidationManager:
             total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
 
             with lockable:
-                shared_data['error_rows'].extend([int(x) for x in total_errors['Row Number'].tolist()])
+                shared_data['error_rows'] = (shared_data['error_rows'] +
+                                             [int(x) for x in total_errors['Row Number'].tolist()])
 
             with lockable:
                 for index, row in total_errors.iterrows():
-                    shared_data['error_list'].record_row_error(self.job_id, self.file_name, row['Field Name'],
-                                                               row['error_type'], row['Row Number'], row['Rule Label'],
-                                                               self.file_type_id, None,
-                                                               RULE_SEVERITY_DICT['fatal'])
+                    shared_data['error_list'] = record_row_error(shared_data['error_list'], self.job_id, self.file_name,
+                                                                 row['Field Name'], row['error_type'],
+                                                                 row['Row Number'], row['Rule Label'],
+                                                                 self.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
 
             total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
@@ -810,9 +809,9 @@ class ValidationManager:
                                          failure.expected_value, failure.difference, failure.flex_fields,
                                          str(failure.row), failure.original_label])
             # labeled errors
-            self.error_list.record_row_error(self.job.job_id, self.file_name, field_name, failure.error,
-                                             self.total_rows, failure.original_label, failure.file_type_id,
-                                             failure.target_file_id, failure.severity_id)
+            record_row_error(self.error_list, self.job.job_id, self.file_name, field_name, failure.error,
+                             self.total_rows, failure.original_label, failure.file_type_id, failure.target_file_id,
+                             failure.severity_id)
 
     def run_cross_validation(self, job):
         """ Cross file validation job. Test all rules with matching rule_timing. Run each cross-file rule and create
@@ -826,7 +825,7 @@ class ValidationManager:
         # Create File Status object
         create_file_if_needed(job_id)
         # Create list of errors
-        error_list = ErrorInterface()
+        error_list = {}
 
         submission_id = job.submission_id
         job_start = datetime.now()
@@ -894,7 +893,7 @@ class ValidationManager:
                 os.remove(warning_file_path)
 
         # write all recorded errors to database
-        error_list.write_all_row_errors(job_id)
+        write_all_row_errors(error_list, job_id)
         # Update error info for submission
         populate_job_error_info(job)
 
