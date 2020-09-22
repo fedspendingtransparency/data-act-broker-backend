@@ -6,7 +6,7 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 `/v1/check_detached_generation_status/?job_id=1`
 
 ## Request Params
-- `job_id`: (required, integer) the job_id for the generation. Provided in the response of the call to `generate_detached_file`
+- `job_id`: (required, integer) the job_id for the generation. Provided in the response of the call to [generate\_detached\_file](./generate_detached_file.md)
 
 ## Response (JSON)
 

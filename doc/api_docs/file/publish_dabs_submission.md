@@ -1,5 +1,5 @@
 # POST "/v1/publish\_dabs\_submission/"
-This route publishes the specified submission, if possible. A submission with critical errors cannot be published. If the submission is quarterly, has been certified before, or it is past the certification deadline for the submission it must be published and certified at the same time. For these cases, use `publish_and_certify_dabs_submission`
+This route publishes the specified submission, if possible. A submission with critical errors cannot be published. If the submission is quarterly, has been certified before, or it is past the certification deadline for the submission it must be published and certified at the same time. For these cases, use [publish\_and\_certify\_dabs\_submission](./publish_and_certify_dabs_submission.md)
 
 ## Body (JSON)
 

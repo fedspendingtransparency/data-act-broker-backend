@@ -44,7 +44,7 @@ More data will be added to the response depending on what we get back from MAX u
 - `website_admin`: (boolean) describes a super-user status, part of response only if login is successful
 - `affiliations`: ([dict]) dictionaries containing information about the user's agency affiliations (only used by the frontend if `website_admin` is false). Dictionaries contain the following information:
     - `agency_name`: (string) the name of the agency the user is affiliated with
-    - `permission`: (string) the level of permissions the user has. For more information about what the levels mean, see the permissions.md file. Possible levels:
+    - `permission`: (string) the level of permissions the user has. For more information about what the levels mean, see the [permissions.md](../../permissions.md) file. Possible levels:
         - `reader`
         - `writer`
         - `submitter`

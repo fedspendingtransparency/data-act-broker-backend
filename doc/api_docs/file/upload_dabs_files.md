@@ -5,7 +5,7 @@ This route will upload the files, then kick off the validation jobs. It will ret
 
 For a new submission, all three files must be submitted. For corrections to an existing submission, one or more files must be submitted along with the `existing_submission_id` parameter.
 
-For information on the CGAC and FREC parameters, see the note in the main README in the "Background" section.
+For information on the CGAC and FREC parameters, see the note in the main README in the "[Background](../../README.md#background)" section.
 
 ## Additional Required Headers
 - `Content-Type`: `"multipart/form-data"`

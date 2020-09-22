@@ -5,7 +5,7 @@ This endpoint returns the signed url for the generated file of the requested job
 `/v1/get_detached_file_url/?job_id=123`
 
 ## Request Params
-Job IDs is obtained from the `generate_detached_file` endpoint
+Job IDs is obtained from the [generate\_detached\_file](../generation/generate_detached_file.md) endpoint
 
 - `job_id`: (required, integer) the ID of the job to get the file url for
 

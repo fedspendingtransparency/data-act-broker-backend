@@ -253,10 +253,10 @@ Sample POST endpoint:
     
     ## Body (JSON)
     ```
-        {
-            "A": "Contents",
-            "B": 1234
-        }
+    {
+        "A": "Contents",
+        "B": 1234
+    }
     ```
     
     ## Body Description

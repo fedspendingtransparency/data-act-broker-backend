@@ -761,13 +761,6 @@ class FileTests(BaseTestAPI):
         assert response.status_code == 200
         assert 'total_obligations' in response.json
 
-    def test_metrics(self):
-        """Test broker status record handling."""
-        # Check the route
-        self.check_metrics(self.test_metrics_submission_id, False, 'award')
-        self.check_metrics(self.test_metrics_submission_id, True, 'award_financial')
-        self.check_metrics(self.test_metrics_submission_id, True, 'appropriations')
-
     def test_delete_submission(self):
         sess = GlobalDB.db().session
         jobs_orig = sess.query(Job).filter(Job.submission_id == self.test_delete_submission_id).all()

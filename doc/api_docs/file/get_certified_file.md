@@ -14,7 +14,7 @@ Get a signed url for a specified history item
 ## Body Description
 
 - `submission_id`: (required, integer) the submission ID
-- `published_files_history_id`: (required, integer) the `published_files_history_id` of the file (obtained through `list_history`)
+- `published_files_history_id`: (required, integer) the `published_files_history_id` of the file (obtained through [list\_history](./list_history.md))
 - `is_warning`: (boolean) whether the file being obtained is a warning file or the file that was certified. True = warning file. Default is False
 
 ## Response (JSON)

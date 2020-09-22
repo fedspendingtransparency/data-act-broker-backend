@@ -46,7 +46,7 @@ This route sends a request to the backend to utilize the relevant external APIs 
 ```
 
 ## Response Attributes
-If the file has not finished generating when this returns, further checks for whether the generation is complete or not should be done using `check_generation_status`.
+If the file has not finished generating when this returns, further checks for whether the generation is complete or not should be done using [check\_generation\_status](./check_generation_status.md).
 
 - `job_id`: (integer) job ID of the generation job in question
 - `status`: (string) indicates the file's status. Possible values are:

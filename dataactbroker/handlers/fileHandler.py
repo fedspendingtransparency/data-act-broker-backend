@@ -24,8 +24,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import (create_jobs, get_error_metrics_by_job_id, mark_job_status,
-                                                 get_time_period)
+from dataactcore.interfaces.function_bag import create_jobs, mark_job_status, get_time_period
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,

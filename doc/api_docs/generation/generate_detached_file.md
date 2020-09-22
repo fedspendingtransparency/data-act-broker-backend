@@ -1,6 +1,6 @@
 # POST "/v1/generate\_detached\_file/"
 
-This route sends a request to the backend to generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how A files are generated, see the [FileLogic.md](../FileLogic.md) file.
+This route sends a request to the backend to generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how A files are generated, see the [FileLogic.md](../../FileLogic.md) file.
 
 ## Body (JSON)
 
@@ -56,7 +56,7 @@ This route sends a request to the backend to generate the relevant file for the 
 ```
 
 ## Response Attributes
-If the file has not finished generating when this returns, further checks for whether the generation is complete or not should be done using `check_detached_generation_status`.
+If the file has not finished generating when this returns, further checks for whether the generation is complete or not should be done using [check\_detached\_generation\_status](./check_detached_generation_status.md).
 
 - `job_id`: (integer) job ID of the generation job in question
 - `status`: (string) indicates the file's status. Possible values are:

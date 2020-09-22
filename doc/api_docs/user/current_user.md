@@ -30,7 +30,7 @@ N/A
 - `website_admin`: (boolean) whether the user is a website admin or not
 - `affiliations`: ([dict]) dictionaries containing information about the user's agency affiliations (only used by the frontend if `website_admin` is false). Dictionaries contain the following information:
     - `agency_name`: (string) the name of the agency the user is affiliated with
-    - `permission`: (string) the level of permissions the user has. For more information about what the levels mean, see the permissions.md file. Possible levels:
+    - `permission`: (string) the level of permissions the user has. For more information about what the levels mean, see the [permissions.md](../../permissions.md) file. Possible levels:
         - `reader`
         - `writer`
         - `submitter`

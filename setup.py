@@ -4,8 +4,6 @@ Data Act Broker Backend Install
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
 import os
 from os import path
 import inspect
@@ -13,9 +11,6 @@ from pip.req import parse_requirements
 from pip.download import PipSession
 
 here = path.abspath(path.dirname(__file__))
-
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
 
 # Get path from current file location
 dirPath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -30,7 +25,7 @@ setup(
     name='dataactbrokerbackend',
     version='0.0.1',
     description='DATA Act Broker Backend',
-    long_description=long_description,
+    long_description='The DATA Act Broker API powers the DATA Act\'s data submission process.',
     url='https://github.com/fedspendingtransparency/data-act-broker-backend.git',
     author='US Treasury',
     author_email='databroker@fiscal.treasury.gov',
