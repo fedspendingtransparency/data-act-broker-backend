@@ -1074,7 +1074,7 @@ Possible HTTP Status Codes:
 
 #### POST "/v1/delete_submission/"
 
-This route deletes all data related to the specified `submission_id`. A submission that has ever been certified/published (has a status of "published" or "updated") cannot be deleted.
+This route deletes all data and files related to the specified `submission_id`. A submission that has ever been certified/published (has a status of "published" or "updated") cannot be deleted.
 
 ##### Body (JSON)
 

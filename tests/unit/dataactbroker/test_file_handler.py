@@ -651,7 +651,8 @@ def test_submission_report_url_local(monkeypatch, tmpdir, database):
     add_models(database, [old_sub, old_job, new_sub, new_job])
 
     file_path = str(tmpdir) + os.path.sep
-    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True, 'broker_files': file_path})
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True})
+    monkeypatch.setattr(fileHandler, 'CONFIG_SERVICES', {'error_report_path': file_path})
 
     json_response = fileHandler.submission_report_url(old_sub, True, 'award_financial', 'award')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
