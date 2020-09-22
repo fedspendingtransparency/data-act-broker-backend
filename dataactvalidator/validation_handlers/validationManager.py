@@ -41,7 +41,7 @@ from dataactcore.models.validationModels import RuleSql, ValidationLabel
 
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import get_cross_file_pairs, report_file_name
+from dataactcore.utils.report import report_file_name
 from dataactvalidator.scripts.loader_utils import insert_dataframe
 from dataactcore.utils.statusCode import StatusCode
 
@@ -846,19 +846,25 @@ class ValidationManager:
         cross_file_rules = sess.query(RuleSql).filter_by(rule_cross_file_flag=True)
 
         # for each cross-file combo, run associated rules and create error report
-        for c in get_cross_file_pairs():
-            first_file = c[0]
-            second_file = c[1]
-            combo_rules = cross_file_rules.filter(or_(and_(
-                RuleSql.file_id == first_file.id,
-                RuleSql.target_file_id == second_file.id), and_(
-                RuleSql.file_id == second_file.id,
-                RuleSql.target_file_id == first_file.id)))
+        cross_list = {
+            'program_activity': 'appropriations',
+            'award_financial': 'program_activity',
+            'award_procurement': 'award_financial',
+            'award': 'award_financial'
+        }
+        for first_file, second_file in cross_list.items():
+            first_file_id = FILE_TYPE_DICT[first_file]
+            second_file_id = FILE_TYPE_DICT[second_file]
+            combo_rules = cross_file_rules.filter(
+                or_(
+                    and_(RuleSql.file_id == first_file_id, RuleSql.target_file_id == second_file_id),
+                    and_(RuleSql.file_id == second_file_id, RuleSql.target_file_id == first_file_id)
+                ))
 
             # get error file name/path
-            error_file_name = report_file_name(submission_id, False, first_file.name, second_file.name)
+            error_file_name = report_file_name(submission_id, False, second_file, first_file)
             error_file_path = ''.join([CONFIG_SERVICES['error_report_path'], error_file_name])
-            warning_file_name = report_file_name(submission_id, True, first_file.name, second_file.name)
+            warning_file_name = report_file_name(submission_id, True, second_file, first_file)
             warning_file_path = ''.join([CONFIG_SERVICES['error_report_path'], warning_file_name])
 
             # open error report and gather failed rules within it
@@ -872,8 +878,8 @@ class ValidationManager:
                 warning_csv.writerow(self.cross_file_report_headers)
 
                 # send comboRules to validator.crossValidate sql
-                current_cols_short_to_long = self.short_to_long_dict[first_file.id].copy()
-                current_cols_short_to_long.update(self.short_to_long_dict[second_file.id].copy())
+                current_cols_short_to_long = self.short_to_long_dict[first_file_id].copy()
+                current_cols_short_to_long.update(self.short_to_long_dict[second_file_id].copy())
                 cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, job_id, error_csv,
                                    warning_csv, error_list, batch_results=BATCH_SQL_VAL_RESULTS)
             # close files
