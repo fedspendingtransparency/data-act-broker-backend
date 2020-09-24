@@ -68,6 +68,7 @@ def update_keys(model, model_type, key_type, filter_content, update_years, conca
 
     logger.info('{} {} records populated.\n'.format(model_type, filter_content))
 
+
 if __name__ == '__main__':
     with create_app().app_context():
         configure_logging()
@@ -98,7 +99,7 @@ if __name__ == '__main__':
         # Make an array of years starting at 2006 and ending at this year (so it can be run at any time)
         this_year = datetime.datetime.now().year
         years = []
-        for i in range(2004, this_year+1):
+        for i in range(2004, this_year + 1):
             years.append(str(i))
 
         # FPDS

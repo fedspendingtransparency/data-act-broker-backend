@@ -75,8 +75,8 @@ if __name__ == '__main__':
             logger.info("No affected submissions have been completely invalidated by the deletes, ending script.")
             exit(0)
 
-        logger.info("The following submissions have been completely invalidated by the deletes, unpublishing them: " +
-                    ", ".join(str(sub) for sub in cleared_submissions))
+        logger.info("The following submissions have been completely invalidated by the deletes, unpublishing them: "
+                    + ", ".join(str(sub) for sub in cleared_submissions))
 
         # Unpublish each submission that has been cleared out, including deleting any record of it in the
         # certified/published tables

@@ -150,6 +150,7 @@ class TASLookup(Base):
         """ We'll often want to copy TAS component fields; this method returns a dictionary of field_name to value """
         return {field_name: getattr(self, field_name) for field_name in TAS_COMPONENTS}
 
+
 Index("ix_tas",
       TASLookup.allocation_transfer_agency,
       TASLookup.agency_identifier,
@@ -269,6 +270,7 @@ class SF133(Base):
     tas_id = Column(Integer, nullable=True)
     disaster_emergency_fund_code = Column(Text, index=True)
 
+
 Index("ix_sf_133_tas_group",
       SF133.tas,
       SF133.fiscal_year,
@@ -287,6 +289,7 @@ class ProgramActivity(Base):
     account_number = Column(Text, nullable=False, index=True)
     program_activity_code = Column(Text, nullable=False, index=True)
     program_activity_name = Column(Text, nullable=False, index=True)
+
 
 Index("ix_pa_tas_pa",
       ProgramActivity.fiscal_year_period,

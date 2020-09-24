@@ -21,6 +21,7 @@ def reset_alembic(alembic_version):
         sess.execute(u)
         sess.commit()
 
+
 parser = argparse.ArgumentParser(description="Reset alembic version table.")
 parser.add_argument(
     'version', help="Version to set the Alembic migration table to.")
