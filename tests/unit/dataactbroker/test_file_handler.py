@@ -566,6 +566,7 @@ def test_get_comments_file(database):
     result = fileHandler.get_comments_file(sub2, CONFIG_BROKER['local'])
     assert result.status_code == 400
 
+
 good_dates = [
     ('04/2016', '05/2016', False, None),
     ('07/2014', '07/2014', False, None),
@@ -608,12 +609,12 @@ def test_submission_good_dates(start_date, end_date, quarter_flag, submission):
     else:
         test_date = datetime.strptime(end_date, date_format).date()
         test_date = datetime.strptime(
-                        str(test_date.year) + '/' +
-                        str(test_date.month) + '/' +
-                        str(calendar.monthrange(test_date.year, test_date.month)[1]),
-                        '%Y/%m/%d'
-                    ).date()
+            str(test_date.year) + '/' + str(test_date.month) + '/'
+            + str(calendar.monthrange(test_date.year, test_date.month)[1]),
+            '%Y/%m/%d'
+        ).date()
         assert output_end_date == test_date
+
 
 bad_dates = [
     ('04/2016', '05/2016', True, SubmissionFactory()),
@@ -709,7 +710,7 @@ def test_build_file_map_string(monkeypatch):
     fh = fileHandler.FileHandler({})
     fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
-        assert file.upload_name == '3/123_'+file.file_name
+        assert file.upload_name == '3/123_' + file.file_name
 
 
 def test_build_file_map_file(monkeypatch):
@@ -731,7 +732,7 @@ def test_build_file_map_file(monkeypatch):
     fh = fileHandler.FileHandler({})
     fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
-        assert file.upload_name == '3/123_'+file.file_name
+        assert file.upload_name == '3/123_' + file.file_name
 
 
 @pytest.mark.usefixtures('job_constants')

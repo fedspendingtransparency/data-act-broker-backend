@@ -30,7 +30,7 @@ def test_batch():
     iteration = 0
     batch_size = 100
     for batch in update_historical_duns.batch(full_list, batch_size):
-        expected_batch = [x+(batch_size*iteration) for x in initial_batch]
+        expected_batch = [x + (batch_size * iteration) for x in initial_batch]
         assert expected_batch == batch
         iteration += 1
     assert iteration == 10
@@ -147,8 +147,8 @@ def test_update_duns_props_empty(monkeypatch):
     monkeypatch.setattr('dataactcore.utils.parentDuns.get_duns_props_from_sam',
                         mock_get_duns_props_from_sam)
     duns_df = pd.DataFrame.from_dict({
-            'awardee_or_recipient_uniqu': ['000000003']
-        })
+        'awardee_or_recipient_uniqu': ['000000003']
+    })
 
     expected_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000003'],

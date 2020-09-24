@@ -158,10 +158,10 @@ def test_set_user_name_updated():
     user = UserFactory(name="No User")
 
     mock_cas_attrs = {
-                    'maxAttribute:First-Name': 'New',
-                    'maxAttribute:Middle-Name': '',
-                    'maxAttribute:Last-Name': 'Name'
-                    }
+        'maxAttribute:First-Name': 'New',
+        'maxAttribute:Middle-Name': '',
+        'maxAttribute:Last-Name': 'Name'
+    }
 
     account_handler.set_user_name(user, mock_cas_attrs)
 
@@ -174,10 +174,10 @@ def test_set_user_name_middle_name():
     user = UserFactory()
 
     mock_cas_attrs = {
-                    'maxAttribute:First-Name': 'Test',
-                    'maxAttribute:Middle-Name': 'Abc',
-                    'maxAttribute:Last-Name': 'User'
-                    }
+        'maxAttribute:First-Name': 'Test',
+        'maxAttribute:Middle-Name': 'Abc',
+        'maxAttribute:Last-Name': 'User'
+    }
 
     account_handler.set_user_name(user, mock_cas_attrs)
 
@@ -189,10 +189,10 @@ def test_set_user_name_empty_middle_name():
     user = UserFactory()
 
     mock_cas_attrs = {
-                    'maxAttribute:First-Name': 'Test',
-                    'maxAttribute:Middle-Name': ' ',
-                    'maxAttribute:Last-Name': 'User'
-                }
+        'maxAttribute:First-Name': 'Test',
+        'maxAttribute:Middle-Name': ' ',
+        'maxAttribute:Last-Name': 'User'
+    }
 
     account_handler.set_user_name(user, mock_cas_attrs)
 
@@ -205,10 +205,10 @@ def test_set_user_name_no_middle_name():
     user = UserFactory()
 
     mock_cas_attrs = {
-                    'maxAttribute:First-Name': 'Test',
-                    'maxAttribute:Middle-Name': None,
-                    'maxAttribute:Last-Name': 'User'
-                }
+        'maxAttribute:First-Name': 'Test',
+        'maxAttribute:Middle-Name': None,
+        'maxAttribute:Last-Name': 'User'
+    }
 
     account_handler.set_user_name(user, mock_cas_attrs)
 

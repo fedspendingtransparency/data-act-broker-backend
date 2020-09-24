@@ -25,7 +25,7 @@ def test_success(database):
     af_1 = AwardFinancialFactory(row_number=1, agency_identifier='test', submission_id=1, main_account_code='test',
                                  program_activity_name='test', program_activity_code='test')
 
-    af_2 = AwardFinancialFactory(row_number=2, agency_identifier='test', submission_id=1,  main_account_code='test',
+    af_2 = AwardFinancialFactory(row_number=2, agency_identifier='test', submission_id=1, main_account_code='test',
                                  program_activity_name='test', program_activity_code='test')
 
     pa = ProgramActivityFactory(fiscal_year_period='FY17P03', agency_id='test', allocation_transfer_id='test',

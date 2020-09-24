@@ -39,8 +39,8 @@ def test_generate_file_e_sql(database, monkeypatch):
     d1_hide = AwardProcurementFactory(submission_id=sub2.submission_id, awardee_or_recipient_uniqu='222222222')
     d2_hide = AwardFinancialAssistanceFactory(submission_id=sub2.submission_id, awardee_or_recipient_uniqu='333333333')
 
-    duns_show = [DunsFactory(awardee_or_recipient_uniqu=(str(i)*9)) for i in range(0, 2)]
-    duns_hide = [DunsFactory(awardee_or_recipient_uniqu=(str(i)*9)) for i in range(2, 4)]
+    duns_show = [DunsFactory(awardee_or_recipient_uniqu=(str(i) * 9)) for i in range(0, 2)]
+    duns_hide = [DunsFactory(awardee_or_recipient_uniqu=(str(i) * 9)) for i in range(2, 4)]
     duns_s = duns_show + duns_hide
 
     sess.add_all([sub1, sub2, d1_hide, d1_show, d2_hide, d2_show] + duns_s)
