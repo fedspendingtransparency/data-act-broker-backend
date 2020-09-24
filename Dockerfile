@@ -8,7 +8,7 @@ RUN pip install unittest-xml-reporting
 COPY requirements.txt /data-act/backend/requirements.txt
 COPY server_requirements.txt /data-act/backend/server_requirements.txt
 
-RUN pip install -r /data-act/backend/requirements.txt
+RUN pip install -r /data-act/backend/requirements.txt --use-feature=2020-resolver
 RUN pip install -r /data-act/backend/server_requirements.txt
 
 ENV PYTHONPATH /data-act/backend
