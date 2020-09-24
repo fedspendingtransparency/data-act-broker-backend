@@ -189,7 +189,7 @@ def concat_flex(row):
         Returns:
             A concatenated list of "header: cell" pairs for the flex fields, joined by commas
     """
-    return ', '.join([name + ': ' + (row[name] or '') for name in sorted(row.keys()) if name is not 'row_number'])
+    return ', '.join([name + ': ' + (row[name] or '') for name in sorted(row.keys()) if name != 'row_number'])
 
 
 def derive_unique_id(row, is_fabs):

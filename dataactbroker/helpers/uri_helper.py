@@ -5,11 +5,13 @@ import urllib
 from dataactcore.config import CONFIG_BROKER
 
 VALID_SCHEMES = ("http", "https", "s3", "file", "")
+supported_schemes = ", ".join(["{}://".format(s) for s in VALID_SCHEMES if s])
 SCHEMA_HELP_TEXT = (
-    "Internet RFC on Relative Uniform Resource Locators " +
-    "Format: scheme://netloc/path;parameters?query#fragment " +
-    "List of supported schemes: " +
-    ", ".join(["{}://".format(s) for s in VALID_SCHEMES if s])
+    """
+    Internet RFC on Relative Uniform Resource Locators
+    Format: scheme://netloc/path;parameters?query#fragment
+    List of supported schemes: {}
+    """.format(supported_schemes)
 )
 
 
