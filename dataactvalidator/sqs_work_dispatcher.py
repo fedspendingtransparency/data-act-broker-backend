@@ -21,19 +21,19 @@ from dataactvalidator.queue_exceptions import (
 # Not a complete list of signals
 # NOTE: 1-15 are relatively standard on unix platforms; > 15 can change from platform to platform
 BSD_SIGNALS = {
-        1: "SIGHUP [1] (Hangup detected on controlling terminal or death of controlling process)",
-        2: "SIGINT [2] (Interrupt from keyboard)",
-        3: "SIGQUIT [3] (Quit from keyboard)",
-        4: "SIGILL [4] (Illegal Instruction)",
-        6: "SIGABRT [6] (Abort signal from abort(3))",
-        8: "SIGFPE [8] (Floating point exception)",
-        9: "SIGKILL [9] (Non-catchable, non-ignorable kill)",
-        11: "SIGSEGV [11] (Invalid memory reference)",
-        14: "SIGALRM [14] (Timer signal from alarm(2))",
-        15: "SIGTERM [15] (Software termination signal)",
-        19: "SIGSTOP [19] (Suspend process execution)",  # NOTE: 17 on Mac OSX, 19 on RHEL
-        20: "SIGTSTP [20] (Interrupt from keyboard to suspend (CTRL-Z)",  # NOTE: 18 on Mac OSX, 20 on RHEL
-    }
+    1: "SIGHUP [1] (Hangup detected on controlling terminal or death of controlling process)",
+    2: "SIGINT [2] (Interrupt from keyboard)",
+    3: "SIGQUIT [3] (Quit from keyboard)",
+    4: "SIGILL [4] (Illegal Instruction)",
+    6: "SIGABRT [6] (Abort signal from abort(3))",
+    8: "SIGFPE [8] (Floating point exception)",
+    9: "SIGKILL [9] (Non-catchable, non-ignorable kill)",
+    11: "SIGSEGV [11] (Invalid memory reference)",
+    14: "SIGALRM [14] (Timer signal from alarm(2))",
+    15: "SIGTERM [15] (Software termination signal)",
+    19: "SIGSTOP [19] (Suspend process execution)",  # NOTE: 17 on Mac OSX, 19 on RHEL
+    20: "SIGTSTP [20] (Interrupt from keyboard to suspend (CTRL-Z)",  # NOTE: 18 on Mac OSX, 20 on RHEL
+}
 
 
 class SQSWorkDispatcher:
@@ -804,8 +804,8 @@ class SQSWorkDispatcher:
                         self._handle_exit_signal(signum, frame, parent_dispatcher_signaled, is_retry=True)
                     else:
                         message = "Could not perform cleanup during exiting of job in allotted " \
-                                    "_exit_handling_timeout ({}s) after 2 tries. " \
-                                    "Raising exception.".format(self._exit_handling_timeout)
+                                  "_exit_handling_timeout ({}s) after 2 tries. " \
+                                  "Raising exception.".format(self._exit_handling_timeout)
                         log_job_message(
                             logger=self._logger,
                             message=message,

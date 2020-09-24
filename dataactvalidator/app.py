@@ -192,7 +192,7 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                         job.file_generation_id = None
                         job.error_message = str(e)
                 sess.commit()
-        except:
+        except Exception:
             pass
 
         # ResponseExceptions only occur at very specific times, and should not affect the Validator's future attempts
@@ -311,7 +311,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             sess.refresh(job)
             job.error_message = str(e)
             sess.commit()
-        except:
+        except Exception:
             pass
 
         raise e
