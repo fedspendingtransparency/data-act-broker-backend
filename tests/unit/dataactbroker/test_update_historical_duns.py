@@ -99,7 +99,7 @@ def mock_get_duns_props_from_sam(client, duns_list):
     }
     for duns in duns_list:
         if duns in duns_mappings:
-            results = results.append(pd.DataFrame(duns_mappings[duns]))
+            results = results.append(pd.DataFrame(duns_mappings[duns]), sort=True)
     return results
 
 
