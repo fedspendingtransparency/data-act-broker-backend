@@ -30,7 +30,7 @@ for config_path in path_list:
     try:
         with open(config_path) as c:
             # Default to empty dictionary if file is empty
-            CONFIG_ALL = yaml.load(c) or {}
+            CONFIG_ALL = yaml.load(c, Loader=yaml.FullLoader) or {}
     except IOError:
         raise IOError('Error reading a config file. Please make sure this file exists'
                       ' before starting the DATA Act broker: {}'.format(config_path))

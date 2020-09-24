@@ -123,8 +123,8 @@ def update_duns_props(df, client):
             empty_duns_row = props_columns.copy()
             empty_duns_row['awardee_or_recipient_uniqu'] = duns
             empty_duns_rows.append(empty_duns_row)
-        duns_props_batch = duns_props_batch.append(pd.DataFrame(empty_duns_rows))
-        duns_props_df = duns_props_df.append(duns_props_batch)
+        duns_props_batch = duns_props_batch.append(pd.DataFrame(empty_duns_rows), sort=True)
+        duns_props_df = duns_props_df.append(duns_props_batch, sort=True)
         index += batch_size
     return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
 
