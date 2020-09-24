@@ -81,7 +81,7 @@ def get_payload_string(obj_request_body):
 
     data_str = "{{{0}}}".format(",\n".join(request_body_list))
 
-    return "obj="+urllib.parse.quote(data_str)
+    return "obj=" + urllib.parse.quote(data_str)
 
 
 def write_request_to_file(file_path, request):
@@ -95,7 +95,7 @@ def write_request_to_file(file_path, request):
                None
     """
     with open(file_path, 'wb') as file:
-        for chunk in request.iter_content(chunk_size=1042*1024*10):  # 10MB
+        for chunk in request.iter_content(chunk_size=1042 * 1024 * 10):  # 10MB
             if chunk:
                 file.write(chunk)
                 file.flush()

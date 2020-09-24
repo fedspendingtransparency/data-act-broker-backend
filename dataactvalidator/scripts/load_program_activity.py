@@ -37,7 +37,7 @@ def get_program_activity_file(base_path):
     if CONFIG_BROKER['use_aws']:
         s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         s3_object = s3.Object(PA_BUCKET, PA_SUB_KEY + PA_FILE_NAME)
-        response = s3_object.get(PA_SUB_KEY+PA_FILE_NAME)
+        response = s3_object.get(PA_SUB_KEY + PA_FILE_NAME)
         pa_file = io.BytesIO(response['Body'].read())
     else:
         pa_file = os.path.join(base_path, PA_FILE_NAME)
@@ -56,7 +56,7 @@ def get_date_of_current_pa_upload(base_path):
     """
     if CONFIG_BROKER['use_aws']:
         last_uploaded = boto3.client('s3', region_name=CONFIG_BROKER['aws_region']). \
-            head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
+            head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY + PA_FILE_NAME)['LastModified']
         # LastModified is coming back to us in UTC already; just drop the TZ.
         last_uploaded = last_uploaded.replace(tzinfo=None)
     else:
@@ -130,7 +130,7 @@ def load_program_activity_data(base_path):
         sess = GlobalDB.db().session
         try:
             data = pd.read_csv(program_activity_file, dtype=str)
-        except pd.io.common.EmptyDataError as e:
+        except pd.io.common.EmptyDataError:
             log_blank_file()
             exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
             return
@@ -213,7 +213,7 @@ def lowercase_or_notify(x):
     """
     try:
         return x.lower()
-    except Exception as e:
+    except Exception:
         if x and not np.isnan(x):
             logger.info('Program activity of {} was unable to be lowercased. Entered as-is.'.format(x))
             return x
