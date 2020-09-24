@@ -411,7 +411,7 @@ class FileHandler:
 
         # Change end_date date to the final date
         end_date = datetime.strptime(str(end_date.year) + '/' + str(end_date.month) + '/'
-            + str(calendar.monthrange(end_date.year, end_date.month)[1]), '%Y/%m/%d').date()
+                                     + str(calendar.monthrange(end_date.year, end_date.month)[1]), '%Y/%m/%d').date()
 
         return start_date, end_date
 
