@@ -73,6 +73,7 @@ class SQLLoader:
             else:
                 logger.info('No changes detected since last load. Skipping.')
 
+
 if __name__ == '__main__':
     configure_logging()
     SQLLoader.load_sql("sqlRules.csv")

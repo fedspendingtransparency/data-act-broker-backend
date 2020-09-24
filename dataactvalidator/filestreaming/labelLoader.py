@@ -61,6 +61,7 @@ class LabelLoader:
                     sess.merge(validation_label)
             sess.commit()
 
+
 if __name__ == '__main__':
     configure_logging()
     LabelLoader.load_labels("validationLabels.csv")

@@ -107,7 +107,7 @@ class FieldCleaner(StringCleaner):
             return ""
         try:
             int(length)
-        except:
+        except Exception:
             # length cannot be cast as int
             raise ValueError("Length must be an integer")
         if int(length) <= 0:
