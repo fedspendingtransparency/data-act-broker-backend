@@ -89,9 +89,9 @@ def batch(iterable, n=1):
         Yields:
             the same list (iterable) in batches depending on the size of N
     """
-    l = len(iterable)
-    for ndx in range(0, l, n):
-        yield iterable[ndx:min(ndx + n, l)]
+    length = len(iterable)
+    for ndx in range(0, length, n):
+        yield iterable[ndx:min(ndx + n, length)]
 
 
 def update_duns_props(df, client):
@@ -144,7 +144,7 @@ def run_duns_batches(file, sess, client, block_size=10000):
                                   names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
     duns_dfs = [duns_df for duns_df in duns_reader_obj]
     row_count = sum([len(duns_df.index) for duns_df in duns_dfs])
-    logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
+    logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now() - start).total_seconds()))
 
     duns_added = 0
     for duns_df in duns_dfs:
@@ -166,7 +166,7 @@ def run_duns_batches(file, sess, client, block_size=10000):
             sess.commit()
 
             logger.info("Finished updating {} DUNS rows in {} s".format(len(duns_to_load.index),
-                                                                        (datetime.now()-start).total_seconds()))
+                                                                        (datetime.now() - start).total_seconds()))
 
     logger.info("Imported {} historical duns".format(duns_added))
 
@@ -303,7 +303,7 @@ def main():
         if not duns_file:
             raise OSError("No DUNS_export_deduped.csv found.")
 
-        logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
+        logger.info("Retrieved historical DUNS file in {} s".format((datetime.now() - start).total_seconds()))
 
         try:
             run_duns_batches(duns_file, sess, client, block_size)
