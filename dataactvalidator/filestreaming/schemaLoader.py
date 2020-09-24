@@ -41,7 +41,7 @@ class SchemaLoader(object):
             types = {data_type.name: data_type.field_type_id for data_type in type_query}
 
             # add schema to database
-            with open(schema_file_name, 'rU') as csvfile:
+            with open(schema_file_name, 'r') as csvfile:
                 reader = csv.DictReader(csvfile)
                 file_column_count = 0
                 for record in reader:

@@ -26,7 +26,7 @@ class LabelLoader:
             filename = os.path.join(cls.validation_labels_path, filename)
 
             # open csv
-            with open(filename, 'rU') as csvfile:
+            with open(filename, 'r') as csvfile:
                 # read header
                 header = csvfile.readline()
                 # split header into filed names
