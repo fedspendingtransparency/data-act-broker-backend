@@ -55,7 +55,7 @@ The `dataactbroker/handlers` folder contains the logic to handle requests that a
 
 ## DATA Act Broker Route Documentation
 
-All routes that require a login should be passed a header "x-session-id".The value for this header should be taken from the login route response header "x-session-id".
+All routes that require a login should be passed a header "x-session-id". The value for this header should be taken from the login route response header "x-session-id".
 
 Route documentation is split into folders that reflect the internal organization of routes within the codebase. Each of these sections is detailed below, including a general description of the kinds of routes in each folder and links to documentation for each route in the folder.
 
