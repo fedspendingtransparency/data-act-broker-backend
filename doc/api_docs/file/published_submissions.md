@@ -32,7 +32,7 @@ This endpoint returns a list of published submissions for a given agency and fis
     - `submission_id`: (integer) an integer representing the ID of the submission
     - `is_quarter`: (boolean) whether or not it is a quarterly submission
 
-##### Errors
+## Errors
 Possible HTTP Status Codes:
 
 - 400: CGAC or FREC code not provided
