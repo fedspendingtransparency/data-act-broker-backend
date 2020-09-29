@@ -24,8 +24,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import (create_jobs, get_error_metrics_by_job_id, mark_job_status,
-                                                 get_time_period)
+from dataactcore.interfaces.function_bag import create_jobs, mark_job_status, get_time_period
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
@@ -1498,35 +1497,6 @@ def process_job_status(jobs, response_content):
     response_content['has_errors'] = validation is not None and validation['errors'] > 0
     response_content['has_warnings'] = validation is not None and validation['warnings'] > 0
     return response_content
-
-
-def get_error_metrics(submission):
-    """ Returns an Http response object containing error information for every validation job in specified submission
-
-        Args:
-            submission: submission to get error data for
-
-        Returns:
-            A JsonResponse object containing the error metrics for the submission or the details of the error
-    """
-    sess = GlobalDB.db().session
-    return_dict = {}
-    try:
-        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
-        for job in jobs:
-            # Get error metrics for all single-file validations
-            if job.job_type.name == 'csv_record_validation':
-                file_type = job.file_type.name
-                data_list = get_error_metrics_by_job_id(job.job_id)
-                return_dict[file_type] = data_list
-        return JsonResponse.create(StatusCode.OK, return_dict)
-    except (ValueError, TypeError) as e:
-        return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-    except ResponseException as e:
-        return JsonResponse.error(e, e.status)
-    except Exception as e:
-        # Unexpected exception, this is a 500 server error
-        return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
 def add_list_submission_filters(query, filters, submission_updated_view):
