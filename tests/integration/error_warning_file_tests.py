@@ -280,6 +280,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 20
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 10
         assert error_count == 0
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
@@ -293,6 +295,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 0
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert self.validator.job.number_of_rows == 2
+        assert self.validator.job.number_of_rows_valid == 1
         assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
@@ -320,6 +324,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 20
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
@@ -359,6 +365,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 20
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 10
         assert error_count == 0
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
@@ -373,6 +381,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 0
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert self.validator.job.number_of_rows == None
+        assert self.validator.job.number_of_rows_valid == 0
         # Header errors do not get saved to the database
         assert error_count == 0
         assert report_headers == ['Error type', 'Header name']
@@ -419,6 +429,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 8
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 16
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 10
         format_errors = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                     severity_id=RULE_SEVERITY_DICT['fatal']).one()
         format_error_count = format_errors.occurrences
@@ -457,6 +469,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 9
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 18
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 1
@@ -484,6 +498,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 10
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 20
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 1
@@ -510,6 +526,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 10
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 20
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 3
@@ -568,6 +586,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 10
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 20
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 1
