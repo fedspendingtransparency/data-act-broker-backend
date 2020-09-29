@@ -69,5 +69,5 @@ def db_connection():
 
 
 def db_uri(db_name):
-    uri = "\"postgresql://{username}:{password}@{host}:{port}/{}\"".format(db_name, **CONFIG_DB)
+    uri = "postgresql://{username}:{password}@{host}:{port}/{}".format(db_name, **CONFIG_DB)
     return uri
