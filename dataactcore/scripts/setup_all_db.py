@@ -5,6 +5,7 @@ import os
 from dataactcore.config import CONFIG_DB
 from dataactcore.logging import configure_logging
 from dataactcore.scripts.database_setup import create_database, run_migrations
+from dataactcore.interfaces.db import db_uri
 from dataactcore.scripts.setup_error_db import setup_error_db
 from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db
 from dataactcore.scripts.setup_user_db import setup_user_db
@@ -24,6 +25,7 @@ def setup_all_db(db_name=None, no_data=False):
         CONFIG_DB['db_name'] = db_name
     logger.info('CONFIG_DB {}'.format(CONFIG_DB))
     logger.info('db_name {}'.format(CONFIG_DB['db_name']))
+    logger.info('db_uri {}'.format(db_uri(CONFIG_DB['db_name'])))
     create_database(CONFIG_DB['db_name'])
     logger.info("Created database (if not existing) {}".format(CONFIG_DB['db_name']))
     logger.info("Running migrations in database {}".format(CONFIG_DB['db_name']))
