@@ -429,15 +429,15 @@ class ErrorWarningTests(BaseTestValidator):
         # Read Error
         report_headers, report_content = self.generate_file_report(READ_ERROR, 'appropriations', warning=False)
         appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
-        assert appro_count == 8
+        assert appro_count == 7
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
-        assert flex_count == 16
+        assert flex_count == 14
         assert self.validator.job.number_of_rows == 11
         assert self.validator.job.number_of_rows_valid == 10
         format_errors = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                     severity_id=RULE_SEVERITY_DICT['fatal']).one()
         format_error_count = format_errors.occurrences
-        assert format_error_count == 2
+        assert format_error_count == 3
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -460,6 +460,17 @@ class ErrorWarningTests(BaseTestValidator):
                 'Difference': '',
                 'Flex Field': '',
                 'Row Number': '6',
+                'Rule Label': ''
+            },
+            {
+                'Unique ID': '',
+                'Field Name': 'Formatting Error',
+                'Rule Message': 'Could not parse this record correctly.',
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
+                'Row Number': '7',
                 'Rule Label': ''
             }
         ]
