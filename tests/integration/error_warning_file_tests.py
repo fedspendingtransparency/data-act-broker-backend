@@ -925,6 +925,7 @@ class ErrorWarningTests(BaseTestValidator):
         self.validator.file_type = self.session.query(FileType).filter_by(
             file_type_id=FILE_TYPE_DICT['appropriations']).one()
         self.validator.file_name = APPROP_FILE
+        self.setup_csv_record_validation(APPROP_FILE, 'appropriations')
         self.validator.is_fabs = False
         self.validator.reader = CsvReader()
         self.validator.error_list = {}
@@ -944,11 +945,12 @@ class ErrorWarningTests(BaseTestValidator):
         self.validator.warning_file_path = ''.join([CONFIG_SERVICES['error_report_path'],
                                                     self.validator.warning_file_name])
 
-        fields = self.session.query(FileColumn) \
+        self.validator.fields = self.session.query(FileColumn) \
             .filter(FileColumn.file_id == FILE_TYPE_DICT[self.validator.file_type.name]) \
             .order_by(FileColumn.daims_name.asc()).all()
-        self.validator.expected_headers, self.validator.parsed_fields = parse_fields(self.session, fields)
-        self.validator.csv_schema = {row.name_short: row for row in fields}
+        self.validator.expected_headers, self.validator.parsed_fields = parse_fields(self.session,
+                                                                                     self.validator.fields)
+        self.validator.csv_schema = {row.name_short: row for row in self.validator.fields}
 
         with open(self.validator.error_file_path, 'w', newline='') as error_file, \
                 open(self.validator.warning_file_path, 'w', newline='') as warning_file:
