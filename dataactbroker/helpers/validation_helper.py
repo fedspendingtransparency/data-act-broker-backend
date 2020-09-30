@@ -802,10 +802,14 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
                 header_length = line_length
             # All lines that are shorter than they should be
             elif line_length < header_length:
-                short_rows.append(file_row_count)
+                # do not add short row if there's no data in the row
+                if len(''.join(line)) > 0:
+                    short_rows.append(file_row_count)
             # All lines that are longer than they should be
             elif line_length > header_length:
-                long_rows.append(file_row_count)
+                # do not add long row if there's no data in the row
+                if len(''.join(line)) > 0:
+                    long_rows.append(file_row_count)
     try:
         temp_file.close()
     except AttributeError:
