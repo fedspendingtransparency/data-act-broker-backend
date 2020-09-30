@@ -515,4 +515,4 @@ def test_process_formatting_errors():
 
 def test_simple_file_scan():
     # Note: only testing locally
-    assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (11, [3, 6], [])
+    assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (11, [3, 6], [7])
