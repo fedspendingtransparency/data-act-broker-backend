@@ -384,7 +384,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 0
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
-        assert self.validator.job.number_of_rows == None
+        assert self.validator.job.number_of_rows is None
         assert self.validator.job.number_of_rows_valid == 0
         # Header errors do not get saved to the database
         assert error_count == 0
