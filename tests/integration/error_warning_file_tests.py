@@ -272,6 +272,7 @@ class ErrorWarningTests(BaseTestValidator):
             self.single_file_warnings()
 
     def single_file_warnings(self):
+        self.cleanup()
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=True)
         appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
@@ -357,6 +358,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.single_file_errors()
 
     def single_file_errors(self):
+        self.cleanup()
+
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=False)
         appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
@@ -633,6 +636,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.cross_file_warnings()
 
     def cross_file_warnings(self):
+        self.cleanup()
+
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
@@ -827,6 +832,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.cross_file_errors()
 
     def cross_file_errors(self):
+        self.cleanup()
+
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
