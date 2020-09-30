@@ -169,6 +169,7 @@ class ValidationManager:
         self.error_list = {}
         self.error_rows = []
         self.total_rows = 0
+        self.total_data_rows = 0
         self.short_rows = []
         self.long_rows = []
         self.has_data = False
@@ -269,7 +270,8 @@ class ValidationManager:
                            synchronize_session=False)
 
             # Update job metadata
-            self.job.number_of_rows = self.total_rows
+            # Total rows = total rows with data + header + short_rows + long_rows
+            self.job.number_of_rows = self.total_data_rows + 1 + len(self.short_rows) + len(self.long_rows)
             self.job.number_of_rows_valid = valid_rows
             sess.commit()
 
@@ -352,10 +354,12 @@ class ValidationManager:
         # Base file check
         file_row_count, self.short_rows, self.long_rows = simple_file_scan(self.reader, bucket_name, region_name,
                                                                            self.file_name)
+        print(file_row_count, self.short_rows, self.long_rows)
         # total_rows = header + long_rows (and will be added on per chunk)
         # Note: we're adding long_rows here because pandas will exclude long_rows when we're loading the data
         #       additionally, pandas *does not* exclude blank long_rows so they are not in self.long_rows
         self.total_rows = 1 + len(self.long_rows)
+        self.total_data_rows = 0
 
         # Making base error/warning files
         self.error_file_name = report_file_name(self.submission_id, False, self.file_type.name)
@@ -457,6 +461,7 @@ class ValidationManager:
             # These variables will need to be shared among the processes and used later overall
             shared_data = server_manager.dict(
                 total_rows=self.total_rows,
+                total_data_rows=self.total_data_rows,
                 has_data=self.has_data,
                 error_rows=self.error_rows,
                 error_list=self.error_list,
@@ -481,6 +486,7 @@ class ValidationManager:
 
             # Resetting these out here as they are used later in the process
             self.total_rows = shared_data['total_rows']
+            self.total_data_rows = shared_data['total_data_rows']
             self.has_data = shared_data['has_data']
             self.error_rows = shared_data['error_rows']
             self.error_list = shared_data['error_list']
@@ -494,6 +500,7 @@ class ValidationManager:
         """
         shared_data = dict(
             total_rows=self.total_rows,
+            total_data_rows=self.total_data_rows,
             has_data=self.has_data,
             error_rows=self.error_rows,
             error_list=self.error_list
@@ -503,6 +510,7 @@ class ValidationManager:
 
         # Resetting these out here as they are used later in the process
         self.total_rows = shared_data['total_rows']
+        self.total_data_rows = shared_data['total_data_rows']
         self.has_data = shared_data['has_data']
         self.error_rows = shared_data['error_rows']
         self.error_list = shared_data['error_list']
@@ -620,6 +628,7 @@ class ValidationManager:
 
         with lockable:
             shared_data['has_data'] = True
+            shared_data['total_data_rows'] += len(chunk_df.index)
         if self.is_fabs:
             # create a list of all required/type labels for FABS
             labels = sess.query(ValidationLabel).all()

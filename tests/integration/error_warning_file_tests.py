@@ -296,7 +296,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 0
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
-        assert self.validator.job.number_of_rows == 5
+        assert self.validator.job.number_of_rows == 1
         assert self.validator.job.number_of_rows_valid == 4
         assert error_count == 1
         assert report_headers == self.validator.report_headers
@@ -942,6 +942,7 @@ class ErrorWarningTests(BaseTestValidator):
         self.validator.error_list = {}
         self.validator.error_rows = []
         self.validator.total_rows = 1
+        self.validator.total_data_rows = 0
         self.validator.short_rows = []
         self.validator.long_rows = []
         self.validator.has_data = False
