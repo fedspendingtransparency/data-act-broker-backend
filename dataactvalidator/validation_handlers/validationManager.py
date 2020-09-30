@@ -354,7 +354,6 @@ class ValidationManager:
         # Base file check
         file_row_count, self.short_rows, self.long_rows = simple_file_scan(self.reader, bucket_name, region_name,
                                                                            self.file_name)
-        print(file_row_count, self.short_rows, self.long_rows)
         # total_rows = header + long_rows (and will be added on per chunk)
         # Note: we're adding long_rows here because pandas will exclude long_rows when we're loading the data
         #       additionally, pandas *does not* exclude blank long_rows so they are not in self.long_rows
