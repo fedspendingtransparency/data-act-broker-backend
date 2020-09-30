@@ -354,6 +354,7 @@ class ValidationManager:
                                                                            self.file_name)
         # total_rows = header + long_rows (and will be added on per chunk)
         # Note: we're adding long_rows here because pandas will exclude long_rows when we're loading the data
+        #       additionally, pandas *does not* exclude blank long_rows so they are not in self.long_rows
         self.total_rows = 1 + len(self.long_rows)
 
         # Making base error/warning files
