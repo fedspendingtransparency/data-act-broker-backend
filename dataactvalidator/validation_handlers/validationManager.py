@@ -379,6 +379,7 @@ class ValidationManager:
             record_row_error(self.error_list, self.job.job_id, self.file_name, row['Field Name'], row['error_type'],
                              row['Row Number'], row['Rule Label'], self.file_type.file_type_id, None,
                              RULE_SEVERITY_DICT['fatal'])
+            self.error_rows.append(row['Row Number'])
         format_error_df.to_csv(self.error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
                                mode='a', header=False)
 

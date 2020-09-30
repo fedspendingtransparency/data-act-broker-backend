@@ -433,7 +433,7 @@ class ErrorWarningTests(BaseTestValidator):
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 14
         assert self.validator.job.number_of_rows == 11
-        assert self.validator.job.number_of_rows_valid == 10
+        assert self.validator.job.number_of_rows_valid == 7
         format_errors = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                     severity_id=RULE_SEVERITY_DICT['fatal']).one()
         format_error_count = format_errors.occurrences
