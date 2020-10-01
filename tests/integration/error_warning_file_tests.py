@@ -297,7 +297,7 @@ class ErrorWarningTests(BaseTestValidator):
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
         assert self.validator.job.number_of_rows == 1
-        assert self.validator.job.number_of_rows_valid == 4
+        assert self.validator.job.number_of_rows_valid == 2
         assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
