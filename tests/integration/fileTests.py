@@ -961,49 +961,49 @@ class FileTests(BaseTestAPI):
             one()
 
         # valid warning file
-        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': True,
-                     'published_files_history_id': published_files_history.published_files_history_id}
-        response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id})
+        params = {'submission_id': self.test_published_submission_id, 'is_warning': True,
+                  'published_files_history_id': published_files_history.published_files_history_id}
+        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id})
         self.assertIn('path/to/warning_file_a.csv', response.json['url'])
         self.assertEqual(response.status_code, 200)
 
         # valid uploaded file
-        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': False,
-                     'published_files_history_id': published_files_history.published_files_history_id}
-        response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id})
+        params = {'submission_id': self.test_published_submission_id, 'is_warning': False,
+                  'published_files_history_id': published_files_history.published_files_history_id}
+        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id})
         self.assertIn('path/to/file_a.csv', response.json['url'])
         self.assertEqual(response.status_code, 200)
 
         # nonexistent published_files_history_id
-        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': False,
-                     'published_files_history_id': -1}
-        response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
+        params = {'submission_id': self.test_published_submission_id, 'is_warning': False,
+                  'published_files_history_id': -1}
+        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'Invalid published_files_history_id')
 
         # non-matching submission_id and published_files_history_id
-        post_json = {'submission_id': self.test_monthly_submission_id, 'is_warning': False,
-                     'published_files_history_id': published_files_history.published_files_history_id}
-        response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
+        params = {'submission_id': self.test_monthly_submission_id, 'is_warning': False,
+                  'published_files_history_id': published_files_history.published_files_history_id}
+        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'],
                          'Requested published_files_history_id does not match submission_id provided')
 
         # no warning file associated with entry when requesting warning file
-        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': True,
-                     'published_files_history_id': published_files_history_d.published_files_history_id}
-        response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
+        params = {'submission_id': self.test_published_submission_id, 'is_warning': True,
+                  'published_files_history_id': published_files_history_d.published_files_history_id}
+        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'History entry has no warning file')
 
         # no uploaded file associated with entry when requesting uploaded file
-        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': False,
-                     'published_files_history_id': published_files_history_cross.published_files_history_id}
-        response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
+        params = {'submission_id': self.test_published_submission_id, 'is_warning': False,
+                  'published_files_history_id': published_files_history_cross.published_files_history_id}
+        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'History entry has no related file')
 
