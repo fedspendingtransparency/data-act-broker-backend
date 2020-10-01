@@ -101,7 +101,20 @@ def add_file_routes(app, is_local, server_path):
         """ List all publish and certify history for a specific submission """
         return list_history(submission)
 
+    # TODO: deprecated, remove in 2021
     @app.route("/v1/get_certified_file/", methods=["POST"])
+    @use_kwargs({
+        'submission_id': webargs_fields.Int(required=True),
+        'published_files_history_id': webargs_fields.Int(required=True),
+        'is_warning': webargs_fields.Bool(missing=False)
+    })
+    @requires_submission_perms('reader')
+    def get_certified_file_post(submission, published_files_history_id, **kwargs):
+        """ Get the signed URL for the specified file history """
+        is_warning = kwargs.get('is_warning')
+        return file_history_url(submission, published_files_history_id, is_warning, is_local)
+
+    @app.route("/v1/get_certified_file/", methods=["GET"])
     @use_kwargs({
         'submission_id': webargs_fields.Int(required=True),
         'published_files_history_id': webargs_fields.Int(required=True),
@@ -119,7 +132,15 @@ def add_file_routes(app, is_local, server_path):
     def check_current_page(submission):
         return check_current_submission_page(submission)
 
+    # TODO: deprecated, remove in 2021
     @app.route("/v1/get_fabs_meta/", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def get_fabs_metadata_post(submission):
+        """ Return metadata of FABS submission """
+        return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
+
+    @app.route("/v1/get_fabs_meta/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def get_fabs_metadata(submission):
