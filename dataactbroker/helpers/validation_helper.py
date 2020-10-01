@@ -787,8 +787,10 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
     temp_file = open(reader.get_filename(region_name, bucket_name, file_name), encoding='utf-8')
     file_row_count = 0
     header_length = 0
-    short_rows = []
-    long_rows = []
+    short_pop_rows = []
+    long_pop_rows = []
+    short_null_rows = []
+    long_null_rows = []
     # Getting the delimiter
     header_line = temp_file.readline()
     delimiter = '|' if header_line.count('|') > header_line.count(',') else ','
@@ -804,15 +806,19 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
             elif line_length < header_length:
                 # do not add short row if there's no data in the row
                 if len(''.join(line)) > 0:
-                    short_rows.append(file_row_count)
+                    short_pop_rows.append(file_row_count)
+                else:
+                    short_null_rows.append(file_row_count)
             # All lines that are longer than they should be
             elif line_length > header_length:
-                # do not add long row if there's no data in the row
+                # do not add short row if there's no data in the row
                 if len(''.join(line)) > 0:
-                    long_rows.append(file_row_count)
+                    long_pop_rows.append(file_row_count)
+                else:
+                    long_null_rows.append(file_row_count)
     try:
         temp_file.close()
     except AttributeError:
         # File does not exist, and so does not need to be closed
         pass
-    return file_row_count, short_rows, long_rows
+    return file_row_count, short_pop_rows, long_pop_rows, short_null_rows, long_null_rows

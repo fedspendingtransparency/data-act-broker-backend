@@ -170,8 +170,10 @@ class ValidationManager:
         self.error_rows = []
         self.total_rows = 0
         self.total_data_rows = 0
-        self.short_rows = []
-        self.long_rows = []
+        self.short_pop_rows = []
+        self.short_null_rows = []
+        self.long_pop_rows = []
+        self.long_null_rows = []
         self.has_data = False
 
         validation_start = datetime.now()
@@ -270,8 +272,8 @@ class ValidationManager:
                            synchronize_session=False)
 
             # Update job metadata
-            # Total rows = total rows with data + header + short_rows + long_rows
-            self.job.number_of_rows = self.total_data_rows + 1 + len(self.short_rows) + len(self.long_rows)
+            # Total rows = total rows with data + header + short_pop_rows + long_pop_rows
+            self.job.number_of_rows = (self.total_data_rows + 1 + len(self.short_pop_rows) + len(self.long_pop_rows))
             self.job.number_of_rows_valid = valid_rows
             sess.commit()
 
@@ -352,12 +354,11 @@ class ValidationManager:
             raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.fileTypeError)
 
         # Base file check
-        file_row_count, self.short_rows, self.long_rows = simple_file_scan(self.reader, bucket_name, region_name,
-                                                                           self.file_name)
+        file_row_count, self.short_pop_rows, self.long_pop_rows, self.short_null_rows, self.long_null_rows = \
+            simple_file_scan(self.reader, bucket_name, region_name, self.file_name)
         # total_rows = header + long_rows (and will be added on per chunk)
         # Note: we're adding long_rows here because pandas will exclude long_rows when we're loading the data
-        #       additionally, pandas *does not* exclude blank long_rows so they are not in self.long_rows
-        self.total_rows = 1 + len(self.long_rows)
+        self.total_rows = 1 + len(self.long_pop_rows) + len(self.long_null_rows)
         self.total_data_rows = 0
 
         # Making base error/warning files
@@ -374,7 +375,8 @@ class ValidationManager:
             warning_csv.writerow(self.report_headers)
 
         # Adding formatting errors to error file
-        format_error_df = process_formatting_errors(self.short_rows, self.long_rows, self.report_headers)
+        format_error_df = process_formatting_errors(self.short_pop_rows + self.short_null_rows,
+                                                    self.long_pop_rows + self.long_null_rows, self.report_headers)
         for index, row in format_error_df.iterrows():
             record_row_error(self.error_list, self.job.job_id, self.file_name, row['Field Name'], row['error_type'],
                              row['Row Number'], row['Rule Label'], self.file_type.file_type_id, None,
@@ -412,7 +414,7 @@ class ValidationManager:
         # Add a warning if the file is blank
         if self.file_type.file_type_id in (FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
                                            FILE_TYPE_DICT['award_financial']) \
-                and not self.has_data and len(self.short_rows) == 0 and len(self.long_rows) == 0:
+                and not self.has_data and len(self.short_pop_rows) == 0 and len(self.long_pop_rows) == 0:
             empty_file = {
                 'Unique ID': '',
                 'Field Name': 'Blank File',
@@ -585,12 +587,16 @@ class ValidationManager:
         chunk_df['index'] = chunk_df.index
         # index gets reset for each chunk, adding the header, and adding previous rows
         chunk_df['row_number'] = chunk_df.index + 2
+
+        # Some long null rows may get included in the resulting dataframe, this ensures they are removed
+        chunk_df = chunk_df[~chunk_df['row_number'].isin(self.long_null_rows)]
+
         with lockable:
             shared_data['total_rows'] += len(chunk_df.index)
 
         # Increment row numbers if any were ignored being too long
         # This syncs the row numbers back to their original values
-        for row in sorted(self.long_rows):
+        for row in sorted(self.long_pop_rows + self.long_null_rows):
             chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
 
         logger.info({
@@ -604,7 +610,7 @@ class ValidationManager:
         })
 
         # Drop rows that were too short and pandas filled in with Nones
-        chunk_df = chunk_df[~chunk_df['row_number'].isin(self.short_rows)]
+        chunk_df = chunk_df[~chunk_df['row_number'].isin(self.short_pop_rows)]
 
         # Drop the index column
         chunk_df = chunk_df.drop(['index'], axis=1)
