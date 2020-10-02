@@ -170,8 +170,10 @@ class ValidationManager:
         self.error_rows = []
         self.total_rows = 0
         self.total_data_rows = 0
+        self.short_rows = []
         self.short_pop_rows = []
         self.short_null_rows = []
+        self.long_rows = []
         self.long_pop_rows = []
         self.long_null_rows = []
         self.has_data = False
@@ -356,9 +358,11 @@ class ValidationManager:
         # Base file check
         file_row_count, self.short_pop_rows, self.long_pop_rows, self.short_null_rows, self.long_null_rows = \
             simple_file_scan(self.reader, bucket_name, region_name, self.file_name)
+        self.short_rows = self.short_null_rows + self.short_pop_rows
+        self.long_rows = self.long_null_rows + self.long_pop_rows
         # total_rows = header + long_rows (and will be added on per chunk)
         # Note: we're adding long_rows here because pandas will exclude long_rows when we're loading the data
-        self.total_rows = 1 + len(self.long_pop_rows) + len(self.long_null_rows)
+        self.total_rows = 1 + len(self.long_rows)
         self.total_data_rows = 0
 
         # Making base error/warning files
@@ -375,8 +379,7 @@ class ValidationManager:
             warning_csv.writerow(self.report_headers)
 
         # Adding formatting errors to error file
-        format_error_df = process_formatting_errors(self.short_pop_rows + self.short_null_rows,
-                                                    self.long_pop_rows + self.long_null_rows, self.report_headers)
+        format_error_df = process_formatting_errors(self.short_rows, self.long_rows, self.report_headers)
         for index, row in format_error_df.iterrows():
             record_row_error(self.error_list, self.job.job_id, self.file_name, row['Field Name'], row['error_type'],
                              row['Row Number'], row['Rule Label'], self.file_type.file_type_id, None,
@@ -596,7 +599,7 @@ class ValidationManager:
 
         # Increment row numbers if any were ignored being too long
         # This syncs the row numbers back to their original values
-        for row in sorted(self.long_pop_rows + self.long_null_rows):
+        for row in sorted(self.long_rows):
             chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
 
         logger.info({
@@ -610,7 +613,7 @@ class ValidationManager:
         })
 
         # Drop rows that were too short and pandas filled in with Nones
-        chunk_df = chunk_df[~chunk_df['row_number'].isin(self.short_pop_rows)]
+        chunk_df = chunk_df[~chunk_df['row_number'].isin(self.short_rows)]
 
         # Drop the index column
         chunk_df = chunk_df.drop(['index'], axis=1)
