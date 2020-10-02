@@ -301,7 +301,7 @@ class ValidationManager:
             if self.reader:
                 self.reader.close()
 
-            validation_duration = (datetime.now()-validation_start).total_seconds()
+            validation_duration = (datetime.now() - validation_start).total_seconds()
             logger.info({
                 'message': 'Completed run_validation {}'.format(self.log_str),
                 'message_type': 'ValidatorInfo',
@@ -694,8 +694,8 @@ class ValidationManager:
             total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
 
             with lockable:
-                shared_data['error_rows'] = (shared_data['error_rows'] +
-                                             [int(x) for x in total_errors['Row Number'].tolist()])
+                shared_data['error_rows'] = (shared_data['error_rows']
+                                             + [int(x) for x in total_errors['Row Number'].tolist()])
 
             with lockable:
                 for index, row in total_errors.iterrows():
@@ -905,7 +905,7 @@ class ValidationManager:
 
         # mark job status as 'finished'
         mark_job_status(job_id, 'finished')
-        job_duration = (datetime.now()-job_start).total_seconds()
+        job_duration = (datetime.now() - job_start).total_seconds()
         logger.info({
             'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
             'message_type': 'ValidatorInfo',

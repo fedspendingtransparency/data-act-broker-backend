@@ -41,7 +41,7 @@ class LoginTests(BaseTestAPI):
             self.assertIsInstance(response.json, dict)
         except AttributeError:
             self.fail("Response is missing JSON component")
-        self.assertEquals(response.json["status"].lower(), "false")
+        self.assertEqual(response.json["status"].lower(), "false")
 
     def test_session_logout2(self):
         """Test session after broker login."""
@@ -52,7 +52,7 @@ class LoginTests(BaseTestAPI):
             self.assertIsInstance(response.json, dict)
         except AttributeError:
             self.fail("Response is missing JSON component")
-        self.assertEquals(response.json["status"].lower(), "true")
+        self.assertEqual(response.json["status"].lower(), "true")
 
     def test_session_logout3(self):
         """Test session after broker logout/login/logout."""
@@ -64,4 +64,4 @@ class LoginTests(BaseTestAPI):
             self.assertIsInstance(response.json, dict)
         except AttributeError:
             self.fail("Response is missing JSON component")
-        self.assertEquals(response.json["status"].lower(), "false")
+        self.assertEqual(response.json["status"].lower(), "false")

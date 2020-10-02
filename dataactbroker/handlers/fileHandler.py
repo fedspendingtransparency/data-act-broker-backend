@@ -310,8 +310,8 @@ class FileHandler:
                     'file_name': filename_key
                 })
                 with app.app_context():
-                        g.user = current_user
-                        self.finalize(job_dict[file_type + '_id'])
+                    g.user = current_user
+                    self.finalize(job_dict[file_type + '_id'])
             for file_type, file_ref in request_params['_files'].items():
                 t = threading.Thread(target=upload, args=(file_ref, file_type,
                                                           current_app._get_current_object(), g.user,
@@ -409,12 +409,8 @@ class FileHandler:
                     'Invalid end month for a quarterly submission: {}'.format(end_date.month), StatusCode.CLIENT_ERROR)
 
         # Change end_date date to the final date
-        end_date = datetime.strptime(
-                        str(end_date.year) + '/' +
-                        str(end_date.month) + '/' +
-                        str(calendar.monthrange(end_date.year, end_date.month)[1]),
-                        '%Y/%m/%d'
-                    ).date()
+        end_date = datetime.strptime(str(end_date.year) + '/' + str(end_date.month) + '/'
+                                     + str(calendar.monthrange(end_date.year, end_date.month)[1]), '%Y/%m/%d').date()
 
         return start_date, end_date
 
@@ -941,7 +937,7 @@ class FileHandler:
             file_reference = file_dict.get(file_type)
             try:
                 file_name = file_reference.filename
-            except:
+            except Exception:
                 return JsonResponse.error(Exception('{} parameter must be a file in binary form'.format(file_type)),
                                           StatusCode.CLIENT_ERROR)
             if file_name:
@@ -1019,8 +1015,8 @@ class FileHandler:
                 job.job_status_id = JOB_STATUS_DICT['waiting']
 
         # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
-        upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
-                       job.file_type_id in initial_file_types]
+        upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']]
+                       and job.file_type_id in initial_file_types]
 
         for job in upload_jobs:
             job.job_status_id = JOB_STATUS_DICT['running']
@@ -1650,8 +1646,8 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
                                   max_cert.c.max_date)], else_=max_pub.c.max_date).label('last_pub_or_cert')).\
         outerjoin(max_cert, max_pub.c.submission_id == max_cert.c.submission_id).cte('pub_query')
 
-    columns_to_query = (submission_columns + cgac_columns + frec_columns + user_columns + view_columns +
-                        [pub_query.c.last_pub_or_cert])
+    columns_to_query = (submission_columns + cgac_columns + frec_columns + user_columns + view_columns
+                        + [pub_query.c.last_pub_or_cert])
 
     # Base query that is shared among all submission lists
     query = sess.query(*columns_to_query).\

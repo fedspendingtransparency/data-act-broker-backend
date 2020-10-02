@@ -124,7 +124,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     parse_start_time = time.time()
     logger.info("Starting file " + str(file_path))
 
-    dat_file_name = os.path.splitext(os.path.basename(file_path))[0]+'.dat'
+    dat_file_name = os.path.splitext(os.path.basename(file_path))[0] + '.dat'
     sam_file_type = "MONTHLY" if monthly else "DAILY"
     dat_file_date = re.findall(".*{}_(.*).dat".format(sam_file_type), dat_file_name)[0]
     zfile = zipfile.ZipFile(file_path)
@@ -199,7 +199,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     delete_data = clean_sam_data(delete_data)
 
     if benchmarks:
-        logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
+        logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time() - parse_start_time,
                                                                      rows_received))
     metrics['files_processed'].append(dat_file_name)
     metrics['records_received'] += rows_received
@@ -400,7 +400,7 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
     file_path = os.path.join(root_dir, filename)
     logger.info('starting file ' + file_path)
 
-    csv_file = os.path.splitext(filename)[0]+'.dat'
+    csv_file = os.path.splitext(filename)[0] + '.dat'
     zfile = zipfile.ZipFile(file_path)
 
     column_header_mapping = {
@@ -420,8 +420,8 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
                                names=column_header_mapping_ordered.keys(), quoting=3)
     total_data = csv_data.copy()
     records_received = len(total_data.index)
-    total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull() &
-                            total_data['sam_extract'].isin(['2', '3', 'A', 'E'])]
+    total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull()
+                            & total_data['sam_extract'].isin(['2', '3', 'A', 'E'])]
     records_processed = len(total_data.index)
     del total_data['sam_extract']
 

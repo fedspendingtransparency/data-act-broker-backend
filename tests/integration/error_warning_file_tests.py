@@ -224,7 +224,7 @@ class ErrorWarningTests(BaseTestValidator):
         if ignore_error:
             try:
                 self.validator.validate_job(self.val_job.job_id)
-            except:
+            except Exception:
                 pass
         else:
             self.validator.validate_job(self.val_job.job_id)
@@ -242,7 +242,7 @@ class ErrorWarningTests(BaseTestValidator):
         if ignore_error:
             try:
                 self.validator.validate_job(self.val_job.job_id)
-            except:
+            except Exception:
                 pass
         else:
             self.validator.validate_job(self.val_job.job_id)

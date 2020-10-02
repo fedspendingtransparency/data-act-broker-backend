@@ -821,6 +821,7 @@ def main():
 
     logger.info("Completed business categories updates in %s seconds" % str(datetime.now() - overall_start))
 
+
 if __name__ == '__main__':
     with create_app().app_context():
         configure_logging()

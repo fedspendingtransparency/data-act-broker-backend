@@ -148,7 +148,7 @@ def test_start_d_generation_submission_new(database, monkeypatch):
         original_filename=original_filename, file_generation_id=None)
     val_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award'],
-        job_type_id=JOB_TYPE_DICT['csv_record_validation'],  filename=None, submission_id=submission.submission_id,
+        job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, submission_id=submission.submission_id,
         original_filename=original_filename)
     sess.add_all([submission, up_job, val_job])
     sess.commit()

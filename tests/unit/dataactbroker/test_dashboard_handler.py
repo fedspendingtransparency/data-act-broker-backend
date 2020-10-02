@@ -90,7 +90,7 @@ def test_validate_historic_dashboard_filters():
                     ' or an empty list.'
     filters = {'quarters': [1, 3], 'fys': [2016, 2019], 'agencies': ['097']}
     assert_validation(filters, error_message)
-    filters = {'quarters': [1, 3], 'fys': [2017, current_fy+1], 'agencies': ['097']}
+    filters = {'quarters': [1, 3], 'fys': [2017, current_fy + 1], 'agencies': ['097']}
     assert_validation(filters, error_message)
     filters = {'quarters': [1, 3], 'fys': [2017, str(current_fy)], 'agencies': ['097']}
     assert_validation(filters, error_message)

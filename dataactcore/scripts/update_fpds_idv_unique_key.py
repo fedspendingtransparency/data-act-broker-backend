@@ -104,6 +104,7 @@ def update_unique_keys():
     logger.info("Updated existing FPDS IDV records to have the proper unique key, took {} seconds"
                 .format(time.time() - start))
 
+
 if __name__ == '__main__':
     configure_logging()
 

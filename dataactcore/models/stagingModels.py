@@ -64,6 +64,7 @@ class Appropriation(Base):
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(Appropriation, self).__init__(**clean_kwargs)
 
+
 Index("ix_appropriation_tas_id_submission_id",
       Appropriation.tas_id,
       Appropriation.submission_id,
@@ -135,6 +136,7 @@ class ObjectClassProgramActivity(Base):
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(ObjectClassProgramActivity, self).__init__(**clean_kwargs)
+
 
 Index("ix_oc_pa_tas_oc_pa",
       ObjectClassProgramActivity.tas,
@@ -222,6 +224,7 @@ class AwardFinancial(Base):
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(AwardFinancial, self).__init__(**clean_kwargs)
+
 
 Index("ix_award_financial_tas_oc_pa",
       AwardFinancial.tas,
@@ -1580,6 +1583,7 @@ class DetachedAwardFinancialAssistance(Base):
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(DetachedAwardFinancialAssistance, self).__init__(**clean_kwargs)
 
+
 Index("ix_dafa_afa_generated_unique_upper", func.upper(DetachedAwardFinancialAssistance.afa_generated_unique))
 
 
@@ -1689,11 +1693,11 @@ class PublishedAwardFinancialAssistance(Base):
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)
 
+
 Index(
     'ix_published_award_financial_assistance_is_active',
     PublishedAwardFinancialAssistance.is_active,
-    postgresql_where=(PublishedAwardFinancialAssistance.is_active.is_(True))
-    )
+    postgresql_where=(PublishedAwardFinancialAssistance.is_active.is_(True)))
 
 Index("ix_pafa_fain_awarding_sub_tier_is_active",
       PublishedAwardFinancialAssistance.fain,

@@ -72,8 +72,8 @@ def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metri
             earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
         elif not historic:
             last_update = last_update[0].strftime("%Y%m%d")
-            earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
-                                         last_update + ".ZIP", sorted_daily_file_names[0])
+            earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_"
+                                         + last_update + ".ZIP", sorted_daily_file_names[0])
         daily_files_after = sorted_daily_file_names
         if earliest_daily_file:
             sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
@@ -104,7 +104,7 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, ssh_key=None, metrics
         with open(file_path, 'wb') as zip_file:
             try:
                 sftp.getfo(''.join([REMOTE_SAM_EXEC_COMP_DIR, '/', file_name]), zip_file)
-            except:
+            except Exception:
                 logger.debug("Socket closed. Reconnecting...")
                 ssh_client = get_client(ssh_key=ssh_key)
                 sftp = ssh_client.open_sftp()
@@ -130,6 +130,7 @@ def get_parser():
     environ.add_argument('-l', '--local', type=str, default=None, help='Local directory to work from')
     environ.add_argument('-k', '--ssh_key', type=str, default=None, help='Private key used to access the API remotely')
     return parser
+
 
 if __name__ == '__main__':
     now = datetime.datetime.now()

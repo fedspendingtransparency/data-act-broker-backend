@@ -22,7 +22,7 @@ def load_defc():
         def_codes_url = 'https://files.usaspending.gov/reference_data/def_codes.csv'
         r = requests.get(def_codes_url, allow_redirects=True)
         open(defc_file, 'wb').write(r.content)
-    except:
+    except Exception:
         pass
 
     logger.info('Loading defc data')

@@ -26,6 +26,7 @@ def main():
                 inplace=True)
     data.to_csv('cars_tas.csv')
 
+
 if __name__ == '__main__':
     configure_logging()
     with create_app().app_context():

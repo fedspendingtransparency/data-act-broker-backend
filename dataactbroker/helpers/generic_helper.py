@@ -149,7 +149,7 @@ def fy(raw_date):
     if isinstance(raw_date, str):
         try:
             raw_date = parse(raw_date)
-        except:
+        except Exception:
             raise TypeError('{} needs to be a valid date/datetime string'.format(raw_date))
     elif not isinstance(raw_date, (dt.date, dt.datetime)):
         raise TypeError('{} needs to be a valid date/datetime'.format(raw_date))

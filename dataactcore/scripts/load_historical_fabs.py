@@ -474,7 +474,7 @@ def format_total_funding(row):
     try:
         value = float(row['total_funding_amount'])
         if value == 0:
-            value = float(row['fed_funding_amount'])+float(row['non_fed_funding_amount'])
+            value = float(row['fed_funding_amount']) + float(row['non_fed_funding_amount'])
     except ValueError:
         pass
 
@@ -494,15 +494,15 @@ def generate_unique_string(row):
 def set_active_rows(sess):
     logger.info('marking current records as active')
     sess.execute(
-        "UPDATE published_award_financial_assistance AS all_pafa SET is_active=TRUE " +
-        "FROM (SELECT DISTINCT pafa.published_award_financial_assistance_id " +
-        "FROM published_award_financial_assistance AS pafa " +
-        "INNER JOIN (SELECT max(modified_at) AS modified_at, afa_generated_unique " +
-        "FROM published_award_financial_assistance GROUP BY UPPER(afa_generated_unique)) sub_pafa " +
-        "ON pafa.modified_at = sub_pafa.modified_at AND " +
-        "UPPER(COALESCE(pafa.afa_generated_unique, '')) = UPPER(COALESCE(sub_pafa.afa_generated_unique, '')) " +
-        "WHERE COALESCE(UPPER(pafa.correction_delete_indicatr), '') != 'D') AS selected " +
-        "WHERE all_pafa.published_award_financial_assistance_id = selected.published_award_financial_assistance_id"
+        """UPDATE published_award_financial_assistance AS all_pafa SET is_active=TRUE
+        FROM (SELECT DISTINCT pafa.published_award_financial_assistance_id
+        FROM published_award_financial_assistance AS pafa
+        INNER JOIN (SELECT max(modified_at) AS modified_at, afa_generated_unique
+        FROM published_award_financial_assistance GROUP BY UPPER(afa_generated_unique)) sub_pafa
+        ON pafa.modified_at = sub_pafa.modified_at AND
+        UPPER(COALESCE(pafa.afa_generated_unique, '')) = UPPER(COALESCE(sub_pafa.afa_generated_unique, ''))
+        WHERE COALESCE(UPPER(pafa.correction_delete_indicatr), '') != 'D') AS selected
+        WHERE all_pafa.published_award_financial_assistance_id = selected.published_award_financial_assistance_id"""
     )
     sess.commit()
 
@@ -551,7 +551,7 @@ def main():
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
         file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['archive_bucket'])
         for obj in file_list.get('Contents', []):
-            if re.match('^('+years+')_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{8}.csv.zip',
+            if re.match('^(' + years + ')_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{8}.csv.zip',
                         obj['Key']):
                 file_path = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
                                                                             'Key': obj['Key']}, ExpiresIn=600)
@@ -561,13 +561,14 @@ def main():
         base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
         file_list = [f for f in os.listdir(base_path)]
         for file in file_list:
-            if re.match('^('+years+')_All_(Grants|DirectPayments|Insurance|Loans|Other)_Full_\d{8}.csv.zip', file):
+            if re.match('^(' + years + ')_All_(Grants|DirectPayments|Insurance|Loans|Other)_Full_\d{8}.csv.zip', file):
                 parse_fabs_file(open(os.path.join(base_path, file)), sess, fips_state_list, state_code_list,
                                 sub_tier_list, county_code_list)
 
     set_active_rows(sess)
 
     logger.info("Historical FABS script complete")
+
 
 if __name__ == '__main__':
     configure_logging()

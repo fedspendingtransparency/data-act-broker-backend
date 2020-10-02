@@ -10,7 +10,7 @@ line_sums = {}
 
 def sum_range(tas, start, end, target, join_array, failed_validations, tas_str, extra_line=None):
     """ Rule: sum of lines [start] through [end] = [target] """
-    lines_start_to_end = tas[tas.line.isin(list(map(str, range(start, end+1))))]
+    lines_start_to_end = tas[tas.line.isin(list(map(str, range(start, end + 1))))]
 
     line_target = tas[tas.line == str(target)]
     sum_lines_start_to_end = float("{0:.2f}".format(lines_start_to_end['amount'].astype(float).sum()))
@@ -25,7 +25,7 @@ def sum_range(tas, start, end, target, join_array, failed_validations, tas_str, 
         error_message = 'Sum of lines {start} through {end} != {target}'.format(start=start, end=end, target=target)
         if extra_line:
             error_message = 'Sum of lines {start} through {end} + {extra_line} != {target}'.\
-                format(start=start, end=end,  extra_line=extra_line, target=target)
+                format(start=start, end=end, extra_line=extra_line, target=target)
         failed_validations.append(','.join(join_array + [error_message, "{0:.2f}".format(line_target_amount),
                                                          "{0:.2f}".format(sum_lines_start_to_end)]))
     sum_key = "sum_lines_{start}_through_{end}".format(start=start, end=end)

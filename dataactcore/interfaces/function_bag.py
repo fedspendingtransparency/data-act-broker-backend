@@ -125,7 +125,7 @@ def create_file(job_id, filename):
     sess = GlobalDB.db().session
     try:
         int(job_id)
-    except:
+    except Exception:
         logger.error({
             'message': 'Bad job_id: {}'.format(job_id),
             'message_type': 'CoreError',
@@ -152,7 +152,7 @@ def write_file_error(job_id, filename, error_type, extra_info=None):
     sess = GlobalDB.db().session
     try:
         int(job_id)
-    except:
+    except Exception:
         logger.error({
             'message': 'Bad job_id: {}'.format(job_id),
             'message_type': 'CoreError',
@@ -211,8 +211,6 @@ def get_error_metrics_by_job_id(job_id, include_file_types=False, severity_id=No
             record_dict['target_file'] = FILE_TYPE_DICT_ID.get(result.target_file_type_id, '')
         result_list.append(record_dict)
     return result_list
-
-""" USER DB FUNCTIONS """
 
 
 def get_email_template(email_type):

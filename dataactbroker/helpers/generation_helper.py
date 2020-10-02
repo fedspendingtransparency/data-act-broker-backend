@@ -183,12 +183,12 @@ def check_file_generation(job_id):
     response_dict['message'] = upload_job.error_message or ''
 
     # Generate the URL (or path) to the file
-    if CONFIG_BROKER['use_aws'] and response_dict['status'] is 'finished' and upload_job.filename:
+    if CONFIG_BROKER['use_aws'] and response_dict['status'] == 'finished' and upload_job.filename:
         path, file_name = upload_job.filename.split('/')
         response_dict['url'] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
                                                           url_mapping=CONFIG_BROKER["submission_bucket_mapping"],
                                                           method='get_object')
-    elif response_dict['status'] is 'finished' and upload_job.filename:
+    elif response_dict['status'] == 'finished' and upload_job.filename:
         response_dict['url'] = upload_job.filename
 
     # Only D file generations have start and end dates
@@ -225,7 +225,7 @@ def retrieve_cached_file_generation(job, agency_type, agency_code, file_format, 
     file_generation = None
     file_gen = sess.query(FileGeneration).filter(
         FileGeneration.start_date == job.start_date, FileGeneration.end_date == job.end_date,
-        FileGeneration.agency_code == agency_code,  FileGeneration.agency_type == agency_type,
+        FileGeneration.agency_code == agency_code, FileGeneration.agency_type == agency_type,
         FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True),
         FileGeneration.file_format == file_format, FileGeneration.element_numbers.is_(element_numbers)).one_or_none()
 

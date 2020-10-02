@@ -23,8 +23,8 @@ def update_table(sess, agency_type, table, args):
     update_type = {'level': 'cgac', 'codes': ['999']} if args.missing_agency \
         else {'level': 'subtier', 'codes': args.subtier_codes}
 
-    logger.info('Updating ' + agency_type + ' ' + update_type['level'] + ' agency codes ' + str(update_type['codes']) +
-                ' for ' + table + ' table')
+    logger.info('Updating ' + agency_type + ' ' + update_type['level'] + ' agency codes ' + str(update_type['codes'])
+                + ' for ' + table + ' table')
 
     # The name of the column depends on the type because of limited string length
     suffix = 'o' if agency_type == "funding" else ''

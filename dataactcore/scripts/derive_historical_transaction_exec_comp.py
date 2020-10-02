@@ -104,6 +104,7 @@ def main():
         update_transactions(sess, 'historic_duns', args.pulled_since, date_type='created_at', source='fabs')
         update_transactions(sess, 'historic_duns', args.pulled_since, date_type='updated_at', source='fpds')
 
+
 if __name__ == '__main__':
     with create_app().app_context():
         configure_logging()

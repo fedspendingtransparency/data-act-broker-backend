@@ -138,7 +138,7 @@ def get_submission_metadata(submission):
     fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
     # We need to ignore one row from each job for the header
-    number_of_rows = sess.query(func.sum(case([(Job.number_of_rows > 0, Job.number_of_rows-1)], else_=0))).\
+    number_of_rows = sess.query(func.sum(case([(Job.number_of_rows > 0, Job.number_of_rows - 1)], else_=0))).\
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
@@ -455,7 +455,7 @@ def list_banners():
 
     data = []
 
-    if current_banners.count() is 0:
+    if current_banners.count() == 0:
         data = None
     else:
         for banner in current_banners:
@@ -672,8 +672,8 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
         submission_query = submission_query.filter(Submission.reporting_fiscal_period == reporting_fiscal_period)
     else:
         reporting_fiscal_quarter = math.ceil(reporting_fiscal_period / 3)
-        submission_query = submission_query.filter((func.ceil(cast(Submission.reporting_fiscal_period, Numeric) / 3) ==
-                                                    reporting_fiscal_quarter))
+        submission_query = submission_query.filter((func.ceil(cast(Submission.reporting_fiscal_period, Numeric) / 3)
+                                                    == reporting_fiscal_quarter))
 
     if filter_sub_type not in ('monthly', 'quarterly', 'mixed'):
         raise ValueError('Published param must be one of the following: "monthly", "quarterly", or "mixed"')
@@ -1157,7 +1157,7 @@ def revert_to_certified(submission, file_manager):
                 # local file size
                 try:
                     job.file_size = os.path.getsize(job.filename)
-                except:
+                except Exception:
                     logger.warning('File doesn\'t exist locally: %s', job.filename)
                     job.file_size = 0
             else:
