@@ -65,7 +65,7 @@ class ErrorWarningTests(BaseTestValidator):
             submission: the submission foundation to be used for all the tests
             val_job: the validation job to be used for all the tests
     """
-    CHUNK_SIZES = [2]
+    CHUNK_SIZES = [4]
     PARALLEL_OPTIONS = [True, False]
     BATCH_SQL_OPTIONS = [True, False]
     CONFIGS = list(itertools.product(CHUNK_SIZES, PARALLEL_OPTIONS, BATCH_SQL_OPTIONS))
@@ -429,17 +429,28 @@ class ErrorWarningTests(BaseTestValidator):
         # Read Error
         report_headers, report_content = self.generate_file_report(READ_ERROR, 'appropriations', warning=False)
         appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
-        assert appro_count == 7
+        assert appro_count == 6
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
-        assert flex_count == 14
+        assert flex_count == 12
         assert self.validator.job.number_of_rows == 11
-        assert self.validator.job.number_of_rows_valid == 7
+        assert self.validator.job.number_of_rows_valid == 6
         format_errors = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                     severity_id=RULE_SEVERITY_DICT['fatal']).one()
         format_error_count = format_errors.occurrences
-        assert format_error_count == 3
+        assert format_error_count == 4
         assert report_headers == self.validator.report_headers
         expected_values = [
+            {
+                'Unique ID': '',
+                'Field Name': 'Formatting Error',
+                'Rule Message': 'Could not parse this record correctly.',
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
+                'Row Number': '2',
+                'Rule Label': ''
+            },
             {
                 'Unique ID': '',
                 'Field Name': 'Formatting Error',
@@ -459,7 +470,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Expected Value': '',
                 'Difference': '',
                 'Flex Field': '',
-                'Row Number': '6',
+                'Row Number': '5',
                 'Rule Label': ''
             },
             {
