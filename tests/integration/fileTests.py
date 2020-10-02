@@ -1029,20 +1029,28 @@ class FileTests(BaseTestAPI):
     def test_submission_report_url(self):
         """ Test that the submission's report is successfully generated """
         params = {'warning': False,
-                  'file_type': 'appropriations'}
-        response = self.app.get('/v1/submission/{}/report_url'.format(self.row_error_submission_id), params,
-                                headers={'x-session-id': self.session_id})
+                  'file_type': 'appropriations',
+                  'submission_id': self.row_error_submission_id}
+        response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 200)
         self.assertIn('url', response.json)
+
+    def test_submission_report_url_missing_submission_id(self):
+        """ Test that missing submission_ids cause an error """
+        params = {'warning': False,
+                  'file_type': 'executive_compensation'}
+        response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'submission_id is required')
 
     def test_submission_report_url_invalid_file(self):
         """ Test that invalid file_types cause an error (even if they're technically a file type that we have, just
             not one with error reports)
         """
         params = {'warning': False,
-                  'file_type': 'executive_compensation'}
-        response = self.app.get('/v1/submission/{}/report_url'.format(self.row_error_submission_id), params,
-                                headers={'x-session-id': self.session_id}, expect_errors=True)
+                  'file_type': 'executive_compensation',
+                  'submission_id': self.row_error_submission_id}
+        response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file_type: Not a valid choice.')
 
@@ -1050,9 +1058,9 @@ class FileTests(BaseTestAPI):
         """ Test that invalid cross_types cause an error """
         params = {'warning': False,
                   'file_type': 'appropriations',
-                  'cross_type': 'appropriations'}
-        response = self.app.get('/v1/submission/{}/report_url'.format(self.row_error_submission_id), params,
-                                headers={'x-session-id': self.session_id}, expect_errors=True)
+                  'cross_type': 'appropriations',
+                  'submission_id': self.row_error_submission_id}
+        response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'cross_type: Not a valid choice.')
 
@@ -1060,9 +1068,10 @@ class FileTests(BaseTestAPI):
         """ Test that valid cross_type but invalid pair causes an error """
         params = {'warning': False,
                   'file_type': 'appropriations',
-                  'cross_type': 'award'}
-        response = self.app.get('/v1/submission/{}/report_url'.format(self.row_error_submission_id), params,
-                                headers={'x-session-id': self.session_id}, expect_errors=True)
+                  'cross_type': 'award',
+                  'submission_id': self.row_error_submission_id}
+        response = self.app.get('/v1/report_url'.format(), params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'appropriations and award is not a valid cross-pair.')
 

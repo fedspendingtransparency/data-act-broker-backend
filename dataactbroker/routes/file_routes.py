@@ -188,7 +188,25 @@ def add_file_routes(app, is_local, server_path):
     def get_submission_comments_file(submission):
         return get_comments_file(submission, is_local)
 
+    # TODO: deprecated, remove in 2021
     @app.route("/v1/submission/<int:submission_id>/report_url/", methods=['GET'])
+    @requires_submission_perms('reader')
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys() - {'executive_compensation', 'sub_award'})
+        ),
+        'warning': webargs_fields.Bool(),
+        'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(['program_activity', 'award_financial',
+                                                                             'award_procurement', 'award']))
+    })
+    def post_submission_report_url_old(submission, file_type, **kwargs):
+        warning = kwargs.get('warning')
+        cross_type = kwargs.get('cross_type')
+        return submission_report_url(submission, bool(warning), file_type, cross_type)
+
+    @app.route("/v1/report_url/", methods=['GET'])
+    @convert_to_submission_id
     @requires_submission_perms('reader')
     @use_kwargs({
         'file_type': webargs_fields.String(
