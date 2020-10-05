@@ -11,7 +11,7 @@ This endpoint returns the farthest frontend page a user should be able to see ba
 ```
 {
     "step": "1",
-    "message": "The current progress of this submission ID is on /v1/validateData/ page."
+    "message": "This submission is on the /validateData page."
 }
 ```
     
