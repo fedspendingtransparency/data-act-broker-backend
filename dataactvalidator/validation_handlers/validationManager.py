@@ -396,8 +396,19 @@ class ValidationManager:
                               is_local=self.is_local)
         # Going back to reprocess the header row
         self.reader.file.seek(0)
+
+        # getting a list of starting rows to skip if they are long rows (causes indexing issues with pandas)
+        skiprows = []
+        # pandas skiprow's is 0-indexed whereas long_rows is 1-indexed
+        # we're starting from 1 since we know the header is fine
+        if len(self.long_rows) > 0:
+            for i in range(1, max(self.long_rows) + 1):
+                if i + 1 not in self.long_rows:
+                    break
+                skiprows.append(i)
+
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
-                                 na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
+                                 na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False, skiprows=skiprows)
         # Setting this outside of reader/file type objects which may not be used during processing
         self.flex_fields = self.reader.flex_fields
         self.header_dict = self.reader.header_dict
@@ -590,9 +601,6 @@ class ValidationManager:
         chunk_df['index'] = chunk_df.index
         # index gets reset for each chunk, adding the header, and adding previous rows
         chunk_df['row_number'] = chunk_df.index + 2
-
-        # Some long null rows may get included in the resulting dataframe, this ensures they are removed
-        chunk_df = chunk_df[~chunk_df['row_number'].isin(self.long_null_rows)]
 
         with lockable:
             shared_data['total_rows'] += len(chunk_df.index)
@@ -1006,7 +1014,7 @@ class ValidationManager:
                                                                                                    spawn_of_job.name),
                 'message_type': 'ValidatorInfo',
                 'submission_id': self.submission_id,
-                'job_id': job.job_id,
+                'job_id': self.job_id,
             })
             spawn_of_job.kill()
 
