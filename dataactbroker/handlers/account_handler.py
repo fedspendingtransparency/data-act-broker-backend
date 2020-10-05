@@ -9,7 +9,6 @@ from dataactbroker.handlers.aws.sesEmail import SesEmail
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func, or_
@@ -182,8 +181,12 @@ class AccountHandler:
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
 
-    def set_skip_guide(self):
+    @staticmethod
+    def set_skip_guide(skip_guide):
         """ Set current user's skip guide parameter
+
+            Args:
+                skip_guide: boolean indicating whether the skip guide should be visible or not for this user
 
             Returns:
                 JsonResponse object containing results of setting the skip guide or details of the error that occurred.
@@ -191,24 +194,9 @@ class AccountHandler:
                 value
         """
         sess = GlobalDB.db().session
-        request_dict = RequestDictionary.derive(self.request)
-        try:
-            if 'skip_guide' not in request_dict:
-                raise ResponseException(
-                    "Must include skip_guide parameter",
-                    StatusCode.CLIENT_ERROR
-                )
-            skip_guide = str(request_dict['skip_guide']).lower()
-            if skip_guide not in ("true", "false"):
-                raise ResponseException(
-                    "skip_guide must be true or false",
-                    StatusCode.CLIENT_ERROR
-                )
-            g.user.skip_guide = skip_guide == "true"
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
+        g.user.skip_guide = skip_guide
         sess.commit()
-        return JsonResponse.create(StatusCode.OK, {"message": "skip_guide set successfully", "skip_guide": skip_guide})
+        return JsonResponse.create(StatusCode.OK, {'message': 'skip_guide set successfully', 'skip_guide': skip_guide})
 
     @staticmethod
     def email_users(submission, system_email, template_type, user_ids):
