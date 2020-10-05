@@ -499,16 +499,16 @@ def check_current_submission_page(submission):
 
     submission_id = submission.submission_id
 
-    # /v1/uploadDetachedFiles/
-    # DetachedFiles
+    # /FABSaddData
+    # FABS
     if submission.d2_submission:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.',
+            'message': 'This submission is currently on the /FABSaddData page.',
             'step': '6'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
-    # /v1/reviewData/
+    # /reviewData
     # Checks that both E and F files are finished
     review_data = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([6, 7]),
                                          Job.job_status_id == 4)
@@ -519,15 +519,15 @@ def check_current_submission_page(submission):
 
     if review_data.count() == 2 and generate_ef.count() > 0:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/reviewData/ page.',
+            'message': 'This submission is currently on the /reviewData page.',
             'step': '5'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
-    # /v1/generateEF/
+    # /generateEF
     if generate_ef.count() > 0:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/generateEF/ page.',
+            'message': 'This submission is currently on the /generateEF page.',
             'step': '4'
         }
         return JsonResponse.create(StatusCode.OK, data)
@@ -540,30 +540,30 @@ def check_current_submission_page(submission):
                                             Job.job_type_id == 2, Job.number_of_errors == 0,
                                             Job.file_size.isnot(None), Job.job_status_id == 4)
 
-    # /v1/validateCrossFile/
+    # /validateCrossFile
     if validate_cross_file.count() == 2 and generate_files.count() == 3:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/validateCrossFile/ page.',
+            'message': 'This submission is currently on the /validateCrossFile page.',
             'step': '3'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
-    # /v1/generateFiles/
+    # /generateFiles
     if generate_files.count() == 3:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/generateFiles/ page.',
+            'message': 'This submission is currently on the /generateFiles page.',
             'step': '2'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
-    # /v1/validateData/
+    # /validateData
     validate_data = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([1, 2, 3]),
                                            Job.job_type_id == 2, Job.number_of_errors != 0, Job.file_size.isnot(None))
     check_header_errors = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([1, 2, 3]),
                                                  Job.job_type_id == 2, Job.job_status_id != 4)
     if validate_data.count() or check_header_errors.count() > 0:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/validateData/ page.',
+            'message': 'This submission is currently on the /validateData page.',
             'step': '1'
         }
         return JsonResponse.create(StatusCode.OK, data)

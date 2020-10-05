@@ -59,14 +59,32 @@ class UserTests(BaseTestAPI):
     def test_skip_guide(self):
         """ Set skip guide to True and check value in DB """
         self.login_user()
-        params = {"skip_guide": True}
-        response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK, "skip_guide set successfully")
-        self.assertTrue(response.json["skip_guide"])
+        params = {'skip_guide': 'TRUE'}
+        response = self.app.post_json('/v1/set_skip_guide/', params, headers={'x-session-id': self.session_id})
+        self.check_response(response, StatusCode.OK, 'skip_guide set successfully')
+        self.assertTrue(response.json['skip_guide'])
         with create_app().app_context():
             sess = GlobalDB.db().session
             user = sess.query(User).filter(User.email == self.test_users['agency_user']).one()
         self.assertTrue(user.skip_guide)
+
+    def test_skip_guide_missing_param(self):
+        """ Make sure an error is thrown if the skip_guide parameter is missing """
+        self.login_user()
+        params = {}
+        response = self.app.post_json('/v1/set_skip_guide/', params, headers={'x-session-id': self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'skip_guide: Missing data for required field.')
+
+    def test_skip_guide_invalid_param(self):
+        """ Make sure an error is thrown if the skip_guide parameter is not a boolean """
+        self.login_user()
+        params = {'skip_guide': 'nonboolean'}
+        response = self.app.post_json('/v1/set_skip_guide/', params, headers={'x-session-id': self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'skip_guide: Not a valid boolean.')
 
     # def test_email_users(self):
     #     """ Test email users """
