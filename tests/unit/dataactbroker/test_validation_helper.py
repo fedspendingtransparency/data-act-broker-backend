@@ -11,6 +11,7 @@ from dataactcore.models.lookups import FIELD_TYPE_DICT
 
 FILES_DIR = os.path.join('tests', 'integration', 'data')
 READ_ERROR = os.path.join(FILES_DIR, 'appropReadError.csv')
+BLANK_C = os.path.join(FILES_DIR, 'awardFinancialBlank.csv')
 
 
 def test_is_valid_type():
@@ -515,4 +516,5 @@ def test_process_formatting_errors():
 
 def test_simple_file_scan():
     # Note: only testing locally
-    assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (11, [3, 6], [])
+    assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (11, [3, 6], [7], [], [])
+    assert validation_helper.simple_file_scan(CsvReader(), None, None, BLANK_C) == (5, [], [], [3], [4])
