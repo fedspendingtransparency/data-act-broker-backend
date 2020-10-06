@@ -42,3 +42,4 @@ temp/
 tmp/
 local-configs.yml
 local_configs.yml
+.pytest_cache

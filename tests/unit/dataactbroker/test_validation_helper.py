@@ -11,6 +11,7 @@ from dataactcore.models.lookups import FIELD_TYPE_DICT
 
 FILES_DIR = os.path.join('tests', 'integration', 'data')
 READ_ERROR = os.path.join(FILES_DIR, 'appropReadError.csv')
+BLANK_C = os.path.join(FILES_DIR, 'awardFinancialBlank.csv')
 
 
 def test_is_valid_type():
@@ -66,42 +67,42 @@ def test_clean_col():
 
 def test_clean_frame_vectorized():
     df_under_test = pd.DataFrame([
-        ['""',          "",     " lspace",          '"lquote'],
-        ["''",          " ",    "rspace ",          'rquote"'],
-        ["'hello'",     "  ",   " surround space ", '"surround quote"'],
-        ['"hello"',     "\n\t", None,               '" surround quote and space "'],
-        ['"hello you"', "5",    np.NaN,             ' " surround quote and space "\t'],
+        ['""', "", " lspace", '"lquote'],
+        ["''", " ", "rspace ", 'rquote"'],
+        ["'hello'", "  ", " surround space ", '"surround quote"'],
+        ['"hello"', "\n\t", None, '" surround quote and space "'],
+        ['"hello you"', "5", np.NaN, ' " surround quote and space "\t'],
     ], columns=list("ABCD"))
 
     df_under_test = validation_helper.clean_frame_vectorized(df_under_test)
 
     expected_df = pd.DataFrame([
-        [None,          None,   "lspace",           '"lquote'],
-        ["''",          None,   "rspace",           'rquote"'],
-        ["'hello'",     None,   "surround space",   "surround quote"],
-        ["hello",       None,   None,               "surround quote and space"],
-        ["hello you",   "5",    None,               "surround quote and space"],
+        [None, None, "lspace", '"lquote'],
+        ["''", None, "rspace", 'rquote"'],
+        ["'hello'", None, "surround space", "surround quote"],
+        ["hello", None, None, "surround quote and space"],
+        ["hello you", "5", None, "surround quote and space"],
     ], columns=list("ABCD"))
     assert_frame_equal(df_under_test, expected_df)
 
 
 def test_clean_frame_vectorized_mixed_types():
     df_under_test = pd.DataFrame([
-        ['""',      "",     np.NaN,             '"25'],
-        ["''",      " ",    "NaN",              '-10"'],
-        ["'10'",    "  ",   np.int64(12),       '"0"'],
-        [77,        "\n\t", None,               0.0],
-        ['"11 8"',  "5",    np.float64(8.2),    '99\t'],
+        ['""', "", np.NaN, '"25'],
+        ["''", " ", "NaN", '-10"'],
+        ["'10'", "  ", np.int64(12), '"0"'],
+        [77, "\n\t", None, 0.0],
+        ['"11 8"', "5", np.float64(8.2), '99\t'],
     ], columns=list("ABCD"))
 
     df_under_test = validation_helper.clean_frame_vectorized(df_under_test, convert_to_str=True)
 
     expected_df = pd.DataFrame([
-        [None,      None,   None,       '"25'],
-        ["''",      None,   "NaN",      '-10"'],
-        ["'10'",    None,   "12",       "0"],
-        ["77",      None,   None,       "0.0"],
-        ["11 8",    "5",    "8.2",      "99"],
+        [None, None, None, '"25'],
+        ["''", None, "NaN", '-10"'],
+        ["'10'", None, "12", "0"],
+        ["77", None, None, "0.0"],
+        ["11 8", "5", "8.2", "99"],
     ], columns=list("ABCD"))
     assert_frame_equal(df_under_test, expected_df)
 
@@ -515,4 +516,5 @@ def test_process_formatting_errors():
 
 def test_simple_file_scan():
     # Note: only testing locally
-    assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (11, [3, 6], [])
+    assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (11, [5], [2, 3, 7], [], [])
+    assert validation_helper.simple_file_scan(CsvReader(), None, None, BLANK_C) == (5, [], [], [3], [4])

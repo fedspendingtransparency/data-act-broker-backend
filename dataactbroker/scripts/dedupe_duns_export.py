@@ -51,7 +51,7 @@ def main():
     if not duns_file:
         raise OSError("No DUNS_export.csv found.")
 
-    logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
+    logger.info("Retrieved historical DUNS file in {} s".format((datetime.now() - start).total_seconds()))
 
     dedupe_duns_export = os.path.join(CONFIG_BROKER["broker_files"], 'DUNS_export_deduped.csv')
     generate_dedupe_export(duns_file, dedupe_duns_export)

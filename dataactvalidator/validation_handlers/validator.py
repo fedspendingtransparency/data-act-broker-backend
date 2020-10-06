@@ -65,8 +65,8 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
             target_headers = [short_to_long_dict.get(field[target_len:], field[target_len:]) for field in target_cols]
 
             logger.info({
-                'message': 'Starting flex field gathering for cross-file rule ' +
-                           '{} on submission_id: {}'.format(rule.query_name, str(submission_id)),
+                'message': 'Starting flex field gathering for cross-file rule '
+                           + '{} on submission_id: {}'.format(rule.query_name, str(submission_id)),
                 'message_type': 'ValidatorInfo',
                 'rule': rule.query_name,
                 'job_id': job_id,
@@ -74,8 +74,8 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
             })
             source_flex_data = relevant_cross_flex_data(failures, submission_id, rule.file_id)
             logger.info({
-                'message': 'Finished flex field gathering for cross-file rule ' +
-                           '{} on submission_id: {}'.format(rule.query_name, str(submission_id)),
+                'message': 'Finished flex field gathering for cross-file rule '
+                           + '{} on submission_id: {}'.format(rule.query_name, str(submission_id)),
                 'message_type': 'ValidatorInfo',
                 'rule': rule.query_name,
                 'job_id': job_id,
@@ -278,7 +278,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
             'batch_results': batch_results
         })
 
-    sql_val_duration = (datetime.now()-sql_val_start).total_seconds()
+    sql_val_duration = (datetime.now() - sql_val_start).total_seconds()
     logger.info({
         'message': 'Completed SQL validations {}'.format(log_string),
         'message_type': 'ValidatorInfo',
@@ -312,13 +312,19 @@ def relevant_flex_data(failures, job_id):
     if fail_string:
         # VALUES and EXISTS are ridiculous in sqlalchemy, using raw sql for this
         query = (
-            "WITH all_values AS (SELECT * FROM (VALUES (" + fail_string + ")) as all_flexs (row_number)) " +
-            "SELECT * " +
-            "FROM flex_field " +
-            "WHERE job_id=" + str(job_id) +
-            " AND EXISTS (SELECT * FROM all_values WHERE flex_field.row_number = all_values.row_number)"
-            "ORDER BY flex_field.header"
-        )
+            """
+            WITH all_values AS (SELECT * FROM (VALUES ({})) as all_flexs (row_number))
+            SELECT *
+            FROM flex_field
+            WHERE job_id={}
+                AND EXISTS (
+                    SELECT *
+                    FROM all_values
+                    WHERE flex_field.row_number = all_values.row_number
+                )
+            ORDER BY flex_field.header
+            """
+        ).format(fail_string, str(job_id))
         query_result = sess.execute(query)
         for flex_field in query_result:
             flex_data[flex_field.row_number].append(flex_field)

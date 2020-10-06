@@ -135,10 +135,10 @@ def update_missing_parent_names(sess, updated_date=None):
     while batch <= batches:
         updated_count = 0
         start = time.time()
-        batch_start = batch*block_size
+        batch_start = batch * block_size
         logger.info("Processing row {} - {} with missing parent duns name"
-                    .format(str(batch*block_size+1),
-                            str(missing_count if batch == batches else (batch+1)*block_size)
+                    .format(str(batch * block_size + 1),
+                            str(missing_count if batch == batches else (batch + 1) * block_size)
                             ))
 
         missing_parent_name_block = missing_parent_name.order_by(DUNS.duns_id).\
@@ -150,7 +150,7 @@ def update_missing_parent_names(sess, updated_date=None):
                 updated_count += 1
 
         logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, DUNS.__name__,
-                                                                                time.time()-start))
+                                                                                time.time() - start))
         total_updated_count += updated_count
 
         batch += 1

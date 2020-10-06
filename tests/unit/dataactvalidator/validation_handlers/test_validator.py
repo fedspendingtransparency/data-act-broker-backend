@@ -21,7 +21,7 @@ def test_relevant_flex_data(database):
     # Set up ten rows of three fields per job
     sess.add_all([
         FlexField(submission_id=job.submission_id, job_id=job.job_id, row_number=row_number, header=str(idx),
-                  cell="cell"*row_number)
+                  cell="cell" * row_number)
         for job in jobs for idx in range(3) for row_number in range(1, 11)
     ])
     sess.commit()

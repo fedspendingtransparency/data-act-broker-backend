@@ -41,7 +41,7 @@ class SchemaLoader(object):
             types = {data_type.name: data_type.field_type_id for data_type in type_query}
 
             # add schema to database
-            with open(schema_file_name, 'rU') as csvfile:
+            with open(schema_file_name, 'r') as csvfile:
                 reader = csv.DictReader(csvfile)
                 file_column_count = 0
                 for record in reader:
@@ -62,7 +62,7 @@ class SchemaLoader(object):
                             record["field_length"])
                         file_column_count += 1
                     else:
-                            raise ValueError('CSV File does not follow schema')
+                        raise ValueError('CSV File does not follow schema')
 
                 sess.commit()
                 logger.info({
@@ -149,6 +149,7 @@ class SchemaLoader(object):
         for key in cls.fieldFiles:
             filepath = os.path.join(path, cls.fieldFiles[key])
             cls.load_fields(key, filepath)
+
 
 if __name__ == '__main__':
     configure_logging()

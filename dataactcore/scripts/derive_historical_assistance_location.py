@@ -171,7 +171,7 @@ def fix_fabs_ppop_state(row):
             else:
                 row.place_of_perfor_state_code = g_state_code_by_fips[state_code]
         elif row.place_of_perform_state_nam and row.place_of_perform_state_nam.upper() in g_state_by_name:
-                row.place_of_perfor_state_code = g_state_by_name[row.place_of_perform_state_nam.upper()]
+            row.place_of_perfor_state_code = g_state_by_name[row.place_of_perform_state_nam.upper()]
         else:
             zip_data = get_zip_data(row.place_of_performance_zip4a)
             zip_check = True
@@ -235,7 +235,7 @@ def fix_fabs_ppop_county(row, zip_data, zip_check):
             elif re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code):
                 # only set it if we have this data in the list
                 if ppop_code in g_county_by_city:
-                    row.place_of_perform_county_co = g_county_by_city[state_code+ppop_code[-5:]]
+                    row.place_of_perform_county_co = g_county_by_city[state_code + ppop_code[-5:]]
         # check if we managed to fill it in and if we have a zip4
         if not row.place_of_perform_county_co and row.place_of_performance_zip4a:
             # only look for zip data if we don't have any already and haven't tried to get it

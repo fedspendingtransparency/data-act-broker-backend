@@ -38,8 +38,8 @@ def update_cfda(sess):
         current_cfda = row.cfda_number
         cfda_query = sess.query(PublishedAwardFinancialAssistance).\
             filter(
-                    PublishedAwardFinancialAssistance.cfda_title.is_(None),
-                    PublishedAwardFinancialAssistance.cfda_number == row.cfda_number)
+                PublishedAwardFinancialAssistance.cfda_title.is_(None),
+                PublishedAwardFinancialAssistance.cfda_number == row.cfda_number)
         if len(current_cfda.split('.')) < 2:
             logger.info('CFDA_number %s is not a valid CFDA_number', current_cfda)
             invalid_count = cfda_query.count()
@@ -64,7 +64,7 @@ def update_cfda(sess):
         complete = complete + cfda_query
         end_time = datetime.datetime.now()
         logger.info('%s entries updated, %s entries remaining, %s percent complete',
-                    complete, count, (complete/total)*100)
+                    complete, count, (complete / total) * 100)
         logger.info('CFDA %s took %s to complete', row.cfda_number, end_time - start_time)
         logger.info('%s entries with CFDA number %s have been updated with title "%s"',
                     cfda_query, row.cfda_number, cfda_list[current_cfda])
@@ -79,7 +79,7 @@ def main():
     logger.info('CFDA update started')
     update_cfda(sess)
     end = datetime.datetime.now()
-    logger.info('CFDA update finished in %s seconds', end-start)
+    logger.info('CFDA update finished in %s seconds', end - start)
 
 
 if __name__ == '__main__':

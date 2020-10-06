@@ -42,10 +42,13 @@ def add_user_routes(app, system_email, bcrypt):
 
     @app.route("/v1/set_skip_guide/", methods=["POST"])
     @requires_login
-    def set_skip_guide():
+    @use_kwargs({
+        'skip_guide': webargs_fields.Bool(required=True)
+    })
+    def set_skip_guide(skip_guide):
         """ Sets skip_guide param for current user """
         account_manager = AccountHandler(request, bcrypt=bcrypt)
-        return account_manager.set_skip_guide()
+        return account_manager.set_skip_guide(skip_guide)
 
     # Commenting out due to issues with SES
     # @app.route("/v1/email_users/", methods=["POST"])

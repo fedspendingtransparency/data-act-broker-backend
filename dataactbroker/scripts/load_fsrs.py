@@ -34,8 +34,8 @@ def metric_counts(award_list, award_type, metrics):
             award_type: procurement or grant for which key to add to
             metrics: the dictionary containing the metrics we need
     """
-    metrics[award_type+'_awards'] += len(award_list)
-    metrics[award_type+'_subawards'] += sum(len(a.subawards) for a in award_list)
+    metrics[award_type + '_awards'] += len(award_list)
+    metrics[award_type + '_subawards'] += sum(len(a.subawards) for a in award_list)
 
 
 if __name__ == '__main__':

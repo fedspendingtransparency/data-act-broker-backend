@@ -65,7 +65,7 @@ class ErrorWarningTests(BaseTestValidator):
             submission: the submission foundation to be used for all the tests
             val_job: the validation job to be used for all the tests
     """
-    CHUNK_SIZES = [2]
+    CHUNK_SIZES = [4]
     PARALLEL_OPTIONS = [True, False]
     BATCH_SQL_OPTIONS = [True, False]
     CONFIGS = list(itertools.product(CHUNK_SIZES, PARALLEL_OPTIONS, BATCH_SQL_OPTIONS))
@@ -224,7 +224,7 @@ class ErrorWarningTests(BaseTestValidator):
         if ignore_error:
             try:
                 self.validator.validate_job(self.val_job.job_id)
-            except:
+            except Exception:
                 pass
         else:
             self.validator.validate_job(self.val_job.job_id)
@@ -242,7 +242,7 @@ class ErrorWarningTests(BaseTestValidator):
         if ignore_error:
             try:
                 self.validator.validate_job(self.val_job.job_id)
-            except:
+            except Exception:
                 pass
         else:
             self.validator.validate_job(self.val_job.job_id)
@@ -272,6 +272,7 @@ class ErrorWarningTests(BaseTestValidator):
             self.single_file_warnings()
 
     def single_file_warnings(self):
+        self.cleanup()
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=True)
         appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
@@ -280,6 +281,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 20
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 10
         assert error_count == 0
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
@@ -293,6 +296,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 0
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert self.validator.job.number_of_rows == 1
+        assert self.validator.job.number_of_rows_valid == 2
         assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
@@ -320,6 +325,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 20
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
@@ -351,6 +358,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.single_file_errors()
 
     def single_file_errors(self):
+        self.cleanup()
+
         # Valid
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=False)
         appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
@@ -359,6 +368,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 20
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 10
         assert error_count == 0
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
@@ -373,6 +384,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert flex_count == 0
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
+        assert self.validator.job.number_of_rows is None
+        assert self.validator.job.number_of_rows_valid == 0
         # Header errors do not get saved to the database
         assert error_count == 0
         assert report_headers == ['Error type', 'Header name']
@@ -416,15 +429,28 @@ class ErrorWarningTests(BaseTestValidator):
         # Read Error
         report_headers, report_content = self.generate_file_report(READ_ERROR, 'appropriations', warning=False)
         appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
-        assert appro_count == 8
+        assert appro_count == 6
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
-        assert flex_count == 16
+        assert flex_count == 12
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 6
         format_errors = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                     severity_id=RULE_SEVERITY_DICT['fatal']).one()
         format_error_count = format_errors.occurrences
-        assert format_error_count == 2
+        assert format_error_count == 4
         assert report_headers == self.validator.report_headers
         expected_values = [
+            {
+                'Unique ID': '',
+                'Field Name': 'Formatting Error',
+                'Rule Message': 'Could not parse this record correctly.',
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
+                'Row Number': '2',
+                'Rule Label': ''
+            },
             {
                 'Unique ID': '',
                 'Field Name': 'Formatting Error',
@@ -444,7 +470,18 @@ class ErrorWarningTests(BaseTestValidator):
                 'Expected Value': '',
                 'Difference': '',
                 'Flex Field': '',
-                'Row Number': '6',
+                'Row Number': '5',
+                'Rule Label': ''
+            },
+            {
+                'Unique ID': '',
+                'Field Name': 'Formatting Error',
+                'Rule Message': 'Could not parse this record correctly.',
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
+                'Row Number': '7',
                 'Rule Label': ''
             }
         ]
@@ -457,6 +494,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 9
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 18
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 1
@@ -484,6 +523,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 10
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 20
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 1
@@ -510,6 +551,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 10
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 20
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 3
@@ -568,6 +611,8 @@ class ErrorWarningTests(BaseTestValidator):
         assert appro_count == 10
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 20
+        assert self.validator.job.number_of_rows == 11
+        assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
         assert error_count == 1
@@ -613,6 +658,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.cross_file_warnings()
 
     def cross_file_warnings(self):
+        self.cleanup()
+
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
@@ -807,6 +854,8 @@ class ErrorWarningTests(BaseTestValidator):
             self.cross_file_errors()
 
     def cross_file_errors(self):
+        self.cleanup()
+
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                                           (CROSS_FILE_B, 'program_activity')],
@@ -898,11 +947,13 @@ class ErrorWarningTests(BaseTestValidator):
         self.validator.file_type = self.session.query(FileType).filter_by(
             file_type_id=FILE_TYPE_DICT['appropriations']).one()
         self.validator.file_name = APPROP_FILE
+        self.setup_csv_record_validation(APPROP_FILE, 'appropriations')
         self.validator.is_fabs = False
         self.validator.reader = CsvReader()
         self.validator.error_list = {}
         self.validator.error_rows = []
         self.validator.total_rows = 1
+        self.validator.total_data_rows = 0
         self.validator.short_rows = []
         self.validator.long_rows = []
         self.validator.has_data = False
@@ -917,11 +968,12 @@ class ErrorWarningTests(BaseTestValidator):
         self.validator.warning_file_path = ''.join([CONFIG_SERVICES['error_report_path'],
                                                     self.validator.warning_file_name])
 
-        fields = self.session.query(FileColumn) \
+        self.validator.fields = self.session.query(FileColumn) \
             .filter(FileColumn.file_id == FILE_TYPE_DICT[self.validator.file_type.name]) \
             .order_by(FileColumn.daims_name.asc()).all()
-        self.validator.expected_headers, self.validator.parsed_fields = parse_fields(self.session, fields)
-        self.validator.csv_schema = {row.name_short: row for row in fields}
+        self.validator.expected_headers, self.validator.parsed_fields = parse_fields(self.session,
+                                                                                     self.validator.fields)
+        self.validator.csv_schema = {row.name_short: row for row in self.validator.fields}
 
         with open(self.validator.error_file_path, 'w', newline='') as error_file, \
                 open(self.validator.warning_file_path, 'w', newline='') as warning_file:

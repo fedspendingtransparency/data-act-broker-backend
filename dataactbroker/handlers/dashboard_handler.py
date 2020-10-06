@@ -364,7 +364,7 @@ def historic_dabs_warning_graphs(filters):
         for _, file_dict in results_data.items():
             for _, sub_dict in file_dict.items():
                 for warning in sub_dict['warnings']:
-                    warning['percent_total'] = round((warning['instances']/sub_dict['total_warnings'])*100)
+                    warning['percent_total'] = round((warning['instances'] / sub_dict['total_warnings']) * 100)
 
     # Convert submissions dicts to lists
     results = OrderedDict()
@@ -477,12 +477,14 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
     offset = limit * (page - 1)
     table_query = table_query.slice(offset, offset + limit)
 
-    response = {'results': [],
-                'page_metadata': {
-                    'total': total_metadata,
-                    'page': page,
-                    'limit': limit
-                }}
+    response = {
+        'results': [],
+        'page_metadata': {
+            'total': total_metadata,
+            'page': page,
+            'limit': limit
+        }
+    }
 
     # Loop through all responses
     for error_metadata in table_query.all():
@@ -717,7 +719,7 @@ def get_significance_counts(submission, file, error_level):
 
     # Calculate the percentages
     for rule_dict in response['rules']:
-        rule_dict['percentage'] = round((rule_dict['instances']/response['total_instances'])*100, 1)
+        rule_dict['percentage'] = round((rule_dict['instances'] / response['total_instances']) * 100, 1)
 
     return JsonResponse.create(StatusCode.OK, response)
 

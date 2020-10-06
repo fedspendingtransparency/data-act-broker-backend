@@ -309,7 +309,7 @@ def retrieve_batch(service_type, id, min_id=False, max_id=None):
     retry = 1
     while retry <= MAX_RETRIES:
         try:
-            reports = new_client(service_type).service.getData(id=id-1)['reports']
+            reports = new_client(service_type).service.getData(id=id - 1)['reports']
             break
         except Exception as e:
             logger.warning('Connection to service failed: {}'.format(e))

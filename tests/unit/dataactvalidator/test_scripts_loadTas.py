@@ -97,9 +97,9 @@ def test_update_tas_lookups(database, monkeypatch):
     incoming_tas_data = pd.DataFrame(
         columns=('account_num',) + TAS_COMPONENTS + ('internal_start_date', 'internal_end_date'),
         data=[
-            [111] + ['new-entry-1'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), None],
-            [222] + ['still-active'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), date(2016, 5, 2)],
-            [333] + ['new-entry-2'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), None],
+            [111] + ['new-entry-1'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), None],
+            [222] + ['still-active'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), date(2016, 5, 2)],
+            [333] + ['new-entry-2'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), None],
         ]
     )
     monkeypatch.setattr(load_tas, 'clean_tas', Mock(return_value=incoming_tas_data))

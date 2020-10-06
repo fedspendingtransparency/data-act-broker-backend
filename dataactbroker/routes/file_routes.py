@@ -3,7 +3,7 @@ from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
-    FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
+    FileHandler, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
     get_detached_upload_file_url, get_submission_comments, submission_report_url, update_submission_comments,
     list_history, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
@@ -71,12 +71,6 @@ def add_file_routes(app, is_local, server_path):
     def get_banner_list():
         return list_banners()
 
-    @app.route("/v1/error_metrics/", methods=["POST"])
-    @convert_to_submission_id
-    @requires_submission_perms('reader')
-    def submission_error_metrics(submission):
-        return get_error_metrics(submission)
-
     @app.route("/v1/list_submissions/", methods=["POST"])
     @requires_login
     @use_kwargs({
@@ -107,7 +101,20 @@ def add_file_routes(app, is_local, server_path):
         """ List all publish and certify history for a specific submission """
         return list_history(submission)
 
+    # TODO: deprecated, remove in 2021
     @app.route("/v1/get_certified_file/", methods=["POST"])
+    @use_kwargs({
+        'submission_id': webargs_fields.Int(required=True),
+        'published_files_history_id': webargs_fields.Int(required=True),
+        'is_warning': webargs_fields.Bool(missing=False)
+    })
+    @requires_submission_perms('reader')
+    def get_certified_file_post(submission, published_files_history_id, **kwargs):
+        """ Get the signed URL for the specified file history """
+        is_warning = kwargs.get('is_warning')
+        return file_history_url(submission, published_files_history_id, is_warning, is_local)
+
+    @app.route("/v1/get_certified_file/", methods=["GET"])
     @use_kwargs({
         'submission_id': webargs_fields.Int(required=True),
         'published_files_history_id': webargs_fields.Int(required=True),
@@ -125,7 +132,15 @@ def add_file_routes(app, is_local, server_path):
     def check_current_page(submission):
         return check_current_submission_page(submission)
 
+    # TODO: deprecated, remove in 2021
     @app.route("/v1/get_fabs_meta/", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def get_fabs_metadata_post(submission):
+        """ Return metadata of FABS submission """
+        return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
+
+    @app.route("/v1/get_fabs_meta/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def get_fabs_metadata(submission):
@@ -173,7 +188,25 @@ def add_file_routes(app, is_local, server_path):
     def get_submission_comments_file(submission):
         return get_comments_file(submission, is_local)
 
+    # TODO: deprecated, remove in 2021
     @app.route("/v1/submission/<int:submission_id>/report_url/", methods=['GET'])
+    @requires_submission_perms('reader')
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys() - {'executive_compensation', 'sub_award'})
+        ),
+        'warning': webargs_fields.Bool(),
+        'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(['program_activity', 'award_financial',
+                                                                             'award_procurement', 'award']))
+    })
+    def post_submission_report_url_old(submission, file_type, **kwargs):
+        warning = kwargs.get('warning')
+        cross_type = kwargs.get('cross_type')
+        return submission_report_url(submission, bool(warning), file_type, cross_type)
+
+    @app.route("/v1/report_url/", methods=['GET'])
+    @convert_to_submission_id
     @requires_submission_perms('reader')
     @use_kwargs({
         'file_type': webargs_fields.String(

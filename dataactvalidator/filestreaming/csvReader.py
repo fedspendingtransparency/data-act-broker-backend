@@ -64,7 +64,7 @@ class CsvReader(object):
         self.is_local = is_local
         try:
             self.file = open(self.filename, "r", newline=None)
-        except:
+        except Exception:
             raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
 
         self.extra_line = False

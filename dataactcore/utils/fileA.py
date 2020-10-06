@@ -117,17 +117,17 @@ def tas_gtas_combo(session, period, year):
             A WITH clause to use with other queries
     """
     query = session.query(
-            gtas_model.allocation_transfer_agency.label('allocation_transfer_agency'),
-            gtas_model.agency_identifier.label('agency_identifier'),
-            gtas_model.beginning_period_of_availa.label('beginning_period_of_availa'),
-            gtas_model.ending_period_of_availabil.label('ending_period_of_availabil'),
-            gtas_model.availability_type_code.label('availability_type_code'),
-            gtas_model.main_account_code.label('main_account_code'),
-            gtas_model.sub_account_code.label('sub_account_code'),
-            gtas_model.amount.label('amount'),
-            gtas_model.line.label('line'),
-            tas_model.financial_indicator2.label('financial_indicator2'),
-            tas_model.fr_entity_type.label('fr_entity_type')).\
+        gtas_model.allocation_transfer_agency.label('allocation_transfer_agency'),
+        gtas_model.agency_identifier.label('agency_identifier'),
+        gtas_model.beginning_period_of_availa.label('beginning_period_of_availa'),
+        gtas_model.ending_period_of_availabil.label('ending_period_of_availabil'),
+        gtas_model.availability_type_code.label('availability_type_code'),
+        gtas_model.main_account_code.label('main_account_code'),
+        gtas_model.sub_account_code.label('sub_account_code'),
+        gtas_model.amount.label('amount'),
+        gtas_model.line.label('line'),
+        tas_model.financial_indicator2.label('financial_indicator2'),
+        tas_model.fr_entity_type.label('fr_entity_type')).\
         join(tas_model, gtas_model.tas == func.concat(func.coalesce(tas_model.allocation_transfer_agency, '000'),
                                                       func.coalesce(tas_model.agency_identifier, '000'),
                                                       func.coalesce(tas_model.beginning_period_of_availa, '0000'),

@@ -24,8 +24,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import (create_jobs, get_error_metrics_by_job_id, mark_job_status,
-                                                 get_time_period)
+from dataactcore.interfaces.function_bag import create_jobs, mark_job_status, get_time_period
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
@@ -311,8 +310,8 @@ class FileHandler:
                     'file_name': filename_key
                 })
                 with app.app_context():
-                        g.user = current_user
-                        self.finalize(job_dict[file_type + '_id'])
+                    g.user = current_user
+                    self.finalize(job_dict[file_type + '_id'])
             for file_type, file_ref in request_params['_files'].items():
                 t = threading.Thread(target=upload, args=(file_ref, file_type,
                                                           current_app._get_current_object(), g.user,
@@ -410,12 +409,8 @@ class FileHandler:
                     'Invalid end month for a quarterly submission: {}'.format(end_date.month), StatusCode.CLIENT_ERROR)
 
         # Change end_date date to the final date
-        end_date = datetime.strptime(
-                        str(end_date.year) + '/' +
-                        str(end_date.month) + '/' +
-                        str(calendar.monthrange(end_date.year, end_date.month)[1]),
-                        '%Y/%m/%d'
-                    ).date()
+        end_date = datetime.strptime(str(end_date.year) + '/' + str(end_date.month) + '/'
+                                     + str(calendar.monthrange(end_date.year, end_date.month)[1]), '%Y/%m/%d').date()
 
         return start_date, end_date
 
@@ -942,7 +937,7 @@ class FileHandler:
             file_reference = file_dict.get(file_type)
             try:
                 file_name = file_reference.filename
-            except:
+            except Exception:
                 return JsonResponse.error(Exception('{} parameter must be a file in binary form'.format(file_type)),
                                           StatusCode.CLIENT_ERROR)
             if file_name:
@@ -1020,8 +1015,8 @@ class FileHandler:
                 job.job_status_id = JOB_STATUS_DICT['waiting']
 
         # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
-        upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
-                       job.file_type_id in initial_file_types]
+        upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']]
+                       and job.file_type_id in initial_file_types]
 
         for job in upload_jobs:
             job.job_status_id = JOB_STATUS_DICT['running']
@@ -1504,35 +1499,6 @@ def process_job_status(jobs, response_content):
     return response_content
 
 
-def get_error_metrics(submission):
-    """ Returns an Http response object containing error information for every validation job in specified submission
-
-        Args:
-            submission: submission to get error data for
-
-        Returns:
-            A JsonResponse object containing the error metrics for the submission or the details of the error
-    """
-    sess = GlobalDB.db().session
-    return_dict = {}
-    try:
-        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
-        for job in jobs:
-            # Get error metrics for all single-file validations
-            if job.job_type.name == 'csv_record_validation':
-                file_type = job.file_type.name
-                data_list = get_error_metrics_by_job_id(job.job_id)
-                return_dict[file_type] = data_list
-        return JsonResponse.create(StatusCode.OK, return_dict)
-    except (ValueError, TypeError) as e:
-        return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-    except ResponseException as e:
-        return JsonResponse.error(e, e.status)
-    except Exception as e:
-        # Unexpected exception, this is a 500 server error
-        return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-
-
 def add_list_submission_filters(query, filters, submission_updated_view):
     """ Add provided filters to the list_submission query
 
@@ -1680,8 +1646,8 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
                                   max_cert.c.max_date)], else_=max_pub.c.max_date).label('last_pub_or_cert')).\
         outerjoin(max_cert, max_pub.c.submission_id == max_cert.c.submission_id).cte('pub_query')
 
-    columns_to_query = (submission_columns + cgac_columns + frec_columns + user_columns + view_columns +
-                        [pub_query.c.last_pub_or_cert])
+    columns_to_query = (submission_columns + cgac_columns + frec_columns + user_columns + view_columns
+                        + [pub_query.c.last_pub_or_cert])
 
     # Base query that is shared among all submission lists
     query = sess.query(*columns_to_query).\

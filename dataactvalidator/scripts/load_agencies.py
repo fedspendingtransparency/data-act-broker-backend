@@ -42,7 +42,7 @@ def extract_name(row):
         Returns:
             name extracted from agency_name or np.nan
     """
-    return row['agency_name'][:row['agency_name'].rindex('(')-1]
+    return row['agency_name'][:row['agency_name'].rindex('(') - 1]
 
 
 def delete_missing_cgacs(models, new_data):

@@ -80,7 +80,7 @@ def get_entities(client, duns_list):
         try:
             result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
             break
-        except:
+        except Exception:
             exception_retries += 1
             if exception_retries < len(retry_sleep_times):
                 logger.warning('SAM service might be temporarily down. Trying again in {} seconds.'

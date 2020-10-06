@@ -20,7 +20,7 @@ def test_get_sub_tiers_from_perms(database):
     frec_cgac = CGACFactory()
     frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(3)]
     cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
-                                           sub_tier_agency_name="Test Subtier Agency "+str(i)) for i in range(3)]
+                                           sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
     frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
                                            sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers)
