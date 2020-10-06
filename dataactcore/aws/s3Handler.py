@@ -55,8 +55,8 @@ class S3Handler:
                          'Key': path + "/" + file_name}
             presigned_url = s3.generate_presigned_url(method, s3_params, ExpiresIn=S3Handler.URL_LIFETIME)
             if url_mapping:
-                presigned_url = presigned_url.replace(presigned_url.split('/')[2], CONFIG_BROKER['proxy_url'])
-                presigned_url = presigned_url.replace(url_mapping[0], url_mapping[1])
+                presigned_url = presigned_url.replace(presigned_url.split('/')[2],
+                                                      CONFIG_BROKER['proxy_url'] + '/' + url_mapping[1])
             return presigned_url
         return S3Handler.BASE_URL + "/" + self.bucketRoute + "/" + path + "/" + file_name
 
