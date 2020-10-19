@@ -81,4 +81,5 @@ class SessionMap(Base):
     data = Column(Text)
     expiration = Column(Integer)
 
+
 Index("ix_session_uid", SessionMap.uid, unique=False)

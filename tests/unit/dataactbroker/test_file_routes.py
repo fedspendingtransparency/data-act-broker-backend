@@ -45,7 +45,7 @@ def test_is_period(file_app, database):
 
     curr_date = datetime.now()
     diff = timedelta(days=1)
-    gtas_current = BannerFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=False,
+    gtas_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=False,
                                  message='third', application_type=application)
     database.session.add(gtas_current)
 
@@ -55,7 +55,7 @@ def test_is_period(file_app, database):
 
     curr_date = datetime.now()
     diff = timedelta(days=1)
-    gtas_current = BannerFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=True,
+    gtas_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=True,
                                  message='fourth', application_type=application)
     database.session.add(gtas_current)
 

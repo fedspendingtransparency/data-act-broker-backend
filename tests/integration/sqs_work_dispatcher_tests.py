@@ -132,7 +132,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             queue_in_use = sqs_queue()
             queue_in_use.send_message(MessageBody=9999)
 
-        dispatcher.dispatch(do_some_work, message_transformer=lambda x: (x.body, x.body*2))
+        dispatcher.dispatch(do_some_work, message_transformer=lambda x: (x.body, x.body * 2))
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
@@ -165,7 +165,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             queue_in_use.send_message(MessageBody=9999)
 
         dispatcher.dispatch(do_some_work,
-                            message_transformer=lambda x: {"task_id": x.body, "task_id_times_two": x.body*2})
+                            message_transformer=lambda x: {"task_id": x.body, "task_id_times_two": x.body * 2})
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
@@ -498,14 +498,14 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             queue = sqs.Queue("75f4f422-3866-4e4f-9dc9-5364e3de3eaf")
             dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                            long_poll_seconds=1, monitor_sleep_time=1)
-            dispatcher.dispatch(lambda x: x*2)
+            dispatcher.dispatch(lambda x: x * 2)
         except (SystemExit, Exception) as e:
             self.assertIsInstance(e, SystemExit)
             self.assertIsNotNone(e.__cause__)
-            self.assertTrue(isinstance(e.__cause__, EndpointConnectionError) or
-                            isinstance(e.__cause__, ClientError) or
-                            isinstance(e.__cause__, NoRegionError) or
-                            isinstance(e.__cause__, NoCredentialsError))
+            self.assertTrue(isinstance(e.__cause__, EndpointConnectionError)
+                            or isinstance(e.__cause__, ClientError)
+                            or isinstance(e.__cause__, NoRegionError)
+                            or isinstance(e.__cause__, NoCredentialsError))
 
     def test_failed_job_detected(self):
         """ SQSWorkDispatcher handles failed work within the child process

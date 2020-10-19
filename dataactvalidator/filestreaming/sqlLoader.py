@@ -24,7 +24,7 @@ class SQLLoader:
     def read_sql_str(cls, filename):
         """ Read and clean lines from a .sql file """
         full_path = os.path.join(cls.sql_rules_path, filename + ".sql")
-        with open(full_path, 'rU') as f:
+        with open(full_path, 'r') as f:
             return f.read()
 
     @classmethod
@@ -72,6 +72,7 @@ class SQLLoader:
                 sess.commit()
             else:
                 logger.info('No changes detected since last load. Skipping.')
+
 
 if __name__ == '__main__':
     configure_logging()

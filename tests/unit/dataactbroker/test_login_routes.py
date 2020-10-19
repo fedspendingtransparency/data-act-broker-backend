@@ -65,9 +65,10 @@ def test_w_perms_broker_user(create_session_mock, max_dict_mock, database, monke
 
 
 def max_login_func(create_session_mock, max_dict_mock, monkeypatch, max_response):
-    def json_return(): return {"ticket": "12345", "service": "https://some.url.gov"}
-    request = type('Request', (object,),  {"is_json": True, "headers": {"Content-Type": "application/json"},
-                                           "get_json": json_return})
+    def json_return():
+        return {"ticket": "12345", "service": "https://some.url.gov"}
+    request = type('Request', (object,), {"is_json": True, "headers": {"Content-Type": "application/json"},
+                                          "get_json": json_return})
     ah = account_handler.AccountHandler(request=request)
     monkeypatch.setattr(account_handler, 'CONFIG_BROKER', {"parent_group": "test"})
     max_dict_mock.return_value = max_response

@@ -138,7 +138,7 @@ def get_submission_metadata(submission):
     fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
     # We need to ignore one row from each job for the header
-    number_of_rows = sess.query(func.sum(case([(Job.number_of_rows > 0, Job.number_of_rows-1)], else_=0))).\
+    number_of_rows = sess.query(func.sum(case([(Job.number_of_rows > 0, Job.number_of_rows - 1)], else_=0))).\
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
@@ -455,7 +455,7 @@ def list_banners():
 
     data = []
 
-    if current_banners.count() is 0:
+    if current_banners.count() == 0:
         data = None
     else:
         for banner in current_banners:
@@ -499,16 +499,16 @@ def check_current_submission_page(submission):
 
     submission_id = submission.submission_id
 
-    # /v1/uploadDetachedFiles/
-    # DetachedFiles
+    # /FABSaddData
+    # FABS
     if submission.d2_submission:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.',
+            'message': 'This submission is currently on the /FABSaddData page.',
             'step': '6'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
-    # /v1/reviewData/
+    # /reviewData
     # Checks that both E and F files are finished
     review_data = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([6, 7]),
                                          Job.job_status_id == 4)
@@ -519,15 +519,15 @@ def check_current_submission_page(submission):
 
     if review_data.count() == 2 and generate_ef.count() > 0:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/reviewData/ page.',
+            'message': 'This submission is currently on the /reviewData page.',
             'step': '5'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
-    # /v1/generateEF/
+    # /generateEF
     if generate_ef.count() > 0:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/generateEF/ page.',
+            'message': 'This submission is currently on the /generateEF page.',
             'step': '4'
         }
         return JsonResponse.create(StatusCode.OK, data)
@@ -540,30 +540,30 @@ def check_current_submission_page(submission):
                                             Job.job_type_id == 2, Job.number_of_errors == 0,
                                             Job.file_size.isnot(None), Job.job_status_id == 4)
 
-    # /v1/validateCrossFile/
+    # /validateCrossFile
     if validate_cross_file.count() == 2 and generate_files.count() == 3:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/validateCrossFile/ page.',
+            'message': 'This submission is currently on the /validateCrossFile page.',
             'step': '3'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
-    # /v1/generateFiles/
+    # /generateFiles
     if generate_files.count() == 3:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/generateFiles/ page.',
+            'message': 'This submission is currently on the /generateFiles page.',
             'step': '2'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
-    # /v1/validateData/
+    # /validateData
     validate_data = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([1, 2, 3]),
                                            Job.job_type_id == 2, Job.number_of_errors != 0, Job.file_size.isnot(None))
     check_header_errors = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([1, 2, 3]),
                                                  Job.job_type_id == 2, Job.job_status_id != 4)
     if validate_data.count() or check_header_errors.count() > 0:
         data = {
-            'message': 'The current progress of this submission ID is on /v1/validateData/ page.',
+            'message': 'This submission is currently on the /validateData page.',
             'step': '1'
         }
         return JsonResponse.create(StatusCode.OK, data)
@@ -672,8 +672,8 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
         submission_query = submission_query.filter(Submission.reporting_fiscal_period == reporting_fiscal_period)
     else:
         reporting_fiscal_quarter = math.ceil(reporting_fiscal_period / 3)
-        submission_query = submission_query.filter((func.ceil(cast(Submission.reporting_fiscal_period, Numeric) / 3) ==
-                                                    reporting_fiscal_quarter))
+        submission_query = submission_query.filter((func.ceil(cast(Submission.reporting_fiscal_period, Numeric) / 3)
+                                                    == reporting_fiscal_quarter))
 
     if filter_sub_type not in ('monthly', 'quarterly', 'mixed'):
         raise ValueError('Published param must be one of the following: "monthly", "quarterly", or "mixed"')
@@ -1157,7 +1157,7 @@ def revert_to_certified(submission, file_manager):
                 # local file size
                 try:
                     job.file_size = os.path.getsize(job.filename)
-                except:
+                except Exception:
                     logger.warning('File doesn\'t exist locally: %s', job.filename)
                     job.file_size = 0
             else:

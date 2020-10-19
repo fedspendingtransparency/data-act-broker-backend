@@ -56,8 +56,8 @@ def parse_fabs_file_new_columns(f, sess):
                 if cdata is not None:
                     for _, row in cdata.iterrows():
                         sess.query(PublishedAwardFinancialAssistance).\
-                            filter(func.upper(PublishedAwardFinancialAssistance.afa_generated_unique) ==
-                                   row['afa_generated_unique'].upper()).\
+                            filter(func.upper(PublishedAwardFinancialAssistance.afa_generated_unique)
+                                   == row['afa_generated_unique'].upper()).\
                             update({"awarding_office_code": row['awarding_office_code'],
                                     "awarding_office_name": row['awarding_office_name'],
                                     "funding_office_name": row['funding_office_name'],

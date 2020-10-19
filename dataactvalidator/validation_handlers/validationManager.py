@@ -169,8 +169,13 @@ class ValidationManager:
         self.error_list = {}
         self.error_rows = []
         self.total_rows = 0
+        self.total_data_rows = 0
         self.short_rows = []
+        self.short_pop_rows = []
+        self.short_null_rows = []
         self.long_rows = []
+        self.long_pop_rows = []
+        self.long_null_rows = []
         self.has_data = False
 
         validation_start = datetime.now()
@@ -269,7 +274,8 @@ class ValidationManager:
                            synchronize_session=False)
 
             # Update job metadata
-            self.job.number_of_rows = self.total_rows
+            # Total rows = total rows with data + header + short_pop_rows + long_pop_rows
+            self.job.number_of_rows = (self.total_data_rows + 1 + len(self.short_pop_rows) + len(self.long_pop_rows))
             self.job.number_of_rows_valid = valid_rows
             sess.commit()
 
@@ -301,7 +307,7 @@ class ValidationManager:
             if self.reader:
                 self.reader.close()
 
-            validation_duration = (datetime.now()-validation_start).total_seconds()
+            validation_duration = (datetime.now() - validation_start).total_seconds()
             logger.info({
                 'message': 'Completed run_validation {}'.format(self.log_str),
                 'message_type': 'ValidatorInfo',
@@ -350,11 +356,14 @@ class ValidationManager:
             raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.fileTypeError)
 
         # Base file check
-        file_row_count, self.short_rows, self.long_rows = simple_file_scan(self.reader, bucket_name, region_name,
-                                                                           self.file_name)
+        file_row_count, self.short_pop_rows, self.long_pop_rows, self.short_null_rows, self.long_null_rows = \
+            simple_file_scan(self.reader, bucket_name, region_name, self.file_name)
+        self.short_rows = self.short_null_rows + self.short_pop_rows
+        self.long_rows = self.long_null_rows + self.long_pop_rows
         # total_rows = header + long_rows (and will be added on per chunk)
         # Note: we're adding long_rows here because pandas will exclude long_rows when we're loading the data
         self.total_rows = 1 + len(self.long_rows)
+        self.total_data_rows = 0
 
         # Making base error/warning files
         self.error_file_name = report_file_name(self.submission_id, False, self.file_type.name)
@@ -375,6 +384,7 @@ class ValidationManager:
             record_row_error(self.error_list, self.job.job_id, self.file_name, row['Field Name'], row['error_type'],
                              row['Row Number'], row['Rule Label'], self.file_type.file_type_id, None,
                              RULE_SEVERITY_DICT['fatal'])
+            self.error_rows.append(row['Row Number'])
         format_error_df.to_csv(self.error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
                                mode='a', header=False)
 
@@ -386,8 +396,19 @@ class ValidationManager:
                               is_local=self.is_local)
         # Going back to reprocess the header row
         self.reader.file.seek(0)
+
+        # getting a list of starting rows to skip if they are long rows (causes indexing issues with pandas)
+        skiprows = []
+        # pandas skiprow's is 0-indexed whereas long_rows is 1-indexed
+        # we're starting from 1 since we know the header is fine
+        if len(self.long_rows) > 0:
+            for i in range(1, max(self.long_rows) + 1):
+                if i + 1 not in self.long_rows:
+                    break
+                skiprows.append(i)
+
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
-                                 na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
+                                 na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False, skiprows=skiprows)
         # Setting this outside of reader/file type objects which may not be used during processing
         self.flex_fields = self.reader.flex_fields
         self.header_dict = self.reader.header_dict
@@ -407,7 +428,7 @@ class ValidationManager:
         # Add a warning if the file is blank
         if self.file_type.file_type_id in (FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
                                            FILE_TYPE_DICT['award_financial']) \
-                and not self.has_data and len(self.short_rows) == 0 and len(self.long_rows) == 0:
+                and not self.has_data and len(self.short_pop_rows) == 0 and len(self.long_pop_rows) == 0:
             empty_file = {
                 'Unique ID': '',
                 'Field Name': 'Blank File',
@@ -456,6 +477,7 @@ class ValidationManager:
             # These variables will need to be shared among the processes and used later overall
             shared_data = server_manager.dict(
                 total_rows=self.total_rows,
+                total_data_rows=self.total_data_rows,
                 has_data=self.has_data,
                 error_rows=self.error_rows,
                 error_list=self.error_list,
@@ -480,6 +502,7 @@ class ValidationManager:
 
             # Resetting these out here as they are used later in the process
             self.total_rows = shared_data['total_rows']
+            self.total_data_rows = shared_data['total_data_rows']
             self.has_data = shared_data['has_data']
             self.error_rows = shared_data['error_rows']
             self.error_list = shared_data['error_list']
@@ -493,6 +516,7 @@ class ValidationManager:
         """
         shared_data = dict(
             total_rows=self.total_rows,
+            total_data_rows=self.total_data_rows,
             has_data=self.has_data,
             error_rows=self.error_rows,
             error_list=self.error_list
@@ -502,6 +526,7 @@ class ValidationManager:
 
         # Resetting these out here as they are used later in the process
         self.total_rows = shared_data['total_rows']
+        self.total_data_rows = shared_data['total_data_rows']
         self.has_data = shared_data['has_data']
         self.error_rows = shared_data['error_rows']
         self.error_list = shared_data['error_list']
@@ -576,6 +601,7 @@ class ValidationManager:
         chunk_df['index'] = chunk_df.index
         # index gets reset for each chunk, adding the header, and adding previous rows
         chunk_df['row_number'] = chunk_df.index + 2
+
         with lockable:
             shared_data['total_rows'] += len(chunk_df.index)
 
@@ -619,6 +645,7 @@ class ValidationManager:
 
         with lockable:
             shared_data['has_data'] = True
+            shared_data['total_data_rows'] += len(chunk_df.index)
         if self.is_fabs:
             # create a list of all required/type labels for FABS
             labels = sess.query(ValidationLabel).all()
@@ -694,8 +721,8 @@ class ValidationManager:
             total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
 
             with lockable:
-                shared_data['error_rows'] = (shared_data['error_rows'] +
-                                             [int(x) for x in total_errors['Row Number'].tolist()])
+                shared_data['error_rows'] = (shared_data['error_rows']
+                                             + [int(x) for x in total_errors['Row Number'].tolist()])
 
             with lockable:
                 for index, row in total_errors.iterrows():
@@ -905,7 +932,7 @@ class ValidationManager:
 
         # mark job status as 'finished'
         mark_job_status(job_id, 'finished')
-        job_duration = (datetime.now()-job_start).total_seconds()
+        job_duration = (datetime.now() - job_start).total_seconds()
         logger.info({
             'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
             'message_type': 'ValidatorInfo',
@@ -987,7 +1014,7 @@ class ValidationManager:
                                                                                                    spawn_of_job.name),
                 'message_type': 'ValidatorInfo',
                 'submission_id': self.submission_id,
-                'job_id': job.job_id,
+                'job_id': self.job_id,
             })
             spawn_of_job.kill()
 

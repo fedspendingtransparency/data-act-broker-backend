@@ -677,16 +677,16 @@ def get_data_before_colon(row, header):
 
 def map_legal_entity_state_code(row):
     # only return a value if the country code is USA
-    if row['vendorcountrycode'] and (str(row['vendorcountrycode']).upper() == "USA" or
-                                     str(row['vendorcountrycode']).upper() == "UNITED STATES"):
+    if row['vendorcountrycode'] and (str(row['vendorcountrycode']).upper() == "USA"
+                                     or str(row['vendorcountrycode']).upper() == "UNITED STATES"):
         return str(row['vendor_state_code'])
     return None
 
 
 def map_legal_entity_state_descrip(row):
     # if the country code doesn't exist or isn't USA, use the country code as the state description
-    if not row['vendorcountrycode'] or (str(row['vendorcountrycode']).upper() != "USA" and
-                                        str(row['vendorcountrycode']).upper() != "UNITED STATES"):
+    if not row['vendorcountrycode'] or (str(row['vendorcountrycode']).upper() != "USA"
+                                        and str(row['vendorcountrycode']).upper() != "UNITED STATES"):
         return str(row['vendor_state_code'])
     return None
 

@@ -12,9 +12,9 @@ def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None,
     publishable = True if number_of_errors == 0 else False
     end_date = datetime.strptime(end_date, '%m/%Y')
     end_date = datetime.strptime(
-        str(end_date.year) + '/' +
-        str(end_date.month) + '/' +
-        str(calendar.monthrange(end_date.year, end_date.month)[1]),
+        str(end_date.year) + '/'
+        + str(end_date.month) + '/'
+        + str(calendar.monthrange(end_date.year, end_date.month)[1]),
         '%Y/%m/%d'
     ).date()
     sub = Submission(created_at=datetime.utcnow(),

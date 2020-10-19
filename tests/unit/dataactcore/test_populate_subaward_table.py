@@ -19,7 +19,7 @@ def extract_cfda(field, type):
         if type == 'numbers':
             extracted_values = [entry[:entry.index(' ')] for entry in entries]
         else:
-            extracted_values = [entry[entry.index(' ')+1:] for entry in entries]
+            extracted_values = [entry[entry.index(' ') + 1:] for entry in entries]
     return ', '.join(extracted_values)
 
 

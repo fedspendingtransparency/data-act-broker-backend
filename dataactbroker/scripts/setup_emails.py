@@ -56,6 +56,7 @@ def load_email_template(sess, subject, contents, email_type):
     sess.merge(template)
     sess.commit()
 
+
 if __name__ == '__main__':
     configure_logging()
     setup_emails()

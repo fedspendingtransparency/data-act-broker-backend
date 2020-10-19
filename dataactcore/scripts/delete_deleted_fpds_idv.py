@@ -140,15 +140,15 @@ def main():
     logger.info("Starting gathering of records to delete.")
     delete_list, delete_dict = get_deletes(sess, data)
     gather_end = datetime.datetime.now()
-    logger.info("Finished gathering records in {} seconds. Total records to delete: {}".format(gather_end-gather_start,
-                                                                                               len(delete_list)))
+    logger.info("Finished gathering records in {} seconds. Total records to delete: {}".
+                format(gather_end - gather_start, len(delete_list)))
     # Delete records
     logger.info("Deleting records")
     delete_records(sess, delete_list, delete_dict)
     sess.commit()
 
     end = datetime.datetime.now()
-    logger.info("FPDS IDV delete finished in %s seconds", end-start)
+    logger.info("FPDS IDV delete finished in %s seconds", end - start)
 
 
 if __name__ == '__main__':

@@ -111,6 +111,7 @@ class FSRSSubcontract(Base, _ContractAttributes):
     overall_description = Column(Text)
     recovery_subcontract_amt = Column(String, nullable=True)
 
+
 FSRSProcurement.subawards = relationship(FSRSSubcontract, back_populates='parent')
 
 
@@ -128,6 +129,7 @@ class FSRSSubgrant(Base, _GrantAttributes):
     subaward_amount = Column(String)
     subaward_date = Column(Date)
     subaward_num = Column(String)
+
 
 FSRSGrant.subawards = relationship(FSRSSubgrant, back_populates='parent')
 
@@ -277,6 +279,7 @@ class Subaward(Base):
     sub_compensation_q1 = Column(Text)
     sub_compensation_q2 = Column(Text)
     sub_place_of_perform_street = Column(Text)
+
 
 Index("ix_subaward_award_id_upper", func.upper(Subaward.award_id))
 Index("ix_subaward_parent_award_id_upper", func.upper(Subaward.parent_award_id))

@@ -109,9 +109,9 @@ def test_list_agencies_superuser(domain_app, database):
     frec_cgac = CGACFactory()
     frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(3)]
     cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
-                                           sub_tier_agency_name="Test Subtier Agency "+str(i)) for i in range(3)]
-    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3+i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
-                                           sub_tier_agency_name="Test Subtier Agency "+str(3+i)) for i in range(3)]
+                                           sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
+    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
+                                           sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
     database.session.commit()
 
@@ -132,9 +132,9 @@ def test_list_agencies_all(domain_app, database):
     frec_cgac = CGACFactory()
     frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(3)]
     cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
-                                           sub_tier_agency_name="Test Subtier Agency "+str(i)) for i in range(3)]
-    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3+i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
-                                           sub_tier_agency_name="Test Subtier Agency "+str(3+i)) for i in range(3)]
+                                           sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
+    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
+                                           sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
     user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=frecs[0], permission_type_id=PERMISSION_SHORT_DICT['w'])]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
     database.session.commit()

@@ -274,6 +274,7 @@ def get_sf133_list(sf133_path, aws_prefix='sf_133'):
 
     return sf133_list
 
+
 if __name__ == '__main__':
     configure_logging()
     parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')

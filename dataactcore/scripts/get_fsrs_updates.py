@@ -30,8 +30,8 @@ def main():
                         help='Specify modified date in mm/dd/yyyy format. Overrides --auto option.',
                         nargs=1, type=str)
     parser.add_argument('--auto',
-                        help='Polls S3 for the most recently uploaded FABS_for_FSRS file, ' +
-                             'and uses that as the modified date.',
+                        help='Polls S3 for the most recently uploaded FABS_for_FSRS file, '
+                             + 'and uses that as the modified date.',
                         action='store_true')
     args = parser.parse_args()
 

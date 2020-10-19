@@ -197,7 +197,7 @@ def get_business_categories(row, data_type):
             business_category_set.add('service_disabled_veteran_owned_business')
 
         if legal_entity_bool_dict['veteran_owned_business'] is True or (
-                    business_category_set & {'service_disabled_veteran_owned_business'}):
+                business_category_set & {'service_disabled_veteran_owned_business'}):
             business_category_set.add('veteran_owned_business')
 
         # SPECIAL DESIGNATIONS
