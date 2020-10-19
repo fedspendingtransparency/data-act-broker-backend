@@ -37,7 +37,7 @@ def get_program_activity_file(base_path):
     if CONFIG_BROKER['use_aws']:
         s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         s3_object = s3.Object(PA_BUCKET, PA_SUB_KEY + PA_FILE_NAME)
-        response = s3_object.get(PA_SUB_KEY + PA_FILE_NAME)
+        response = s3_object.get(Key=(PA_SUB_KEY + PA_FILE_NAME))
         pa_file = io.BytesIO(response['Body'].read())
     else:
         pa_file = os.path.join(base_path, PA_FILE_NAME)
