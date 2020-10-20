@@ -73,6 +73,7 @@ This endpoint lists submissions for all agencies for which the current user is a
             "agency": "Department of the Treasury (TREAS)",
             "status": "validation_successful",
             "last_modified": "2016-08-30 12:59:37.053424",
+            "expiration_date": null,
             "publish_status": "published",
             "test_submission": false,
             "publishing_user": "Certifier",
@@ -93,6 +94,7 @@ This endpoint lists submissions for all agencies for which the current user is a
             "agency": "Department of Defense (DOD)",
             "status": "file_errors",
             "last_modified": "2016-08-31 15:59:37.053424",
+            "expiration_date": null,
             "publish_status": "unpublished",
             "test_submission": false,
             "publishing_user": "",
@@ -133,6 +135,7 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `updated`
         - `published`
     - `last_modified`: (string) the last time/date the submission was modified in any way (`YYYY-MM-DD HH:mm:ss`)
+    - `expiration_date`: (string) the date of the submission expiring if it's a test submission. Null if it's not. The submission will be deleted the night of this expiration date (`YYYY-MM-DD`)
     - `publish_status`: (string) the publish status of the submission. Possible values are:
         - `unpublished`
         - `published`
