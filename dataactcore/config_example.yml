@@ -23,8 +23,6 @@ broker:
     full_url: http://localhost:3000
 
     sqs_queue_name: sqs-queue-name
-    # whether to use the legacy SQS url (default in boto3) or not
-    use_legacy_queue_endpoint: false
 
 
     # Set the key (string) used to serialize tokens for email validations.

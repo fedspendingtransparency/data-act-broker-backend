@@ -107,10 +107,7 @@ def sqs_queue(region_name=CONFIG_BROKER['aws_region'], queue_name=CONFIG_BROKER[
         return SQSMockQueue()
     else:
         # stuff that's in get_queue
-        endpoint_url_format = 'https://sqs.{}.amazonaws.com'
-        if CONFIG_BROKER['use_legacy_queue_endpoint']:
-            endpoint_url_format = 'https://{}.queue.amazonaws.com'
-        endpoint_url = endpoint_url_format.format(region_name)
-        sqs = boto3.resource('sqs', endpoint_url=endpoint_url)
+        # Using endpoint_url as botocore defaults to the legacy endpoint url 'https://{env}.queue.amazonaws.com'
+        sqs = boto3.resource('sqs', endpoint_url='https://sqs.{}.amazonaws.com'.format(region_name))
         queue = sqs.get_queue_by_name(QueueName=queue_name)
         return queue
