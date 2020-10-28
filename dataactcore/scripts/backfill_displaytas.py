@@ -8,7 +8,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 
 BACKFILL_DISPLAYTAS_SF133_SQL = """
-    UPDATE sf_133
+    UPDATE {}
     SET display_tas =
         CONCAT_WS(
             '-',
@@ -29,10 +29,16 @@ if __name__ == '__main__':
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        logger.info('Backfilling empty display_tas values in the sf_133 table.')
-        executed = sess.execute(BACKFILL_DISPLAYTAS_SF133_SQL)
+        logger.info('Starting display_tas backfill script.')
+
+        table_list = ['sf_133', 'appropriation', 'object_class_program_activity', 'award_financial',
+                      'certified_appropriation', 'certified_object_class_program_activity', 'certified_award_financial']
+        for table in table_list:
+            logger.info('Backfilling empty display_tas values in the {} table.'.format(table))
+            executed = sess.execute(BACKFILL_DISPLAYTAS_SF133_SQL.format(table))
+            logger.info('Backfill completed, {} rows affected\n'.format(executed.rowcount))
         sess.commit()
 
-        logger.info('Backfill completed, {} rows affected\n'.format(executed.rowcount))
+        logger.info('Completed display_tas backfill script')
 
         sess.close()
