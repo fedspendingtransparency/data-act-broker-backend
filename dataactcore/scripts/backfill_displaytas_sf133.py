@@ -10,16 +10,15 @@ logger = logging.getLogger(__name__)
 BACKFILL_DISPLAYTAS_SF133_SQL = """
     UPDATE sf_133
     SET display_tas =
-        CONCAT(
-            COALESCE(allocation_transfer_agency || '-', ''),
-            COALESCE(agency_identifier || '-', ''),
-            CASE WHEN availability_type_code IS NOT NULL THEN availability_type_code
-                WHEN beginning_period_of_availa IS NOT NULL AND ending_period_of_availabil IS NOT NULL
-                    THEN beginning_period_of_availa || '/' || ending_period_of_availabil
-                ELSE ''
+        CONCAT_WS(
+            '-',
+            allocation_transfer_agency,
+            agency_identifier,
+            CASE WHEN availability_type_code IS NOT NULL AND availability_type_code <> '' THEN availability_type_code
+                ELSE CONCAT_WS('/', beginning_period_of_availa, ending_period_of_availabil)
                 END,
-            COALESCE('-' || main_account_code, ''),
-            COALESCE('-' || sub_account_code, '')
+            main_account_code,
+            sub_account_code
         )
     WHERE display_tas IS NULL;
 """
