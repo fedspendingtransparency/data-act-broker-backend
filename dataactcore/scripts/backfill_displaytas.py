@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 BACKFILL_DISPLAYTAS_SF133_SQL = """
     UPDATE {}
     SET display_tas =
-        CONCAT_WS(
+        UPPER(CONCAT_WS(
             '-',
             allocation_transfer_agency,
             agency_identifier,
@@ -19,7 +19,7 @@ BACKFILL_DISPLAYTAS_SF133_SQL = """
                 END,
             main_account_code,
             sub_account_code
-        )
+        ))
     WHERE display_tas IS NULL;
 """
 
