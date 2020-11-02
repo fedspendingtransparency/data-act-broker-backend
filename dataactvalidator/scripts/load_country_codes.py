@@ -9,6 +9,7 @@ import json
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CountryCode
 
 from dataactvalidator.health_check import create_app
@@ -41,7 +42,8 @@ def load_country_codes(base_path, force_reload=False):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        country_code_file = 'https://files.usaspending.gov/reference_data/country_codes.csv'
+        country_code_file = '{}/country_codes.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
+
         logger.info('Loading country codes file from {}'.format(country_code_file))
 
         # Get data from public S3 bucket

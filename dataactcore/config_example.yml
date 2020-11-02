@@ -89,6 +89,9 @@ broker:
     sf_133_folder: config
     sf_133_file: sf_133.csv
 
+    # Link to public refernce data provided by USAspending.gov
+    usas_public_reference_url: new-url.com
+
     # Miscellaneous buckets
     # Location for various current data sources (location, tas, gtas, submission schedule, etc.)
     sf_133_bucket: s3-bucket

@@ -11,6 +11,7 @@ import json
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CFDAProgram
 from dataactvalidator.health_check import create_app
@@ -18,7 +19,7 @@ from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe, 
 
 logger = logging.getLogger(__name__)
 
-S3_CFDA_FILE = 'https://files.usaspending.gov/reference_data/cfda.csv'
+S3_CFDA_FILE = '{}/cfda.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
 
 DATA_CLEANING_MAP = {
     "program_title": "program_title",
