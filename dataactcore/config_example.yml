@@ -86,6 +86,7 @@ broker:
     sf_133_bucket: s3-bucket
     archive_bucket: s3-bucket
     data_extracts_bucket: s3-bucket
+    data_sources_bucket: s3-bucket
 
     # Name of AWS S3 bucket for certified broker files. Ignored if use_aws
     # is false. NOTE: the dummy value below MUST be changed to the correct

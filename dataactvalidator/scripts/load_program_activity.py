@@ -19,7 +19,7 @@ from dataactcore.utils.failure_threshold_exception import FailureThresholdExceed
 
 logger = logging.getLogger(__name__)
 
-PA_BUCKET = 'da-data-sources'
+PA_BUCKET = CONFIG_BROKER['data_sources_bucket']
 PA_SUB_KEY = 'OMB_Data/'
 PA_FILE_NAME = 'DATA Act Program Activity List for Treas.csv'
 VALID_HEADERS = {'AGENCY_CODE', 'ALLOCATION_ID', 'ACCOUNT_CODE', 'PA_CODE', 'PA_TITLE', 'FYQ'}
