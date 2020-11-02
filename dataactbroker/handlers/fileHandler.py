@@ -1881,9 +1881,11 @@ def serialize_submission(submission):
     status = get_submission_status(submission, jobs)
     time_period = get_time_period(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
+    expire_date = (submission.updated_at + relativedelta(months=6)).strftime('%Y-%m-%d')
     return {
         'submission_id': submission.submission_id,
         'last_modified': str(submission.updated_at),
+        'expiration_date': expire_date if submission.test_submission else None,
         'status': status,
         'agency': agency_name if agency_name else 'N/A',
         'files': files,
