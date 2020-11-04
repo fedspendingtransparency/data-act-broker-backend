@@ -89,7 +89,7 @@ broker:
     sf_133_folder: config
     sf_133_file: sf_133.csv
 
-    # Link to public refernce data provided by USAspending.gov
+    # Link to public reference data provided by USAspending.gov
     usas_public_reference_url: new-url.com
 
     # Miscellaneous buckets
