@@ -92,18 +92,6 @@ broker:
     # Link to public reference data provided by USAspending.gov
     usas_public_reference_url: new-url.com
 
-    # Miscellaneous buckets
-    # Location for various current data sources (location, tas, gtas, submission schedule, etc.)
-    sf_133_bucket: s3-bucket
-    # Location for older data sources (historic DUNS, historic FABS, historic FPDS,
-    archive_bucket: s3-bucket
-    # Location for other current data sources (FSRS)
-    data_extracts_bucket: s3-bucket
-    # Location for other current data sources (Program Activity)
-    data_sources_bucket: s3-bucket
-    # Location for deleted records from the FPDS atom feed
-    fpds_delete_bucket: s3-bucket
-
     # link to help for failed MAX login
     max_help_url: https://max_help_url.gov
 
