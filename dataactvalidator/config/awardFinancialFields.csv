@@ -24,8 +24,8 @@ ObligationsUndeliveredOrdersUnpaidTotal_CPE,obligationsundeliveredordersunpaidto
 ObligationsUndeliveredOrdersUnpaidTotal_FYB,obligationsundeliveredordersunpaidtotal_fyb,obligations_undelivered_or_fyb,FALSE,float,21,
 ParentAwardId,parentawardid,parent_award_id,FALSE,str,50,
 PIID,piid,piid,FALSE,str,50,
-ProgramActivityCode,programactivitycode,program_activity_code,FALSE,str,4,TRUE
-ProgramActivityName,programactivityname,program_activity_name,FALSE,str,164,
+ProgramActivityCode,programactivitycode,program_activity_code,TRUE,str,4,TRUE
+ProgramActivityName,programactivityname,program_activity_name,TRUE,str,164,
 SubAccountCode,subaccountcode,sub_account_code,TRUE,str,3,TRUE
 TransactionObligatedAmount,transactionobligatedamount,transaction_obligated_amou,FALSE,float,21,
 URI,uri,uri,FALSE,str,70,
