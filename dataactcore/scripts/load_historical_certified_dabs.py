@@ -141,6 +141,14 @@ def insert_file(filename, submission_id, file_type_id, csv_schema, long_to_short
     # Only use the columns needed for the DB table
     data = data.rename(columns=lambda x: x.lower().strip())
     data = data.rename(index=str, columns=long_to_short_dict)
+    # The following columns were added later and need to be accounted for in old data, where they would be blank
+    # If DEFC doesn't exist for files B or C, add it and make them all blank
+    if 'disaster_emergency_fund_code' not in data and file_type_id in (FILE_TYPE_DICT['program_activity'],
+                                                                       FILE_TYPE_DICT['award_financial']):
+        data['disaster_emergency_fund_code'] = ''
+    # If general_ledger_post_date doesn't exist for file C, add it and make them all blank
+    if 'general_ledger_post_date' not in data and file_type_id == FILE_TYPE_DICT['award_financial']:
+        data['general_ledger_post_date'] = ''
     data = data[list(csv_schema.keys())]
 
     # Clean rows

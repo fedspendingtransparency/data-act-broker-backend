@@ -318,7 +318,7 @@ def load_agency_data(base_path, force_reload=False):
             base_path: directory that contains the agency files
             force_reload: whether to reload regardless
     """
-    agency_codes_url = 'https://files.usaspending.gov/reference_data/agency_codes.csv'
+    agency_codes_url = '{}/agency_codes.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
     logger.info('Loading agency codes file from {}'.format(agency_codes_url))
 
     # Get data from public S3 bucket
