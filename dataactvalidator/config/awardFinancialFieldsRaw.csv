@@ -24,8 +24,8 @@ ObligationsUndeliveredOrdersUnpaidTotal_CPE,obligations_undelivered_or_cpe,Optio
 ObligationsUndeliveredOrdersUnpaidTotal_FYB,obligations_undelivered_or_fyb,Optional,numeric,21
 ParentAwardId,parent_award_id,Conditional per Award Type,string,50
 PIID,piid,Conditional per Award Type,string,50
-ProgramActivityCode,program_activity_code,Optional,string,4
-ProgramActivityName,program_activity_name,Optional,string,164
+ProgramActivityCode,program_activity_code,Required,string,4
+ProgramActivityName,program_activity_name,Required,string,164
 SubAccountCode,sub_account_code,Required,string,3
 TransactionObligatedAmount,transaction_obligated_amou,Conditional per Validation Rule,numeric,21
 URI,uri,Conditional per Validation Rule,string,70
