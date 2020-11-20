@@ -1,5 +1,6 @@
 import logging
 import unicodedata
+import os
 from urllib.parse import urlparse
 
 from suds import sudsobject
@@ -145,6 +146,16 @@ def new_client(service_type):
             username=config['username'],
             password=config['password'],
             timeout=300)
+
+    proxy_options = {}
+    http_proxy = os.environ.get('HTTP_PROXY')
+    if http_proxy:
+        proxy_options['http'] = http_proxy
+    https_proxy = os.environ.get('HTTPS_PROXY')
+    if https_proxy:
+        proxy_options['https'] = https_proxy
+    if proxy_options:
+        options['proxy'] = proxy_options
 
     return Client(**options)
 
