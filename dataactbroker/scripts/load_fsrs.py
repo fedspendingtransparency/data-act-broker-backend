@@ -62,7 +62,7 @@ if __name__ == '__main__':
         }
 
         # Setups state mapping for deriving state name
-        config_state_mappings(sess, init=True)
+        # config_state_mappings(sess, init=True)
 
         if not config_valid():
             logger.error("No config for broker/fsrs/[service]/wsdl")
