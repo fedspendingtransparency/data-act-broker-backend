@@ -2,6 +2,7 @@ import re
 import calendar
 from dateutil.parser import parse
 import datetime as dt
+import os
 
 from suds.client import Client
 
@@ -112,8 +113,19 @@ def format_internal_tas(row):
 
 def get_client():
     """ Get the Client to access SAM. """
+    options = {}
+    proxy_options = {}
+    http_proxy = os.environ.get('HTTP_PROXY')
+    if http_proxy:
+        proxy_options['http'] = http_proxy
+    https_proxy = os.environ.get('HTTPS_PROXY')
+    if https_proxy:
+        proxy_options['https'] = https_proxy
+    if proxy_options:
+        options['proxy'] = proxy_options
+
     try:
-        client = Client(CONFIG_BROKER['sam']['wsdl'])
+        client = Client(CONFIG_BROKER['sam']['wsdl'], **options)
     except ConnectionResetError:
         raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
                                 "performance issues. Please try again later.", StatusCode.NOT_FOUND)
