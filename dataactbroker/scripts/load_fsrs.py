@@ -74,9 +74,9 @@ if __name__ == '__main__':
             # Regular FSRS data load, starts where last load left off
             updated_proc_internal_ids = []
             updated_grant_internal_ids = []
-            original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
-            original_min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
-            last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
+            # original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
+            # original_min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
+            # last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
             if len(sys.argv) <= 1:
                 # there may be more transaction data since we've last run, let's fix any links before importing new data
                 # if last_updated_at:
