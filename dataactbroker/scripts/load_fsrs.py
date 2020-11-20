@@ -62,7 +62,7 @@ if __name__ == '__main__':
         }
 
         # Setups state mapping for deriving state name
-        # config_state_mappings(sess, init=True)
+        config_state_mappings(sess, init=True)
 
         if not config_valid():
             logger.error("No config for broker/fsrs/[service]/wsdl")
@@ -74,14 +74,14 @@ if __name__ == '__main__':
             # Regular FSRS data load, starts where last load left off
             updated_proc_internal_ids = []
             updated_grant_internal_ids = []
-            # original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
-            # original_min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
-            # last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
+            original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
+            original_min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
+            last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
             if len(sys.argv) <= 1:
                 # there may be more transaction data since we've last run, let's fix any links before importing new data
-                # if last_updated_at:
-                #     fix_broken_links(sess, PROCUREMENT, min_date=last_updated_at)
-                #     fix_broken_links(sess, GRANT, min_date=last_updated_at)
+                if last_updated_at:
+                    fix_broken_links(sess, PROCUREMENT, min_date=last_updated_at)
+                    fix_broken_links(sess, GRANT, min_date=last_updated_at)
 
                 awards = ['Starting']
                 logger.info('Loading latest FSRS reports')
