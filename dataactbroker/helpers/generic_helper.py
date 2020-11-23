@@ -3,7 +3,7 @@ import calendar
 from dateutil.parser import parse
 import datetime as dt
 import os
-import urllib2
+from urllib.request import HTTPBasicAuthHandler
 
 from suds.client import Client
 from suds.transport.https import HttpAuthenticated as SudsHttpsTransport
@@ -81,7 +81,7 @@ class WellBehavedHttpsTransport(SudsHttpsTransport):
         Thus, passing an empty list will use the default ProxyHandler which
         behaves correctly.
         """
-        return [urllib2.HTTPBasicAuthHandler(self.pm)]
+        return [HTTPBasicAuthHandler(self.pm)]
 
 
 def year_period_to_dates(year, period):
