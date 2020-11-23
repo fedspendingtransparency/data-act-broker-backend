@@ -56,6 +56,7 @@ class LiteralDialect(PGDialect):
         NullType: StringLiteral,
     }
 
+
 class WellBehavedHttpsTransport(SudsHttpsTransport):
     """ HttpsTransport which properly obeys the ``*_proxy`` environment variables."""
 
