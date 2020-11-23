@@ -5,7 +5,7 @@ import datetime as dt
 import os
 
 from suds.client import Client
-from suds.transport.https import HttpsTransport as SudsHttpsTransport
+from suds.transport.https import HttpAuthenticated as SudsHttpsTransport
 
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date

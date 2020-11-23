@@ -143,12 +143,10 @@ def new_client(service_type):
     options['plugins'] = [ControlFilter(), ZeroDateFilter()]
 
     if config.get('username') and config.get('password'):
-        options['transport'] = HttpAuthenticated(
+        options['transport'] = WellBehavedHttpsTransport(
             username=config['username'],
             password=config['password'],
             timeout=300)
-
-    options['transport'] = WellBehavedHttpsTransport()
 
     return Client(**options)
 
