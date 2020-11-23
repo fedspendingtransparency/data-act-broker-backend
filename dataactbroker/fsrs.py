@@ -1,12 +1,10 @@
 import logging
 import unicodedata
-import os
 from urllib.parse import urlparse
 
 from suds import sudsobject
 from suds.client import Client
 from suds.plugin import MessagePlugin
-from suds.transport.https import HttpAuthenticated
 from suds.xsd import doctor
 
 from dataactcore.config import CONFIG_BROKER

@@ -2,12 +2,10 @@ import re
 import calendar
 from dateutil.parser import parse
 import datetime as dt
-import os
-from urllib.request import HTTPBasicAuthHandler
 
 from suds.client import Client
 from suds.transport.https import HttpAuthenticated as SudsHttpsTransport
-from suds.transport.http import HttpTransport
+from urllib.request import HTTPBasicAuthHandler
 
 
 from sqlalchemy.dialects.postgresql.base import PGDialect
