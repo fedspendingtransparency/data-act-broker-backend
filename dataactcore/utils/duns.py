@@ -36,32 +36,35 @@ def get_client(ssh_key=None):
     if not sam_config:
         return None
 
+    connect_args = {}
     if ssh_key:
-        host = sam_config.get('host_ssh')
-        username = sam_config.get('username_ssh')
-        password = sam_config.get('password_ssh')
+        connect_args['host'] = sam_config.get('host_ssh')
+        connect_args['username'] = sam_config.get('username_ssh')
+        connect_args['password'] = sam_config.get('password_ssh')
 
         ssh_key_file = RetrieveFileFromUri(ssh_key, binary_data=False).get_file_object()
-        pkey = paramiko.RSAKey.from_private_key(ssh_key_file, password=sam_config.get('ssh_key_password'))
-
+        connect_args['pkey'] = paramiko.RSAKey.from_private_key(ssh_key_file,
+                                                                password=sam_config.get('ssh_key_password'))
     else:
-        host = sam_config.get('host')
-        username = sam_config.get('username')
-        password = sam_config.get('password')
-        pkey = None
+        connect_args['host'] = sam_config.get('host')
+        connect_args['username'] = sam_config.get('username')
+        connect_args['password'] = sam_config.get('password')
+        connect_args['pkey'] = None
 
-    if None in (host, username, password) or ssh_key and not pkey:
+    if ((None in (connect_args['host'], connect_args['username'], connect_args['password'])) or
+            (ssh_key and not connect_args['pkey'])):
         raise Exception("Missing config elements for connecting to SAM")
 
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(
-        hostname=host,
-        username=username,
-        password=password,
-        pkey=pkey
-    )
+
+    https_proxy = os.environ.get('HTTPS_PROXY')
+    if https_proxy:
+        para_proxy = paramiko.ProxyCommand('nc --proxy-type https --proxy {} %h %p'.format(https_proxy))
+        connect_args['sock'] = para_proxy
+
+    client.connect(**connect_args)
     return client
 
 
