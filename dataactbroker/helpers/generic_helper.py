@@ -77,8 +77,8 @@ class WellBehavedHttpsTransport(SudsHttpsTransport):
         Configuration on Mac OS, ...) to determine which proxies to use for
         the current protocol, and when not to use a proxy (no_proxy).
 
-        Thus, passing an empty list will use the default ProxyHandler which
-        behaves correctly.
+        Thus, passing an empty list (asides from the BasicAuthHandler)
+        will use the default ProxyHandler which behaves correctly.
         """
         return [HTTPBasicAuthHandler(self.pm)]
 
