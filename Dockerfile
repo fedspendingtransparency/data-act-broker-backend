@@ -2,7 +2,7 @@ FROM python:3.7
 
 RUN apt-get -y update
 RUN apt-get install -y postgresql-client
-RUN apt-get install -y netcat
+RUN apt-get install -y netcat-openbsd
 
 RUN pip install unittest-xml-reporting
 
