@@ -5,6 +5,7 @@ import datetime as dt
 import os
 
 from suds.client import Client
+from suds.transport.http import HttpTransport as SudsHttpTransport
 
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
@@ -53,6 +54,31 @@ class LiteralDialect(PGDialect):
         # don't format py2 long integers to NULL
         NullType: StringLiteral,
     }
+
+class WellBehavedHttpTransport(SudsHttpTransport):
+    """ HttpTransport which properly obeys the ``*_proxy`` environment variables."""
+
+    def u2handlers(self):
+        """ Return a list of specific handlers to add.
+
+        The urllib2 logic regarding ``build_opener(*handlers)`` is:
+
+        - It has a list of default handlers to use
+
+        - If a subclass or an instance of one of those default handlers is given
+            in ``*handlers``, it overrides the default one.
+
+        Suds uses a custom {'protocol': 'proxy'} mapping in self.proxy, and adds
+        a ProxyHandler(self.proxy) to that list of handlers.
+        This overrides the default behaviour of urllib2, which would otherwise
+        use the system configuration (environment variables on Linux, System
+        Configuration on Mac OS, ...) to determine which proxies to use for
+        the current protocol, and when not to use a proxy (no_proxy).
+
+        Thus, passing an empty list will use the default ProxyHandler which
+        behaves correctly.
+        """
+        return []
 
 
 def year_period_to_dates(year, period):
@@ -113,16 +139,7 @@ def format_internal_tas(row):
 
 def get_client():
     """ Get the Client to access SAM. """
-    options = {}
-    proxy_options = {}
-    http_proxy = os.environ.get('HTTP_PROXY')
-    if http_proxy:
-        proxy_options['http'] = http_proxy
-    https_proxy = os.environ.get('HTTPS_PROXY')
-    if https_proxy:
-        proxy_options['https'] = https_proxy
-    if proxy_options:
-        options['proxy'] = proxy_options
+    options = {'transport': WellBehavedHttpTransport()}
 
     try:
         client = Client(CONFIG_BROKER['sam']['wsdl'], **options)
