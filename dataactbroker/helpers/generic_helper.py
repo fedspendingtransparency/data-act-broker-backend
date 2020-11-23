@@ -140,7 +140,8 @@ def format_internal_tas(row):
 
 def get_client():
     """ Get the Client to access SAM. """
-    options = {'transport': WellBehavedHttpsTransport()}
+    options = {'transport': WellBehavedHttpsTransport(username=CONFIG_BROKER['sam']['username'],
+                                                      password=CONFIG_BROKER['sam']['password'])}
 
     try:
         client = Client(CONFIG_BROKER['sam']['wsdl'], **options)
