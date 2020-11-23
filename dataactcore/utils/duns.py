@@ -61,9 +61,8 @@ def get_client(ssh_key=None):
 
     https_proxy = os.environ.get('HTTPS_PROXY')
     if https_proxy:
-        para_proxy = paramiko.ProxyCommand('nc --proxy-type http --proxy {} {} {}'.format(https_proxy[7:-1],
-                                                                                          connect_args['hostname'],
-                                                                                          '22'))
+        para_proxy = paramiko.ProxyCommand('nc --proxy-type http -w 90 --proxy {} {} {}'.format(
+            https_proxy[7:-1], connect_args['hostname'], '22'))
         connect_args['sock'] = para_proxy
 
     client.connect(**connect_args)
