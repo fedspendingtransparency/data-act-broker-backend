@@ -12,7 +12,7 @@ from suds.xsd import doctor
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.fsrs import FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant
 from dataactcore.models.domainModels import States
-from dataactbroker.helpers.generic_helper import WellBehavedHttpTransport
+from dataactbroker.helpers.generic_helper import WellBehavedHttpsTransport
 
 logger = logging.getLogger(__name__)
 PROCUREMENT = 'procurement_service'
@@ -148,7 +148,7 @@ def new_client(service_type):
             password=config['password'],
             timeout=300)
 
-    options['transport'] = WellBehavedHttpTransport()
+    options['transport'] = WellBehavedHttpsTransport()
 
     return Client(**options)
 

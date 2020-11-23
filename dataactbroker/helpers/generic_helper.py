@@ -5,7 +5,7 @@ import datetime as dt
 import os
 
 from suds.client import Client
-from suds.transport.http import HttpTransport as SudsHttpTransport
+from suds.transport.https import HttpsTransport as SudsHttpsTransport
 
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
@@ -55,8 +55,8 @@ class LiteralDialect(PGDialect):
         NullType: StringLiteral,
     }
 
-class WellBehavedHttpTransport(SudsHttpTransport):
-    """ HttpTransport which properly obeys the ``*_proxy`` environment variables."""
+class WellBehavedHttpsTransport(SudsHttpsTransport):
+    """ HttpsTransport which properly obeys the ``*_proxy`` environment variables."""
 
     def u2handlers(self):
         """ Return a list of specific handlers to add.
@@ -139,7 +139,7 @@ def format_internal_tas(row):
 
 def get_client():
     """ Get the Client to access SAM. """
-    options = {'transport': WellBehavedHttpTransport()}
+    options = {'transport': WellBehavedHttpsTransport()}
 
     try:
         client = Client(CONFIG_BROKER['sam']['wsdl'], **options)
