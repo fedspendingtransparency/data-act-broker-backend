@@ -10,7 +10,6 @@ from dataactcore.models.domainModels import DUNS
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.duns import get_client, REMOTE_SAM_EXEC_COMP_DIR, parse_exec_comp_file, update_exec_comp_duns
 
 logger = logging.getLogger(__name__)
