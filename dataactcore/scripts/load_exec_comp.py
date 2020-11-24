@@ -4,6 +4,7 @@ import re
 import argparse
 import datetime
 import json
+import tempfile
 
 from dataactcore.models.domainModels import DUNS
 from dataactcore.interfaces.db import GlobalDB
@@ -35,7 +36,7 @@ def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metri
     if not (local or ssh_key) or (local and ssh_key):
         raise Exception('Please provide the local param or the ssh key.')
     if ssh_key:
-        root_dir = CONFIG_BROKER['d_file_storage_path']
+        root_dir = tempfile.gettempdir()
         client = get_client(ssh_key=ssh_key)
         sftp = client.open_sftp()
         # dirlist on remote host

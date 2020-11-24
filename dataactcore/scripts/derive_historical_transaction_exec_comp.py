@@ -1,6 +1,7 @@
 import logging
 import argparse
 import re
+import tempfile
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -77,7 +78,7 @@ def main():
     sess = GlobalDB.db().session
 
     if args.ssh_key:
-        root_dir = CONFIG_BROKER['d_file_storage_path']
+        root_dir = tempfile.gettempdir()
         # dirlist on remote host
         client = get_client(ssh_key=args.ssh_key)
         sftp = client.open_sftp()
