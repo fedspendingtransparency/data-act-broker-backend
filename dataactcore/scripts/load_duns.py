@@ -4,8 +4,8 @@ import logging
 import os
 import re
 import json
+import tempfile
 
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
@@ -34,7 +34,7 @@ def process_duns_dir(sess, historic, local, benchmarks=None, metrics=None):
     # dealing with a local or remote directory
     sftp = None
     if not local:
-        root_dir = CONFIG_BROKER["d_file_storage_path"]
+        root_dir = tempfile.gettempdir()
         client = get_client()
         sftp = client.open_sftp()
         # dirlist on remote host
