@@ -4,6 +4,9 @@ from dateutil.parser import parse
 import datetime as dt
 
 from suds.client import Client
+from suds.transport.https import HttpAuthenticated as SudsHttpsTransport
+from urllib.request import HTTPBasicAuthHandler
+
 
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
@@ -52,6 +55,32 @@ class LiteralDialect(PGDialect):
         # don't format py2 long integers to NULL
         NullType: StringLiteral,
     }
+
+
+class WellBehavedHttpsTransport(SudsHttpsTransport):
+    """ HttpsTransport which properly obeys the ``*_proxy`` environment variables."""
+
+    def u2handlers(self):
+        """ Return a list of specific handlers to add.
+
+        The urllib2 logic regarding ``build_opener(*handlers)`` is:
+
+        - It has a list of default handlers to use
+
+        - If a subclass or an instance of one of those default handlers is given
+            in ``*handlers``, it overrides the default one.
+
+        Suds uses a custom {'protocol': 'proxy'} mapping in self.proxy, and adds
+        a ProxyHandler(self.proxy) to that list of handlers.
+        This overrides the default behaviour of urllib2, which would otherwise
+        use the system configuration (environment variables on Linux, System
+        Configuration on Mac OS, ...) to determine which proxies to use for
+        the current protocol, and when not to use a proxy (no_proxy).
+
+        Thus, passing an empty list (asides from the BasicAuthHandler)
+        will use the default ProxyHandler which behaves correctly.
+        """
+        return [HTTPBasicAuthHandler(self.pm)]
 
 
 def year_period_to_dates(year, period):
@@ -112,8 +141,11 @@ def format_internal_tas(row):
 
 def get_client():
     """ Get the Client to access SAM. """
+    options = {'transport': WellBehavedHttpsTransport(username=CONFIG_BROKER['sam']['username'],
+                                                      password=CONFIG_BROKER['sam']['password'])}
+
     try:
-        client = Client(CONFIG_BROKER['sam']['wsdl'])
+        client = Client(CONFIG_BROKER['sam']['wsdl'], **options)
     except ConnectionResetError:
         raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
                                 "performance issues. Please try again later.", StatusCode.NOT_FOUND)
