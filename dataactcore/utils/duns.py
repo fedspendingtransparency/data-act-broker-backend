@@ -60,7 +60,7 @@ def get_client(ssh_key=None):
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     https_proxy = os.environ.get('HTTPS_PROXY')
-    if https_proxy:
+    if https_proxy and sam_config.get('use_proxy'):
         para_proxy = paramiko.ProxyCommand('nc -w 90 -X connect -x {} {} {}'.format(
             https_proxy[7:-1], connect_args['hostname'], '22'))
         connect_args['sock'] = para_proxy
