@@ -163,7 +163,7 @@ def load_program_activity_data(base_path):
                     return
                 else:
                     logger.error('Loading of program activity file failed due to exceeded failure threshold. '
-                                 'Application tried to drop {} rows'.format(e.count)
+                                 'Application tried to drop {} rows'.format(e.count))
                     exit_if_nonlocal(5)
                     return
 
