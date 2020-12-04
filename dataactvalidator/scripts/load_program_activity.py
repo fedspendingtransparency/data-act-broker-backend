@@ -117,7 +117,6 @@ def load_program_activity_data(base_path):
         'records_deleted': 0,
         'records_inserted': 0
     }
-    dropped_count = 0
 
     logger.info('Checking PA upload dates to see if we can skip.')
     last_upload = get_date_of_current_pa_upload(base_path)
