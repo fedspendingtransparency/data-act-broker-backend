@@ -108,10 +108,6 @@ def load_program_activity_data(base_path):
             base_path: directory of domain config files
     """
     now = datetime.datetime.now()
-    last_upload = get_date_of_current_pa_upload(base_path)
-    if not (last_upload > get_stored_pa_last_upload()):
-        return
-
     metrics_json = {
         'script_name': 'load_program_activity.py',
         'start_time': str(now),
@@ -122,77 +118,83 @@ def load_program_activity_data(base_path):
         'records_inserted': 0
     }
 
-    program_activity_file = get_program_activity_file(base_path)
+    logger.info('Checking PA upload dates to see if we can skip.')
+    last_upload = get_date_of_current_pa_upload(base_path)
+    if not (last_upload > get_stored_pa_last_upload()):
+        logger.info('Skipping load as it\'s already been done')
+    else:
+        logger.info('Getting the progrma activity file')
+        program_activity_file = get_program_activity_file(base_path)
 
-    logger.info('Loading program activity: ' + PA_FILE_NAME)
+        logger.info('Loading program activity: {}'.format(PA_FILE_NAME))
 
-    with create_app().app_context():
-        sess = GlobalDB.db().session
-        try:
-            data = pd.read_csv(program_activity_file, dtype=str)
-        except pd.io.common.EmptyDataError:
-            log_blank_file()
-            exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
-            return
-        headers = set([header.upper() for header in list(data)])
-
-        if not VALID_HEADERS.issubset(headers):
-            logger.error('Missing required headers. Required headers include: %s' % str(VALID_HEADERS))
-            exit_if_nonlocal(4)
-            return
-
-        try:
-            dropped_count, data = clean_data(
-                data,
-                ProgramActivity,
-                {'fyq': 'fiscal_year_period', 'agency_code': 'agency_id', 'allocation_id': 'allocation_transfer_id',
-                 'account_code': 'account_number', 'pa_code': 'program_activity_code',
-                 'pa_title': 'program_activity_name'},
-                {'program_activity_code': {'pad_to_length': 4}, 'agency_id': {'pad_to_length': 3},
-                 'allocation_transfer_id': {'pad_to_length': 3, 'keep_null': True},
-                 'account_number': {'pad_to_length': 4}},
-                ['agency_id', 'program_activity_code', 'account_number', 'program_activity_name'],
-                True
-            )
-        except FailureThresholdExceededException as e:
-            if e.count == 0:
+        with create_app().app_context():
+            sess = GlobalDB.db().session
+            try:
+                data = pd.read_csv(program_activity_file, dtype=str)
+            except pd.io.common.EmptyDataError:
                 log_blank_file()
+                exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
+                return
+            headers = set([header.upper() for header in list(data)])
+
+            if not VALID_HEADERS.issubset(headers):
+                logger.error('Missing required headers. Required headers include: %s' % str(VALID_HEADERS))
                 exit_if_nonlocal(4)
                 return
-            else:
-                count_str = 'Application tried to drop {} rows'.format(e.count)
-                logger.error('Loading of program activity file failed due to exceeded failure threshold. ' + count_str)
-                exit_if_nonlocal(5)
-                return
 
-        metrics_json['records_deleted'] = sess.query(ProgramActivity).delete()
-        metrics_json['invalid_records_dropped'] = dropped_count
+            try:
+                dropped_count, data = clean_data(
+                    data,
+                    ProgramActivity,
+                    {'fyq': 'fiscal_year_period', 'agency_code': 'agency_id', 'allocation_id': 'allocation_transfer_id',
+                     'account_code': 'account_number', 'pa_code': 'program_activity_code',
+                     'pa_title': 'program_activity_name'},
+                    {'program_activity_code': {'pad_to_length': 4}, 'agency_id': {'pad_to_length': 3},
+                     'allocation_transfer_id': {'pad_to_length': 3, 'keep_null': True},
+                     'account_number': {'pad_to_length': 4}},
+                    ['agency_id', 'program_activity_code', 'account_number', 'program_activity_name'],
+                    True
+                )
+            except FailureThresholdExceededException as e:
+                if e.count == 0:
+                    log_blank_file()
+                    exit_if_nonlocal(4)
+                    return
+                else:
+                    logger.error('Loading of program activity file failed due to exceeded failure threshold. '
+                                 'Application tried to drop {} rows'.format(e.count)
+                    exit_if_nonlocal(5)
+                    return
 
-        # Lowercase Program Activity Name
-        data['program_activity_name'] = data['program_activity_name'].apply(lambda x: lowercase_or_notify(x))
-        # Convert FYQ to FYP
-        data['fiscal_year_period'] = data['fiscal_year_period'].apply(lambda x: convert_fyq_to_fyp(x))
+            metrics_json['records_deleted'] = sess.query(ProgramActivity).delete()
+            metrics_json['invalid_records_dropped'] = dropped_count
 
-        # because we're only loading a subset of program activity info, there will be duplicate records in the
-        # dataframe. this is ok, but need to de-duped before the db load. We also need to log them.
-        base_count = len(data.index)
-        metrics_json['records_received'] = base_count
-        data.drop_duplicates(inplace=True)
+            # Lowercase Program Activity Name
+            data['program_activity_name'] = data['program_activity_name'].apply(lambda x: lowercase_or_notify(x))
+            # Convert FYQ to FYP
+            data['fiscal_year_period'] = data['fiscal_year_period'].apply(lambda x: convert_fyq_to_fyp(x))
 
-        dupe_count = base_count - len(data.index)
-        logger.info('Dropped {} duplicate rows.'.format(dupe_count))
-        metrics_json['duplicates_dropped'] = dupe_count
+            # because we're only loading a subset of program activity info, there will be duplicate records in the
+            # dataframe. this is ok, but need to de-duped before the db load. We also need to log them.
+            base_count = len(data.index)
+            metrics_json['records_received'] = base_count
+            data.drop_duplicates(inplace=True)
 
-        # insert to db
-        table_name = ProgramActivity.__table__.name
-        num = insert_dataframe(data, table_name, sess.connection())
-        sess.commit()
+            dupe_count = base_count - len(data.index)
+            logger.info('Dropped {} duplicate rows.'.format(dupe_count))
+            metrics_json['duplicates_dropped'] = dupe_count
 
-    set_stored_pa_last_upload(last_upload)
-    logger.info('{} records inserted to {}'.format(num, table_name))
-    metrics_json['records_inserted'] = num
+            # insert to db
+            table_name = ProgramActivity.__table__.name
+            num = insert_dataframe(data, table_name, sess.connection())
+            sess.commit()
 
-    metrics_json['duration'] = str(datetime.datetime.now() - now)
+        set_stored_pa_last_upload(last_upload)
+        logger.info('{} records inserted to {}'.format(num, table_name))
+        metrics_json['records_inserted'] = num
+
+        metrics_json['duration'] = str(datetime.datetime.now() - now)
 
     with open('load_program_activity_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
