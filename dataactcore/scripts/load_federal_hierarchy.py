@@ -78,7 +78,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             url_with_params += '&updateddatefrom={}'.format(updated_date_from)
 
         # Retrieve the total count of expected records for this pull
-        total_expected_records = json.loads(requests.get(url_with_params, timeout=60).text)['totalrecords']
+        total_expected_records = json.loads(get_with_exception_hand(url_with_params).text)['totalrecords']
         metrics['level_{}_records'.format(str(level))] = total_expected_records
         logger.info('{} level-{} record(s) expected'.format(str(total_expected_records), str(level)))
         if total_expected_records == 0:
@@ -347,7 +347,7 @@ def main():
     try:
         pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office, metrics_json)
     except Exception as e:
-        logger.error(str(e))
+        logger.exception(e)
         sys.exit(1)
 
     # find if there were any new cgacs/subtiers added
