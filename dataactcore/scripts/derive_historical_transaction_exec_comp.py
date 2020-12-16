@@ -1,8 +1,8 @@
 import logging
 import argparse
 import re
+import tempfile
 
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.utils.duns import get_client, REMOTE_SAM_EXEC_COMP_DIR, parse_exec_comp_file, \
@@ -77,7 +77,7 @@ def main():
     sess = GlobalDB.db().session
 
     if args.ssh_key:
-        root_dir = CONFIG_BROKER['d_file_storage_path']
+        root_dir = tempfile.gettempdir()
         # dirlist on remote host
         client = get_client(ssh_key=args.ssh_key)
         sftp = client.open_sftp()

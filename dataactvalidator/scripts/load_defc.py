@@ -19,7 +19,7 @@ def load_defc():
     defc_file = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', 'def_codes.csv')
     try:
         # Update file from public S3 bucket
-        def_codes_url = 'https://files.usaspending.gov/reference_data/def_codes.csv'
+        def_codes_url = '{}/def_codes.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
         r = requests.get(def_codes_url, allow_redirects=True)
         open(defc_file, 'wb').write(r.content)
     except Exception:

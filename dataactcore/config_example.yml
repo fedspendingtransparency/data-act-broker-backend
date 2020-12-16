@@ -74,18 +74,6 @@ broker:
     # value if use_aws is true.
     aws_bucket: s3-bucket
 
-    # Region for pulling CFDA file, only required if planning to load CFDA file
-    cfda_region: us-east-1
-
-    # Bucket for pulling CFDA file, only required if planning to load CFDA file
-    cfda_bucket: sample-cfda-bucket-name
-
-    # Only required if planning to load CFDA file	+    sf_133_bucket: s3-bucket
-    cfda_file_path: sample-cfda-file-path
-
-    sf_133_bucket: s3-bucket
-    archive_bucket: s3-bucket
-
     # Name of AWS S3 bucket for certified broker files. Ignored if use_aws
     # is false. NOTE: the dummy value below MUST be changed to the correct
     # value if use_aws is true.
@@ -101,8 +89,8 @@ broker:
     sf_133_folder: config
     sf_133_file: sf_133.csv
 
-    # Location that deleted records from the FPDS atom feed are stored
-    fpds_delete_bucket: s3-bucket
+    # Link to public reference data provided by USAspending.gov
+    usas_public_reference_url: new-url.com
 
     # link to help for failed MAX login
     max_help_url: https://max_help_url.gov

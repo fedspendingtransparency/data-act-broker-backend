@@ -9,6 +9,7 @@ import json
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_
 recent file that was uploaded, and use the boto3 response for --date.
 '''
 
-BUCKET_NAME = 'da-data-extracts'
+BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
 BUCKET_PREFIX = 'fsrs_award_extracts/'
 
 
