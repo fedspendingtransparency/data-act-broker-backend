@@ -1,4 +1,5 @@
 from tests.unit.dataactcore.factories.domain import TASFactory
+from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.staging import (
     AwardFinancialFactory, ObjectClassProgramActivityFactory)
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
@@ -53,6 +54,25 @@ def test_success(database):
     assert number_of_errors(_FILE, database, models=[op, op2, af, af2, af3, af4, af5, af6, af7]) == 0
 
 
+def test_success_ignore_optional_before_2021(database):
+    """ Ignore AwardFinancial entries that are prior to year 2021 and are indicated by the proper PAC and PAN. """
+    tas = TASFactory()
+    database.session.add(tas)
+    database.session.flush()
+
+    op = ObjectClassProgramActivityFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
+                                           object_class='1')
+
+    af = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
+                               object_class='1')
+    af2 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='OPTN',
+                                program_activity_name='FIELD IS optional PRIOR TO FY21', object_class='1')
+
+    sub = SubmissionFactory(reporting_fiscal_year=2020)
+
+    assert number_of_errors(_FILE, database, models=[op, af, af2], submission=sub) == 0
+
+
 def test_failure(database):
     """ All combinations of TAS/program activity code+name/object class in File C (award financial) should exist in
         File B (object class program activity). Since not all object classes will have award activity, it is acceptable
@@ -82,3 +102,22 @@ def test_failure(database):
     af5 = AwardFinancialFactory(tas_id=tas2.tas_id, program_activity_code='1', object_class='0')
 
     assert number_of_errors(_FILE, database, models=[op, op2, af1, af2, af3, af4, af5]) == 5
+
+
+def test_fail_ignore_optional_2021(database):
+    """ Don't ignore AwardFinancial entries that are year 2021 or later and are indicated by the proper PAC and PAN. """
+    tas = TASFactory()
+    database.session.add(tas)
+    database.session.flush()
+
+    op = ObjectClassProgramActivityFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
+                                           object_class='1')
+
+    af = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
+                               object_class='1')
+    af2 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='OPTN',
+                                program_activity_name='FIELD IS optional PRIOR TO FY21', object_class='1')
+
+    sub = SubmissionFactory(reporting_fiscal_year=2021)
+
+    assert number_of_errors(_FILE, database, models=[op, af, af2], submission=sub) == 1
