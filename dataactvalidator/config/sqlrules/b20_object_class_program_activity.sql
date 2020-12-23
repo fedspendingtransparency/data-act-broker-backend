@@ -4,6 +4,7 @@
 
 WITH award_financial_b20_{0} AS
     (SELECT row_number,
+        submission_id,
         allocation_transfer_agency,
         agency_identifier,
         beginning_period_of_availa,
@@ -35,6 +36,8 @@ SELECT
     af.program_activity_name AS "uniqueid_ProgramActivityName",
     af.object_class AS "uniqueid_ObjectClass"
 FROM award_financial_b20_{0} AS af
+JOIN submission AS sub
+    ON sub.submission_id = af.submission_id
 WHERE NOT EXISTS (
         SELECT 1
         FROM ocpa_b20_{0} AS op
@@ -51,4 +54,7 @@ WHERE NOT EXISTS (
                     AND op.object_class IN ('0', '00', '000', '0000')
                 )
             )
-    );
+    )
+    AND NOT (UPPER(af.program_activity_code) = 'OPTN'
+        AND UPPER(af.program_activity_name) = 'FIELD IS OPTIONAL PRIOR TO FY21'
+        AND sub.reporting_fiscal_year < 2021);

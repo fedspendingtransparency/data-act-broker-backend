@@ -26,7 +26,7 @@ def test_get_program_activity_file_aws(boto3, bytesio, monkeypatch):
 
     boto3.resource('s3').Object(
         load_program_activity.PA_BUCKET, load_program_activity.PA_SUB_KEY + load_program_activity.PA_FILE_NAME
-    ).get.assert_called_with(load_program_activity.PA_SUB_KEY + load_program_activity.PA_FILE_NAME)
+    ).get.assert_called_with(Key=load_program_activity.PA_SUB_KEY + load_program_activity.PA_FILE_NAME)
 
     remove_metrics_file()
 
