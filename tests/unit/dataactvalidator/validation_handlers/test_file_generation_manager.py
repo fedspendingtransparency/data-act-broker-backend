@@ -177,12 +177,14 @@ def test_generate_a(database):
     sf1 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1160, amount='1.00', **tas1_dict)
     sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1180, amount='2.00', **tas1_dict)
     sf3 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1000, amount='4.00', **tas2_dict)
+    sf4 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1042, amount='4.00', **tas2_dict)
+    sf5 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1065, amount='4.00', **tas2_dict)
     tas1 = TASFactory(financial_indicator2=' ', **tas1_dict)
     tas2 = TASFactory(financial_indicator2=' ', **tas2_dict)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2017',
                      end_date='03/31/2017', submission_id=None)
-    sess.add_all([sf1, sf2, sf3, tas1, tas2, job])
+    sess.add_all([sf1, sf2, sf3, sf4, sf5, tas1, tas2, job])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
@@ -220,6 +222,7 @@ def test_generate_a(database):
     expected1_sum_cols['budget_authority_appropria_cpe'] = '3.00'
     expected2_sum_cols = zero_sum_cols.copy()
     expected2_sum_cols['budget_authority_unobligat_fyb'] = '4.00'
+    expected2_sum_cols['adjustments_to_unobligated_cpe'] = '4.00'
     for value in file_generation_manager.fileA.db_columns:
         # loop through all values and format date columns
         if value in sf1.__dict__:
@@ -231,6 +234,75 @@ def test_generate_a(database):
 
     assert expected1 in file_rows
     assert expected2 in file_rows
+
+
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
+def test_generate_a_after_2020(database):
+    sess = database.session
+
+    agency_cgac = '097'
+    year = 2021
+
+    tas_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2021',
+        'ending_period_of_availabil': '2021',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas_str = concat_tas_dict(tas_dict)
+
+    sf1 = SF133Factory(period=6, fiscal_year=year, tas=tas_str, line=1042, amount='4.00', **tas_dict)
+    sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas_str, line=1065, amount='4.00', **tas_dict)
+    tas = TASFactory(financial_indicator2=' ', **tas_dict)
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
+                     end_date='03/31/2021', submission_id=None)
+    sess.add_all([sf1, sf2, tas, job])
+    sess.commit()
+
+    # First job, prior to 2021
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
+    # providing agency code here as it will be passed via SQS and detached file jobs don't store agency code
+    file_gen_manager.generate_file(agency_cgac)
+
+    assert job.filename is not None
+
+    # check headers
+    file_rows = read_file_rows(job.filename)
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileA.mapping.items()]
+
+    # check body
+    sf = sess.query(SF133).filter_by(tas=tas_str).first()
+    expected = []
+    sum_cols = [
+        'total_budgetary_resources_cpe',
+        'budget_authority_appropria_cpe',
+        'budget_authority_unobligat_fyb',
+        'adjustments_to_unobligated_cpe',
+        'other_budgetary_resources_cpe',
+        'contract_authority_amount_cpe',
+        'borrowing_authority_amount_cpe',
+        'spending_authority_from_of_cpe',
+        'status_of_budgetary_resour_cpe',
+        'obligations_incurred_total_cpe',
+        'gross_outlay_amount_by_tas_cpe',
+        'unobligated_balance_cpe',
+        'deobligations_recoveries_r_cpe'
+    ]
+    zero_sum_cols = {sum_col: '0' for sum_col in sum_cols}
+    expected_sum_cols = zero_sum_cols.copy()
+    expected_sum_cols['adjustments_to_unobligated_cpe'] = '8.00'
+    for value in file_generation_manager.fileA.db_columns:
+        # loop through all values and format date columns
+        if value in sf1.__dict__:
+            expected.append(str(sf.__dict__[value] or ''))
+        elif value in expected_sum_cols:
+            expected.append(expected_sum_cols[value])
+
+    assert expected in file_rows
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
@@ -465,7 +537,6 @@ def test_generate_txt_d1(database):
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path, delimiter='|')
-    print(file_rows)
     assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD1.mapping.items()]
 
     # check body

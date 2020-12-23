@@ -5,12 +5,12 @@ from urllib.parse import urlparse
 from suds import sudsobject
 from suds.client import Client
 from suds.plugin import MessagePlugin
-from suds.transport.https import HttpAuthenticated
 from suds.xsd import doctor
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.fsrs import FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant
 from dataactcore.models.domainModels import States
+from dataactbroker.helpers.generic_helper import WellBehavedHttpsTransport
 
 logger = logging.getLogger(__name__)
 PROCUREMENT = 'procurement_service'
@@ -141,7 +141,7 @@ def new_client(service_type):
     options['plugins'] = [ControlFilter(), ZeroDateFilter()]
 
     if config.get('username') and config.get('password'):
-        options['transport'] = HttpAuthenticated(
+        options['transport'] = WellBehavedHttpsTransport(
             username=config['username'],
             password=config['password'],
             timeout=300)

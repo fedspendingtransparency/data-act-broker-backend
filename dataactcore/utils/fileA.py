@@ -91,7 +91,7 @@ def query_data(session, agency_code, period, year):
                                    tas_gtas.c.agency_identifier == '011',
                                    tas_gtas.c.fr_entity_type == agency_code))
 
-    rows = initial_query(session, tas_gtas.c).\
+    rows = initial_query(session, tas_gtas.c, year).\
         filter(func.coalesce(tas_gtas.c.financial_indicator2, '') != 'F').\
         filter(or_(*agency_filters)).\
         group_by(tas_gtas.c.allocation_transfer_agency,
@@ -140,16 +140,18 @@ def tas_gtas_combo(session, period, year):
     return query.cte('tas_gtas')
 
 
-def initial_query(session, model):
+def initial_query(session, model, year):
     """ Creates the initial query for D2 files.
 
         Args:
             session: The current DB session
             model: subquery model to get data from
+            year: the year for which to get data
 
         Returns:
             The base query (a select from the PublishedAwardFinancialAssistance table with the specified columns).
     """
+    budget_authority_line_max = 1042 if year <= 2020 else 1065
     return session.query(
         model.allocation_transfer_agency,
         model.agency_identifier,
@@ -162,7 +164,7 @@ def initial_query(session, model):
         func.sum(case([(model.line.in_([1160, 1180, 1260, 1280]), model.amount)],
                       else_=0)).label('budget_authority_appropria_cpe'),
         func.sum(case([(model.line == 1000, model.amount)], else_=0)).label('budget_authority_unobligat_fyb'),
-        func.sum(case([(and_(model.line >= 1010, model.line <= 1042), model.amount)],
+        func.sum(case([(and_(model.line >= 1010, model.line <= budget_authority_line_max), model.amount)],
                       else_=0)).label('adjustments_to_unobligated_cpe'),
         func.sum(case([(model.line.in_([1540, 1640, 1340, 1440, 1750, 1850]), model.amount)],
                       else_=0)).label('other_budgetary_resources_cpe'),
