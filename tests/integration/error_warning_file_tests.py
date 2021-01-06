@@ -326,7 +326,7 @@ class ErrorWarningTests(BaseTestValidator):
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
         assert self.validator.job.number_of_rows == 11
-        assert self.validator.job.number_of_rows_valid == 9
+        assert self.validator.job.number_of_rows_valid == 10
         assert error_count == 1
         assert report_headers == self.validator.report_headers
         expected_values = [
@@ -612,39 +612,40 @@ class ErrorWarningTests(BaseTestValidator):
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 20
         assert self.validator.job.number_of_rows == 11
-        assert self.validator.job.number_of_rows_valid == 9
+        assert self.validator.job.number_of_rows_valid == 10
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
-        assert error_count == 1
+        assert error_count == 0
         assert report_headers == self.validator.report_headers
-        expected_values = [
-            {
-                'Unique ID': 'TAS: 049-2014/2015-0100-000',
-                'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe,'
-                              ' budgetauthorityunobligatedbalancebroughtforward_fyb,'
-                              ' adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe',
-                'Rule Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +'
-                                ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
-                                ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
-                                ' OtherBudgetaryResourcesAmount_CPE',
-                'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01,'
-                                  ' budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,'
-                                  ' adjustmentstounobligatedbalancebroughtforward_cpe: 2.02,'
-                                  ' otherbudgetaryresourcesamount_cpe: 4.04',
-                'Expected Value': 'TotalBudgetaryResources_CPE must equal the sum of these elements:'
-                                  ' BudgetAuthorityAppropriatedAmount_CPE +'
-                                  ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
-                                  ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
-                                  ' OtherBudgetaryResourcesAmount_CPE. The Broker cannot distinguish which item is'
-                                  ' incorrect for this rule. Refer to related rule errors and warnings in this report'
-                                  ' (rules A3, A6, A7, A8, A12) to distinguish which elements may be incorrect.',
-                'Difference': '1.00',
-                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
-                'Row Number': '10',
-                'Rule Label': 'A2'
-            }
-        ]
-        assert report_content == expected_values
+        # TODO put this back when we put A2 back
+        # expected_values = [
+        #     {
+        #         'Unique ID': 'TAS: 049-2014/2015-0100-000',
+        #         'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe,'
+        #                       ' budgetauthorityunobligatedbalancebroughtforward_fyb,'
+        #                       ' adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe',
+        #         'Rule Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +'
+        #                         ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
+        #                         ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
+        #                         ' OtherBudgetaryResourcesAmount_CPE',
+        #         'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01,'
+        #                           ' budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,'
+        #                           ' adjustmentstounobligatedbalancebroughtforward_cpe: 2.02,'
+        #                           ' otherbudgetaryresourcesamount_cpe: 4.04',
+        #         'Expected Value': 'TotalBudgetaryResources_CPE must equal the sum of these elements:'
+        #                           ' BudgetAuthorityAppropriatedAmount_CPE +'
+        #                           ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
+        #                           ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
+        #                           ' OtherBudgetaryResourcesAmount_CPE. The Broker cannot distinguish which item is'
+        #                           ' incorrect for this rule. Refer to related rule errors and warnings in this report'
+        #                           ' (rules A3, A6, A7, A8, A12) to distinguish which elements may be incorrect.',
+        #         'Difference': '1.00',
+        #         'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+        #         'Row Number': '10',
+        #         'Rule Label': 'A2'
+        #     }
+        # ]
+        # assert report_content == expected_values
         self.cleanup()
 
     def test_cross_file_warnings(self):
