@@ -78,7 +78,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             url_with_params += '&updateddatefrom={}'.format(updated_date_from)
 
         # Retrieve the total count of expected records for this pull
-        total_expected_records = json.loads(get_with_exception_hand(url_with_params).text)['totalrecords']
+        total_expected_records = get_with_exception_hand(url_with_params)['totalrecords']
         metrics['level_{}_records'.format(str(level))] = total_expected_records
         logger.info('{} level-{} record(s) expected'.format(str(total_expected_records), str(level)))
         if total_expected_records == 0:
