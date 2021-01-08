@@ -114,16 +114,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             dataframe = pd.DataFrame()
             offices = {}
             start = entries_processed + 1
-            for next_resp in full_response:
-                response_dict = json.loads(next_resp)
-
-                # We get errors back as regular JSON, need to catch them somewhere
-                if response_dict.get('error'):
-                    err = response_dict.get('error')
-                    message = response_dict.get('message')
-                    logger.error('An error occurred: {} {}'.format(err, message))
-                    sys.exit(2)
-
+            for response_dict in full_response:
                 # Process the entry if it isn't an error
                 for org in response_dict.get('orglist', []):
                     entries_processed += 1
@@ -266,23 +257,38 @@ def get_with_exception_hand(url_string):
     exception_retries = -1
     retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
     request_timeout = 60
+    response_dict = None
+
+    def handle_resp(exception_retries, request_timeout):
+        exception_retries += 1
+        request_timeout += 60
+        if exception_retries < len(retry_sleep_times):
+            logger.info('Sleeping {}s and then retrying with a max wait of {}s...'
+                        .format(retry_sleep_times[exception_retries], request_timeout))
+            time.sleep(retry_sleep_times[exception_retries])
+            return exception_retries, request_timeout
+        else:
+            logger.error('Maximum retry attempts exceeded.')
+            sys.exit(2)
 
     while exception_retries < len(retry_sleep_times):
         try:
             resp = requests.get(url_string, timeout=request_timeout)
+            response_dict = json.loads(resp)
+            # We get errors back as regular JSON, need to catch them somewhere
+            if response_dict.get('error'):
+                err = response_dict.get('error')
+                message = response_dict.get('message')
+                logger.warning('Error processing response: {} {}'.format(err, message))
+                exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)
+                continue
             break
         except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
-                requests.exceptions.ReadTimeout):
-            exception_retries += 1
-            request_timeout += 60
-            if exception_retries < len(retry_sleep_times):
-                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
-                            .format(retry_sleep_times[exception_retries], request_timeout))
-                time.sleep(retry_sleep_times[exception_retries])
-            else:
-                logger.error('Connection to Federal Hierarchy API lost, maximum retry attempts exceeded.')
-                sys.exit(2)
-    return resp
+                requests.exceptions.ReadTimeout, json.decoder.JSONDecodeError) as e:
+            logger.exception(e)
+            exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)
+
+    return response_dict
 
 
 def main():
