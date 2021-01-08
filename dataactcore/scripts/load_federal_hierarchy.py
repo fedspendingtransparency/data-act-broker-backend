@@ -101,7 +101,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     for start_offset in range(REQUESTS_AT_ONCE)
                 ]
                 for response in await asyncio.gather(*futures):
-                    response_list.append(response.text)
+                    response_list.append(response)
                     pass
                 return response_list
             # End async get requests def
@@ -274,7 +274,7 @@ def get_with_exception_hand(url_string):
     while exception_retries < len(retry_sleep_times):
         try:
             resp = requests.get(url_string, timeout=request_timeout)
-            response_dict = json.loads(resp)
+            response_dict = json.loads(resp.text)
             # We get errors back as regular JSON, need to catch them somewhere
             if response_dict.get('error'):
                 err = response_dict.get('error')
