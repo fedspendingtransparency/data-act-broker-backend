@@ -196,9 +196,9 @@ class Comment(Base):
     submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission", ondelete="CASCADE"),
                            nullable=False)
     submission = relationship(Submission, uselist=False, cascade="delete")
+    # Note: a null file_type_id is a submission comment
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=True)
     file_type = relationship(FileType, uselist=False)
-    submission_comment = Column(Boolean, nullable=False, default=False, server_default="False")
     comment = Column(Text, nullable=False)
 
     __table_args__ = (UniqueConstraint('submission_id', 'file_type_id', name='uniq_submission_file_type'),)

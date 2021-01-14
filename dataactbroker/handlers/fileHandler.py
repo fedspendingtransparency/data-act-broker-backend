@@ -1245,10 +1245,7 @@ def get_submission_comments(submission):
     result['submission_comment'] = ''
     comments = sess.query(Comment).filter_by(submission_id=submission.submission_id)
     for comment in comments:
-        if comment.submission_comment and comment.file_type_id is None:
-            comment_type = 'submission_comment'
-        else:
-            comment_type = FILE_TYPE_DICT_LETTER.get(comment.file_type_id, None)
+        comment_type = FILE_TYPE_DICT_LETTER.get(comment.file_type_id, 'submission_comment')
         result[comment_type] = comment.comment
     return JsonResponse.create(StatusCode.OK, result)
 
@@ -1287,7 +1284,6 @@ def update_submission_comments(submission, comment_request, is_local):
         comments.append(Comment(
             submission_id=submission.submission_id,
             file_type_id=None,
-            submission_comment=True,
             comment=submission_comment
         ))
     sess.add_all(comments)
