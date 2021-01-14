@@ -6,7 +6,6 @@ This endpoint sets the file comments for a given submission.
 ```
 {
   "submission_id": 1234,
-  "submission_comment": "Overall comment",
   "A": "Some new text",
   "C": "We didn't include B",
   "D1": "",
@@ -21,7 +20,6 @@ All content passed in the body is updated in the database. If an attribute is le
 **Important:** All comments must be included every time in order to be kept. An attribute with an empty string will result in that comment being deleted. (e.g. A comment for file A already exists. A comment for file B is being added. Comments for both files A and B must be sent).
 
 - `submission_id`: (required, string) The ID of the submission whose comments are getting updated
-- `submission_comment`: (string) overall submission comment
 - `A`: (string) comment for file A (Appropriations)
 - `B`: (string) comment for file B (Program Activity)
 - `C`: (string) comment for file C (Award Financial)

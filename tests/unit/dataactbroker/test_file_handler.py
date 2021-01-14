@@ -519,7 +519,6 @@ def test_comments(database):
     result = fileHandler.get_submission_comments(sub1)
     result = json.loads(result.get_data().decode('UTF-8'))
     assert result == {
-        'submission_comment': '',
         'A': '',
         'B': 'BBBBBB',
         'C': '',
@@ -530,15 +529,13 @@ def test_comments(database):
     }
 
     # Replace the comments
-    result = fileHandler.update_submission_comments(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2', 'submission_comment': 'SubC'},
-                                                    CONFIG_BROKER['local'])
+    result = fileHandler.update_submission_comments(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
     # Verify the change worked
     result = fileHandler.get_submission_comments(sub1)
     result = json.loads(result.get_data().decode('UTF-8'))
     assert result == {
-        'submission_comment': 'SubC',
         'A': 'AAAAAA',
         'B': '',
         'C': '',
