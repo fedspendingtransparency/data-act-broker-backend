@@ -196,8 +196,7 @@ class Comment(Base):
     submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission", ondelete="CASCADE"),
                            nullable=False)
     submission = relationship(Submission, uselist=False, cascade="delete")
-    # Note: a null file_type_id is a submission comment
-    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=True)
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=False)
     file_type = relationship(FileType, uselist=False)
     comment = Column(Text, nullable=False)
 
@@ -211,8 +210,7 @@ class CertifiedComment(Base):
     submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission", ondelete="CASCADE"),
                            nullable=False)
     submission = relationship(Submission, uselist=False, cascade="delete")
-    # Note: a null file_type_id is a submission comment
-    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=True)
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=False)
     file_type = relationship(FileType, uselist=False)
     comment = Column(Text, nullable=False)
 
