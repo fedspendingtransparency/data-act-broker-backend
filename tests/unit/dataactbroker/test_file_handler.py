@@ -5,6 +5,7 @@ import os.path
 from unittest.mock import Mock
 from flask import Flask
 from collections import namedtuple
+import csv
 
 import pytest
 
@@ -558,12 +559,38 @@ def test_get_comments_file(database):
     database.session.commit()
 
     # Write some comments
-    fileHandler.update_submission_comments(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'}, CONFIG_BROKER['local'])
+    fileHandler.update_submission_comments(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'submission_comment': 'SubC'},
+                                           CONFIG_BROKER['local'])
 
     result = fileHandler.get_comments_file(sub1, CONFIG_BROKER['local'])
     assert result.status_code == 200
     result = json.loads(result.get_data().decode('UTF-8'))
     assert 'submission_{}_comments.csv'.format(sub1.submission_id) in result['url']
+
+    report_content = []
+    report_headers = None
+    with open(result['url'], 'r') as comment_csv:
+        reader = csv.DictReader(comment_csv)
+        for row in reader:
+            report_content.append(row)
+        report_headers = reader.fieldnames
+    report_content = list(report_content)
+    assert report_headers == ['Comment Type', 'Comment']
+    expected_comments = [
+        {
+            'Comment Type': 'program_activity',
+            'Comment': 'BBBBBB',
+        },
+        {
+            'Comment Type': 'executive_compensation',
+            'Comment': 'EEEEEE',
+        },
+        {
+            'Comment Type': 'Submission Comment',
+            'Comment': 'SubC',
+        }
+    ]
+    assert report_content == expected_comments
 
     # If it's a submission with no comments, it should return an error
     result = fileHandler.get_comments_file(sub2, CONFIG_BROKER['local'])
