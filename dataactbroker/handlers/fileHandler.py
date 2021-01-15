@@ -1293,11 +1293,15 @@ def update_submission_comments(submission, comment_request, is_local):
     filename = 'submission_{}_comments.csv'.format(submission.submission_id)
     local_file = ''.join([CONFIG_BROKER['broker_files'], filename])
     file_path = local_file if is_local else '{}/{}'.format(str(submission.submission_id), filename)
-    headers = ['File', 'Comment']
+    headers = ['Comment Type', 'Comment']
 
     # Generate a file containing all the comments for a given submission
-    comment_query = sess.query(FileType.name, Comment.comment).\
-        join(FileType, Comment.file_type_id == FileType.file_type_id).\
+    comment_query = sess.query(
+        case([
+            (FileType.name.isnot(None), FileType.name),
+            (FileType.name.is_(None), 'Submission Comment')
+        ]), Comment.comment).\
+        outerjoin(FileType, Comment.file_type_id == FileType.file_type_id).\
         filter(Comment.submission_id == submission.submission_id)
 
     # Generate the file locally, then place in S3
