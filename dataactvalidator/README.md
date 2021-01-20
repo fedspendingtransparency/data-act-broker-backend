@@ -19,7 +19,7 @@ The validation process for each submitted group of files happens in four steps:
 2. The file is then broken down into batches (10k rows) and the following points operate on each batch.
     * Basic schema checks are performed on each row of each batch:
         * are required fields present?
-        * is the data type of each field correct? (rows with these errors will then be ignored by any other validation)
+        * is the data type of each field correct? (rows with these errors will then be ignored by any other validation and will not be loaded)
         * is the field length correct?
         * is the data format appropriate for its data type?
     * The data from each batch is then loaded into the staging tables.
