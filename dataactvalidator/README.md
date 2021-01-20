@@ -17,12 +17,12 @@ The validation process for each submitted group of files happens in four steps:
 
 1. Each individual file is checked for a correct header row, rows with too many/few fields, and retrieves an initial row count.
 2. The file is then broken down into batches (10k rows) and the following points operate on each batch.
-    *. Basic schema checks are performed on each row of each batch:
+    * Basic schema checks are performed on each row of each batch:
         * are required fields present?
         * is the data type of each field correct? (rows with these errors will then be ignored by any other validation)
         * is the field length correct?
         * is the data format appropriate for its data type?
-    *. The data from each batch is then loaded into the staging tables.
+    * The data from each batch is then loaded into the staging tables.
 3. SQL validation rules are performed on the data loaded into the staging tables:
     * These encompass the business logic laid out in the DAIMS Schema rules.
     * A list of all these rules can be found in [sqlRules.csv](config/sqlrules/sqlRules.csv)
