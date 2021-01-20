@@ -11,17 +11,23 @@ For more information about the DATA Act Broker codebase, please visit this repos
 ## Process Overview
 The validation process begins with a job ID being pushed to the job manager, an AWS SQS queue. The validator is constantly polling the aforementioned queue, and when it receives a message (the job ID), it kicks of the validation process. First, the validator checks the job tracker to ensure that the job is of the correct type, and that all prerequisites are completed.
 
-The file location on S3 is specified in the job tracker, and the validator streams the file record by record from S3.
+The file location on S3 is specified in the job tracker, and the validator downloads it from S3 to a temporary file.
 
 The validation process for each submitted group of files happens in four steps:
 
-1. Each individual file is checked for correct formatting and a correct header row.
-2. Basic schema checks are performed on each row of each individual file:
-    * are required fields present?
-    * is the data type of each field correct?
-    * is the field length correct? (warning)
-3. The complex validation rules are performed on each individual file.
-4. Once the individual files have passed the previous validation steps, the validator runs a series of "cross-file" checks to ensure that data is consistent between the files.
+1. Each individual file is checked for a correct header row, rows with too many/few fields, and retrieves an initial row count.
+2. The file is then broken down into batches (10k rows) and the following points operate on each batch.
+    3. Basic schema checks are performed on each row of each batch:
+        * are required fields present?
+        * is the data type of each field correct? (rows with these errors will then be ignored by any other validation)
+        * is the field length correct?
+        * is the data format appropriate for its data type?
+    4. The data from each batch is then loaded into the staging tables.
+5. SQL validation rules are performed on the data loaded into the staging tables:
+    * These encompass the business logic laid out in the DAIMS Schema rules.
+    * A list of all these rules can be found in [sqlRules.csv](config/sqlrules/sqlRules.csv)
+6. For DABS submissions, once the individual files have passed the previous validation steps for A/B/C/D1/D2, the validator runs a series of "cross-file" checks to ensure that data is consistent between the files.
+    * These are also executed via SQL and listed in [sqlRules.csv](config/sqlrules/sqlRules.csv)
 
 Finally, the job is marked as finished in the job table, and the file is marked completed in the error metadata table.
 
