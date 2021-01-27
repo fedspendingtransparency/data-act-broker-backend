@@ -15,5 +15,5 @@ WHERE submission_id = {0}
         WHERE defc.code = UPPER(disaster_emergency_fund_code) AND
             defc.group = 'covid_19'
     )
-    AND COALESCE(transaction_obligated_amou, 0) = 0
+    AND transaction_obligated_amou IS NULL
     AND gross_outlay_amount_by_awa_cpe IS NULL;
