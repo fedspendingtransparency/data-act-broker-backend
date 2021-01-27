@@ -1242,10 +1242,11 @@ def get_submission_comments(submission):
     """
     sess = GlobalDB.db().session
     result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values() if letter != 'FABS'}
+    result['submission_comment'] = ''
     comments = sess.query(Comment).filter_by(submission_id=submission.submission_id)
     for comment in comments:
-        letter = FILE_TYPE_DICT_LETTER[comment.file_type_id]
-        result[letter] = comment.comment
+        comment_type = FILE_TYPE_DICT_LETTER.get(comment.file_type_id, 'submission_comment')
+        result[comment_type] = comment.comment
     return JsonResponse.create(StatusCode.OK, result)
 
 
@@ -1278,6 +1279,13 @@ def update_submission_comments(submission, comment_request, is_local):
                 file_type_id=file_type_id,
                 comment=comments_json[letter]
             ))
+    submission_comment = comments_json.get('SUBMISSION_COMMENT')
+    if submission_comment:
+        comments.append(Comment(
+            submission_id=submission.submission_id,
+            file_type_id=None,
+            comment=submission_comment
+        ))
     sess.add_all(comments)
     sess.commit()
 
@@ -1285,11 +1293,15 @@ def update_submission_comments(submission, comment_request, is_local):
     filename = 'submission_{}_comments.csv'.format(submission.submission_id)
     local_file = ''.join([CONFIG_BROKER['broker_files'], filename])
     file_path = local_file if is_local else '{}/{}'.format(str(submission.submission_id), filename)
-    headers = ['File', 'Comment']
+    headers = ['Comment Type', 'Comment']
 
     # Generate a file containing all the comments for a given submission
-    comment_query = sess.query(FileType.name, Comment.comment).\
-        join(FileType, Comment.file_type_id == FileType.file_type_id).\
+    comment_query = sess.query(
+        case([
+            (FileType.name.isnot(None), FileType.name),
+            (FileType.name.is_(None), 'Submission Comment')
+        ]), Comment.comment).\
+        outerjoin(FileType, Comment.file_type_id == FileType.file_type_id).\
         filter(Comment.submission_id == submission.submission_id)
 
     # Generate the file locally, then place in S3
