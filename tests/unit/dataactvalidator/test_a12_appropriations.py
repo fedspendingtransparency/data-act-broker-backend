@@ -9,7 +9,7 @@ _TAS = 'a12_appropriations_tas'
 
 def test_column_headers(database):
     expected_subset = {'uniqueid_TAS', 'row_number', 'adjustments_to_unobligated_cpe',
-                       'expected_value_SUM of GTAS SF133 Lines 1010 through 1042', 'difference'}
+                       'expected_value_SUM of GTAS SF133 Lines 1010 through 1065', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
