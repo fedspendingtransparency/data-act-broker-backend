@@ -228,6 +228,16 @@ class FileHandler:
                 elif 'existing_submission_id' not in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
+            if not existing_submission:
+                cgac_code = submission_data['cgac_code'] or ''
+                frec_code = submission_data['frec_code'] or ''
+                if cgac_code != '' and frec_code != '':
+                    raise ResponseException('New DABS submissions must have either a CGAC or a FREC code but not both',
+                                            StatusCode.CLIENT_ERROR)
+                if cgac_code == '' and frec_code == '':
+                    raise ResponseException('New DABS submissions must have either a CGAC or a FREC code',
+                                            StatusCode.CLIENT_ERROR)
+
             # make sure submission dates are valid
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
                 submission_data.get('reporting_start_date'),
