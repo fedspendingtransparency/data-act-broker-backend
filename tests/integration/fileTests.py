@@ -487,6 +487,35 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month with the exception'
                                                    ' of periods 1 and 2, which must be selected together.')
 
+    def test_both_cgac_and_frec(self):
+        """ Test to make sure there's an error if both cgac and frec are included and not null """
+        update_json = {
+            'cgac_code': '020',
+            'frec_code': '0500',
+            'is_quarter': True,
+            'reporting_period_start_date': '10/2016',
+            'reporting_period_end_date': '12/2016'}
+        response = self.app.post('/v1/upload_dabs_files/', update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'New DABS submissions must have either a CGAC or a FREC code but not'
+                                                   ' both')
+
+    def test_neither_cgac_nor_frec(self):
+        """ Test to make sure there's an error if both cgac and frec are included and are null """
+        update_json = {
+            'cgac_code': None,
+            'frec_code': None,
+            'is_quarter': True,
+            'reporting_period_start_date': '10/2016',
+            'reporting_period_end_date': '12/2016'}
+        response = self.app.post('/v1/upload_dabs_files/', update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'New DABS submissions must have either a CGAC or a FREC code')
+
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
         self.logout()

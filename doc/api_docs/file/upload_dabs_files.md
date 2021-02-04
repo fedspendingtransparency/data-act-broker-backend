@@ -70,5 +70,7 @@ Possible HTTP Status Codes:
     - Missing parameter
     - Submission does not exist
     - Invalid start/end date combination
+    - Both `cgac_code` and `frec_code` filled with a value in a new submission
+    - Both `cgac_code` and `frec_code` null in a new submission
 - 401: Login required
 - 403: Permission denied, user does not have permission to edit this submission
