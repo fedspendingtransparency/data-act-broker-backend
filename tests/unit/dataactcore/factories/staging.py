@@ -97,6 +97,17 @@ class AwardFinancialFactory(factory.Factory):
     disaster_emergncy_fund_code = fuzzy.FuzzyText()
 
 
+class TotalObligationsFactory(factory.Factory):
+    class Meta:
+        model = stagingModels.TotalObligations
+
+    total_obligations_id = None
+    submission_id = fuzzy.FuzzyInteger(9999)
+    total_obligations = fuzzy.FuzzyDecimal(9999)
+    total_proc_obligations = fuzzy.FuzzyDecimal(9999)
+    total_asst_obligations = fuzzy.FuzzyDecimal(9999)
+
+
 class CertifiedAwardFinancialFactory(factory.Factory):
     class Meta:
         model = stagingModels.CertifiedAwardFinancial
