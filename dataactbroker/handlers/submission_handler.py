@@ -6,7 +6,7 @@ import re
 
 from datetime import datetime
 from flask import g
-from sqlalchemy import func, or_, desc, cast, Numeric
+from sqlalchemy import func, desc, cast, Numeric
 from sqlalchemy.sql.expression import case
 
 from dataactcore.aws.s3Handler import S3Handler

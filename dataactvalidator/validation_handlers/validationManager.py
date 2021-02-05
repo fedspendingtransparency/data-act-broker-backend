@@ -11,7 +11,7 @@ from datetime import timedelta
 
 from datetime import datetime
 
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 from dataactbroker.helpers.validation_helper import (
@@ -34,8 +34,7 @@ from dataactcore.models.domainModels import Office, concat_display_tas_dict, con
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.models.stagingModels import (
-    DetachedAwardFinancialAssistance, FlexField, AwardFinancial, TotalObligations)
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField, TotalObligations
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.models.validationModels import RuleSql, ValidationLabel
@@ -778,11 +777,12 @@ class ValidationManager:
         if self.file_type_name == 'award_financial':
             chunk_df['transaction_obligated_amou'] = chunk_df['transaction_obligated_amou'].astype(float).fillna(0)
             with lockable:
-                shared_data['total_proc_obligations'] += chunk_df.loc[chunk_df['piid'].notna(),
-                                                                      'transaction_obligated_amou'].sum()
-                shared_data['total_asst_obligations'] += chunk_df.loc[(chunk_df['fain'].notna()) |
-                                                                      (chunk_df['uri'].notna()),
-                                                                      'transaction_obligated_amou'].sum()
+                shared_data['total_proc_obligations'] += chunk_df.loc[
+                    chunk_df['piid'].notna(), 'transaction_obligated_amou'
+                ].sum()
+                shared_data['total_asst_obligations'] += chunk_df.loc[
+                    (chunk_df['fain'].notna()) | (chunk_df['uri'].notna()), 'transaction_obligated_amou'
+                ].sum()
                 shared_data['total_obligations'] += chunk_df['transaction_obligated_amou'].sum()
 
         # Flex Fields
@@ -1117,6 +1117,7 @@ def update_tas_ids(model_class, submission_id):
     })
 
     sess.commit()
+
 
 def update_total_obligations(submission_id, total_obligations, total_proc_obligations, total_asst_obligations):
     """ Simply updates the total obligations record for a submission
