@@ -658,7 +658,6 @@ class ErrorWarningTests(BaseTestValidator):
         assert totals.total_asst_obligations == 4000.00
         self.cleanup()
 
-
     def test_cross_file_warnings(self):
         for chunk_size, parallel, batch_sql in self.CONFIGS:
             self.monkeypatch.setattr(dataactvalidator.validation_handlers.validationManager, 'CHUNK_SIZE', chunk_size)
