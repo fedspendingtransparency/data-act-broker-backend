@@ -1006,6 +1006,9 @@ def publish_and_certify_dabs_submission(submission, file_manager):
             A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
             the error if something went wrong
     """
+    if submission.is_quarter_format and submission.reporting_fiscal_year >= 2022:
+        return JsonResponse.error(ValueError('Quarterly submissions from FY22 onward cannot be published.'),
+                                  StatusCode.CLIENT_ERROR)
     try:
         process_dabs_publish(submission, file_manager)
     except ValueError as e:
