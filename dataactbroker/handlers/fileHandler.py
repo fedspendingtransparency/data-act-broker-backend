@@ -1414,9 +1414,7 @@ def get_status(submission, file_type=''):
     all_jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
 
     for job in all_jobs:
-        dict_key = 'cross'
-        if job.file_type:
-            dict_key = job.file_type_name
+        dict_key = 'cross' if not job.file_type else job.file_type_name
 
         # we only want to insert the relevant jobs, the rest get ignored
         if dict_key in job_dict:
@@ -1447,21 +1445,20 @@ def process_job_status(jobs, response_content):
         Returns:
             The response_content object originally provided, updated based on what the actual status of the jobs is.
     """
-    upload = None
     validation = None
     upload_status = ''
     validation_status = ''
     upload_em = ''
     validation_em = ''
+    ready_statuses = ['ready', 'waiting']
     for job in jobs:
         if job['job_type'] == JOB_TYPE_DICT['file_upload']:
-            upload = job
             upload_status = JOB_STATUS_DICT_ID[job['job_status']]
-            upload_em = upload['error_message']
+            upload_em = job['error_message']
         else:
             validation = job
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
-            validation_em = validation['error_message']
+            validation_em = job['error_message']
 
     # checking for failures
     if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
@@ -1470,6 +1467,8 @@ def process_job_status(jobs, response_content):
         response_content['message'] = upload_em or validation_em or ''
         return response_content
 
+    # If only validation_status is invalid then that means it's a header error or something similar, technically still
+    # a finished job and needs to be able to display that error on the frontend
     if validation_status == 'invalid':
         response_content['status'] = 'finished'
         response_content['has_errors'] = True
@@ -1478,8 +1477,7 @@ def process_job_status(jobs, response_content):
 
     # If upload job exists and hasn't started or if it doesn't exist and validation job hasn't started,
     # it should just be ready
-    if upload_status == 'ready' or upload_status == 'waiting' or \
-            (upload_status == '' and (validation_status == 'ready' or validation_status == 'waiting')):
+    if upload_status in ready_statuses or (upload_status == '' and validation_status in ready_statuses):
         return response_content
 
     # If the upload job is running, status is uploading
@@ -1487,8 +1485,9 @@ def process_job_status(jobs, response_content):
         response_content['status'] = 'uploading'
         return response_content
 
-    # If the validation job is running, status is running
-    if validation_status == 'running':
+    # If the validation job is running, status is running. If upload is finished and validation is ready, it should
+    # be started soon and is technically running
+    if validation_status == 'running' or (upload_status == 'finished' and validation_status in ready_statuses):
         response_content['status'] = 'running'
         return response_content
 
