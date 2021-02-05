@@ -261,7 +261,11 @@ class FileHandler:
                                                      reporting_fiscal_year, reporting_fiscal_period,
                                                      submission_data['is_quarter_format'], filter_published='published')
                 submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub in pub_subs]
-                if len(submission_data['published_submission_ids']) > 0:
+                # If there are already published submissions in this period/quarter or if it's a quarterly submission
+                # that is FY22 or later (starting FY22 all submissions must be monthly), force the new submission to be
+                # a test
+                if len(submission_data['published_submission_ids']) > 0 or\
+                        (reporting_fiscal_year >= 2022 and submission_data['is_quarter_format']):
                     test_submission = True
 
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
