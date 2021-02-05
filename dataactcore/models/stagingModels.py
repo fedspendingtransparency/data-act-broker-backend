@@ -239,6 +239,20 @@ Index("ix_af_pan_upper", func.upper(AwardFinancial.program_activity_name))
 Index("ix_af_defc_upper", func.upper(AwardFinancial.disaster_emergency_fund_code))
 
 
+class TotalObligations(Base):
+    """ Model keeping track of the total obligations from the AwardFinancial (C file) table. """
+    __tablename__ = "total_obligations"
+
+    total_obligations_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                               name="fk_total_obligations_submission_id"),
+                           nullable=False, unique=True, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
+    total_obligations = Column(Numeric)
+    total_proc_obligations = Column(Numeric)
+    total_asst_obligations = Column(Numeric)
+
+
 class CertifiedFlexField(Base):
     """ Model for the certified flex field table. """
     __tablename__ = "certified_flex_field"
