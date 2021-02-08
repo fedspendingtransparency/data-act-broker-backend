@@ -10,6 +10,7 @@ This endpoint retrieves existing submission comments (explanations/notes for par
 ## Response (JSON)
 ```
 {
+  "submission_comment": "",
   "A": "Text of A's comment",
   "B": "These will be empty if no notes are present",
   "C": "",
@@ -21,6 +22,7 @@ This endpoint retrieves existing submission comments (explanations/notes for par
 ```
 
 ## Reponse Attributes
+- `submission_comment`: (string) overall submission comment 
 - `A`: (string) comment for file A (Appropriations)
 - `B`: (string) comment for file B (Program Activity)
 - `C`: (string) comment for file C (Award Financial)
