@@ -3,7 +3,7 @@
 A simple guide covering permissions on the Broker and how they get set on each environment. 
 
 - For more details from an OMB Max permission administration standpoint, see (requires OMB Max login): https://community.max.gov/pages/viewpage.action?spaceKey=TREASExternal&title=DATA+Act+Broker+Registration
-- For more details from a code implementation level, please check out the code in [permissions.py](./permissions.py).
+- For more details from a code implementation level, please check out the code in [permissions.py](../dataactbroker/permissions.py).
 
 ## Permission Levels
 
@@ -58,7 +58,7 @@ This can be used to separate permissions per environment (dev, staging, producti
 
 **Note: FREC permissions will give read access to the CGAC agency as well.**
 
-For more details, check out [account_handler.py](./handlers/account_handler.py).
+For more details, check out [account_handler.py](../dataactbroker/handlers/account_handler.py).
 
 ## Detailed Access Matrix
 _Below lists the actions in Broker that a user must be authorized to perform. Authorization is governed by way of granting or denying the action to a **Permission Level (aka Role)** within the context of a MAX Group and Agency._
