@@ -13,7 +13,8 @@ from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATU
 from dataactcore.models.jobModels import Submission, Job, FileType
 from dataactcore.models.userModel import User
 from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, AwardFinancial, FlexField
+from dataactcore.models.stagingModels import (
+    Appropriation, ObjectClassProgramActivity, AwardFinancial, FlexField, TotalObligations)
 from dataactvalidator.health_check import create_app
 import dataactvalidator.validation_handlers.validationManager
 from dataactvalidator.validation_handlers.validationManager import (
@@ -30,6 +31,7 @@ FILES_DIR = os.path.join('tests', 'integration', 'data')
 
 # Valid Files
 APPROP_FILE = os.path.join(FILES_DIR, 'appropValid.csv')
+AFINANCIAL_FILE = os.path.join(FILES_DIR, 'awardFinancialValid.csv')
 CROSS_FILE_A = os.path.join(FILES_DIR, 'cross_file_A.csv')
 CROSS_FILE_B = os.path.join(FILES_DIR, 'cross_file_B.csv')
 
@@ -646,6 +648,14 @@ class ErrorWarningTests(BaseTestValidator):
         #     }
         # ]
         # assert report_content == expected_values
+        self.cleanup()
+
+        # Ensure total_obligations are being calculated correctly
+        self.generate_file_report(AFINANCIAL_FILE, 'award_financial', warning=False)
+        totals = self.session.query(TotalObligations).filter_by(submission_id=self.submission_id).one()
+        assert totals.total_obligations == 12000.00
+        assert totals.total_proc_obligations == 8000.00
+        assert totals.total_asst_obligations == 4000.00
         self.cleanup()
 
     def test_cross_file_warnings(self):

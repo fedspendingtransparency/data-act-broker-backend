@@ -6,7 +6,7 @@ import re
 
 from datetime import datetime
 from flask import g
-from sqlalchemy import func, or_, desc, cast, Numeric
+from sqlalchemy import func, desc, cast, Numeric
 from sqlalchemy.sql.expression import case
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -27,7 +27,7 @@ from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramA
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
                                               AwardFinancialAssistance, CertifiedAwardProcurement,
-                                              CertifiedAwardFinancialAssistance)
+                                              CertifiedAwardFinancialAssistance, TotalObligations)
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -97,14 +97,11 @@ def get_submission_stats(submission_id):
             object containing total_obligations, total_procurement_obligations, total_assistance_obligations
     """
     sess = GlobalDB.db().session
-    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
-        filter(AwardFinancial.submission_id == submission_id)
-    procurement = base_query.filter(AwardFinancial.piid.isnot(None))
-    fin_assist = base_query.filter(or_(AwardFinancial.fain.isnot(None), AwardFinancial.uri.isnot(None)))
+    totals = sess.query(TotalObligations).filter_by(submission_id=submission_id).one_or_none()
     return {
-        'total_obligations': float(base_query.scalar() or 0),
-        'total_procurement_obligations': float(procurement.scalar() or 0),
-        'total_assistance_obligations': float(fin_assist.scalar() or 0)
+        'total_obligations': float(totals.total_obligations) if totals else 0,
+        'total_procurement_obligations': float(totals.total_proc_obligations) if totals else 0,
+        'total_assistance_obligations': float(totals.total_asst_obligations) if totals else 0
     }
 
 
@@ -1009,6 +1006,9 @@ def publish_and_certify_dabs_submission(submission, file_manager):
             A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
             the error if something went wrong
     """
+    if submission.is_quarter_format and submission.reporting_fiscal_year >= 2022:
+        return JsonResponse.error(ValueError('Quarterly submissions from FY22 onward cannot be published.'),
+                                  StatusCode.CLIENT_ERROR)
     try:
         process_dabs_publish(submission, file_manager)
     except ValueError as e:

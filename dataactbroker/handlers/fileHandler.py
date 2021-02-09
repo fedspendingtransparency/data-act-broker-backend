@@ -228,6 +228,16 @@ class FileHandler:
                 elif 'existing_submission_id' not in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
+            if not existing_submission:
+                cgac_code = submission_data['cgac_code'] or ''
+                frec_code = submission_data['frec_code'] or ''
+                if cgac_code != '' and frec_code != '':
+                    raise ResponseException('New DABS submissions must have either a CGAC or a FREC code but not both',
+                                            StatusCode.CLIENT_ERROR)
+                if cgac_code == '' and frec_code == '':
+                    raise ResponseException('New DABS submissions must have either a CGAC or a FREC code',
+                                            StatusCode.CLIENT_ERROR)
+
             # make sure submission dates are valid
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
                 submission_data.get('reporting_start_date'),
@@ -251,7 +261,11 @@ class FileHandler:
                                                      reporting_fiscal_year, reporting_fiscal_period,
                                                      submission_data['is_quarter_format'], filter_published='published')
                 submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub in pub_subs]
-                if len(submission_data['published_submission_ids']) > 0:
+                # If there are already published submissions in this period/quarter or if it's a quarterly submission
+                # that is FY22 or later (starting FY22 all submissions must be monthly), force the new submission to be
+                # a test
+                if len(submission_data['published_submission_ids']) > 0 or\
+                        (reporting_fiscal_year >= 2022 and submission_data['is_quarter_format']):
                     test_submission = True
 
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
