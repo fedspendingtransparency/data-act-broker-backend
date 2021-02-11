@@ -1,7 +1,5 @@
 # GET "/v1/get\_fabs\_meta/"
 This endpoint returns metadata about a requested FABS submission
-
-**NOTE**: There is a POST version of this endpoint. It is deprecated and will be removed in 2021.
     
 ## Sample Request
 `/v1/get_fabs_meta/?submission_id=123`
