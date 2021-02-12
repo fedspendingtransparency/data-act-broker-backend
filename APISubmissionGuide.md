@@ -42,7 +42,7 @@ While the Submission API has been designed to be as easy to understand as possib
     - **NOTE**: If any of these have a status of `ready` that means they were never started.
 - To get a general overview of the number of errors/warnings in the submission, along with all other metadata, `/v1/submission_metadata/` can be called. For details on its use, click [here](./doc/api_docs/file/submission_metadata.md)
 - To get detailed information on each of the jobs and the errors that occurred in each, `/v1/submission_data/` can be called. For details on its use, click [here](./doc/api_docs/file/submission_data.md)
-- If there are any errors and more granular detail is needed, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/`. For details on its use, click [here](./doc/api_docs/file/report_url.md). In this case, `cross_type` should not be used.
+- If there are any errors and more granular detail is needed, get the error reports by calling `/v1/report_url/`. For details on its use, click [here](./doc/api_docs/file/report_url.md). In this case, `cross_type` should not be used.
 - If a reupload is needed for any of the files, begin again from `upload_dabs_files` with these changes:
     - Only pass the keys of the files being updated (e.g. if only appropriations needs a reupload, you will pass `appropriations: "FILENAME"` as an entry in the payload but not the other two.
     - Add the key `existing_submission_id` with the ID of the submission as the content (string).
@@ -58,7 +58,7 @@ While the Submission API has been designed to be as easy to understand as possib
 ### Cross-file validations
 - Cross-file validation begins automatically upon successful completion of D file generation (no errors)
 - Poll using the `check_status` route in the same manner as described in `Validate A, B, C Files` except the key being looked at should be `cross`. The same endpoints can also be used to gather the submission metadata and cross-file job data.
-- To get a specific error/warning file, call `/v1/submission/SUBMISSIONID/report_url/`. For details on its use, click [here](./doc/api_docs/file/report_url.md). In this case, `cross_type` should be used.
+- To get a specific error/warning file, call `/v1/report_url/`. For details on its use, click [here](./doc/api_docs/file/report_url.md). In this case, `cross_type` should be used.
 - If a file needs to be fixed, follow the same steps as in the `Validate A, B, C Files` section
 
 ### Generate E, F Files
@@ -88,7 +88,7 @@ While the Submission API has been designed to be as easy to understand as possib
     - **NOTE**: If it has a status of `ready` that means it was never started.
 - To get a general overview of the number of errors/warnings in the submission, along with all other metadata, `/v1/submission_metadata/` can be called. For details on its use, click [here](./doc/api_docs/file/submission_metadata.md)
 - To get detailed information on the validation job and the errors that occurred in it, `/v1/submission_data/` can be called. For details on its use, click [here](./doc/api_docs/file/submission_data.md)
-- If there are any errors and more granular detail is needed, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/`. For details on its use, click [here](./doc/api_docs/file/report_url.md). In this case, `cross_type` should not be used.
+- If there are any errors and more granular detail is needed, get the error reports by calling `/v1/report_url/`. For details on its use, click [here](./doc/api_docs/file/report_url.md). In this case, `cross_type` should not be used.
 - If a reupload is needed, begin again from `upload_fabs_file` with these changes:
     - `upload_fabs_file` Payload:
         - `fabs`: string, name of file being uploaded

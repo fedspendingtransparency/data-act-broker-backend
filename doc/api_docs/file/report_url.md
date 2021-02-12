@@ -1,8 +1,6 @@
 # GET "/v1/report\_url/"
 This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after one minute.
 
-**NOTE**: A version of this exists in the format `/v1/submission/<int:submission_id>/report_url/`. This is deprecated and will be removed in 2021
-
 ## Sample Request
 `/v1/report_url/?submission_id=1234&warning=True&file_type=appropriations&cross_type=award_financial`
 
