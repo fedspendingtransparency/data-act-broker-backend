@@ -162,6 +162,8 @@ def soap_to_dict(soap_obj):
         return {k: soap_to_dict(v) for k, v in soap_obj}
     elif isinstance(soap_obj, list):
         return [soap_to_dict(v) for v in soap_obj]
+    elif isinstance(soap_obj, str):
+        return soap_obj.strip()
     return soap_obj
 
 
