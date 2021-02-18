@@ -459,6 +459,24 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
     last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
     total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
 
+    # Cleaning out any
+    if not total_data.empty:
+        total_data = clean_data(total_data, DUNS, {
+            'awardee_or_recipient_uniqu': 'awardee_or_recipient_uniqu',
+            'high_comp_officer1_amount': 'high_comp_officer1_amount',
+            'high_comp_officer1_full_na': 'high_comp_officer1_full_na',
+            'high_comp_officer2_amount': 'high_comp_officer2_amount',
+            'high_comp_officer2_full_na': 'high_comp_officer2_full_na',
+            'high_comp_officer3_amount': 'high_comp_officer3_amount',
+            'high_comp_officer3_full_na': 'high_comp_officer3_full_na',
+            'high_comp_officer4_amount': 'high_comp_officer4_amount',
+            'high_comp_officer4_full_na': 'high_comp_officer4_full_na',
+            'high_comp_officer5_amount': 'high_comp_officer5_amount',
+            'high_comp_officer5_full_na': 'high_comp_officer5_full_na',
+            'last_exec_comp_mod_date': 'last_exec_comp_mod_date'
+        }, {})
+        total_data.drop(columns=['created_at', 'updated_at'], inplace=True)
+
     metrics['files_processed'].append(filename)
     metrics['records_received'] += records_received
     metrics['records_processed'] += records_processed
