@@ -175,7 +175,8 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
     total_data = total_data.assign(deactivation_date=total_data["sam_extract_code"].apply(lambda_func))
     # convert business types string to array
-    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~') if isinstance(bt_raw, str)]]))
+    bt_func = (lambda bt_raw: pd.Series([[str(code).strip() for code in str(bt_raw).split('~')
+                                          if isinstance(bt_raw, str)]]))
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
     bt_str_func = (lambda bt_codes: pd.Series([[DUNS_BUSINESS_TYPE_DICT[code] for code in bt_codes
                                                 if code in DUNS_BUSINESS_TYPE_DICT]]))
