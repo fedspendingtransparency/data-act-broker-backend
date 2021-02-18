@@ -130,6 +130,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
                     # Add to the list of DB objects
                     if update_db:
+                        # trim incoming values
+                        org = trim_nested_obj(org)
+
                         agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'],
                                                                  org.get('agencycode'))
                         # TEMPORARILY REPLACE Navy, Army, AND Air Force WITH DOD
@@ -195,6 +198,24 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
         sys.exit(3)
 
     logger.info('Finished')
+
+
+def trim_nested_obj(obj):
+    """ A recursive version to trim all the values in a nested object
+
+        Args:
+            obj: object to recursively trim
+
+        Returns:
+            dict if object, list of values if list, trimmed if string, else obj
+    """
+    if isinstance(obj, dict):
+        return {k: trim_nested_obj(v) for k, v in obj}
+    elif isinstance(obj, list):
+        return [trim_nested_obj(v) for v in obj]
+    elif isinstance(obj, str):
+        return obj.strip()
+    return obj
 
 
 def flatten_json(json_obj):
