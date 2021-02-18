@@ -210,7 +210,7 @@ def trim_nested_obj(obj):
             dict if object, list of values if list, trimmed if string, else obj
     """
     if isinstance(obj, dict):
-        return {k: trim_nested_obj(v) for k, v in obj}
+        return {k: trim_nested_obj(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [trim_nested_obj(v) for v in obj]
     elif isinstance(obj, str):
