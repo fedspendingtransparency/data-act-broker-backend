@@ -175,7 +175,8 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
     total_data = total_data.assign(deactivation_date=total_data["sam_extract_code"].apply(lambda_func))
     # convert business types string to array
-    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~') if isinstance(bt_raw, str)]]))
+    bt_func = (lambda bt_raw: pd.Series([[str(code).strip() for code in str(bt_raw).split('~')
+                                          if isinstance(bt_raw, str)]]))
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
     bt_str_func = (lambda bt_codes: pd.Series([[DUNS_BUSINESS_TYPE_DICT[code] for code in bt_codes
                                                 if code in DUNS_BUSINESS_TYPE_DICT]]))
@@ -458,6 +459,24 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
         raise Exception('Last Executive Compensation Mod Date not found in filename.')
     last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
     total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
+
+    # Cleaning out any untrimmed strings
+    if not total_data.empty:
+        total_data = clean_data(total_data, DUNS, {
+            'awardee_or_recipient_uniqu': 'awardee_or_recipient_uniqu',
+            'high_comp_officer1_amount': 'high_comp_officer1_amount',
+            'high_comp_officer1_full_na': 'high_comp_officer1_full_na',
+            'high_comp_officer2_amount': 'high_comp_officer2_amount',
+            'high_comp_officer2_full_na': 'high_comp_officer2_full_na',
+            'high_comp_officer3_amount': 'high_comp_officer3_amount',
+            'high_comp_officer3_full_na': 'high_comp_officer3_full_na',
+            'high_comp_officer4_amount': 'high_comp_officer4_amount',
+            'high_comp_officer4_full_na': 'high_comp_officer4_full_na',
+            'high_comp_officer5_amount': 'high_comp_officer5_amount',
+            'high_comp_officer5_full_na': 'high_comp_officer5_full_na',
+            'last_exec_comp_mod_date': 'last_exec_comp_mod_date'
+        }, {})
+        total_data.drop(columns=['created_at', 'updated_at'], inplace=True)
 
     metrics['files_processed'].append(filename)
     metrics['records_received'] += records_received
