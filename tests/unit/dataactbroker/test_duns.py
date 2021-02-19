@@ -38,7 +38,7 @@ def test_load_duns(database):
             'business_types': ['U.S Federal Government', 'Federal Agency'],
             'dba_name': None,
             'ultimate_parent_unique_ide': '161906193',
-            'ultimate_parent_legal_enti': None,
+            'ultimate_parent_legal_enti': 'TEST ULTIMATE 0',
             'historic': False
         },
         # Pulled active monthly record, updated as sam_extract = 2, don't pull in dup delete record
@@ -62,7 +62,7 @@ def test_load_duns(database):
             'business_types': ['U.S Federal Government'],
             'dba_name': None,
             'ultimate_parent_unique_ide': '161906193',
-            'ultimate_parent_legal_enti': None,
+            'ultimate_parent_legal_enti': 'TEST ULTIMATE 2 UPDATED',  # populated by missing parent names
             'historic': False
         },
         # Pulled in only record in monthly, updated only record in daily as sam_extract = 3
@@ -86,7 +86,7 @@ def test_load_duns(database):
             'business_types': ['U.S Federal Government'],
             'dba_name': 'NTA',
             'ultimate_parent_unique_ide': '161906193',
-            'ultimate_parent_legal_enti': None,
+            'ultimate_parent_legal_enti': 'TEST ULTIMATE 2 UPDATED',
             'historic': False
         }
     }

@@ -156,12 +156,14 @@ def soap_to_dict(soap_obj):
             soap_obj: obj to recursively parse
 
         Returns:
-            dict if object, list of values if list, else soap_obj
+            dict if object, list of values if list, trimmed string if string, else soap_obj
     """
     if isinstance(soap_obj, sudsobject.Object):
         return {k: soap_to_dict(v) for k, v in soap_obj}
     elif isinstance(soap_obj, list):
         return [soap_to_dict(v) for v in soap_obj]
+    elif isinstance(soap_obj, str):
+        return soap_obj.strip()
     return soap_obj
 
 
