@@ -460,7 +460,7 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
     last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
     total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
 
-    # Cleaning out any
+    # Cleaning out any untrimmed strings
     if not total_data.empty:
         total_data = clean_data(total_data, DUNS, {
             'awardee_or_recipient_uniqu': 'awardee_or_recipient_uniqu',
