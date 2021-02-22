@@ -100,16 +100,20 @@ class FileTests(BaseTestAPI):
                                                                    start_date='04/2015', end_date='06/2015',
                                                                    is_quarter=True, number_of_errors=0)
 
+            cls.test_post_fy22_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                                 start_date='04/2022', end_date='06/2022',
+                                                                 is_quarter=True, number_of_errors=0)
+
             cls.test_revalidate_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
                                                                   start_date='10/2015', end_date='12/2015',
                                                                   is_quarter=True, number_of_errors=0)
 
             cls.test_monthly_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
-                                                               start_date='04/2015', end_date='06/2015',
+                                                               start_date='04/2022', end_date='06/2022',
                                                                is_quarter=False, number_of_errors=0)
 
             cls.dup_test_monthly_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
-                                                                   start_date='04/2015', end_date='06/2015',
+                                                                   start_date='04/2022', end_date='06/2022',
                                                                    is_quarter=False, number_of_errors=0)
 
             cls.test_monthly_pub_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
@@ -487,6 +491,35 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month with the exception'
                                                    ' of periods 1 and 2, which must be selected together.')
 
+    def test_both_cgac_and_frec(self):
+        """ Test to make sure there's an error if both cgac and frec are included and not null """
+        update_json = {
+            'cgac_code': '020',
+            'frec_code': '0500',
+            'is_quarter': True,
+            'reporting_period_start_date': '10/2016',
+            'reporting_period_end_date': '12/2016'}
+        response = self.app.post('/v1/upload_dabs_files/', update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'New DABS submissions must have either a CGAC or a FREC code but not'
+                                                   ' both')
+
+    def test_neither_cgac_nor_frec(self):
+        """ Test to make sure there's an error if both cgac and frec are included and are null """
+        update_json = {
+            'cgac_code': None,
+            'frec_code': None,
+            'is_quarter': True,
+            'reporting_period_start_date': '10/2016',
+            'reporting_period_end_date': '12/2016'}
+        response = self.app.post('/v1/upload_dabs_files/', update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'New DABS submissions must have either a CGAC or a FREC code')
+
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
         self.logout()
@@ -829,6 +862,11 @@ class FileTests(BaseTestAPI):
                                       headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.json['message'], 'Submission cannot be published due to critical errors')
 
+        post_json = {'submission_id': self.test_post_fy22_submission_id}
+        response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Quarterly submissions from FY22 onward cannot be published.')
+
         post_json = {'submission_id': self.test_test_submission_id}
         response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
                                       headers={'x-session-id': self.session_id}, expect_errors=True)
@@ -842,10 +880,14 @@ class FileTests(BaseTestAPI):
         insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
                    JOB_TYPE_DICT['csv_record_validation'], self.test_unpublished_submission_id, num_valid_rows=0)
         test_sub = self.session.query(Submission).filter_by(submission_id=self.test_unpublished_submission_id).one()
+        test_sub_2 = self.session.query(Submission).filter_by(submission_id=self.test_monthly_submission_id).one()
         submission_window = SubmissionWindowSchedule(year=test_sub.reporting_fiscal_year,
                                                      period=test_sub.reporting_fiscal_period,
                                                      period_start=datetime.now() - timedelta(days=1))
-        self.session.add(submission_window)
+        submission_window_2 = SubmissionWindowSchedule(year=test_sub_2.reporting_fiscal_year,
+                                                       period=test_sub_2.reporting_fiscal_period,
+                                                       period_start=datetime.now() - timedelta(days=1))
+        self.session.add_all([submission_window, submission_window_2])
         self.session.commit()
         post_json = {'submission_id': self.test_unpublished_submission_id}
         response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,

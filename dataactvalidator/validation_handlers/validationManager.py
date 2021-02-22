@@ -34,7 +34,7 @@ from dataactcore.models.domainModels import Office, concat_display_tas_dict, con
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField, TotalObligations
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.models.validationModels import RuleSql, ValidationLabel
@@ -177,6 +177,9 @@ class ValidationManager:
         self.long_pop_rows = []
         self.long_null_rows = []
         self.has_data = False
+        self.total_proc_obligations = 0
+        self.total_asst_obligations = 0
+        self.total_obligations = 0
 
         validation_start = datetime.now()
         bucket_name = CONFIG_BROKER['aws_bucket']
@@ -232,6 +235,11 @@ class ValidationManager:
 
             if self.file_type.name in ('appropriations', 'program_activity', 'award_financial'):
                 update_tas_ids(self.model, self.submission_id)
+
+                if self.file_type.name == 'award_financial':
+                    update_total_obligations(self.submission_id, total_obligations=self.total_obligations,
+                                             total_proc_obligations=self.total_proc_obligations,
+                                             total_asst_obligations=self.total_asst_obligations)
 
             # SQL Validations
             with open(self.error_file_path, 'a', newline='') as error_file, \
@@ -481,7 +489,10 @@ class ValidationManager:
                 has_data=self.has_data,
                 error_rows=self.error_rows,
                 error_list=self.error_list,
-                errored=False
+                errored=False,
+                total_proc_obligations=self.total_proc_obligations,
+                total_asst_obligations=self.total_asst_obligations,
+                total_obligations=self.total_obligations
             )
             # setting reader to none as multiprocess can't pickle it, it'll get reset
             temp_reader = self.reader
@@ -501,6 +512,9 @@ class ValidationManager:
                 result.get()
 
             # Resetting these out here as they are used later in the process
+            self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
+            self.total_asst_obligations = round(shared_data['total_asst_obligations'], 2)
+            self.total_obligations = round(shared_data['total_obligations'], 2)
             self.total_rows = shared_data['total_rows']
             self.total_data_rows = shared_data['total_data_rows']
             self.has_data = shared_data['has_data']
@@ -519,12 +533,18 @@ class ValidationManager:
             total_data_rows=self.total_data_rows,
             has_data=self.has_data,
             error_rows=self.error_rows,
-            error_list=self.error_list
+            error_list=self.error_list,
+            total_proc_obligations=self.total_proc_obligations,
+            total_asst_obligations=self.total_asst_obligations,
+            total_obligations=self.total_obligations
         )
         for chunk_df in reader_obj:
             self.process_data_chunk(chunk_df, shared_data)
 
         # Resetting these out here as they are used later in the process
+        self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
+        self.total_asst_obligations = round(shared_data['total_asst_obligations'], 2)
+        self.total_obligations = round(shared_data['total_obligations'], 2)
         self.total_rows = shared_data['total_rows']
         self.total_data_rows = shared_data['total_data_rows']
         self.has_data = shared_data['has_data']
@@ -752,6 +772,18 @@ class ValidationManager:
         chunk_df['submission_id'] = self.submission_id
 
         insert_dataframe(chunk_df, self.model.__table__.name, sess.connection(), method='copy')
+
+        # Update running totals
+        if self.file_type_name == 'award_financial':
+            chunk_df['transaction_obligated_amou'] = chunk_df['transaction_obligated_amou'].astype(float).fillna(0)
+            with lockable:
+                shared_data['total_proc_obligations'] += chunk_df.loc[
+                    chunk_df['piid'].notna(), 'transaction_obligated_amou'
+                ].sum()
+                shared_data['total_asst_obligations'] += chunk_df.loc[
+                    (chunk_df['fain'].notna()) | (chunk_df['uri'].notna()), 'transaction_obligated_amou'
+                ].sum()
+                shared_data['total_obligations'] += chunk_df['transaction_obligated_amou'].sum()
 
         # Flex Fields
         if flex_data is not None:
@@ -1084,4 +1116,26 @@ def update_tas_ids(model_class, submission_id):
         'duration': time.time() - start
     })
 
+    sess.commit()
+
+
+def update_total_obligations(submission_id, total_obligations, total_proc_obligations, total_asst_obligations):
+    """ Simply updates the total obligations record for a submission
+
+        Args:
+            submission_id: submission to update
+            total_obligations: total obligations for file C
+            total_proc_obligations: total procurement obligations for file C
+            total_asst_obligations: total financial assistance obligations for file C
+    """
+    sess = GlobalDB.db().session
+
+    # Delete existing total obligations if such exist
+    sess.query(TotalObligations).filter(TotalObligations.submission_id == submission_id).delete()
+    sess.commit()
+
+    new_totals = TotalObligations(submission_id=submission_id, total_obligations=total_obligations,
+                                  total_proc_obligations=total_proc_obligations,
+                                  total_asst_obligations=total_asst_obligations)
+    sess.add(new_totals)
     sess.commit()

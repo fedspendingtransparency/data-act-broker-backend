@@ -1,7 +1,7 @@
 from dataactbroker.handlers.submission_handler import get_submission_stats
 
 from tests.unit.dataactcore.factories.job import SubmissionFactory
-from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
+from tests.unit.dataactcore.factories.staging import TotalObligationsFactory
 
 
 def test_obligation_stats_for_submission_nonzero(database):
@@ -9,16 +9,8 @@ def test_obligation_stats_for_submission_nonzero(database):
     database.session.add(submission)
     database.session.commit()
     financials = [
-        AwardFinancialFactory(transaction_obligated_amou=1000, piid="1234", fain=None, uri=None,
-                              submission_id=submission.submission_id),
-        AwardFinancialFactory(transaction_obligated_amou=1000, piid="1235", fain=None, uri=None,
-                              submission_id=submission.submission_id),
-        AwardFinancialFactory(transaction_obligated_amou=1000, piid=None, fain="1235", uri=None,
-                              submission_id=submission.submission_id),
-        AwardFinancialFactory(transaction_obligated_amou=1000, piid=None, fain=None, uri="1235",
-                              submission_id=submission.submission_id),
-        AwardFinancialFactory(transaction_obligated_amou=1000, piid=None, fain="1234", uri="1235",
-                              submission_id=submission.submission_id),
+        TotalObligationsFactory(total_obligations=5000, total_proc_obligations=2000, total_asst_obligations=3000,
+                                submission_id=submission.submission_id)
     ]
     database.session.add_all(financials)
     database.session.commit()
