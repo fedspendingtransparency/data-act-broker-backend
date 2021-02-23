@@ -15,7 +15,7 @@ from dataactcore.utils.duns import get_client, REMOTE_SAM_EXEC_COMP_DIR, parse_e
 logger = logging.getLogger(__name__)
 
 
-def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metrics=None):
+def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metrics=None, force_reload=None):
     """ Process the script arguments to figure out which files to process in which order
 
         Args:
@@ -25,6 +25,7 @@ def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metri
             ssh_key: URI to ssh key used to pull exec comp files from SAM
             benchmarks: whether to log times
             metrics: dictionary representing metrics data for the load
+            force_reload: specific date to force reload from
     """
     if not metrics:
         metrics = {}
@@ -57,23 +58,28 @@ def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metri
 
     # load in daily files after depending on params
     if sorted_daily_file_names:
-        # if update, make sure it's been done once before
-        last_update = sess.query(DUNS.last_exec_comp_mod_date). \
-            order_by(DUNS.last_exec_comp_mod_date.desc()). \
-            filter(DUNS.last_exec_comp_mod_date.isnot(None)). \
-            first()
-        if not historic and not last_update:
-            raise Exception('No last executive compenstation mod date found in database. '
-                            'Please run historic loader first.')
-
         # determine which daily files to load
         earliest_daily_file = None
         if historic and sorted_monthly_file_names:
             earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
         elif not historic:
-            last_update = last_update[0].strftime("%Y%m%d")
-            earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_"
-                                         + last_update + ".ZIP", sorted_daily_file_names[0])
+            # if update, make sure it's been done once before
+            if force_reload:
+                # a bit redundant but also date validation
+                load_date = datetime.datetime.strptime(force_reload, '%Y-%m-%d')
+            else:
+                load_date = sess.query(DUNS.last_exec_comp_mod_date). \
+                    order_by(DUNS.last_exec_comp_mod_date.desc()). \
+                    filter(DUNS.last_exec_comp_mod_date.isnot(None)). \
+                    first()
+                load_date = load_date[0]
+                if not load_date:
+                    raise Exception('No last executive compenstation mod date found in database. '
+                                    'Please run historic loader first.')
+            load_date = load_date.strftime("%Y%m%d")
+
+            earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" + load_date + ".ZIP",
+                                         sorted_daily_file_names[0])
         daily_files_after = sorted_daily_file_names
         if earliest_daily_file:
             sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
@@ -129,6 +135,8 @@ def get_parser():
     environ = parser.add_mutually_exclusive_group(required=True)
     environ.add_argument('-l', '--local', type=str, default=None, help='Local directory to work from')
     environ.add_argument('-k', '--ssh_key', type=str, default=None, help='Private key used to access the API remotely')
+    parser.add_argument("-f", "--force_reload", type=str, default=None, help='Force update from a specific date'
+                                                                             ' (YYYY-MM-DD)')
     return parser
 
 
@@ -143,6 +151,7 @@ if __name__ == '__main__':
     update = args.update
     local = args.local
     ssh_key = args.ssh_key
+    force_reload = args.force_reload
 
     metrics = {
         'script_name': 'load_exec_duns.py',
@@ -156,7 +165,7 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-        process_exec_comp_dir(sess, historic, local, ssh_key, metrics=metrics)
+        process_exec_comp_dir(sess, historic, local, ssh_key, metrics=metrics, force_reload=force_reload)
         sess.close()
 
     metrics['records_updated'] = len(set(metrics['updated_duns']))
