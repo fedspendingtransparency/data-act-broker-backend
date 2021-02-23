@@ -14,7 +14,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CityCode, CountyCode, States, ZipCity
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactvalidator.scripts.loader_utils import insert_dataframe, trim_item
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,9 @@ def clean_data(data, field_map):
 
     # rename columns as specified in fieldMap
     data = data.rename(columns=field_map)
+
+    # trim all columns
+    data = data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
     return data
 
 

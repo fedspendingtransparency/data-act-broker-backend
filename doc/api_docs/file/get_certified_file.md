@@ -1,8 +1,6 @@
 # GET "/v1/get\_certified\_file/"
 Get a signed url for a specified history item
 
-**NOTE**: There is a POST version of this endpoint. It is deprecated and will be removed in 2021.
-
 ## Sample Request
 `/v1/get_certified_file/?submission_id=1&published_files_history_id=7&is_warning=true`
 
