@@ -1,14 +1,12 @@
+import ddtrace
+import json
+import logging
 import os
 import os.path
 
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask, g, session, request
-
-import logging
-import json
-
-from ddtrace import config as ddconfig, tracer, patch_all
 
 from dataactbroker.exception_handler import add_exception_handlers
 from dataactbroker.handlers.account_handler import AccountHandler
@@ -34,13 +32,36 @@ from dataactcore.utils.statusCode import StatusCode
 
 logger = logging.getLogger(__name__)
 
-# Datadog APM Tracer configuration for Flask integration
-tracer.enabled = False  # value toggled True/False via Ansible during deployment. DO NOT DELETE
-if tracer.enabled:
-    ddconfig.flask["service_name"] = "api"
-    ddconfig.flask["analytics_enabled"] = True  # sample rate defaults to 100%
-    ddconfig.flask["distributed_tracing_enabled"] = False
-    patch_all()
+# Replace below param with enabled=True during env-deploys to turn on
+ddtrace.tracer.configure(enabled=True)  # TODO: set back to False
+if ddtrace.tracer.enabled:
+    ddtrace.config.flask["service_name"] = "api"
+    ddtrace.config.flask["analytics_enabled"] = True  # capture APM "Traces" & "Analyzed Spans" in App Analytics
+    ddtrace.config.flask["analytics_sample_rate"] = 1.0  # Including 100% of traces in sample
+    ddtrace.config.flask["trace_query_string"] = True
+    # Distributed tracing only needed if picking up disjoint traces by HTTP Header value
+    ddtrace.config.flask["distributed_tracing_enabled"] = False
+    # Trace HTTP Request or Response Headers listed in this whitelist
+    ddtrace.config.trace_headers(
+        [
+            "content-length",  # req and resp
+            "content-type",  # req and resp
+            "host",
+            "origin",
+            "referer",
+            "user-agent",
+            "x-forwarded-for",
+            "x-requested-with",
+            "x-session-id",
+            # Response Headers
+            "allow",
+            "strict-transport-security",
+        ]
+    )
+    # patch_all() captures traces from integrated components' libraries by patching them. See:
+    # - http://pypi.datadoghq.com/trace/docs/advanced_usage.html#patch-all
+    # - Integrated Libs: http://pypi.datadoghq.com/trace/docs/index.html#supported-libraries
+    ddtrace.patch_all()
 
 
 def create_app():
