@@ -69,7 +69,7 @@ def run_app():
         keep_polling = True
         while keep_polling:
             # Start a Datadog Trace for this poll iter to capture activity in APM
-            with tracer.trace(
+            with ddtrace.tracer.trace(
                     name=f"job.{JOB_TYPE}", service=JOB_TYPE.lower(), resource=queue.url, span_type=SpanTypes.WORKER
             ) as span:
                 # Set True to add trace to App Analytics:
@@ -212,7 +212,6 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                 raise e
 
 
-@tracer.wrap(name="job.{}.validation".format(JOB_TYPE), service=JOB_TYPE.lower(), span_type=SpanTypes.WORKER)
 def validator_process_job(job_id, agency_code, is_retry=False):
     """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
         no longer running.
