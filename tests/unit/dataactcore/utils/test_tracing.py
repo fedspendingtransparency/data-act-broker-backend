@@ -207,4 +207,5 @@ def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
         x = 2 ** 5
         thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
         assert thirty_two_squares[-1] == 961
-        logging.getLogger(f"{test}_logger").warning("DONE doing things in subproc")
+
+    logging.getLogger(f"{test}_logger").warning("DONE doing things in subproc")
