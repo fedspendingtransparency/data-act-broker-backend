@@ -149,10 +149,10 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
         worker = ctx.Process(
             name=f"{test}_subproc",
             target=_do_things_in_subproc,
-            args=(subproc_test_msg, state),
+            args=(subproc_test_msg, state,),
         )
         worker.start()
-        worker.join()
+        worker.join(timeout=10)
         DatadogLoggingTraceFilter._log.warning(stop_sentinel)
 
     subproc_trace_id, subproc_span_id = state.get(block=True, timeout=10)
@@ -201,3 +201,4 @@ def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
         x = 2 ** 5
         thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
         assert thirty_two_squares[-1] == 961
+        logging.getLogger(f"{test}_logger").warning("DONE doing things in subproc")
