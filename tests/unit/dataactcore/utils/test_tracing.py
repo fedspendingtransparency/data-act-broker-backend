@@ -3,6 +3,7 @@ import inspect
 import ddtrace
 import logging
 import multiprocessing as mp
+import pytest
 
 from logging.handlers import QueueHandler
 from _pytest.logging import LogCaptureFixture
@@ -11,12 +12,20 @@ from ddtrace.ext import SpanTypes
 from dataactcore.utils.tracing import DatadogEagerlyDropTraceFilter, DatadogLoggingTraceFilter, SubprocessTrace
 
 
-def test_logging_trace_spans(caplog: LogCaptureFixture):
+@pytest.fixture
+def datadog_tracer() -> ddtrace.Tracer:
+    """Fixture to temporarily enable the Datadog Tracer during a test"""
+    tracer_state = ddtrace.tracer.enabled
+    ddtrace.tracer.enabled = True
+    yield ddtrace.tracer
+    ddtrace.tracer.enabled = tracer_state
+
+
+def test_logging_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixture):
     """Test the DatadogLoggingTraceFilter can actually capture trace span data in log output"""
     test = f"{inspect.stack()[0][3]}"
     # Enable log output for this logger
     DatadogLoggingTraceFilter._log.setLevel("DEBUG")
-    ddtrace.tracer.enabled = True
     DatadogLoggingTraceFilter.activate()
     with ddtrace.tracer.trace(
         name=f"{test}_operation",
@@ -38,13 +47,12 @@ def test_logging_trace_spans(caplog: LogCaptureFixture):
     assert f"resource {test}_resource" in caplog.text, "traced resource not found in logging output"
 
 
-def test_drop_key_on_trace_spans(caplog: LogCaptureFixture):
+def test_drop_key_on_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixture):
     """Test that traces that have any span with the key that marks them for dropping, are not logged, but those that
     do not have this marker, are still logged"""
     test = f"{inspect.stack()[0][3]}"
     # Enable log output for this logger
     DatadogLoggingTraceFilter._log.setLevel("DEBUG")
-    ddtrace.tracer.enabled = True
     DatadogLoggingTraceFilter.activate()
     DatadogEagerlyDropTraceFilter.activate()
     with ddtrace.tracer.trace(
@@ -90,7 +98,7 @@ def test_drop_key_on_trace_spans(caplog: LogCaptureFixture):
     assert DatadogEagerlyDropTraceFilter.EAGERLY_DROP_TRACE_KEY not in caplog.text
 
 
-def test_subprocess_trace(caplog: LogCaptureFixture):
+def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixture):
     """Verify that spans created in subprocesses are written to the queue and then flushed to the server,
     when wrapped in the SubprocessTracer"""
     test = f"{inspect.stack()[0][3]}"
@@ -99,10 +107,10 @@ def test_subprocess_trace(caplog: LogCaptureFixture):
     # And also send its output through a multiprocessing queue to surface logs from the subprocess
     log_queue = mp.Queue()
     DatadogLoggingTraceFilter._log.addHandler(QueueHandler(log_queue))
-    ddtrace.tracer.enabled = True
     DatadogLoggingTraceFilter.activate()
 
     subproc_test_msg = f"a test message was logged in a subprocess of {test}"
+    state = mp.Queue()
 
     with ddtrace.tracer.trace(
         name=f"{test}_operation",
@@ -115,16 +123,16 @@ def test_subprocess_trace(caplog: LogCaptureFixture):
         test_msg = f"a test message was logged during {test}"
         logger.warning(test_msg)
         ctx = mp.get_context("fork")
-        state = mp.Queue()
         worker = ctx.Process(
             name=f"{test}_subproc",
             target=_do_things_in_subproc,
-            args=(subproc_test_msg, state),
+            args=(subproc_test_msg, state,),
             daemon=True,
         )
         worker.start()
         worker.join()
-        subproc_trace_id, subproc_span_id = state.get()
+
+    subproc_trace_id, subproc_span_id = state.get(block=True, timeout=10)
     assert test_msg in caplog.text, "caplog.text did not seem to capture logging output during test"
     # assert subproc_test_msg in caplog.text, "caplog.text did not seem to capture logging output from subproc in test"
     assert f"SPAN#{trace_id}" in caplog.text, "span marker not found in logging output"
@@ -135,7 +143,7 @@ def test_subprocess_trace(caplog: LogCaptureFixture):
     # Drain the queue to build the log output from the logger in DatadogLoggingTraceFilter
     queued_log_text = ""
     while not log_queue.empty():
-        log_record = log_queue.get()
+        log_record = log_queue.get(block=True, timeout=5)
         queued_log_text += f"{log_record.getMessage()}\n"
 
     assert f"{subproc_span_id}" in queued_log_text, "subproc span id not found in logging output"
@@ -152,7 +160,8 @@ def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
         span_type=SpanTypes.TEST,
         subproc_test_msg=subproc_test_msg,
     ) as span:
-        q.put((span.trace_id, span.span_id,))
+        span_ids = (span.trace_id, span.span_id,)
+        q.put(span_ids, block=True, timeout=5)
         logging.getLogger(f"{test}_logger").warning(subproc_test_msg)
         subproc_logger = logging.getLogger("subproc_logger")
         subproc_logger.warning("i'm in a subproc")
