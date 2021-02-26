@@ -129,6 +129,8 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
     # And also send its output through a multiprocessing queue to surface logs from the subprocess
     log_queue = mp.Queue()
     DatadogLoggingTraceFilter._log.addHandler(QueueHandler(log_queue))
+    # TODO:remove
+    logging.getLogger(f"_do_things_in_subproc_logger").addHandler(QueueHandler(log_queue))
     DatadogLoggingTraceFilter.activate()
 
     subproc_test_msg = f"a test message was logged in a subprocess of {test}"
@@ -158,6 +160,11 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
         worker.join(timeout=10)
         if worker.is_alive():
             worker.terminate()
+            try:
+                _drain_captured_log_queue(log_queue, stop_sentinel, caplog, force_immediate_stop=True)
+            except:
+                print("Error draining captured log queue when handling subproc TimeoutError")
+                pass
             raise mp.TimeoutError(f"subprocess {worker.name} did not complete in timeout")
         DatadogLoggingTraceFilter._log.warning(stop_sentinel)
 
@@ -168,6 +175,15 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
     assert f"resource {test}_resource" in caplog.text, "traced resource not found in logging output"
     assert subproc_trace_id == trace_id  # subprocess tracing should be a continuation of the trace in parent process
 
+    _drain_captured_log_queue(log_queue, stop_sentinel, caplog)
+
+    assert f"{subproc_span_id}" in caplog.text, "subproc span id not found in logging output"
+    assert (
+        f"resource {_do_things_in_subproc.__name__}_resource" in caplog.text
+    ), "subproc traced resource not found in logging output"
+
+
+def _drain_captured_log_queue(log_queue, stop_sentinel, caplog, force_immediate_stop=False):
     # Drain the queue and redirect DatadogLoggingTraceFilter log output to the caplog handler
     log_records = []
     draining = True
@@ -176,16 +192,11 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
             log_record = log_queue.get(block=True, timeout=5)
             log_records.append(log_record)
         log_msgs = [r.getMessage() for r in log_records]
-        if stop_sentinel in log_msgs:  # check for sentinel, signaling end of queued records
+        if force_immediate_stop or stop_sentinel in log_msgs:  # check for sentinel, signaling end of queued records
             draining = False
     for log_record in log_records:
         if log_record.getMessage() != stop_sentinel:
             caplog.handler.handle(log_record)
-
-    assert f"{subproc_span_id}" in caplog.text, "subproc span id not found in logging output"
-    assert (
-        f"resource {_do_things_in_subproc.__name__}_resource" in caplog.text
-    ), "subproc traced resource not found in logging output"
 
 
 def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
