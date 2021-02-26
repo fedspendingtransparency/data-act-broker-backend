@@ -190,6 +190,7 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
 
 def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
     test = "_do_things_in_subproc"
+    logging.getLogger(f"{test}_logger").warning("TRACER: starting subproc func")  # TODO:remove
     with SubprocessTrace(
         name=f"{test}_operation",
         service=f"{test}_service",
@@ -197,15 +198,21 @@ def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
         span_type=SpanTypes.TEST,
         subproc_test_msg=subproc_test_msg,
     ) as span:
+        logging.getLogger(f"{test}_logger").warning("TRACER: starting subproc func span")  # TODO:remove
         span_ids = (
             span.trace_id,
             span.span_id,
         )
+        logging.getLogger(f"{test}_logger").warning("TRACER: starting subproc return value put in q")  # TODO:remove
         q.put(span_ids, block=True, timeout=5)
+        logging.getLogger(f"{test}_logger").warning("TRACER: starting subproc return value put in q")  # TODO:remove
         logging.getLogger(f"{test}_logger").warning(subproc_test_msg)
         # do things
         x = 2 ** 5
         thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
+        logging.getLogger(f"{test}_logger").warning("TRACER: starting subproc assert")  # TODO:remove
         assert thirty_two_squares[-1] == 961
-
+        logging.getLogger(f"{test}_logger").warning("TRACER: finished subproc assert")  # TODO:remove
+        logging.getLogger(f"{test}_logger").warning("TRACER: finished subproc func span")  # TODO:remove
+    logging.getLogger(f"{test}_logger").warning("TRACER: finished subproc func")  # TODO:remove
     logging.getLogger(f"{test}_logger").warning("DONE doing things in subproc")
