@@ -189,7 +189,7 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
 
 
 def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
-    test = f"{inspect.stack()[0][3]}"
+    test = "_do_things_in_subproc"
     with SubprocessTrace(
         name=f"{test}_operation",
         service=f"{test}_service",
