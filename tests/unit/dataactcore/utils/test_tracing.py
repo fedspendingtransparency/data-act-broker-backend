@@ -149,10 +149,16 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
         worker = ctx.Process(
             name=f"{test}_subproc",
             target=_do_things_in_subproc,
-            args=(subproc_test_msg, state,),
+            args=(
+                subproc_test_msg,
+                state,
+            ),
         )
         worker.start()
         worker.join(timeout=10)
+        if worker.is_alive():
+            worker.terminate()
+            raise mp.TimeoutError(f"subprocess {worker.name} did not complete in timeout")
         DatadogLoggingTraceFilter._log.warning(stop_sentinel)
 
     subproc_trace_id, subproc_span_id = state.get(block=True, timeout=10)
