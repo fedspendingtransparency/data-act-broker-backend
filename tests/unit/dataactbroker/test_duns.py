@@ -9,84 +9,90 @@ from dataactcore.models.domainModels import DUNS
 def test_load_duns(database):
     """ Test a local run load duns with the test files """
     sess = database.session
-    duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
+    duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns', 'v2')
 
-    load_duns.process_duns_dir(sess, True, duns_dir)
+    load_duns.load_duns(sess, True, duns_dir)
 
     # update if the fake DUNS file name/zip changes
-    deactivation_date = '2019-07-20'
+    deactivation_date = '2021-02-06'
 
     expected_results = {
         # Pulled active monthly record, slightly updated with deactivation date as sam_extract = 1
-        '000000000': {
-            'awardee_or_recipient_uniqu': '000000000',
-            'registration_date': '2003-09-18',
-            'activation_date': '2014-08-21',
-            'expiration_date': '2015-08-25',
-            'last_sam_mod_date': '2014-08-21',
+        '000000001': {
+            'uei': 'A1',
+            'awardee_or_recipient_uniqu': '000000001',
+            'registration_date': '1999-01-01',
+            'activation_date': '1999-01-02',
+            'expiration_date': '1999-01-25',
+            'last_sam_mod_date': '1999-01-15',
             'deactivation_date': deactivation_date,
-            'legal_business_name': 'TEST ADMINISTRATION',
-            'address_line_1': '1205 NEW JERSEY AVE SS',
-            'address_line_2': None,
-            'city': 'WASHINGTON',
-            'state': 'DC',
-            'zip': '20690',
-            'zip4': '0002',
-            'country_code': 'USA',
-            'congressional_district': '99',
-            'business_types_codes': ['2R', 'NG', '32'],
-            'business_types': ['U.S Federal Government', 'Federal Agency'],
-            'dba_name': None,
-            'ultimate_parent_unique_ide': '161906193',
-            'ultimate_parent_legal_enti': 'TEST ULTIMATE 0',
+            'legal_business_name': 'LEGAL BUSINESS NAME A1',
+            'address_line_1': 'ADDRESS LINE 1 A1',
+            'address_line_2': 'ADDRESS LINE 2 A1',
+            'city': 'CITY A1',
+            'state': 'ST A1',
+            'zip': 'ZIP A1',
+            'zip4': 'ZIP4 A1',
+            'country_code': 'COUNTRY A1',
+            'congressional_district': 'CONGRESSIONAL DISTRICT A1',
+            'business_types_codes': ['2X', 'MF'],
+            'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
+            'dba_name': 'DBA NAME A1',
+            'ultimate_parent_uei': 'D4',
+            'ultimate_parent_unique_ide': '000000004',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME D4',
             'historic': False
         },
         # Pulled active monthly record, updated as sam_extract = 2, don't pull in dup delete record
-        '000000001': {
-            'awardee_or_recipient_uniqu': '000000001',
-            'registration_date': '2005-08-26',
-            'activation_date': '2014-07-08',
-            'expiration_date': '2015-07-08',
-            'last_sam_mod_date': '2014-07-08',
+        '000000002': {
+            'uei': 'B2',
+            'awardee_or_recipient_uniqu': '000000002',
+            'registration_date': '2000-02-01',
+            'activation_date': '2000-02-02',
+            'expiration_date': '2000-02-25',
+            'last_sam_mod_date': '2000-02-15',
             'deactivation_date': None,
-            'legal_business_name': 'TEST SERVICE, UNITED STATES UPDATED',
-            'address_line_1': '2609 JEFFERSON TEST PARKWAY UPDATED',
-            'address_line_2': None,
-            'city': 'ALEXANDRIA',
-            'state': 'VA',
-            'zip': '22301',
-            'zip4': '1025',
-            'country_code': 'USA',
-            'congressional_district': '08',
-            'business_types_codes': ['2R'],
-            'business_types': ['U.S Federal Government'],
-            'dba_name': None,
-            'ultimate_parent_unique_ide': '161906193',
-            'ultimate_parent_legal_enti': 'TEST ULTIMATE 2 UPDATED',  # populated by missing parent names
+            'legal_business_name': 'LEGAL BUSINESS NAME B2',
+            'address_line_1': 'ADDRESS LINE 1 B2',
+            'address_line_2': 'ADDRESS LINE 2 B2',
+            'city': 'CITY B2',
+            'state': 'ST B2',
+            'zip': 'ZIP B2',
+            'zip4': 'ZIP4 B2',
+            'country_code': 'COUNTRY B2',
+            'congressional_district': 'CONGRESSIONAL DISTRICT B2',
+            'business_types_codes': ['2X', 'MF'],
+            'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
+            'dba_name': 'DBA NAME B2',
+            'ultimate_parent_uei': 'E5',
+            'ultimate_parent_unique_ide': '000000005',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME E5',
             'historic': False
         },
-        # Pulled in only record in monthly, updated only record in daily as sam_extract = 3
-        '000000002': {
-            'awardee_or_recipient_uniqu': '000000002',
-            'registration_date': '2004-08-13',
-            'activation_date': '2014-10-02',
-            'expiration_date': '2015-10-02',
-            'last_sam_mod_date': '2014-10-02',
+        # Pulled active monthly record, updated as sam_extract = 3
+        '000000003': {
+            'uei': 'C3',
+            'awardee_or_recipient_uniqu': '000000003',
+            'registration_date': '2000-03-01',
+            'activation_date': '2000-03-02',
+            'expiration_date': '2000-03-25',
+            'last_sam_mod_date': '2000-03-15',
             'deactivation_date': None,
-            'legal_business_name': 'NATIONAL TEST ADMINISTRATION UPDATED',
-            'address_line_1': '309 E AVE SS UPDATED',
-            'address_line_2': None,
-            'city': 'WASHINGTON',
-            'state': 'DC',
-            'zip': '20546',
-            'zip4': '0002',
-            'country_code': 'USA',
-            'congressional_district': '98',
-            'business_types_codes': ['2R'],
-            'business_types': ['U.S Federal Government'],
-            'dba_name': 'NTA',
-            'ultimate_parent_unique_ide': '161906193',
-            'ultimate_parent_legal_enti': 'TEST ULTIMATE 2 UPDATED',
+            'legal_business_name': 'LEGAL BUSINESS NAME C3',
+            'address_line_1': 'ADDRESS LINE 1 C3',
+            'address_line_2': 'ADDRESS LINE 2 C3',
+            'city': 'CITY C3',
+            'state': 'ST C3',
+            'zip': 'ZIP C3',
+            'zip4': 'ZIP4 C3',
+            'country_code': 'COUNTRY C3',
+            'congressional_district': 'CONGRESSIONAL DISTRICT C3',
+            'business_types_codes': ['2X', 'MF'],
+            'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
+            'dba_name': 'DBA NAME C3',
+            'ultimate_parent_uei': 'F6',
+            'ultimate_parent_unique_ide': '000000006',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME F6',
             'historic': False
         }
     }
@@ -99,6 +105,7 @@ def test_load_duns(database):
     results = {}
     for duns_obj in sess.query(DUNS).all():
         results[duns_obj.awardee_or_recipient_uniqu] = {
+            'uei': duns_obj.uei,
             'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
             'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
             'activation_date': str(duns_obj.activation_date) if duns_obj.activation_date else None,
@@ -117,6 +124,7 @@ def test_load_duns(database):
             'business_types_codes': duns_obj.business_types_codes,
             'business_types': duns_obj.business_types,
             'dba_name': duns_obj.dba_name,
+            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
             'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
             'historic': duns_obj.historic
@@ -127,10 +135,10 @@ def test_load_duns(database):
 def test_load_exec_comp(database):
     """ Test a local run load exec_comp with the test files """
     sess = database.session
-    duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
-    exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp')
+    duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns', 'v2')
+    exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp', 'v1')
 
-    load_duns.process_duns_dir(sess, True, duns_dir)
+    load_duns.load_duns(sess, True, duns_dir)
     load_exec_comp.process_exec_comp_dir(sess, True, exec_comp_dir, None)
 
     monthly_last_exec_date = datetime.date(2017, 9, 30)
@@ -138,8 +146,8 @@ def test_load_exec_comp(database):
 
     expected_results = {
         # processed the earliest in the monthly, not updated as sam_extract = 1
-        '000000000': {
-            'awardee_or_recipient_uniqu': '000000000',
+        '000000001': {
+            'awardee_or_recipient_uniqu': '000000001',
             'high_comp_officer1_full_na': 'Terence Test 1',
             'high_comp_officer1_amount': '11952013',
             'high_comp_officer2_full_na': 'Aaron Test 1',
@@ -153,8 +161,8 @@ def test_load_exec_comp(database):
             'last_exec_comp_mod_date': monthly_last_exec_date
         },
         # processed the earliest in the monthly, processed latest of daily as sam_extract = 2
-        '000000001': {
-            'awardee_or_recipient_uniqu': '000000001',
+        '000000002': {
+            'awardee_or_recipient_uniqu': '000000002',
             'high_comp_officer1_full_na': 'Terence Test Updated 2',
             'high_comp_officer1_amount': '21952013',
             'high_comp_officer2_full_na': 'Aaron Test Updated 2',
@@ -168,8 +176,8 @@ def test_load_exec_comp(database):
             'last_exec_comp_mod_date': daily_last_exec_date
         },
         # processed the only one in the monthly, processed only one in daily as sam_extract = 3
-        '000000002': {
-            'awardee_or_recipient_uniqu': '000000002',
+        '000000003': {
+            'awardee_or_recipient_uniqu': '000000003',
             'high_comp_officer1_full_na': 'Terence Test Updated 1',
             'high_comp_officer1_amount': '21952013',
             'high_comp_officer2_full_na': 'Aaron Test Updated 1',
