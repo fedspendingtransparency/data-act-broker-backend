@@ -51,7 +51,7 @@ def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, force_r
         #       so for now we're trying all options. Rework this part if/when SAM provides a list of available files.
         monthly_files = [FIRST_MONTHLY.strftime(MONTHLY_DUNS_FORMAT)]
         days_to_load = [FIRST_MONTHLY + datetime.timedelta(days=i) for i in
-                        range((datetime.datetime.today() - FIRST_MONTHLY).days + 1)]
+                        range((datetime.date.today() - FIRST_MONTHLY).days + 1)]
         daily_files = [day.strftime(DAILY_DUNS_FORMAT) for day in days_to_load]
 
     # load in earliest monthly file for historic
