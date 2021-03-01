@@ -75,7 +75,11 @@ def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, force_r
 
     # load daily files starting from the load_date
     for daily_file in filter(lambda daily_file: daily_file >= load_date.strftime(DAILY_DUNS_FORMAT), daily_files):
-        process_duns_file(daily_file, sess, local=local, benchmarks=benchmarks, metrics=metrics)
+        try:
+            process_duns_file(daily_file, sess, local=local, benchmarks=benchmarks, metrics=metrics)
+        except FileNotFoundError:
+            logger.warning('No file found for {}, continuing'.format(daily_file))
+            continue
 
     metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
     metrics['parent_update_date'] = str(updated_date)
@@ -87,15 +91,18 @@ def download_duns(root_dir, file_name):
         Args:
             root_dir: the folder containing the DUNS file
             file_name: the name of the SAM file
+
+        Raises:
+            FileNotFoundError if the SAM HTTP API doesnt have the file requested
     """
-    logger.info("Pulling {}".format(file_name))
-    try:
-        url_with_params = '{}&fileName={}'.format(API_URL, file_name)
-        r = requests.get(url_with_params)
+    logger.info('Pulling {}'.format(file_name))
+    url_with_params = '{}&fileName={}'.format(API_URL, file_name)
+    r = requests.get(url_with_params)
+    if r.status_code == 200:
         duns_file = os.path.join(root_dir, file_name)
         open(duns_file, 'wb').write(r.content)
-    except Exception:
-        logger.debug("Socket closed. Reconnecting...")
+    elif r.status_code == 400:
+        raise FileNotFoundError('File not found on SAM HTTP API.')
 
 
 def process_duns_file(file_name, sess, local=None, monthly=False, benchmarks=False, metrics=None):
@@ -108,13 +115,20 @@ def process_duns_file(file_name, sess, local=None, monthly=False, benchmarks=Fal
             monthly: whether it's a monthly file
             benchmarks: whether to log times
             metrics: dictionary representing metrics data for the load
+
+        Raises:
+            FileNotFoundError if the SAM HTTP API doesnt have the file requested
     """
     if not metrics:
         metrics = {}
 
     root_dir = local if local else tempfile.gettempdir()
     if not local:
-        download_duns(root_dir, file_name)
+        try:
+            download_duns(root_dir, file_name)
+        except FileNotFoundError as e:
+            raise e
+
     file_path = os.path.join(root_dir, file_name)
 
     add_update_data, delete_data = parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks,
