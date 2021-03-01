@@ -12,17 +12,16 @@ import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
-from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
 from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
 
 logger = logging.getLogger(__name__)
 
-REMOTE_SAM_DUNS_DIR = '/current/SAM/2_FOUO/UTF-8/'
 REMOTE_SAM_EXEC_COMP_DIR = '/current/SAM/6_EXECCOMP/UTF-8'
 BUSINESS_TYPES_SEPARATOR = '~'
 
-
+# TODO: Remove if/when the Exec Comp data is available via SAM HTTP API
 def get_client(ssh_key=None):
     """ Connects to the SAM client and returns a usable object for interaction
 
@@ -32,24 +31,19 @@ def get_client(ssh_key=None):
         Returns:
             client object to interact with the SAM service
     """
-    sam_config = CONFIG_BROKER.get('sam_duns')
+    sam_config = CONFIG_BROKER.get('sam')
     if not sam_config:
         return None
 
     connect_args = {}
     if ssh_key:
-        connect_args['hostname'] = sam_config.get('host_ssh')
-        connect_args['username'] = sam_config.get('username_ssh')
-        connect_args['password'] = sam_config.get('password_ssh')
+        connect_args['hostname'] = sam_config['duns'].get('host_ssh')
+        connect_args['username'] = sam_config.get('username')
+        connect_args['password'] = sam_config.get('password')
 
         ssh_key_file = RetrieveFileFromUri(ssh_key, binary_data=False).get_file_object()
         connect_args['pkey'] = paramiko.RSAKey.from_private_key(ssh_key_file,
-                                                                password=sam_config.get('ssh_key_password'))
-    else:
-        connect_args['hostname'] = sam_config.get('host')
-        connect_args['username'] = sam_config.get('username')
-        connect_args['password'] = sam_config.get('password')
-        connect_args['pkey'] = None
+                                                                password=sam_config['duns'].get('ssh_key_password'))
 
     if ((None in (connect_args['hostname'], connect_args['username'], connect_args['password']))
             or (ssh_key and not connect_args['pkey'])):
@@ -60,7 +54,7 @@ def get_client(ssh_key=None):
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     https_proxy = os.environ.get('HTTPS_PROXY')
-    if https_proxy and sam_config.get('use_proxy'):
+    if https_proxy and sam_config['duns'].get('use_proxy'):
         para_proxy = paramiko.ProxyCommand('nc -w 90 -X connect -x {} {} {}'.format(
             https_proxy[7:-1], connect_args['hostname'], '22'))
         connect_args['sock'] = para_proxy
@@ -80,6 +74,7 @@ def clean_sam_data(data):
     """
     if not data.empty:
         return clean_data(data, DUNS, {
+            "uei": "uei",
             "awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
             "activation_date": "activation_date",
             "deactivation_date": "deactivation_date",
@@ -100,7 +95,8 @@ def clean_sam_data(data):
             "business_types_codes": "business_types_codes",
             "business_types": "business_types",
             "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
-            "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
+            "ultimate_parent_unique_ide": "ultimate_parent_unique_ide",
+            "ultimate_parent_uei": "ultimate_parent_uei"
         }, {})
     return data
 
@@ -130,30 +126,32 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
 
     dat_file_name = os.path.splitext(os.path.basename(file_path))[0] + '.dat'
     sam_file_type = "MONTHLY" if monthly else "DAILY"
-    dat_file_date = re.findall(".*{}_(.*).dat".format(sam_file_type), dat_file_name)[0]
+    dat_file_date = re.findall(".*{}_V2_(.*).dat".format(sam_file_type), dat_file_name)[0]
     zfile = zipfile.ZipFile(file_path)
 
     column_header_mapping = {
-        "awardee_or_recipient_uniqu": 0,
-        "sam_extract_code": 4,
-        "registration_date": 6,
-        "expiration_date": 7,
-        "last_sam_mod_date": 8,
-        "activation_date": 9,
-        "legal_business_name": 10,
-        "dba_name": 11,
-        "address_line_1": 14,
-        "address_line_2": 15,
-        "city": 16,
-        "state": 17,
-        "zip": 18,
-        "zip4": 19,
-        "country_code": 20,
-        "congressional_district": 21,
-        "entity_structure": 27,
-        "business_types_raw": 31,
-        "ultimate_parent_legal_enti": 186,
-        "ultimate_parent_unique_ide": 187
+        "uei": 0,
+        "awardee_or_recipient_uniqu": 1,
+        "sam_extract_code": 5,
+        "registration_date": 7,
+        "expiration_date": 8,
+        "last_sam_mod_date": 9,
+        "activation_date": 10,
+        "legal_business_name": 11,
+        "dba_name": 12,
+        "address_line_1": 15,
+        "address_line_2": 16,
+        "city": 17,
+        "state": 18,
+        "zip": 19,
+        "zip4": 20,
+        "country_code": 21,
+        "congressional_district": 22,
+        "entity_structure": 29,
+        "business_types_raw": 33,
+        "ultimate_parent_legal_enti": 199,
+        "ultimate_parent_uei": 200,
+        "ultimate_parent_unique_ide": 201
     }
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
 
@@ -170,6 +168,9 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
 
     total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull()]
     rows_processed = len(total_data.index)
+
+    # trimming all columns before cleaning to ensure the sam_extract is working as intended
+    total_data = total_data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
     # add deactivation_date column for delete records
     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
@@ -229,6 +230,7 @@ def create_temp_duns_table(sess, table_name, data):
         CREATE TABLE IF NOT EXISTS {} (
             created_at TIMESTAMP WITHOUT TIME ZONE,
             updated_at TIMESTAMP WITHOUT TIME ZONE,
+            uei TEXT,
             awardee_or_recipient_uniqu TEXT,
             activation_date DATE,
             expiration_date DATE,
@@ -237,6 +239,7 @@ def create_temp_duns_table(sess, table_name, data):
             last_sam_mod_date DATE,
             legal_business_name TEXT,
             dba_name TEXT,
+            ultimate_parent_uei TEXT,
             ultimate_parent_unique_ide TEXT,
             ultimate_parent_legal_enti TEXT,
             address_line_1 TEXT,
@@ -297,6 +300,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
     logger.info('Adding/updating DUNS based on temp_duns_update')
     update_cols = """
         updated_at = tdu.updated_at,
+        uei = tdu.uei,
         activation_date = tdu.activation_date,
         expiration_date = tdu.expiration_date,
         deactivation_date = NULL,
@@ -336,6 +340,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
         INSERT INTO duns (
             created_at,
             updated_at,
+            uei,
             awardee_or_recipient_uniqu,
             activation_date,
             expiration_date,
@@ -344,6 +349,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
             last_sam_mod_date,
             legal_business_name,
             dba_name,
+            ultimate_parent_uei,
             ultimate_parent_unique_ide,
             ultimate_parent_legal_enti,
             address_line_1,

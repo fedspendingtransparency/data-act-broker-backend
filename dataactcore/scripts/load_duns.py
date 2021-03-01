@@ -5,18 +5,25 @@ import os
 import re
 import json
 import tempfile
+import requests
 
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.parentDuns import update_missing_parent_names
-from dataactcore.utils.duns import get_client, parse_duns_file, update_duns, REMOTE_SAM_DUNS_DIR
+from dataactcore.utils.duns import parse_duns_file, update_duns
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
+API_URL = CONFIG_BROKER['sam']['duns']['api_url'].format(CONFIG_BROKER['sam']['api_key'])
+MONTHLY_DUNS_FORMAT = 'SAM_FOUO_UTF-8_MONTHLY_V2_%Y%m%d.ZIP'
+DAILY_DUNS_FORMAT = 'SAM_FOUO_UTF-8_DAILY_V2_%Y%m%d.ZIP'
+FIRST_MONTHLY = datetime.date(year=2021, month=2, day=1)
 
-def process_duns_dir(sess, historic, local, benchmarks=None, metrics=None, force_reload=None):
+
+def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, force_reload=None):
     """ Process the script arguments to figure out which files to process in which order
 
         Args:
@@ -32,73 +39,72 @@ def process_duns_dir(sess, historic, local, benchmarks=None, metrics=None, force
 
     updated_date = datetime.date.today()
 
-    # dealing with a local or remote directory
-    sftp = None
-    if not local:
-        root_dir = tempfile.gettempdir()
-        client = get_client()
-        sftp = client.open_sftp()
-        # dirlist on remote host
-        dirlist = sftp.listdir(REMOTE_SAM_DUNS_DIR)
-    elif local:
-        root_dir = local
-        dirlist = os.listdir(local)
-
-    # generate chronological list of daily and monthly files
-    sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match(".*MONTHLY_\d+\.ZIP",
-                                                                                             monthly_file.upper())])
-    sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match(".*DAILY_\d+\.ZIP",
-                                                                                       daily_file.upper())])
+    # Figure out what files we have available based on our local or remote setup
+    if local:
+        local_files = os.listdir(local)
+        monthly_files = sorted([monthly_file for monthly_file in local_files
+                                if re.match(".*MONTHLY_V2_\d+\.ZIP", monthly_file.upper())])
+        daily_files = sorted([daily_file for daily_file in local_files
+                              if re.match(".*DAILY_V2_\d+\.ZIP", daily_file.upper())])
+    else:
+        # TODO: SAM currently doesn't have an easy way to detect which files are available or when it starts,
+        #       so for now we're trying all options. Rework this part if/when SAM provides a list of available files.
+        monthly_files = [FIRST_MONTHLY.strftime(MONTHLY_DUNS_FORMAT)]
+        days_to_load = [FIRST_MONTHLY + datetime.timedelta(days=i) for i in
+                        range((datetime.datetime.today() - FIRST_MONTHLY).days + 1)]
+        daily_files = [day.strftime(DAILY_DUNS_FORMAT) for day in days_to_load]
 
     # load in earliest monthly file for historic
-    if historic and sorted_monthly_file_names:
-        process_from_dir(root_dir, sorted_monthly_file_names[0], sess, sftp, monthly=True, benchmarks=benchmarks,
-                         metrics=metrics)
+    if historic:
+        process_duns_file(monthly_files[0], sess, local=local, monthly=True, benchmarks=benchmarks, metrics=metrics)
 
-    # load in daily files after depending on params
-    if sorted_daily_file_names:
-        # determine which daily files to load
-        earliest_daily_file = None
-        if historic and sorted_monthly_file_names:
-            earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
-        elif not historic:
-            # if update, make sure it's been done once before
-            if force_reload:
-                # a bit redundant but also date validation
-                load_date = datetime.datetime.strptime(force_reload, '%Y-%m-%d')
-            else:
-                load_date = sess.query(DUNS.last_sam_mod_date). \
-                    order_by(DUNS.last_sam_mod_date.desc()). \
-                    filter(DUNS.last_sam_mod_date.isnot(None)). \
-                    first()
-                load_date = load_date[0]
-                if not load_date:
-                    raise Exception('No last sam mod date found in DUNS table. Please run historic loader first.')
-            load_date = load_date.strftime("%Y%m%d")
+    # determine which daily files to load in by setting the start load date
+    if historic:
+        load_date = datetime.datetime.strptime(monthly_files[0], MONTHLY_DUNS_FORMAT)
+    elif force_reload:
+        # a bit redundant but also date validation
+        load_date = datetime.datetime.strptime(force_reload, '%Y-%m-%d')
+    else:
+        load_date = sess.query(DUNS.last_sam_mod_date). \
+            order_by(DUNS.last_sam_mod_date.desc()). \
+            filter(DUNS.last_sam_mod_date.isnot(None)). \
+            first()
+        load_date = load_date[0]
+        if not load_date:
+            raise Exception('No last sam mod date found in DUNS table. Please run historic loader first.')
 
-            earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" + load_date + ".ZIP",
-                                         sorted_daily_file_names[0])
-        daily_files_after = sorted_daily_file_names
-        if earliest_daily_file:
-            sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
-            daily_files_after = sorted_full_list[sorted_full_list.index(earliest_daily_file) + 1:]
+    # load daily files starting from the load_date
+    for daily_file in filter(lambda daily_file: daily_file >= load_date.strftime(DAILY_DUNS_FORMAT), daily_files):
+        process_duns_file(daily_file, sess, local=local, benchmarks=benchmarks, metrics=metrics)
 
-        # load daily files
-        for daily_file in daily_files_after:
-            process_from_dir(root_dir, daily_file, sess, sftp, benchmarks=benchmarks, metrics=metrics)
-        if daily_files_after:
-            metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
-            metrics['parent_update_date'] = str(updated_date)
+    metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
+    metrics['parent_update_date'] = str(updated_date)
 
 
-def process_from_dir(root_dir, file_name, sess, sftp=None, monthly=False, benchmarks=False, metrics=None):
+def download_duns(root_dir, file_name):
+    """ Downloads the requested DUNS file to root_dir
+
+        Args:
+            root_dir: the folder containing the DUNS file
+            file_name: the name of the SAM file
+    """
+    logger.info("Pulling {}".format(file_name))
+    try:
+        url_with_params = '{}&fileName={}'.format(API_URL, file_name)
+        r = requests.get(url_with_params)
+        duns_file = os.path.join(root_dir, file_name)
+        open(duns_file, 'wb').write(r.content)
+    except Exception:
+        logger.debug("Socket closed. Reconnecting...")
+
+
+def process_duns_file(file_name, sess, local=None, monthly=False, benchmarks=False, metrics=None):
     """ Process the SAM file found locally or remotely
 
         Args:
-            root_dir: the folder containing the SAM file
             file_name: the name of the SAM file
             sess: the database connection
-            sftp: the sftp client to pull the CSV from
+            local: path to local directory to process, if None, it will go though the remote SAM service
             monthly: whether it's a monthly file
             benchmarks: whether to log times
             metrics: dictionary representing metrics data for the load
@@ -106,24 +112,18 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, monthly=False, benchm
     if not metrics:
         metrics = {}
 
+    root_dir = local if local else tempfile.gettempdir()
+    if not local:
+        download_duns(root_dir, file_name)
     file_path = os.path.join(root_dir, file_name)
-    if sftp:
-        logger.info("Pulling {}".format(file_name))
-        with open(file_path, "wb") as zip_file:
-            try:
-                sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
-            except Exception:
-                logger.debug("Socket closed. Reconnecting...")
-                ssh_client = get_client()
-                sftp = ssh_client.open_sftp()
-                sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
+
     add_update_data, delete_data = parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks,
                                                    metrics=metrics)
     if add_update_data is not None:
         update_duns(sess, add_update_data, metrics=metrics)
     if delete_data is not None:
         update_duns(sess, delete_data, metrics=metrics, deletes=True)
-    if sftp:
+    if not local:
         os.remove(file_path)
 
 
@@ -179,7 +179,7 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-        process_duns_dir(sess, historic, local, benchmarks=benchmarks, metrics=metrics, force_reload=force_reload)
+        load_duns(sess, historic, local, benchmarks=benchmarks, metrics=metrics, force_reload=force_reload)
         sess.close()
 
     metrics['records_added'] = len(set(metrics['added_duns']))
