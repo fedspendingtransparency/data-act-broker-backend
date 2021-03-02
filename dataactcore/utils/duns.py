@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 REMOTE_SAM_EXEC_COMP_DIR = '/current/SAM/6_EXECCOMP/UTF-8'
 BUSINESS_TYPES_SEPARATOR = '~'
 
+
 # TODO: Remove if/when the Exec Comp data is available via SAM HTTP API
 def get_client(ssh_key=None):
     """ Connects to the SAM client and returns a usable object for interaction
