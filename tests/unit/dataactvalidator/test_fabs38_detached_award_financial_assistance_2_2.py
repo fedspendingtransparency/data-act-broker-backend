@@ -15,9 +15,7 @@ def test_column_headers(database):
 def test_success_ignore_null_pafa(database):
     """ Test that empty funding office codes aren't matching invalid office codes from the base record. """
 
-    office_1 = OfficeFactory(office_code='12345a', contract_funding_office=True,
-                             financial_assistance_funding_office=False)
-    office_2 = OfficeFactory(office_code='12345b', contract_funding_office=False,
+    office_1 = OfficeFactory(office_code='12345b', contract_funding_office=False,
                              financial_assistance_funding_office=True)
     # Base record has no funding office code, future records don't affect it
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='zyxwv_123',
@@ -31,7 +29,7 @@ def test_success_ignore_null_pafa(database):
                                                            action_date='20181019', award_modification_amendme='0',
                                                            is_active=True)
     # Base record with a valid office code (case insensitive)
-    pub_award_4 = PublishedAwardFinancialAssistanceFactory(funding_office_code='12345A', unique_award_key='1234_abc',
+    pub_award_4 = PublishedAwardFinancialAssistanceFactory(funding_office_code='12345B', unique_award_key='1234_abc',
                                                            action_date='20181019', award_modification_amendme='0',
                                                            is_active=True)
     # Earliest record inactive, newer record has valid entry, inactive date matching active doesn't mess it up
@@ -65,7 +63,7 @@ def test_success_ignore_null_pafa(database):
     det_award_5 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='4321_cba',
                                                           action_date='20181020', award_modification_amendme='2',
                                                           correction_delete_indicatr=None)
-    errors = number_of_errors(_FILE, database, models=[office_1, office_2, pub_award_1, pub_award_2, pub_award_3,
+    errors = number_of_errors(_FILE, database, models=[office_1, pub_award_1, pub_award_2, pub_award_3,
                                                        pub_award_4, pub_award_5, pub_award_6, pub_award_7, det_award_1,
                                                        det_award_2, det_award_3, det_award_4, det_award_5])
     assert errors == 0
@@ -74,9 +72,9 @@ def test_success_ignore_null_pafa(database):
 def test_failure(database):
     """ Test fail that empty funding office codes aren't matching invalid office codes from the base record. """
 
-    office_1 = OfficeFactory(office_code='12345a', contract_funding_office=True,
+    office_1 = OfficeFactory(office_code='12345a', contract_funding_office=False,
                              financial_assistance_funding_office=True)
-    office_2 = OfficeFactory(office_code='abcd', contract_funding_office=False,
+    office_2 = OfficeFactory(office_code='abcd', contract_funding_office=True,
                              financial_assistance_funding_office=False)
     # Invalid code in record
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(funding_office_code='abc', unique_award_key='zyxwv_123',
@@ -89,7 +87,7 @@ def test_failure(database):
     pub_award_3 = PublishedAwardFinancialAssistanceFactory(funding_office_code='abc', unique_award_key='4321_cba',
                                                            action_date='20181019', award_modification_amendme='1',
                                                            is_active=True)
-    # Has a valid code but it's not a funding code
+    # Has a valid code but it's not a funding assistance office
     pub_award_4 = PublishedAwardFinancialAssistanceFactory(funding_office_code='abcd', unique_award_key='123_abc',
                                                            action_date='20181018', award_modification_amendme='0',
                                                            is_active=True)

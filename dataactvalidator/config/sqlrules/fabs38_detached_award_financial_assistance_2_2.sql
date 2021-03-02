@@ -1,9 +1,11 @@
 -- For new modifications to existing awards, we derive FundingOfficeCode from the original transaction establishing the
 -- award, when it is provided there and not provided in the new modification. For this row, we are declining to derive
 -- the FundingOfficeCode from the original transaction establishing the award because the FundingOfficeCode is not
--- present in the Federal Hierarchy. If the code is accurate, please update the Federal Hierarchy to include it. If it
--- is not accurate, please correct the original award transaction to reference a valid Financial Assistance AAC/office
--- code in the hierarchy. This validation rule does not apply to delete records (CorrectionDeleteIndicator = D).
+-- specifically designated as an Assistance Funding Office. After June 2019, the Federal Hierarchy will require
+-- distinction of the FundingOfficeCode as either a Procurement Funding Office or an Assistance Funding Office.
+-- If the code is accurate, please update the Federal Hierarchy to include it. If it is not accurate, please correct
+-- the original award transaction to reference a valid Financial Assistance AAC/office code in the hierarchy.
+-- This validation rule does not apply to delete records (CorrectionDeleteIndicator = D).
 WITH detached_award_financial_assistance_38_2_2_{0} AS
     (SELECT unique_award_key,
     	row_number,
@@ -48,5 +50,4 @@ WHERE EXISTS (
 			SELECT 1
 			FROM office
 			WHERE UPPER(fc.funding_office_code) = UPPER(office.office_code)
-			    AND (office.contract_funding_office IS TRUE
-			        OR office.financial_assistance_funding_office IS TRUE)));
+			    AND (office.financial_assistance_funding_office IS TRUE)));
