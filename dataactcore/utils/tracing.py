@@ -74,12 +74,14 @@ class SubprocessTrace:
         self.span: Optional[Span] = None
 
     def __enter__(self) -> Span:
+        _logger.warning("TRACER: starting enter handler")  # TODO:remove
         self.span = tracer.trace(name=self.name, service=self.service, resource=self.resource, span_type=self.span_type)
         self.span.set_tags(self.tags)
         if not self.can_drop_sample:
             # Set True to add trace to App Analytics:
             # - https://docs.datadoghq.com/tracing/app_analytics/?tab=python#custom-instrumentation
             self.span.set_tag(ANALYTICS_SAMPLE_RATE_KEY, 1.0)
+        _logger.warning("TRACER: finished enter handler")  # TODO:remove
         return self.span
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -87,6 +89,7 @@ class SubprocessTrace:
 
         Workaround for: https://github.com/DataDog/dd-trace-py/issues/1184
         """
+        _logger.warning("TRACER: starting exit handler")  # TODO:remove
         try:
             # This will call span.finish() which must be done before the queue is flushed in order to enqueue the
             # span data that is to be flushed (sent to the server)
@@ -99,6 +102,7 @@ class SubprocessTrace:
                 _logger.warning(
                     f"Unexpected Datadog tracer.writer type of {writer_type} found. Not flushing trace spans."
                 )
+            _logger.warning("TRACER: finished exit handler")  # TODO:remove
 
 
 class DatadogLoggingTraceFilter:
