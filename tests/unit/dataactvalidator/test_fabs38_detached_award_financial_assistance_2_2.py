@@ -108,7 +108,7 @@ def test_failure(database):
     det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='4321_cba',
                                                           action_date='20181020', award_modification_amendme='2',
                                                           correction_delete_indicatr=None)
-    # New entry for has valid non-funding code
+    # New entry for has valid non-funding assistance code
     det_award_4 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='123_abc',
                                                           action_date='20181020', award_modification_amendme='2',
                                                           correction_delete_indicatr=None)
