@@ -31,8 +31,9 @@ before_script:
 
 script:
   - flake8
-  - pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
-  - pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  - pytest tests/unit/dataactcore/utils/test_tracing.py
+  #- pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  #- pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
 
 after_script:
   - docker-compose down
