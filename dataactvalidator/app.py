@@ -29,7 +29,7 @@ from dataactvalidator.validator_logging import log_job_message
 logger = logging.getLogger(__name__)
 
 # Replace below param with enabled=True during env-deploys to turn on
-ddtrace.tracer.configure(enabled=True)  # TODO: set back to False
+ddtrace.tracer.configure(enabled=False)
 if ddtrace.tracer.enabled:
     ddtrace.config.flask["service_name"] = "validator"
     ddtrace.config.flask["analytics_enabled"] = True  # capture APM "Traces" & "Analyzed Spans" in App Analytics
