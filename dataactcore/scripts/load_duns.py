@@ -23,7 +23,7 @@ DAILY_DUNS_FORMAT = 'SAM_FOUO_UTF-8_DAILY_V2_%Y%m%d.ZIP'
 FIRST_MONTHLY = datetime.date(year=2021, month=2, day=1)
 
 
-def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, force_reload=None):
+def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, reload_date=None):
     """ Process the script arguments to figure out which files to process in which order
 
         Args:
@@ -32,7 +32,7 @@ def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, force_r
             local: path to local directory to process, if None, it will go though the remote SAM service
             benchmarks: whether to log times
             metrics: dictionary representing metrics data for the load
-            force_reload: specific date to force reload from
+            reload_date: specific date to force reload from
     """
     if not metrics:
         metrics = {}
@@ -61,9 +61,9 @@ def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, force_r
     # determine which daily files to load in by setting the start load date
     if historic:
         load_date = datetime.datetime.strptime(monthly_files[0], MONTHLY_DUNS_FORMAT)
-    elif force_reload:
+    elif reload_date:
         # a bit redundant but also date validation
-        load_date = datetime.datetime.strptime(force_reload, '%Y-%m-%d')
+        load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d')
     else:
         load_date = sess.query(DUNS.last_sam_mod_date). \
             order_by(DUNS.last_sam_mod_date.desc()). \
@@ -154,7 +154,7 @@ def get_parser():
     environ = parser.add_mutually_exclusive_group(required=True)
     environ.add_argument("-l", "--local", type=str, default=None, help='Local directory to work from')
     environ.add_argument("-r", "--remote", action="store_true", help='Work from a remote directory (SAM)')
-    parser.add_argument("-f", "--force_reload", type=str, default=None, help='Force update from a specific date'
+    parser.add_argument("-f", "--reload_date", type=str, default=None, help='Force update from a specific date'
                                                                              ' (YYYY-MM-DD)')
     parser.add_argument("-b", "--benchmarks", action="store_true", help='log times of operations for testing')
     return parser
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     local = args.local
     remote = args.remote
     benchmarks = args.benchmarks
-    force_reload = args.force_reload
+    reload_date = args.reload_date
 
     metrics = {
         'script_name': 'load_duns.py',
@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-        load_duns(sess, historic, local, benchmarks=benchmarks, metrics=metrics, force_reload=force_reload)
+        load_duns(sess, historic, local, benchmarks=benchmarks, metrics=metrics, reload_date=reload_date)
         sess.close()
 
     metrics['records_added'] = len(set(metrics['added_duns']))
