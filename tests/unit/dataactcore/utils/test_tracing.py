@@ -119,9 +119,11 @@ def test_drop_key_on_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCapt
     assert DatadogEagerlyDropTraceFilter.EAGERLY_DROP_TRACE_KEY not in caplog.text
 
 
-#@pytest.mark.skip(
-# "Works locally and in Travis CI by itself. But fails when run in Travis with other tests. Investiage test conflict."
-# )
+@pytest.mark.skip(
+    "Works locally and in Travis CI by itself. "
+    "But fails when run in Travis with other tests. "
+    "Investigate test conflict."
+)
 def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixture):
     """Verify that spans created in subprocesses are written to the queue and then flushed to the server,
     when wrapped in the SubprocessTracer"""
