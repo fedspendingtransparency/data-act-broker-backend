@@ -155,7 +155,7 @@ def get_parser():
     environ.add_argument("-l", "--local", type=str, default=None, help='Local directory to work from')
     environ.add_argument("-r", "--remote", action="store_true", help='Work from a remote directory (SAM)')
     parser.add_argument("-f", "--reload_date", type=str, default=None, help='Force update from a specific date'
-                                                                             ' (YYYY-MM-DD)')
+                                                                            ' (YYYY-MM-DD)')
     parser.add_argument("-b", "--benchmarks", action="store_true", help='log times of operations for testing')
     return parser
 
