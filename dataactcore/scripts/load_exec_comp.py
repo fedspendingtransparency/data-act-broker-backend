@@ -136,7 +136,7 @@ def get_parser():
     environ.add_argument('-l', '--local', type=str, default=None, help='Local directory to work from')
     environ.add_argument('-k', '--ssh_key', type=str, default=None, help='Private key used to access the API remotely')
     parser.add_argument("-f", "--reload_date", type=str, default=None, help='Force update from a specific date'
-                                                                             ' (YYYY-MM-DD)')
+                                                                            ' (YYYY-MM-DD)')
     return parser
 
 
