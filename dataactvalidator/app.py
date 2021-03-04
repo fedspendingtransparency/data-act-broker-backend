@@ -127,14 +127,15 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
         Raises:
             Any Exceptions raised by the FileGenerationManager
     """
+    # Add args name and values as span tags on this trace
+    tag_data = locals()
     with SubprocessTrace(
         name=f"job.{JOB_TYPE}.file_generation",
         service=JOB_TYPE.lower(),
-        resource=f"file_generation_id={file_gen_id}",
         span_type=SpanTypes.WORKER,
     ) as span:
-        # Add args name and values as span tags on this trace
-        span.set_tags(locals())
+        file_gen_data = {}
+        span.set_tags(tag_data)
         if is_retry:
             if cleanup_generation(file_gen_id):
                 log_job_message(
@@ -162,10 +163,14 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
             file_generation = sess.query(FileGeneration).filter_by(file_generation_id=file_gen_id).one_or_none()
             if file_generation:
                 file_gen_data = {
-                    'agency_code': file_generation.agency_code, 'agency_type': file_generation.agency_type,
-                    'start_date': file_generation.start_date, 'end_date': file_generation.end_date,
-                    'file_type': file_generation.file_type, 'file_path': file_generation.file_path,
+                    'agency_code': file_generation.agency_code,
+                    'agency_type': file_generation.agency_type,
+                    'start_date': file_generation.start_date,
+                    'end_date': file_generation.end_date,
+                    'file_type': file_generation.file_type,
+                    'file_path': file_generation.file_path,
                 }
+                span.resource = f"file_generation/{file_generation.file_type}"
                 span.set_tags(file_gen_data)
             elif file_generation is None:
                 raise ResponseException('FileGeneration ID {} not found in database'.format(file_gen_id),
@@ -225,14 +230,15 @@ def validator_process_job(job_id, agency_code, is_retry=False):
         Raises:
             Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
+    # Add args name and values as span tags on this trace
+    tag_data = locals()
     with SubprocessTrace(
         name=f"job.{JOB_TYPE}.validation",
         service=JOB_TYPE.lower(),
-        resource=f"validation_job_id={job_id}",
         span_type=SpanTypes.WORKER,
     ) as span:
-        # Add args name and values as span tags on this trace
-        span.set_tags(locals())
+        job_data = {}
+        span.set_tags(tag_data)
         if is_retry:
             if cleanup_validation(job_id):
                 log_job_message(
@@ -261,8 +267,11 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
             if job:
                 job_data = {
-                    'submission_id': job.submission_id, 'job_type': job.job_type.name, 'file_type': job.file_type.name,
+                    'submission_id': job.submission_id,
+                    'job_type': job.job_type.name,
+                    'file_type': job.file_type.name if job.file_type else None,
                 }
+                span.resource = job.job_type.name + (f"/{job.file_type.name}" if job.file_type else "")
                 span.set_tags(job_data)
             elif job is None:
                 validation_error_type = ValidationError.jobError
