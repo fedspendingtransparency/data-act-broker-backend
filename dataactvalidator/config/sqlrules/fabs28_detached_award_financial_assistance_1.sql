@@ -1,4 +1,4 @@
--- FaceValueLoanGuarantee is required for loans (i.e., when AssistanceType = 07 or 08).
+-- FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = 07 or 08).
 SELECT
     row_number,
     assistance_type,

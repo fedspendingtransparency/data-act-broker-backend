@@ -1,4 +1,4 @@
--- LegalEntityForeignProvinceName must be blank for foreign recipients (i.e., when LegalEntityCountryCode = USA) and for
+-- LegalEntityForeignProvinceName must be blank for domestic recipients (i.e., when LegalEntityCountryCode = USA) and for
 -- aggregate records (RecordType = 1).
 SELECT
     row_number,
