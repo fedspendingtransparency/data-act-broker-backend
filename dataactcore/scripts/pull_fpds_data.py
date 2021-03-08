@@ -64,6 +64,10 @@ def list_data(data):
 def extract_text(data_val):
     if type(data_val) is not str:
         data_val = data_val['#text']
+
+    # If it's now a string, we want to strip it
+    if type(data_val) is str:
+        data_val = data_val.strip()
     return data_val
 
 
@@ -117,7 +121,7 @@ def award_id_values(data, obj):
 
     # get agencyID name
     try:
-        obj['referenced_idv_agency_desc'] = data['referencedIDVID']['agencyID']['@name']
+        obj['referenced_idv_agency_desc'] = extract_text(data['referencedIDVID']['agencyID']['@name'])
     except (KeyError, TypeError):
         obj['referenced_idv_agency_desc'] = None
 
@@ -147,7 +151,7 @@ def contract_id_values(data, obj):
 
     # get agencyID name
     try:
-        obj['referenced_idv_agency_desc'] = data['referencedIDVID']['agencyID']['@name']
+        obj['referenced_idv_agency_desc'] = extract_text(data['referencedIDVID']['agencyID']['@name'])
     except (KeyError, TypeError):
         obj['referenced_idv_agency_desc'] = None
 
@@ -194,7 +198,7 @@ def competition_values(data, obj):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@description']
+            obj[value] = extract_text(data[key]['@description'])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -267,7 +271,7 @@ def contract_data_values(data, obj, atom_type):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@description']
+            obj[value] = extract_text(data[key]['@description'])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -326,7 +330,7 @@ def legislative_mandates_values(data, obj):
         for ar_dict in ar_dicts:
             ar_value = extract_text(ar_dict)
             try:
-                ar_desc = ar_dict['@description']
+                ar_desc = extract_text(ar_dict['@description'])
             except (KeyError, TypeError):
                 ar_desc = None
             ar_str = ar_value if ar_desc is None else '{}: {}'.format(ar_value, ar_desc)
@@ -349,7 +353,7 @@ def legislative_mandates_values(data, obj):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@description']
+            obj[value] = extract_text(data[key]['@description'])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -369,13 +373,13 @@ def place_of_performance_values(data, obj):
 
     # placeOfPerformanceName
     try:
-        obj['place_of_perform_city_name'] = data['placeOfPerformanceZIPCode']['@city']
+        obj['place_of_perform_city_name'] = extract_text(data['placeOfPerformanceZIPCode']['@city'])
     except (KeyError, TypeError):
         obj['place_of_perform_city_name'] = None
 
     # placeOfPerformanceName
     try:
-        obj['place_of_perform_county_na'] = data['placeOfPerformanceZIPCode']['@county']
+        obj['place_of_perform_county_na'] = extract_text(data['placeOfPerformanceZIPCode']['@county'])
     except (KeyError, TypeError):
         obj['place_of_perform_county_na'] = None
 
@@ -395,7 +399,7 @@ def place_of_performance_values(data, obj):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data['principalPlaceOfPerformance'][key]['@name']
+            obj[value] = extract_text(data['principalPlaceOfPerformance'][key]['@name'])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -436,13 +440,13 @@ def product_or_service_information_values(data, obj):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@description']
+            obj[value] = extract_text(data[key]['@description'])
         except (KeyError, TypeError):
             obj[value] = None
 
     # get country of origin name
     try:
-        obj['country_of_product_or_desc'] = data['countryOfOrigin']['@name']
+        obj['country_of_product_or_desc'] = extract_text(data['countryOfOrigin']['@name'])
     except (KeyError, TypeError):
         obj['country_of_product_or_desc'] = None
 
@@ -468,7 +472,7 @@ def purchaser_information_values(data, obj):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@description']
+            obj[value] = extract_text(data[key]['@description'])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -480,7 +484,7 @@ def purchaser_information_values(data, obj):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@name']
+            obj[value] = extract_text(data[key]['@name'])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -522,7 +526,7 @@ def vendor_values(data, obj):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@description']
+            obj[value] = extract_text(data[key]['@description'])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -723,7 +727,7 @@ def vendor_site_details_values(data, obj):
     # if it is in the USA, grab the description for the state
     else:
         try:
-            obj['legal_entity_state_descrip'] = data['vendorLocation']['state']['@name']
+            obj['legal_entity_state_descrip'] = extract_text(data['vendorLocation']['state']['@name'])
         except (KeyError, TypeError):
             obj['legal_entity_state_descrip'] = None
 
@@ -734,7 +738,7 @@ def vendor_site_details_values(data, obj):
 
     # getting the name associated with the country code
     try:
-        obj['legal_entity_country_name'] = data['vendorLocation']['countryCode']['@name']
+        obj['legal_entity_country_name'] = extract_text(data['vendorLocation']['countryCode']['@name'])
     except (KeyError, TypeError):
         obj['legal_entity_country_name'] = None
 
@@ -1122,7 +1126,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
         obj['subcontracting_plan'] = None
 
     try:
-        obj['subcontracting_plan_desc'] = data['preferencePrograms']['subcontractPlan']['@description']
+        obj['subcontracting_plan_desc'] = extract_text(data['preferencePrograms']['subcontractPlan']['@description'])
     except (KeyError, TypeError):
         obj['subcontracting_plan_desc'] = None
 
@@ -1165,12 +1169,12 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
                                      country_list, exec_comp_dict, atom_type)
 
     try:
-        obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
+        obj['last_modified'] = extract_text(data['transactionInformation']['lastModifiedDate'])
     except (KeyError, TypeError):
         obj['last_modified'] = None
 
     try:
-        obj['initial_report_date'] = data['transactionInformation']['createdDate']
+        obj['initial_report_date'] = extract_text(data['transactionInformation']['createdDate'])
     except (KeyError, TypeError):
         obj['initial_report_date'] = None
 
