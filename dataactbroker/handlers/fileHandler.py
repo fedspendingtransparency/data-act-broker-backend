@@ -229,6 +229,14 @@ class FileHandler:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
             if not existing_submission:
+                # Stripping off all extra whitespace so we don't create bad cgac/frec references. If it results in an
+                # empty string, set it to None
+                code_types = ['cgac_code', 'frec_code']
+                for code in code_types:
+                    submission_data[code] = submission_data[code].strip() if submission_data[code] else None
+                    if submission_data[code] == '':
+                        submission_data[code] = None
+
                 cgac_code = submission_data['cgac_code'] or ''
                 frec_code = submission_data['frec_code'] or ''
                 if cgac_code != '' and frec_code != '':
