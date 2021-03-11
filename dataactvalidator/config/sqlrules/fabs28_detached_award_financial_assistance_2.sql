@@ -1,4 +1,4 @@
--- FaceValueLoanGuarantee must be blank for non-loans (i.e., when AssistanceType is not 07 or 08).
+-- FaceValueOfDirectLoanOrLoanGuarantee must be blank or 0 for non-loans (i.e., when AssistanceType is not 07 or 08).
 SELECT
     row_number,
     assistance_type,

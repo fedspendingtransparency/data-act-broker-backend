@@ -12,7 +12,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ FaceValueLoanGuarantee is required for loans (i.e., when AssistanceType = 07 or 08). """
+    """ FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = 07 or 08). """
 
     det_award = DetachedAwardFinancialAssistanceFactory(assistance_type='07', face_value_loan_guarantee=0,
                                                         correction_delete_indicatr='')
@@ -27,7 +27,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ FaceValueLoanGuarantee is required for loans (i.e., when AssistanceType = 07 or 08). """
+    """ FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = 07 or 08). """
 
     det_award = DetachedAwardFinancialAssistanceFactory(assistance_type='07', face_value_loan_guarantee=None,
                                                         correction_delete_indicatr=None)

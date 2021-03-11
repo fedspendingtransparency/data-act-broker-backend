@@ -12,7 +12,9 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ FaceValueLoanGuarantee must be blank for non-loans (i.e., when AssistanceType is not 07 or 08). """
+    """ FaceValueOfDirectLoanOrLoanGuarantee must be blank or 0 for non-loans
+        (i.e., when AssistanceType is not 07 or 08).
+    """
 
     det_award = DetachedAwardFinancialAssistanceFactory(assistance_type='03', face_value_loan_guarantee=None,
                                                         correction_delete_indicatr='')
@@ -29,7 +31,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ FaceValueLoanGuarantee must be blank for non-loans (i.e., when AssistanceType is not 07 or 08). """
+    """ FaceValueOfDirectLoanOrLoanGuarantee must be blank or 0 for non-loans
+        (i.e., when AssistanceType is not 07 or 08).
+    """
 
     det_award = DetachedAwardFinancialAssistanceFactory(assistance_type='11', face_value_loan_guarantee=20,
                                                         correction_delete_indicatr='')
