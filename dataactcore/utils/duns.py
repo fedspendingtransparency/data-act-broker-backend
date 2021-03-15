@@ -3,65 +3,19 @@ import os
 import re
 import time
 import zipfile
-import paramiko
 import datetime
 from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
 
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
 from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
-from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
 
 logger = logging.getLogger(__name__)
 
-REMOTE_SAM_EXEC_COMP_DIR = '/current/SAM/6_EXECCOMP/UTF-8'
 BUSINESS_TYPES_SEPARATOR = '~'
-
-
-# TODO: Remove if/when the Exec Comp data is available via SAM HTTP API
-def get_client(ssh_key=None):
-    """ Connects to the SAM client and returns a usable object for interaction
-
-        Arguments:
-            ssh_key: private ssh key to connect to the secure API
-
-        Returns:
-            client object to interact with the SAM service
-    """
-    sam_config = CONFIG_BROKER.get('sam')
-    if not sam_config:
-        return None
-
-    connect_args = {}
-    if ssh_key:
-        connect_args['hostname'] = sam_config['duns'].get('host_ssh')
-        connect_args['username'] = sam_config.get('username')
-        connect_args['password'] = sam_config.get('password')
-
-        ssh_key_file = RetrieveFileFromUri(ssh_key, binary_data=False).get_file_object()
-        connect_args['pkey'] = paramiko.RSAKey.from_private_key(ssh_key_file,
-                                                                password=sam_config['duns'].get('ssh_key_password'))
-
-    if ((None in (connect_args['hostname'], connect_args['username'], connect_args['password']))
-            or (ssh_key and not connect_args['pkey'])):
-        raise Exception("Missing config elements for connecting to SAM")
-
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    https_proxy = os.environ.get('HTTPS_PROXY')
-    if https_proxy and sam_config['duns'].get('use_proxy'):
-        para_proxy = paramiko.ProxyCommand('nc -w 90 -X connect -x {} {} {}'.format(
-            https_proxy[7:-1], connect_args['hostname'], '22'))
-        connect_args['sock'] = para_proxy
-
-    client.connect(**connect_args)
-    return client
 
 
 def clean_sam_data(data):
@@ -387,14 +341,12 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
     metrics['updated_duns'].extend(updated_duns_list)
 
 
-def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=None, monthly=False):
+def parse_exec_comp_file(filename, root_dir, metrics=None, monthly=False):
     """ Parses the executive compensation file to update corresponding DUNS records
 
         Args:
             filename: name of file to import
             root_dir: working directory
-            sftp: connection to remote server
-            ssh_key: ssh_key for reconnecting
             metrics: dictionary representing metrics of the script
             monthly: whether it's a monthly file
 
