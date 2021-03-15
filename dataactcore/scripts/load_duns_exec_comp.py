@@ -12,32 +12,34 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.parentDuns import update_missing_parent_names
-from dataactcore.utils.duns import parse_duns_file, update_duns
+from dataactcore.utils.duns import parse_duns_file, update_duns, parse_exec_comp_file, update_exec_comp_duns
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
 API_URL = CONFIG_BROKER['sam']['duns']['api_url'].format(CONFIG_BROKER['sam']['api_key'])
-MONTHLY_DUNS_FORMAT = 'SAM_FOUO_UTF-8_MONTHLY_V2_%Y%m%d.ZIP'
-DAILY_DUNS_FORMAT = 'SAM_FOUO_UTF-8_DAILY_V2_%Y%m%d.ZIP'
+MONTHLY_FILE_FORMAT = 'SAM_{}_UTF-8_MONTHLY_V2_%Y%m%d.ZIP'
+DAILY_FILE_FORMAT = 'SAM_{}_UTF-8_DAILY_V2_%Y%m%d.ZIP'
+DATA_TYPE_FIELD = {'duns': 'FOUO', 'exec_comp': 'EXECCOMP'}
 FIRST_MONTHLY = datetime.date(year=2021, month=2, day=1)
 
 
-def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, reload_date=None):
+def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_date=None):
     """ Process the script arguments to figure out which files to process in which order
 
         Args:
+            data_type: data type to load (DUNS or executive compensation)
             sess: the database connection
             historic: whether to load in monthly file and daily files after, or just the latest daily files
             local: path to local directory to process, if None, it will go though the remote SAM service
-            benchmarks: whether to log times
             metrics: dictionary representing metrics data for the load
             reload_date: specific date to force reload from
     """
     if not metrics:
         metrics = {}
 
-    updated_date = datetime.date.today()
+    monthy_format = MONTHLY_FILE_FORMAT.format(DATA_TYPE_FIELD[data_type])
+    daily_format = DAILY_FILE_FORMAT.format(DATA_TYPE_FIELD[data_type])
 
     # Figure out what files we have available based on our local or remote setup
     if local:
@@ -49,43 +51,44 @@ def load_duns(sess, historic, local=None, benchmarks=None, metrics=None, reload_
     else:
         # TODO: SAM currently doesn't have an easy way to detect which files are available or when it starts,
         #       so for now we're trying all options. Rework this part if/when SAM provides a list of available files.
-        monthly_files = [FIRST_MONTHLY.strftime(MONTHLY_DUNS_FORMAT)]
+        monthly_files = [FIRST_MONTHLY.strftime(monthy_format)]
         days_to_load = [FIRST_MONTHLY + datetime.timedelta(days=i) for i in
                         range((datetime.date.today() - FIRST_MONTHLY).days + 1)]
-        daily_files = [day.strftime(DAILY_DUNS_FORMAT) for day in days_to_load]
+        daily_files = [day.strftime(daily_format) for day in days_to_load]
 
     # load in earliest monthly file for historic
     if historic:
-        process_duns_file(monthly_files[0], sess, local=local, monthly=True, benchmarks=benchmarks, metrics=metrics)
+        process_sam_file(data_type, monthly_files[0], sess, local=local, monthly=True, metrics=metrics)
 
     # determine which daily files to load in by setting the start load date
     if historic:
-        load_date = datetime.datetime.strptime(monthly_files[0], MONTHLY_DUNS_FORMAT)
+        load_date = datetime.datetime.strptime(monthly_files[0], monthy_format)
     elif reload_date:
         # a bit redundant but also date validation
         load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d')
     else:
-        load_date = sess.query(DUNS.last_sam_mod_date). \
-            order_by(DUNS.last_sam_mod_date.desc()). \
-            filter(DUNS.last_sam_mod_date.isnot(None)). \
-            first()
+        sam_field = DUNS.last_sam_mod_date if data_type == 'duns' else DUNS.last_exec_comp_mod_date
+        load_date = sess.query(sam_field).filter(sam_field.isnot(None)).order_by(sam_field.desc()).first()
         load_date = load_date[0]
         if not load_date:
-            raise Exception('No last sam mod date found in DUNS table. Please run historic loader first.')
+            field = 'sam' if data_type == 'duns' else 'executive compenstation'
+            raise Exception('No last {} mod date found in DUNS table. Please run historic loader first.'.format(field))
 
     # load daily files starting from the load_date
-    for daily_file in filter(lambda daily_file: daily_file >= load_date.strftime(DAILY_DUNS_FORMAT), daily_files):
+    for daily_file in filter(lambda daily_file: daily_file >= load_date.strftime(daily_format), daily_files):
         try:
-            process_duns_file(daily_file, sess, local=local, benchmarks=benchmarks, metrics=metrics)
+            process_sam_file(data_type, daily_file, sess, local=local, metrics=metrics)
         except FileNotFoundError:
             logger.warning('No file found for {}, continuing'.format(daily_file))
             continue
 
-    metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
-    metrics['parent_update_date'] = str(updated_date)
+    if data_type == 'duns':
+        updated_date = datetime.date.today()
+        metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
+        metrics['parent_update_date'] = str(updated_date)
 
 
-def download_duns(root_dir, file_name):
+def download_sam_file(root_dir, file_name):
     """ Downloads the requested DUNS file to root_dir
 
         Args:
@@ -105,15 +108,15 @@ def download_duns(root_dir, file_name):
         raise FileNotFoundError('File not found on SAM HTTP API.')
 
 
-def process_duns_file(file_name, sess, local=None, monthly=False, benchmarks=False, metrics=None):
+def process_sam_file(data_type, file_name, sess, local=None, monthly=False, metrics=None):
     """ Process the SAM file found locally or remotely
 
         Args:
+            data_type: data type to load (DUNS or executive compensation)
             file_name: the name of the SAM file
             sess: the database connection
             local: path to local directory to process, if None, it will go though the remote SAM service
             monthly: whether it's a monthly file
-            benchmarks: whether to log times
             metrics: dictionary representing metrics data for the load
 
         Raises:
@@ -125,18 +128,21 @@ def process_duns_file(file_name, sess, local=None, monthly=False, benchmarks=Fal
     root_dir = local if local else tempfile.gettempdir()
     if not local:
         try:
-            download_duns(root_dir, file_name)
+            download_sam_file(root_dir, file_name)
         except FileNotFoundError as e:
             raise e
 
     file_path = os.path.join(root_dir, file_name)
 
-    add_update_data, delete_data = parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks,
-                                                   metrics=metrics)
-    if add_update_data is not None:
-        update_duns(sess, add_update_data, metrics=metrics)
-    if delete_data is not None:
-        update_duns(sess, delete_data, metrics=metrics, deletes=True)
+    if data_type == 'duns':
+        add_update_data, delete_data = parse_duns_file(file_path, monthly=monthly, metrics=metrics)
+        if add_update_data is not None:
+            update_duns(sess, add_update_data, metrics=metrics)
+        if delete_data is not None:
+            update_duns(sess, delete_data, metrics=metrics, deletes=True)
+    else:
+        exec_comp_data = parse_exec_comp_file(file_path, monthly=monthly, metrics=metrics)
+        update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
     if not local:
         os.remove(file_path)
 
@@ -147,7 +153,8 @@ def get_parser():
         Returns:
             argument parser to be used for commandline
     """
-    parser = argparse.ArgumentParser(description='Get data from SAM and update duns table')
+    parser = argparse.ArgumentParser(description='Get data from SAM and update duns/exec comp tables')
+    parser.add_argument("-t", "--data_type", choices=['duns', 'exec_comp', 'both'], help='Select data type to load')
     scope = parser.add_mutually_exclusive_group(required=True)
     scope.add_argument("-a", "--historic", action="store_true", help='Reload from the first monthly file on')
     scope.add_argument("-u", "--update", action="store_true", help='Load daily files since latest last_sam_mod_date')
@@ -156,7 +163,6 @@ def get_parser():
     environ.add_argument("-r", "--remote", action="store_true", help='Work from a remote directory (SAM)')
     parser.add_argument("-f", "--reload_date", type=str, default=None, help='Force update from a specific date'
                                                                             ' (YYYY-MM-DD)')
-    parser.add_argument("-b", "--benchmarks", action="store_true", help='log times of operations for testing')
     return parser
 
 
@@ -167,15 +173,14 @@ if __name__ == '__main__':
     parser = get_parser()
     args = parser.parse_args()
 
+    data_type = args.data_type
     historic = args.historic
     update = args.update
     local = args.local
-    remote = args.remote
-    benchmarks = args.benchmarks
     reload_date = args.reload_date
 
     metrics = {
-        'script_name': 'load_duns.py',
+        'script_name': 'load_duns_exec_comp.py',
         'start_time': str(now),
         'files_processed': [],
         'records_received': 0,
@@ -193,7 +198,10 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-        load_duns(sess, historic, local, benchmarks=benchmarks, metrics=metrics, reload_date=reload_date)
+        if data_type in ('duns', 'both'):
+            load_from_sam('duns', sess, historic, local, metrics=metrics, reload_date=reload_date)
+        if data_type in ('exec_comp', 'both'):
+            load_from_sam('exec_comp', sess, historic, local, metrics=metrics, reload_date=reload_date)
         sess.close()
 
     metrics['records_added'] = len(set(metrics['added_duns']))
@@ -204,5 +212,5 @@ if __name__ == '__main__':
     logger.info('Added {} records and updated {} records'.format(metrics['records_added'], metrics['records_updated']))
 
     metrics['duration'] = str(datetime.datetime.now() - now)
-    with open('load_duns_metrics.json', 'w+') as metrics_file:
+    with open('load_duns_exec_comp_metrics.json', 'w+') as metrics_file:
         json.dump(metrics, metrics_file)

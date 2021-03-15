@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-import time
 import zipfile
 import datetime
 from collections import OrderedDict
@@ -56,14 +55,12 @@ def clean_sam_data(data):
     return data
 
 
-def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=None):
+def parse_duns_file(file_path, monthly=False, metrics=None):
     """ Takes in a DUNS file and adds the DUNS data to the database
 
         Args:
             file_path: the path to the SAM file
-            sess: the database connection
             monthly: whether it's a monthly file
-            benchmarks: whether to log times
             metrics: dictionary representing metrics data for the load
     """
     if not metrics:
@@ -76,7 +73,6 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
             'deletes_received': 0
         }
 
-    parse_start_time = time.time()
     logger.info("Starting file " + str(file_path))
 
     dat_file_name = os.path.splitext(os.path.basename(file_path))[0] + '.dat'
@@ -159,9 +155,6 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     add_update_data = clean_sam_data(add_update_data)
     delete_data = clean_sam_data(delete_data)
 
-    if benchmarks:
-        logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time() - parse_start_time,
-                                                                     rows_received))
     metrics['files_processed'].append(dat_file_name)
     metrics['records_received'] += rows_received
     metrics['records_processed'] += rows_processed
@@ -341,12 +334,11 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
     metrics['updated_duns'].extend(updated_duns_list)
 
 
-def parse_exec_comp_file(filename, root_dir, metrics=None, monthly=False):
+def parse_exec_comp_file(file_path, monthly=False, metrics=None):
     """ Parses the executive compensation file to update corresponding DUNS records
 
         Args:
-            filename: name of file to import
-            root_dir: working directory
+            file_path: the path to the SAM file
             metrics: dictionary representing metrics of the script
             monthly: whether it's a monthly file
 
@@ -360,11 +352,11 @@ def parse_exec_comp_file(filename, root_dir, metrics=None, monthly=False):
             'records_received': 0,
             'records_processed': 0
         }
+    logger.info('Starting file ' + file_path)
 
-    file_path = os.path.join(root_dir, filename)
-    logger.info('starting file ' + file_path)
-
-    csv_file = os.path.splitext(filename)[0] + '.dat'
+    dat_file_name = os.path.splitext(os.path.basename(file_path))[0] + '.dat'
+    sam_file_type = "MONTHLY" if monthly else "DAILY"
+    dat_file_date = re.findall(".*{}_V2_(.*).dat".format(sam_file_type), dat_file_name)[0]
     zfile = zipfile.ZipFile(file_path)
 
     column_header_mapping = {
@@ -376,9 +368,9 @@ def parse_exec_comp_file(filename, root_dir, metrics=None, monthly=False):
 
     # can't use skipfooter, pandas' c engine doesn't work with skipfooter and the python engine doesn't work with dtype
     nrows = 0
-    with zfile.open(csv_file) as dat_file:
+    with zfile.open(dat_file_name) as dat_file:
         nrows = len(dat_file.readlines()) - 2  # subtract the header and footer
-    with zfile.open(csv_file) as dat_file:
+    with zfile.open(dat_file_name) as dat_file:
         csv_data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=1, nrows=nrows, sep='|',
                                usecols=column_header_mapping_ordered.values(),
                                names=column_header_mapping_ordered.keys(), quoting=3)
@@ -413,10 +405,7 @@ def parse_exec_comp_file(filename, root_dir, metrics=None, monthly=False):
     total_data = pd.concat([pop_exec, blank_exec])
     del total_data['exec_comp_str']
     total_data.replace('', np.nan, inplace=True)
-    last_exec_comp_mod_date_str = re.findall('[0-9]{8}', filename)
-    if not last_exec_comp_mod_date_str:
-        raise Exception('Last Executive Compensation Mod Date not found in filename.')
-    last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
+    last_exec_comp_mod_date = datetime.datetime.strptime(dat_file_date, '%Y%m%d').date()
     total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
 
     # Cleaning out any untrimmed strings
@@ -437,7 +426,7 @@ def parse_exec_comp_file(filename, root_dir, metrics=None, monthly=False):
         }, {})
         total_data.drop(columns=['created_at', 'updated_at'], inplace=True)
 
-    metrics['files_processed'].append(filename)
+    metrics['files_processed'].append(dat_file_name)
     metrics['records_received'] += records_received
     metrics['records_processed'] += records_processed
 

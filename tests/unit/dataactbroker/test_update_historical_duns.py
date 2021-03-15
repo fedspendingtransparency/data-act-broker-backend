@@ -538,7 +538,7 @@ def test_clean_historic_duns(database, monkeypatch):
     update_historical_duns.run_duns_batches(duns_file, sess, None, block_size=1)
     update_historical_duns.import_historic_duns(sess)
 
-    # update old DUNS as part of load_duns.py
+    # update old DUNS as part of load_duns_exec_comp.py
     updated_duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == '000000002').one()
     updated_duns.historic = False
     sess.commit()

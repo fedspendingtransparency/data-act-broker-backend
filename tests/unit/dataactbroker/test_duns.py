@@ -2,7 +2,7 @@ import os
 import datetime
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.scripts import load_duns, load_exec_comp
+from dataactcore.scripts import load_duns_exec_comp
 from dataactcore.models.domainModels import DUNS
 
 
@@ -11,7 +11,7 @@ def test_load_duns(database):
     sess = database.session
     duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns', 'v2')
 
-    load_duns.load_duns(sess, True, duns_dir)
+    load_duns_exec_comp.load_from_sam('duns', sess, True, duns_dir)
 
     # update if the fake DUNS file name/zip changes
     deactivation_date = '2021-02-06'
@@ -136,10 +136,10 @@ def test_load_exec_comp(database):
     """ Test a local run load exec_comp with the test files """
     sess = database.session
     duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns', 'v2')
-    exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp', 'v1')
+    exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp', 'v2')
 
-    load_duns.load_duns(sess, True, duns_dir)
-    load_exec_comp.process_exec_comp_dir(sess, True, exec_comp_dir, None)
+    load_duns_exec_comp.load_from_sam('duns', sess, True, duns_dir)
+    load_duns_exec_comp.load_from_sam('exec_comp', sess, True, exec_comp_dir, None)
 
     monthly_last_exec_date = datetime.date(2017, 9, 30)
     daily_last_exec_date = datetime.date(2019, 3, 29)
