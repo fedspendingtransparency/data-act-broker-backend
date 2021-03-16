@@ -8,7 +8,7 @@ import requests
 import sys
 import time
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pandas.io.json import json_normalize
 from requests.packages.urllib3.exceptions import ReadTimeoutError
 from sqlalchemy import func
@@ -358,7 +358,8 @@ def main():
         if not last_pull_date:
             logger.error('The -a or -d flag must be set when there are no Offices present in the database.')
             sys.exit(1)
-        updated_date_from = last_pull_date[0].date()
+        # We want to make the date one day earlier to account for any timing weirdness between the two systems
+        updated_date_from = last_pull_date[0].date() - timedelta(days=1)
 
     # Handle the filename parameter
     filename = args.filename[0] if args.filename else None
