@@ -27,7 +27,8 @@ from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramA
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
                                               AwardFinancialAssistance, CertifiedAwardProcurement,
-                                              CertifiedAwardFinancialAssistance, TotalObligations)
+                                              CertifiedAwardFinancialAssistance, TotalObligations,
+                                              CertifiedTotalObligations)
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -706,7 +707,8 @@ def move_published_data(sess, submission_id, direction='publish'):
                                                   'submission'],
                    'error_metadata': [ErrorMetadata, CertifiedErrorMetadata, 'job'],
                    'comment': [Comment, CertifiedComment, 'submission'],
-                   'flex_field': [FlexField, CertifiedFlexField, 'submission']}
+                   'flex_field': [FlexField, CertifiedFlexField, 'submission'],
+                   'total_obligations': [TotalObligations, CertifiedTotalObligations, 'submission']}
 
     # Get list of jobs so we can use them for filtering
     job_list = sess.query(Job.job_id).filter_by(submission_id=submission_id).all()
