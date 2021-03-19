@@ -254,7 +254,7 @@ class TotalObligations(Base):
 
 
 class CertifiedTotalObligations(Base):
-    """ Model keeping track of the total obligations from the AwardFinancial (C file) table. """
+    """ Model keeping track of the certified total obligations from the AwardFinancial (C file) table. """
     __tablename__ = "certified_total_obligations"
 
     certified_total_obligations_id = Column(Integer, primary_key=True)
