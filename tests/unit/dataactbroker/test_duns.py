@@ -9,9 +9,9 @@ from dataactcore.models.domainModels import DUNS
 def test_load_duns(database):
     """ Test a local run load duns with the test files """
     sess = database.session
-    duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns', 'v2')
+    duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
 
-    load_duns_exec_comp.load_from_sam('duns', sess, True, duns_dir)
+    load_duns_exec_comp.load_from_sam('DUNS', sess, True, duns_dir)
 
     # update if the fake DUNS file name/zip changes
     deactivation_date = '2021-02-06'
@@ -135,11 +135,11 @@ def test_load_duns(database):
 def test_load_exec_comp(database):
     """ Test a local run load exec_comp with the test files """
     sess = database.session
-    duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns', 'v2')
-    exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp', 'v2')
+    duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
+    exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp')
 
-    load_duns_exec_comp.load_from_sam('duns', sess, True, duns_dir)
-    load_duns_exec_comp.load_from_sam('exec_comp', sess, True, exec_comp_dir, None)
+    load_duns_exec_comp.load_from_sam('DUNS', sess, True, duns_dir)
+    load_duns_exec_comp.load_from_sam('Executive Compensation', sess, True, exec_comp_dir, None)
 
     monthly_last_exec_date = datetime.date(2017, 9, 30)
     daily_last_exec_date = datetime.date(2019, 3, 29)

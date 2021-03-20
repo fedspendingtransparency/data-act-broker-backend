@@ -6,6 +6,7 @@ import re
 import json
 import tempfile
 import requests
+import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -17,11 +18,19 @@ from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
+SAM_FILE_FORMAT = 'SAM_{data_type}_UTF-8_{period}{version}_%Y%m%d.ZIP'
+DATA_TYPES = {
+    'DUNS': 'FOUO',
+    'Executive Compensation': 'EXECCOMP'
+}
+PERIODS = ['MONTHLY', 'DAILY']
+VERSIONS = {
+    'v1': '',  # V1 files simply exclude the version
+    'v2': '_V2'
+}
+S3_ARCHIVE = CONFIG_BROKER['sam']['duns']['csv_archive_bucket']
+S3_ARCHIVE_PATH = '{data_type}/{version}/{file_name}'
 API_URL = CONFIG_BROKER['sam']['duns']['api_url'].format(CONFIG_BROKER['sam']['api_key'])
-MONTHLY_FILE_FORMAT = 'SAM_{}_UTF-8_MONTHLY_V2_%Y%m%d.ZIP'
-DAILY_FILE_FORMAT = 'SAM_{}_UTF-8_DAILY_V2_%Y%m%d.ZIP'
-DATA_TYPE_FIELD = {'duns': 'FOUO', 'exec_comp': 'EXECCOMP'}
-FIRST_MONTHLY = datetime.date(year=2021, month=2, day=1)
 
 
 def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_date=None):
@@ -38,49 +47,85 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
     if not metrics:
         metrics = {}
 
-    monthy_format = MONTHLY_FILE_FORMAT.format(DATA_TYPE_FIELD[data_type])
-    daily_format = DAILY_FILE_FORMAT.format(DATA_TYPE_FIELD[data_type])
-
     # Figure out what files we have available based on our local or remote setup
     if local:
         local_files = os.listdir(local)
-        monthly_files = sorted([monthly_file for monthly_file in local_files
-                                if re.match(".*MONTHLY_V2_\d+\.ZIP", monthly_file.upper())])
-        daily_files = sorted([daily_file for daily_file in local_files
-                              if re.match(".*DAILY_V2_\d+\.ZIP", daily_file.upper())])
+        monthly_v1_files = sorted([monthly_file for monthly_file in local_files
+                                   if re.match('SAM_{}_UTF-8_MONTHLY_\d+\.ZIP'.format(DATA_TYPES[data_type]),
+                                               monthly_file.upper())])
+        monthly_v2_files = sorted([monthly_file for monthly_file in local_files
+                                   if re.match('SAM_{}_UTF-8_MONTHLY_V2_\d+\.ZIP'.format(DATA_TYPES[data_type]),
+                                               monthly_file.upper())])
+        daily_v1_files = sorted([daily_file for daily_file in local_files
+                                 if re.match('SAM_{}_UTF-8_DAILY_\d+\.ZIP'.format(DATA_TYPES[data_type]),
+                                             daily_file.upper())])
+        daily_v2_files = sorted([daily_file for daily_file in local_files
+                                 if re.match('SAM_{}_UTF-8_DAILY_V2_\d+\.ZIP'.format(DATA_TYPES[data_type]),
+                                             daily_file.upper())])
     else:
-        # TODO: SAM currently doesn't have an easy way to detect which files are available or when it starts,
-        #       so for now we're trying all options. Rework this part if/when SAM provides a list of available files.
-        monthly_files = [FIRST_MONTHLY.strftime(monthy_format)]
-        days_to_load = [FIRST_MONTHLY + datetime.timedelta(days=i) for i in
-                        range((datetime.date.today() - FIRST_MONTHLY).days + 1)]
-        daily_files = [day.strftime(daily_format) for day in days_to_load]
+        # TODO: the SAM API currently doesn't list available files and doesnt include historic ones,
+        #       so we're pulling files from the CSV_ARCHIVE_BUCKET bucket up until API_START and then use the API.
+        #       Rework this if SAM includes these historic files in the API.
+        monthly_v1_files = list_s3_archive_files(data_type, 'MONTHLY', 'v1')
+        monthly_v2_files = list_s3_archive_files(data_type, 'MONTHLY', 'v2')
+        daily_v1_files = list_s3_archive_files(data_type, 'DAILY', 'v1')
+        daily_v2_files = list_s3_archive_files(data_type, 'DAILY', 'v2')
 
-    # load in earliest monthly file for historic
+    # Extracting the dates from these to figure out which files to process where
+    # For both monthly and daily files, we only want to process v1 files until the equivalent v2 files are available
+    monthly_v1_dates = extract_dates_from_list(monthly_v1_files, data_type, 'MONTHLY', 'v1')
+    monthly_v2_dates = extract_dates_from_list(monthly_v2_files, data_type, 'MONTHLY', 'v2')
+    monthly_v1_dates = [monthly_v1_date for monthly_v1_date in monthly_v1_dates
+                        if monthly_v1_date not in monthly_v2_dates]
     if historic:
-        process_sam_file(data_type, monthly_files[0], sess, local=local, monthly=True, metrics=metrics)
+        earliest_date = sorted(monthly_v1_dates + monthly_v2_dates)[0]
+
+    daily_v1_dates = extract_dates_from_list(daily_v1_files, data_type, 'DAILY', 'v1')
+    daily_v2_dates = extract_dates_from_list(daily_v2_files, data_type, 'DAILY', 'v2')
+    daily_v1_dates = [daily_v1_dates for daily_v1_dates in daily_v1_dates
+                      if daily_v1_dates not in daily_v2_dates]
+    latest_date = sorted(daily_v1_dates + daily_v2_dates)[-1]
+
+    # For any dates after the latest date we have in the archive, use the API
+    daily_v2_api_dates = [latest_date + datetime.timedelta(days=i)
+                          for i in range((datetime.date.today() - latest_date).days + 1)]
 
     # determine which daily files to load in by setting the start load date
     if historic:
-        load_date = datetime.datetime.strptime(monthly_files[0], monthy_format)
+        load_date = earliest_date
     elif reload_date:
         # a bit redundant but also date validation
         load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d')
     else:
-        sam_field = DUNS.last_sam_mod_date if data_type == 'duns' else DUNS.last_exec_comp_mod_date
+        sam_field = DUNS.last_sam_mod_date if data_type == 'DUNS' else DUNS.last_exec_comp_mod_date
         load_date = sess.query(sam_field).filter(sam_field.isnot(None)).order_by(sam_field.desc()).first()
         load_date = load_date[0]
         if not load_date:
             field = 'sam' if data_type == 'duns' else 'executive compenstation'
             raise Exception('No last {} mod date found in DUNS table. Please run historic loader first.'.format(field))
 
-    # load daily files starting from the load_date
-    for daily_file in filter(lambda daily_file: daily_file >= load_date.strftime(daily_format), daily_files):
-        try:
-            process_sam_file(data_type, daily_file, sess, local=local, metrics=metrics)
-        except FileNotFoundError:
-            logger.warning('No file found for {}, continuing'.format(daily_file))
-            continue
+    # only load in the daily files after the load date
+    daily_v1_dates = list(filter(lambda daily_date: daily_date >= load_date, daily_v1_dates))
+    daily_v2_dates = list(filter(lambda daily_date: daily_date >= load_date, daily_v2_dates))
+    daily_v2_api_dates = list(filter(lambda daily_date: daily_date >= load_date, daily_v2_api_dates))
+
+
+    if historic:
+        # load in the earliest monthly file and all daily files after
+        version = 'v1' if earliest_date in monthly_v1_dates else 'v2'
+        process_sam_file(data_type, 'MONTHLY', version, earliest_date, sess, local=local, metrics=metrics)
+    for daily_v1_date in daily_v1_dates:
+        process_sam_file(data_type, 'DAILY', 'v1', daily_v1_date, sess, local=local, metrics=metrics)
+    for daily_v2_date in daily_v2_dates:
+        process_sam_file(data_type, 'DAILY', 'v2', daily_v2_date, sess, local=local, metrics=metrics)
+    if not local:
+        for daily_api_v2_date in daily_v2_api_dates:
+            try:
+                process_sam_file(data_type, 'DAILY', 'v2', daily_api_v2_date, sess, local=local, api=True,
+                                 metrics=metrics)
+            except FileNotFoundError:
+                logger.warning('No file found for {}, continuing'.format(daily_api_v2_date))
+                continue
 
     if data_type == 'duns':
         updated_date = datetime.date.today()
@@ -88,35 +133,79 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
         metrics['parent_update_date'] = str(updated_date)
 
 
-def download_sam_file(root_dir, file_name):
+def extract_dates_from_list(sam_files, data_type, period, version):
+    """ Given a list of SAM files, extract the dates the files refer to
+
+        Args:
+            sam: list of sam file names to extract dates from
+            data_type: data type to load (DUNS or executive compensation)
+            period: monthly or daily
+            version: v1 or v2
+
+        Returns:
+            list of dates corresponding to the files
+    """
+    sam_filename_format = SAM_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period,
+                                                 version=VERSIONS[version])
+    return [datetime.datetime.strptime(sam_file, sam_filename_format).date() for sam_file in sam_files]
+
+
+def list_s3_archive_files(data_type, period, version):
+    """ Given the requested fields, provide a list of available files from the remote S3 archive
+
+        Args:
+            data_type: data type to load (DUNS or executive compensation)
+            period: monthly or daily
+            version: v1 or v2
+
+        Returns:
+            list of available files in the S3 archive
+    """
+    s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
+    archive_bucket = s3_resource.Bucket(S3_ARCHIVE)
+    file_name = SAM_FILE_FORMAT[:30].format(data_type=DATA_TYPES[data_type], period=period)
+    prefix = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
+    return [object.key for object in archive_bucket.objects.filter(Prefix=prefix)]
+
+
+def download_sam_file(root_dir, file_name, api=False):
     """ Downloads the requested DUNS file to root_dir
 
         Args:
             root_dir: the folder containing the DUNS file
             file_name: the name of the SAM file
+            api: whether to use the SAM CSV API or not
 
         Raises:
             FileNotFoundError if the SAM HTTP API doesnt have the file requested
     """
     logger.info('Pulling {}'.format(file_name))
-    url_with_params = '{}&fileName={}'.format(API_URL, file_name)
-    r = requests.get(url_with_params)
-    if r.status_code == 200:
-        duns_file = os.path.join(root_dir, file_name)
-        open(duns_file, 'wb').write(r.content)
-    elif r.status_code == 400:
-        raise FileNotFoundError('File not found on SAM HTTP API.')
+    if api:
+        url_with_params = '{}&fileName={}'.format(API_URL, file_name)
+        r = requests.get(url_with_params)
+        if r.status_code == 200:
+            duns_file = os.path.join(root_dir, file_name)
+            open(duns_file, 'wb').write(r.content)
+        elif r.status_code == 400:
+            raise FileNotFoundError('File not found on SAM HTTP API.')
+    else:
+        s3_client = boto3.client('s3', region_name='us-gov-west-1')
+        data_type = file_name.split('_')[1]
+        version = 'v2' if 'V2' in file_name else 'v1'
+        key = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
+        s3_client.download_file(S3_ARCHIVE, key, os.path.join(root_dir, file_name))
 
 
-def process_sam_file(data_type, file_name, sess, local=None, monthly=False, metrics=None):
+def process_sam_file(data_type, period, version, date, sess, local=None, api=False, metrics=None):
     """ Process the SAM file found locally or remotely
 
         Args:
             data_type: data type to load (DUNS or executive compensation)
-            file_name: the name of the SAM file
+            period: monthly or daily
+            version: v1 or v2
             sess: the database connection
             local: path to local directory to process, if None, it will go though the remote SAM service
-            monthly: whether it's a monthly file
+            api: whether to use the SAM CSV API or not
             metrics: dictionary representing metrics data for the load
 
         Raises:
@@ -126,22 +215,23 @@ def process_sam_file(data_type, file_name, sess, local=None, monthly=False, metr
         metrics = {}
 
     root_dir = local if local else tempfile.gettempdir()
+    file_name_format = SAM_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period, version=VERSIONS[version])
+    file_name = date.strftime(file_name_format)
     if not local:
         try:
-            download_sam_file(root_dir, file_name)
+            download_sam_file(root_dir, file_name, api=api)
         except FileNotFoundError as e:
             raise e
 
     file_path = os.path.join(root_dir, file_name)
-
-    if data_type == 'duns':
-        add_update_data, delete_data = parse_duns_file(file_path, monthly=monthly, metrics=metrics)
+    if data_type == 'DUNS':
+        add_update_data, delete_data = parse_duns_file(file_path, metrics=metrics)
         if add_update_data is not None:
             update_duns(sess, add_update_data, metrics=metrics)
         if delete_data is not None:
             update_duns(sess, delete_data, metrics=metrics, deletes=True)
     else:
-        exec_comp_data = parse_exec_comp_file(file_path, monthly=monthly, metrics=metrics)
+        exec_comp_data = parse_exec_comp_file(file_path, metrics=metrics)
         update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
     if not local:
         os.remove(file_path)
@@ -199,9 +289,9 @@ if __name__ == '__main__':
     with create_app().app_context():
         sess = GlobalDB.db().session
         if data_type in ('duns', 'both'):
-            load_from_sam('duns', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            load_from_sam('DUNS', sess, historic, local, metrics=metrics, reload_date=reload_date)
         if data_type in ('exec_comp', 'both'):
-            load_from_sam('exec_comp', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            load_from_sam('Executive Compensation', sess, historic, local, metrics=metrics, reload_date=reload_date)
         sess.close()
 
     metrics['records_added'] = len(set(metrics['added_duns']))

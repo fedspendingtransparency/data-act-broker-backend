@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 import zipfile
 import datetime
 from collections import OrderedDict
@@ -55,12 +54,11 @@ def clean_sam_data(data):
     return data
 
 
-def parse_duns_file(file_path, monthly=False, metrics=None):
+def parse_duns_file(file_path, metrics=None):
     """ Takes in a DUNS file and adds the DUNS data to the database
 
         Args:
             file_path: the path to the SAM file
-            monthly: whether it's a monthly file
             metrics: dictionary representing metrics data for the load
     """
     if not metrics:
@@ -75,12 +73,39 @@ def parse_duns_file(file_path, monthly=False, metrics=None):
 
     logger.info("Starting file " + str(file_path))
 
-    dat_file_name = os.path.splitext(os.path.basename(file_path))[0] + '.dat'
-    sam_file_type = "MONTHLY" if monthly else "DAILY"
-    dat_file_date = re.findall(".*{}_V2_(.*).dat".format(sam_file_type), dat_file_name)[0]
+    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    dat_file_name = file_name + '.dat'
+    file_name_props = file_name.split('_')
+    dat_file_date = file_name_props[-1]
+    version = 'v2' if 'V2' in file_name else 'v1'
+    period = file_name_props[3]
+
     zfile = zipfile.ZipFile(file_path)
 
-    column_header_mapping = {
+    v1_column_header_mapping = {
+        "awardee_or_recipient_uniqu": 0,
+        "sam_extract_code": 4,
+        "registration_date": 6,
+        "expiration_date": 7,
+        "last_sam_mod_date": 8,
+        "activation_date": 9,
+        "legal_business_name": 10,
+        "dba_name": 11,
+        "address_line_1": 14,
+        "address_line_2": 15,
+        "city": 16,
+        "state": 17,
+        "zip": 18,
+        "zip4": 19,
+        "country_code": 20,
+        "congressional_district": 21,
+        "entity_structure": 29,
+        "business_types_raw": 33,
+        "ultimate_parent_legal_enti": 199,
+        "ultimate_parent_uei": 200,
+        "ultimate_parent_unique_ide": 201
+    }
+    v2_column_header_mapping = {
         "uei": 0,
         "awardee_or_recipient_uniqu": 1,
         "sam_extract_code": 5,
@@ -104,6 +129,7 @@ def parse_duns_file(file_path, monthly=False, metrics=None):
         "ultimate_parent_uei": 200,
         "ultimate_parent_unique_ide": 201
     }
+    column_header_mapping = v1_column_header_mapping if version == 'v1' else v2_column_header_mapping
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
 
     nrows = 0
@@ -119,6 +145,9 @@ def parse_duns_file(file_path, monthly=False, metrics=None):
 
     total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull()]
     rows_processed = len(total_data.index)
+
+    if version == 'v1':
+        total_data = total_data.assign(uei=np.nan, ultimate_parent_unique_id=np.nan)
 
     # trimming all columns before cleaning to ensure the sam_extract is working as intended
     total_data = total_data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
@@ -139,7 +168,7 @@ def parse_duns_file(file_path, monthly=False, metrics=None):
     # order by sam to exclude deletes befores adds/updates when dropping duplicates
     relevant_data.sort_values(by=['sam_extract_code'], inplace=True)
     # drop DUNS duplicates, taking only the last one for dailies, first one for monthlies
-    keep = 'first' if monthly else 'last'
+    keep = 'first' if period == 'MONTHLY' else 'last'
     relevant_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep=keep, inplace=True)
 
     delete_data = relevant_data[relevant_data['sam_extract_code'] == '1']
@@ -334,13 +363,12 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
     metrics['updated_duns'].extend(updated_duns_list)
 
 
-def parse_exec_comp_file(file_path, monthly=False, metrics=None):
+def parse_exec_comp_file(file_path, metrics=None):
     """ Parses the executive compensation file to update corresponding DUNS records
 
         Args:
             file_path: the path to the SAM file
             metrics: dictionary representing metrics of the script
-            monthly: whether it's a monthly file
 
         Raises:
             Exception: couldn't extract the last exec comp modification date, this generally means the filename provided
@@ -354,11 +382,15 @@ def parse_exec_comp_file(file_path, monthly=False, metrics=None):
         }
     logger.info('Starting file ' + file_path)
 
-    dat_file_name = os.path.splitext(os.path.basename(file_path))[0] + '.dat'
-    sam_file_type = "MONTHLY" if monthly else "DAILY"
-    dat_file_date = re.findall(".*{}_V2_(.*).dat".format(sam_file_type), dat_file_name)[0]
+    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    dat_file_name = file_name + '.dat'
+    file_name_props = file_name.split('_')
+    dat_file_date = file_name_props[-1]
+    period = file_name_props[3]
+
     zfile = zipfile.ZipFile(file_path)
 
+    # It's the same column mapping between the versions
     column_header_mapping = {
         'awardee_or_recipient_uniqu': 0,
         'sam_extract': 4,
@@ -382,7 +414,7 @@ def parse_exec_comp_file(file_path, monthly=False, metrics=None):
     del total_data['sam_extract']
 
     # drop DUNS duplicates, taking only the last one
-    keep = 'first' if monthly else 'last'
+    keep = 'first' if period == 'MONTHLY' else 'last'
     total_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep=keep, inplace=True)
 
     # Note: we're splitting these up cause it vastly saves memory parsing only the records that are populated
