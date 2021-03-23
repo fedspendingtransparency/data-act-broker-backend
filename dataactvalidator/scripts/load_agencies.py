@@ -147,12 +147,12 @@ def update_frecs(models, new_data, cgac_dict):
             continue
         row['cgac_id'] = cgac_dict[row['cgac_code']]
         frec_code = row['frec_code']
-        agency_abbreviation = row['agency_abbreviation']
+        frec_abbreviation = row['frec_abbreviation']
         if frec_code not in models:
             models[frec_code] = FREC()
         for field, value in row.items():
-            if field == 'agency_name' and agency_abbreviation:
-                value = ('%s (%s)' % (value, agency_abbreviation))
+            if field == 'agency_name' and frec_abbreviation:
+                value = ('%s (%s)' % (value, frec_abbreviation))
             setattr(models[frec_code], field, value)
 
 
@@ -174,7 +174,7 @@ def load_frec(file_name, force_reload=False):
         data,
         FREC,
         {'frec': 'frec_code', 'cgac_agency_code': 'cgac_code', 'frec_entity_description': 'agency_name',
-         'agency_abbreviation': 'agency_abbreviation', 'frec_cgac_association': 'frec_cgac',
+         'frec_abbreviation': 'frec_abbreviation', 'frec_cgac_association': 'frec_cgac',
          'icon_filename': 'icon_name'},
         {'frec': {'keep_null': False}, 'cgac_code': {'pad_to_length': 3}, 'frec_code': {'pad_to_length': 4}}
     )
@@ -193,7 +193,7 @@ def load_frec(file_name, force_reload=False):
         return cgac_dict_flipped[row['cgac_id']] if row['cgac_id'] in cgac_dict_flipped else np.nan
 
     diff_found = check_dataframe_diff(data, FREC, ['frec_id', 'cgac_id'], ['frec_code'],
-                                      lambda_funcs=[('agency_abbreviation', extract_abbreviation),
+                                      lambda_funcs=[('frec_abbreviation', extract_abbreviation),
                                                     ('agency_name', extract_name),
                                                     ('cgac_code', extract_cgac)])
     if force_reload or diff_found:

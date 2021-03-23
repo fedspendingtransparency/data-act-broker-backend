@@ -19,7 +19,8 @@ from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, Certif
                                           PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField)
+                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField, TotalObligations,
+                                              CertifiedTotalObligations)
 from dataactcore.utils.responseException import ResponseException
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
@@ -518,7 +519,9 @@ def test_publish_and_certify_dabs_submission(database, monkeypatch):
 
         flex_field = FlexField(file_type_id=FILE_TYPE_DICT['appropriations'], header='flex_test', job_id=job_1.job_id,
                                submission_id=submission.submission_id, row_number=2, cell=None)
-        sess.add(flex_field)
+        total_obligations = TotalObligations(submission_id=submission.submission_id, total_obligations=1,
+                                             total_proc_obligations=1, total_asst_obligations=1)
+        sess.add_all([flex_field, total_obligations])
         sess.commit()
 
         g.user = user
@@ -544,6 +547,11 @@ def test_publish_and_certify_dabs_submission(database, monkeypatch):
         # Make sure certified flex fields are created
         certified_flex = sess.query(CertifiedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()
         assert certified_flex is not None
+
+        # Make sure certified total obligations are created
+        certified_obligations = sess.query(CertifiedTotalObligations).\
+            filter_by(submission_id=submission.submission_id).one_or_none()
+        assert certified_obligations is not None
 
 
 @pytest.mark.usefixtures('job_constants')
