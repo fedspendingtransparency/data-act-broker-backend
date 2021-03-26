@@ -143,11 +143,11 @@ def extract_dates_from_list(sam_files, data_type, period, version):
             version: v1 or v2
 
         Returns:
-            list of dates corresponding to the files
+            sorted list of dates corresponding to the files
     """
     sam_filename_format = SAM_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period,
                                                  version=VERSIONS[version])
-    return [datetime.datetime.strptime(sam_file, sam_filename_format).date() for sam_file in sam_files]
+    return sorted([datetime.datetime.strptime(sam_file, sam_filename_format).date() for sam_file in sam_files])
 
 
 def list_s3_archive_files(data_type, period, version):
