@@ -99,11 +99,10 @@ def parse_duns_file(file_path, metrics=None):
         "zip4": 19,
         "country_code": 20,
         "congressional_district": 21,
-        "entity_structure": 29,
-        "business_types_raw": 33,
-        "ultimate_parent_legal_enti": 199,
-        "ultimate_parent_uei": 200,
-        "ultimate_parent_unique_ide": 201
+        "entity_structure": 27,
+        "business_types_raw": 31,
+        "ultimate_parent_legal_enti": 186,
+        "ultimate_parent_unique_ide": 187
     }
     v2_column_header_mapping = {
         "uei": 0,
@@ -147,7 +146,7 @@ def parse_duns_file(file_path, metrics=None):
     rows_processed = len(total_data.index)
 
     if version == 'v1':
-        total_data = total_data.assign(uei=np.nan, ultimate_parent_unique_id=np.nan)
+        total_data = total_data.assign(uei=np.nan, ultimate_parent_uei=np.nan)
 
     # trimming all columns before cleaning to ensure the sam_extract is working as intended
     total_data = total_data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
@@ -285,6 +284,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
         last_sam_mod_date = tdu.last_sam_mod_date,
         legal_business_name = tdu.legal_business_name,
         dba_name = tdu.dba_name,
+        ultimate_parent_uei = tdu.ultimate_parent_uei,
         ultimate_parent_unique_ide = tdu.ultimate_parent_unique_ide,
         ultimate_parent_legal_enti = tdu.ultimate_parent_legal_enti,
         address_line_1 = tdu.address_line_1,
