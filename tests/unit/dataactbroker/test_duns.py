@@ -19,28 +19,28 @@ def test_load_duns(database):
     expected_results = {
         # Pulled active monthly record, slightly updated with deactivation date as sam_extract = 1
         '000000001': {
-            'uei': 'A1',
+            'uei': None,
             'awardee_or_recipient_uniqu': '000000001',
             'registration_date': '1999-01-01',
             'activation_date': '1999-01-02',
             'expiration_date': '1999-01-25',
             'last_sam_mod_date': '1999-01-15',
             'deactivation_date': deactivation_date,
-            'legal_business_name': 'LEGAL BUSINESS NAME A1',
-            'address_line_1': 'ADDRESS LINE 1 A1',
-            'address_line_2': 'ADDRESS LINE 2 A1',
-            'city': 'CITY A1',
-            'state': 'ST A1',
-            'zip': 'ZIP A1',
-            'zip4': 'ZIP4 A1',
-            'country_code': 'COUNTRY A1',
-            'congressional_district': 'CONGRESSIONAL DISTRICT A1',
+            'legal_business_name': 'LEGAL BUSINESS NAME 000000001 V1 MONTHLY',
+            'address_line_1': 'ADDRESS LINE 1 000000001 V1 MONTHLY',
+            'address_line_2': 'ADDRESS LINE 2 000000001 V1 MONTHLY',
+            'city': 'CITY 000000001 V1 MONTHLY',
+            'state': 'ST 000000001 V1 MONTHLY',
+            'zip': 'ZIP 000000001 V1 MONTHLY',
+            'zip4': 'ZIP4 000000001 V1 MONTHLY',
+            'country_code': 'COUNTRY 000000001 V1 MONTHLY',
+            'congressional_district': 'CONGRESSIONAL DISTRICT 000000001 V1 MONTHLY',
             'business_types_codes': ['2X', 'MF'],
             'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
-            'dba_name': 'DBA NAME A1',
-            'ultimate_parent_uei': 'D4',
+            'dba_name': 'DBA NAME 000000001 V1 MONTHLY',
+            'ultimate_parent_uei': None,
             'ultimate_parent_unique_ide': '000000004',
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME D4',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME 000000004 V1 MONTHLY',
             'historic': False
         },
         # Pulled active monthly record, updated as sam_extract = 2, don't pull in dup delete record
@@ -52,21 +52,21 @@ def test_load_duns(database):
             'expiration_date': '2000-02-25',
             'last_sam_mod_date': '2000-02-15',
             'deactivation_date': None,
-            'legal_business_name': 'LEGAL BUSINESS NAME B2',
-            'address_line_1': 'ADDRESS LINE 1 B2',
-            'address_line_2': 'ADDRESS LINE 2 B2',
-            'city': 'CITY B2',
-            'state': 'ST B2',
-            'zip': 'ZIP B2',
-            'zip4': 'ZIP4 B2',
-            'country_code': 'COUNTRY B2',
-            'congressional_district': 'CONGRESSIONAL DISTRICT B2',
+            'legal_business_name': 'LEGAL BUSINESS NAME B2 V2 DAILY',
+            'address_line_1': 'ADDRESS LINE 1 B2 V2 DAILY',
+            'address_line_2': 'ADDRESS LINE 2 B2 V2 DAILY',
+            'city': 'CITY B2 V2 DAILY',
+            'state': 'ST B2 V2 DAILY',
+            'zip': 'ZIP B2 V2 DAILY',
+            'zip4': 'ZIP4 B2 V2 DAILY',
+            'country_code': 'COUNTRY B2 V2 DAILY',
+            'congressional_district': 'CONGRESSIONAL DISTRICT B2 V2 DAILY',
             'business_types_codes': ['2X', 'MF'],
             'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
-            'dba_name': 'DBA NAME B2',
+            'dba_name': 'DBA NAME B2 V2 DAILY',
             'ultimate_parent_uei': 'E5',
             'ultimate_parent_unique_ide': '000000005',
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME E5',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME E5 V2 DAILY',
             'historic': False
         },
         # Pulled active monthly record, updated as sam_extract = 3
@@ -78,27 +78,80 @@ def test_load_duns(database):
             'expiration_date': '2000-03-25',
             'last_sam_mod_date': '2000-03-15',
             'deactivation_date': None,
-            'legal_business_name': 'LEGAL BUSINESS NAME C3',
-            'address_line_1': 'ADDRESS LINE 1 C3',
-            'address_line_2': 'ADDRESS LINE 2 C3',
-            'city': 'CITY C3',
-            'state': 'ST C3',
-            'zip': 'ZIP C3',
-            'zip4': 'ZIP4 C3',
-            'country_code': 'COUNTRY C3',
-            'congressional_district': 'CONGRESSIONAL DISTRICT C3',
+            'legal_business_name': 'LEGAL BUSINESS NAME C3 V2 DAILY',
+            'address_line_1': 'ADDRESS LINE 1 C3 V2 DAILY',
+            'address_line_2': 'ADDRESS LINE 2 C3 V2 DAILY',
+            'city': 'CITY C3 V2 DAILY',
+            'state': 'ST C3 V2 DAILY',
+            'zip': 'ZIP C3 V2 DAILY',
+            'zip4': 'ZIP4 C3 V2 DAILY',
+            'country_code': 'COUNTRY C3 V2 DAILY',
+            'congressional_district': 'CONGRESSIONAL DISTRICT C3 V2 DAILY',
             'business_types_codes': ['2X', 'MF'],
             'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
-            'dba_name': 'DBA NAME C3',
+            'dba_name': 'DBA NAME C3 V2 DAILY',
             'ultimate_parent_uei': 'F6',
             'ultimate_parent_unique_ide': '000000006',
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME F6',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME F6 V2 DAILY',
             'historic': False
-        }
+        },
+        # Pulled active daily V1 record, updated in daily V2 record
+        '000000004': {
+            'uei': 'D4',
+            'awardee_or_recipient_uniqu': '000000004',
+            'registration_date': '2000-03-01',
+            'activation_date': '2000-03-02',
+            'expiration_date': '2000-03-25',
+            'last_sam_mod_date': '2000-03-15',
+            'deactivation_date': None,
+            'legal_business_name': 'LEGAL BUSINESS NAME D4 V2 DAILY',
+            'address_line_1': 'ADDRESS LINE 1 D4 V2 DAILY',
+            'address_line_2': 'ADDRESS LINE 2 D4 V2 DAILY',
+            'city': 'CITY D4 V2 DAILY',
+            'state': 'ST D4 V2 DAILY',
+            'zip': 'ZIP D4 V2 DAILY',
+            'zip4': 'ZIP4 D4 V2 DAILY',
+            'country_code': 'COUNTRY D4 V2 DAILY',
+            'congressional_district': 'CONGRESSIONAL DISTRICT D4 V2 DAILY',
+            'business_types_codes': ['2X', 'MF'],
+            'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
+            'dba_name': 'DBA NAME D4 V2 DAILY',
+            'ultimate_parent_uei': 'G7',
+            'ultimate_parent_unique_ide': '000000007',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME G7 V2 DAILY',
+            'historic': False
+        },
+        # Pulled active daily V1 record, not updated in V2
+        '000000005': {
+            'uei': None,
+            'awardee_or_recipient_uniqu': '000000005',
+            'registration_date': '2000-02-01',
+            'activation_date': '2000-02-02',
+            'expiration_date': '2000-02-25',
+            'last_sam_mod_date': '2000-02-15',
+            'deactivation_date': None,
+            'legal_business_name': 'LEGAL BUSINESS NAME 000000005 V1 DAILY',
+            'address_line_1': 'ADDRESS LINE 1 000000005 V1 DAILY',
+            'address_line_2': 'ADDRESS LINE 2 000000005 V1 DAILY',
+            'city': 'CITY 000000005 V1 DAILY',
+            'state': 'ST 000000005 V1 DAILY',
+            'zip': 'ZIP 000000005 V1 DAILY',
+            'zip4': 'ZIP4 000000005 V1 DAILY',
+            'country_code': 'COUNTRY 000000005 V1 DAILY',
+            'congressional_district': 'CONGRESSIONAL DISTRICT 000000005 V1 DAILY',
+            'business_types_codes': ['2X', 'MF'],
+            'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
+            'dba_name': 'DBA NAME 000000005 V1 DAILY',
+            'ultimate_parent_uei': None,
+            'ultimate_parent_unique_ide': None,
+            'ultimate_parent_legal_enti': None,
+            'historic': False
+        },
+
     }
 
     # Ensure duplicates are covered
-    expected_duns_count = 3
+    expected_duns_count = 5
     duns_count = sess.query(DUNS).count()
     assert duns_count == expected_duns_count
 
@@ -129,6 +182,7 @@ def test_load_duns(database):
             'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
             'historic': duns_obj.historic
         }
+    print(results)
     assert results == expected_results
 
 
@@ -189,6 +243,34 @@ def test_load_exec_comp(database):
             'high_comp_officer5_full_na': 'Mark Test Updated 1',
             'high_comp_officer5_amount': '3248877',
             'last_exec_comp_mod_date': daily_last_exec_date
+        },
+        '000000004': {
+            'awardee_or_recipient_uniqu': '000000004',
+            'high_comp_officer1_full_na': None,
+            'high_comp_officer1_amount': None,
+            'high_comp_officer2_full_na': None,
+            'high_comp_officer2_amount': None,
+            'high_comp_officer3_full_na': None,
+            'high_comp_officer3_amount': None,
+            'high_comp_officer4_full_na': None,
+            'high_comp_officer4_amount': None,
+            'high_comp_officer5_full_na': None,
+            'high_comp_officer5_amount': None,
+            'last_exec_comp_mod_date': None
+        },
+        '000000005': {
+            'awardee_or_recipient_uniqu': '000000005',
+            'high_comp_officer1_full_na': None,
+            'high_comp_officer1_amount': None,
+            'high_comp_officer2_full_na': None,
+            'high_comp_officer2_amount': None,
+            'high_comp_officer3_full_na': None,
+            'high_comp_officer3_amount': None,
+            'high_comp_officer4_full_na': None,
+            'high_comp_officer4_amount': None,
+            'high_comp_officer5_full_na': None,
+            'high_comp_officer5_amount': None,
+            'last_exec_comp_mod_date': None
         }
     }
     results = {}
@@ -207,4 +289,5 @@ def test_load_exec_comp(database):
             'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount,
             'last_exec_comp_mod_date': duns_obj.last_exec_comp_mod_date
         }
+    print(results)
     assert results == expected_results
