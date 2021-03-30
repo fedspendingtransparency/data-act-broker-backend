@@ -117,25 +117,18 @@ broker:
             username: ''
             password: ''
 
-    # We import DUNS and FH records from SAM
     sam:
-        api_key: ''
-        wsdl: ''  # e.g. https://example.com/?wsdl'
-        username: ''
-        password: ''
+        api_key: example
 
-        # used in load_federal_hierarchy
+        # used in load_federal_hierarchy.py
         federal_hierarchy:
-            api_url: ''
+            api_url: https://api.sam.gov/prod/federalorganizations/v1/orgs?api_key={}
 
+        # used in load_duns_exec_comp and update_historical_duns
         duns:
-            # used in load_duns (api_url)
-            api_url: ''
-
-            # used in load_exec_comp (host_ssh)
-            host_ssh: ''
-            ssh_key_password: ''
-            use_proxy: true
+            csv_api_url: https://api.sam.gov/data-services/v1/extracts
+            csv_archive_bucket: example
+            duns_api_url: https://api-alpha.sam.gov/entity-information/v2/entities
 
 services:
     debug: true

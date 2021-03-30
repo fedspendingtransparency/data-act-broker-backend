@@ -5,7 +5,7 @@ import pandas as pd
 import argparse
 from datetime import datetime
 
-from dataactcore.utils.parentDuns import sam_config_is_valid
+from dataactcore.utils.duns import get_duns_props_from_sam
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactcore.models.domainModels import HistoricDUNS, DUNS
 from dataactvalidator.health_check import create_app
@@ -14,7 +14,6 @@ from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-import dataactcore.utils.parentDuns
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +27,7 @@ column_headers = [
     "legal_business_name"  # Legal_Business_Name
 ]
 props_columns = {
+    'uei': None,
     'address_line_1': None,
     'address_line_2': None,
     'city': None,
@@ -39,6 +39,7 @@ props_columns = {
     'business_types_codes': [],
     'business_types': [],
     'dba_name': None,
+    'ultimate_uei': None,
     'ultimate_parent_unique_ide': None,
     'ultimate_parent_legal_enti': None,
     'high_comp_officer1_full_na': None,
@@ -94,12 +95,11 @@ def batch(iterable, n=1):
         yield iterable[ndx:min(ndx + n, length)]
 
 
-def update_duns_props(df, client):
+def update_duns_props(df):
     """ Returns same dataframe with address data updated"
 
         Args:
             df: the dataframe containing the duns data
-            client: the connection to the SAM service
 
         Returns:
             a merged dataframe with the duns updated with location info from SAM
@@ -111,8 +111,8 @@ def update_duns_props(df, client):
     index = 0
     batch_size = 100
     for duns_list in batch(all_duns, batch_size):
-        logger.info("Gathering addtional data for historic DUNS records {}-{}".format(index, index + batch_size))
-        duns_props_batch = dataactcore.utils.parentDuns.get_duns_props_from_sam(client, duns_list)
+        logger.info("Gathering additional data for historic DUNS records {}-{}".format(index, index + batch_size))
+        duns_props_batch = get_duns_props_from_sam(duns_list)
         duns_props_batch.drop(column_headers[1:], axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
@@ -129,13 +129,12 @@ def update_duns_props(df, client):
     return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
 
 
-def run_duns_batches(file, sess, client, block_size=10000):
-    """ Updates DUNS table in chunks from csv file
+def run_duns_batches(file, sess, block_size=10000):
+    """ Updates Historic DUNS table in chunks from csv file
 
         Args:
             file: path to the DUNS export file to use
             sess: the database connection
-            client: the connection to the SAM service
             block_size: the size of the batches to read from the DUNS export file.
     """
     logger.info("Retrieving total rows from duns file")
@@ -158,7 +157,7 @@ def run_duns_batches(file, sess, client, block_size=10000):
             start = datetime.now()
 
             # get address info for incoming duns
-            duns_to_load = update_duns_props(duns_to_load, client)
+            duns_to_load = update_duns_props(duns_to_load)
             duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
             duns_added += len(duns_to_load.index)
 
@@ -274,13 +273,21 @@ def import_historic_duns(sess):
     sess.commit()
     logger.info('Copied historic duns values to DUNS table')
 
+def get_parser():
+    """ Generates list of command-line arguments
 
-def main():
-    """ Loads DUNS from the DUNS export file (comprised of DUNS pre-2014) """
+        Returns:
+            argument parser to be used for commandline
+    """
     parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
     parser.add_argument('--block_size', '-s', help='Number of rows to batch load', type=int, default=10000)
     parser.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
                                                                          ' update from SAM')
+    return parser
+
+def main():
+    """ Loads DUNS from the DUNS export file (comprised of DUNS pre-2014) """
+    parser = get_parser()
     args = parser.parse_args()
     reload_file = args.reload_file
     block_size = args.block_size
@@ -288,8 +295,6 @@ def main():
     sess = GlobalDB.db().session
 
     if reload_file:
-        client = sam_config_is_valid()
-
         logger.info('Retrieving historical DUNS file')
         start = datetime.now()
         if CONFIG_BROKER["use_aws"]:
@@ -306,7 +311,7 @@ def main():
         logger.info("Retrieved historical DUNS file in {} s".format((datetime.now() - start).total_seconds()))
 
         try:
-            run_duns_batches(duns_file, sess, client, block_size)
+            run_duns_batches(duns_file, sess, block_size)
         except Exception as e:
             logger.exception(e)
             sess.rollback()
@@ -322,9 +327,6 @@ def main():
 
 
 if __name__ == '__main__':
-
+    configure_logging()
     with create_app().app_context():
-        configure_logging()
-
-        with create_app().app_context():
-            main()
+        main()

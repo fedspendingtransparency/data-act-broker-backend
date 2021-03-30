@@ -7,13 +7,14 @@ import json
 import tempfile
 import requests
 import boto3
+from urllib.parse import urlencode
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
-from dataactcore.utils.parentDuns import update_missing_parent_names
-from dataactcore.utils.duns import parse_duns_file, update_duns, parse_exec_comp_file, update_exec_comp_duns
+from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_exec_comp_duns,
+                                    update_missing_parent_names)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,6 @@ VERSIONS = {
 }
 S3_ARCHIVE = CONFIG_BROKER['sam']['duns']['csv_archive_bucket']
 S3_ARCHIVE_PATH = '{data_type}/{version}/{file_name}'
-API_URL = CONFIG_BROKER['sam']['duns']['api_url'].format(CONFIG_BROKER['sam']['api_key'])
 
 
 def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_date=None):
@@ -64,8 +64,8 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
                                              daily_file.upper())])
     else:
         # TODO: the SAM API currently doesn't list available files and doesnt include historic ones,
-        #       so we're pulling files from the CSV_ARCHIVE_BUCKET bucket up until API_START and then use the API.
-        #       Rework this if SAM includes these historic files in the API.
+        #       so we're pulling files from the CSV_ARCHIVE_BUCKET bucket up and then use the API.
+        #       Rework this if SAM includes these historic files in the API and list what files are available
         monthly_v1_files = list_s3_archive_files(data_type, 'MONTHLY', 'v1')
         monthly_v2_files = list_s3_archive_files(data_type, 'MONTHLY', 'v2')
         daily_v1_files = list_s3_archive_files(data_type, 'DAILY', 'v1')
@@ -181,8 +181,11 @@ def download_sam_file(root_dir, file_name, api=False):
     """
     logger.info('Pulling {}'.format(file_name))
     if api:
-        url_with_params = '{}&fileName={}'.format(API_URL, file_name)
-        r = requests.get(url_with_params)
+        params = urlencode({
+            'api_key': CONFIG_BROKER['sam']['api_key'],
+            'fileName': file_name
+        })
+        r = requests.get(CONFIG_BROKER['sam']['duns']['csv_api_url'], params=params)
         if r.status_code == 200:
             duns_file = os.path.join(root_dir, file_name)
             open(duns_file, 'wb').write(r.content)
