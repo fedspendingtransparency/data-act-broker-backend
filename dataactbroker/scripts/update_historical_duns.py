@@ -273,6 +273,7 @@ def import_historic_duns(sess):
     sess.commit()
     logger.info('Copied historic duns values to DUNS table')
 
+
 def get_parser():
     """ Generates list of command-line arguments
 
@@ -284,6 +285,7 @@ def get_parser():
     parser.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
                                                                          ' update from SAM')
     return parser
+
 
 def main():
     """ Loads DUNS from the DUNS export file (comprised of DUNS pre-2014) """

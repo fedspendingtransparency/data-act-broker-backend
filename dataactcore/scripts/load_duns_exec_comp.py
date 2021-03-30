@@ -109,7 +109,6 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
     daily_v2_dates = list(filter(lambda daily_date: daily_date >= load_date, daily_v2_dates))
     daily_v2_api_dates = list(filter(lambda daily_date: daily_date >= load_date, daily_v2_api_dates))
 
-
     if historic:
         # load in the earliest monthly file and all daily files after
         version = 'v1' if earliest_date in monthly_v1_dates else 'v2'

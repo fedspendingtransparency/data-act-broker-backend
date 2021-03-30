@@ -678,6 +678,7 @@ def request_duns_api(duns_list):
     elif r.status_code == 400:
         raise ConnectionError('The SAM DUNS URL was rejected: {}'.format(CONFIG_BROKER['sam']['duns']['duns_api_url']))
 
+
 def get_duns_props_from_sam(duns_list):
     """ Calls SAM API to retrieve DUNS data by DUNS number. Returns DUNS info as Data Frame
 
