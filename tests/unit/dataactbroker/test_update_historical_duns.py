@@ -36,7 +36,7 @@ def test_batch():
     assert iteration == 10
 
 
-def mock_get_duns_props_from_sam(client, duns_list):
+def mock_get_duns_props_from_sam(duns_list):
     """ Mock function for get_duns_props as we can't connect to the SAM service """
     columns = ['awardee_or_recipient_uniqu'] + list(update_historical_duns.props_columns.keys())
     results = pd.DataFrame(columns=columns)
@@ -44,9 +44,11 @@ def mock_get_duns_props_from_sam(client, duns_list):
     duns_mappings = {
         '000000001': {
             'awardee_or_recipient_uniqu': ['000000001'],
+            'uei': 'A1',
             'legal_business_name': ['Legal Name 1'],
             'dba_name': ['Name 1'],
             'ultimate_parent_unique_ide': ['999999999'],
+            'ultimate_parent_uei': 'Z9',
             'ultimate_parent_legal_enti': ['Parent Legal Name 1'],
             'address_line_1': ['Test address 1'],
             'address_line_2': ['Test address 2'],
@@ -71,9 +73,11 @@ def mock_get_duns_props_from_sam(client, duns_list):
         },
         '000000002': {
             'awardee_or_recipient_uniqu': ['000000002'],
+            'uei': 'B2',
             'legal_business_name': ['Legal Name 2'],
             'dba_name': ['Name 2'],
             'ultimate_parent_unique_ide': ['999999998'],
+            'ultimate_parent_uei': 'Y8',
             'ultimate_parent_legal_enti': ['Parent Legal Name 2'],
             'address_line_1': ['Other Test address 1'],
             'address_line_2': ['Other Test address 2'],
@@ -105,14 +109,14 @@ def mock_get_duns_props_from_sam(client, duns_list):
 
 def test_update_duns_props(monkeypatch):
     """ Testing updating the duns props with both populated/blank data """
-    monkeypatch.setattr('dataactcore.utils.parentDuns.get_duns_props_from_sam',
-                        mock_get_duns_props_from_sam)
+    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
     duns_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000001', '000000002', '000000003']
     })
 
     expected_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000001', '000000002', '000000003'],
+        'uei': ['A1', 'B2', None],
         'address_line_1': ['Test address 1', 'Other Test address 1', None],
         'address_line_2': ['Test address 2', 'Other Test address 2', None],
         'city': ['Test city', 'Other Test city', None],
@@ -125,6 +129,7 @@ def test_update_duns_props(monkeypatch):
         'business_types': [['Name A', 'Name B', 'Name C'], ['Name D', 'Name E', 'Name F'], []],
         'dba_name': ['Name 1', 'Name 2', None],
         'ultimate_parent_unique_ide': ['999999999', '999999998', None],
+        'ultimate_parent_uei': ['Z9', 'Y8', None],
         'ultimate_parent_legal_enti': ['Parent Legal Name 1', 'Parent Legal Name 2', None],
         'high_comp_officer1_full_na': ['Test Exec 1', 'Test Other Exec 6', None],
         'high_comp_officer1_amount': ['1', '6', None],
@@ -138,20 +143,20 @@ def test_update_duns_props(monkeypatch):
         'high_comp_officer5_amount': ['5', '10', None]
     })
 
-    assert expected_df.sort_index(inplace=True) == update_historical_duns.update_duns_props(duns_df, None)\
+    assert expected_df.sort_index(inplace=True) == update_historical_duns.update_duns_props(duns_df)\
         .sort_index(inplace=True)
 
 
 def test_update_duns_props_empty(monkeypatch):
     """ Special case where no data is returned """
-    monkeypatch.setattr('dataactcore.utils.parentDuns.get_duns_props_from_sam',
-                        mock_get_duns_props_from_sam)
+    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
     duns_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000003']
     })
 
     expected_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000003'],
+        'uei': [None],
         'address_line_1': [None],
         'address_line_2': [None],
         'city': [None],
@@ -164,6 +169,7 @@ def test_update_duns_props_empty(monkeypatch):
         'business_types': [[]],
         'dba_name': [None],
         'ultimate_parent_unique_ide': [None],
+        'ultimate_parent_uei': [None],
         'ultimate_parent_legal_enti': [None],
         'high_comp_officer1_full_na': [None],
         'high_comp_officer1_amount': [None],
@@ -177,13 +183,12 @@ def test_update_duns_props_empty(monkeypatch):
         'high_comp_officer5_amount': [None]
     })
 
-    assert expected_df.to_dict() == update_historical_duns.update_duns_props(duns_df, None).to_dict()
+    assert expected_df.to_dict() == update_historical_duns.update_duns_props(duns_df).to_dict()
 
 
 def test_run_duns_batches(database, monkeypatch):
     """ Test run_duns_batches for the core functionality """
-    monkeypatch.setattr('dataactcore.utils.parentDuns.get_duns_props_from_sam',
-                        mock_get_duns_props_from_sam)
+    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
@@ -193,11 +198,12 @@ def test_run_duns_batches(database, monkeypatch):
 
     duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
-    update_historical_duns.run_duns_batches(duns_file, sess, None, block_size=1)
+    update_historical_duns.run_duns_batches(duns_file, sess, block_size=1)
 
     expected_results = {
         '000000001': {
             'awardee_or_recipient_uniqu': '000000001',
+            'uei': 'A1',
             'registration_date': '2004-04-01',
             'expiration_date': '2013-01-11',
             'last_sam_mod_date': '2013-01-11',
@@ -215,6 +221,7 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types': ['Name A', 'Name B', 'Name C'],
             'dba_name': 'Name 1',
             'ultimate_parent_unique_ide': '999999999',
+            'ultimate_parent_uei': 'Z9',
             'ultimate_parent_legal_enti': 'Parent Legal Name 1',
             'high_comp_officer1_full_na': 'Test Exec 1',
             'high_comp_officer1_amount': '1',
@@ -229,6 +236,7 @@ def test_run_duns_batches(database, monkeypatch):
         },
         '000000002': {
             'awardee_or_recipient_uniqu': '000000002',
+            'uei': 'B2',
             'registration_date': '2004-04-02',
             'expiration_date': '2013-01-12',
             'last_sam_mod_date': '2013-01-12',
@@ -246,6 +254,7 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types': ['Name D', 'Name E', 'Name F'],
             'dba_name': 'Name 2',
             'ultimate_parent_unique_ide': '999999998',
+            'ultimate_parent_uei': 'Y8',
             'ultimate_parent_legal_enti': 'Parent Legal Name 2',
             'high_comp_officer1_full_na': 'Test Other Exec 6',
             'high_comp_officer1_amount': '6',
@@ -263,6 +272,7 @@ def test_run_duns_batches(database, monkeypatch):
     for duns_obj in sess.query(HistoricDUNS).all():
         results[duns_obj.awardee_or_recipient_uniqu] = {
             'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
+            'uei': duns_obj.uei,
             'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
             'expiration_date': str(duns_obj.expiration_date) if duns_obj.expiration_date else None,
             'last_sam_mod_date': str(duns_obj.last_sam_mod_date) if duns_obj.last_sam_mod_date else None,
@@ -280,6 +290,7 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types': duns_obj.business_types,
             'dba_name': duns_obj.dba_name,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
+            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
             'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
             'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
             'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
@@ -297,8 +308,7 @@ def test_run_duns_batches(database, monkeypatch):
 
 def test_workflows(database, monkeypatch):
     """ Test both scenarios of the script, starting with a full run """
-    monkeypatch.setattr('dataactcore.utils.parentDuns.get_duns_props_from_sam',
-                        mock_get_duns_props_from_sam)
+    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
@@ -308,12 +318,13 @@ def test_workflows(database, monkeypatch):
 
     duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
-    update_historical_duns.run_duns_batches(duns_file, sess, None, block_size=1)
+    update_historical_duns.run_duns_batches(duns_file, sess, block_size=1)
     update_historical_duns.import_historic_duns(sess)
 
     expected_results = {
         '000000001': {
             'awardee_or_recipient_uniqu': '000000001',
+            'uei': 'A1',
             'registration_date': '2004-04-01',
             'expiration_date': '2013-01-11',
             'last_sam_mod_date': '2013-01-11',
@@ -331,6 +342,7 @@ def test_workflows(database, monkeypatch):
             'business_types': ['Name A', 'Name B', 'Name C'],
             'dba_name': 'Name 1',
             'ultimate_parent_unique_ide': '999999999',
+            'ultimate_parent_uei': 'Z9',
             'ultimate_parent_legal_enti': 'Parent Legal Name 1',
             'high_comp_officer1_full_na': 'Test Exec 1',
             'high_comp_officer1_amount': '1',
@@ -345,6 +357,7 @@ def test_workflows(database, monkeypatch):
         },
         '000000002': {
             'awardee_or_recipient_uniqu': '000000002',
+            'uei': 'B2',
             'registration_date': '2004-04-02',
             'expiration_date': '2013-01-12',
             'last_sam_mod_date': '2013-01-12',
@@ -362,6 +375,7 @@ def test_workflows(database, monkeypatch):
             'business_types': ['Name D', 'Name E', 'Name F'],
             'dba_name': 'Name 2',
             'ultimate_parent_unique_ide': '999999998',
+            'ultimate_parent_uei': 'Y8',
             'ultimate_parent_legal_enti': 'Parent Legal Name 2',
             'high_comp_officer1_full_na': 'Test Other Exec 6',
             'high_comp_officer1_amount': '6',
@@ -376,6 +390,7 @@ def test_workflows(database, monkeypatch):
         },
         '000000003': {
             'awardee_or_recipient_uniqu': '000000003',
+            'uei': None,
             'registration_date': None,
             'expiration_date': None,
             'last_sam_mod_date': None,
@@ -393,6 +408,7 @@ def test_workflows(database, monkeypatch):
             'business_types': None,
             'dba_name': None,
             'ultimate_parent_unique_ide': None,
+            'ultimate_parent_uei': None,
             'ultimate_parent_legal_enti': None,
             'high_comp_officer1_full_na': None,
             'high_comp_officer1_amount': None,
@@ -407,6 +423,7 @@ def test_workflows(database, monkeypatch):
         },
         '000000004': {
             'awardee_or_recipient_uniqu': '000000004',
+            'uei': None,
             'registration_date': None,
             'expiration_date': None,
             'last_sam_mod_date': None,
@@ -424,6 +441,7 @@ def test_workflows(database, monkeypatch):
             'business_types': None,
             'dba_name': None,
             'ultimate_parent_unique_ide': None,
+            'ultimate_parent_uei': None,
             'ultimate_parent_legal_enti': None,
             'high_comp_officer1_full_na': None,
             'high_comp_officer1_amount': None,
@@ -441,6 +459,7 @@ def test_workflows(database, monkeypatch):
     for duns_obj in sess.query(DUNS).all():
         results[duns_obj.awardee_or_recipient_uniqu] = {
             'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
+            'uei': duns_obj.uei,
             'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
             'expiration_date': str(duns_obj.expiration_date) if duns_obj.expiration_date else None,
             'last_sam_mod_date': str(duns_obj.last_sam_mod_date) if duns_obj.last_sam_mod_date else None,
@@ -458,6 +477,7 @@ def test_workflows(database, monkeypatch):
             'business_types': duns_obj.business_types,
             'dba_name': duns_obj.dba_name,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
+            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
             'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
             'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
             'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
@@ -486,6 +506,7 @@ def test_workflows(database, monkeypatch):
     for duns_obj in sess.query(DUNS).all():
         results[duns_obj.awardee_or_recipient_uniqu] = {
             'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
+            'uei': duns_obj.uei,
             'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
             'expiration_date': str(duns_obj.expiration_date) if duns_obj.expiration_date else None,
             'last_sam_mod_date': str(duns_obj.last_sam_mod_date) if duns_obj.last_sam_mod_date else None,
@@ -503,6 +524,7 @@ def test_workflows(database, monkeypatch):
             'business_types': duns_obj.business_types,
             'dba_name': duns_obj.dba_name,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
+            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
             'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
             'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
             'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
@@ -523,8 +545,7 @@ def test_clean_historic_duns(database, monkeypatch):
         Test to make sure if a new DUNS is loaded and we reload historic DUNS (skipping the major load),
         we should remove the historic equivalents.
     """
-    monkeypatch.setattr('dataactcore.utils.parentDuns.get_duns_props_from_sam',
-                        mock_get_duns_props_from_sam)
+    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
@@ -535,7 +556,7 @@ def test_clean_historic_duns(database, monkeypatch):
     duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
     # normal run
-    update_historical_duns.run_duns_batches(duns_file, sess, None, block_size=1)
+    update_historical_duns.run_duns_batches(duns_file, sess, block_size=1)
     update_historical_duns.import_historic_duns(sess)
 
     # update old DUNS as part of load_duns_exec_comp.py

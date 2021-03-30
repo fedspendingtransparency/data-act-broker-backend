@@ -5,7 +5,6 @@ import pandas as pd
 import argparse
 from datetime import datetime
 
-from dataactcore.utils.duns import get_duns_props_from_sam
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactcore.models.domainModels import HistoricDUNS, DUNS
 from dataactvalidator.health_check import create_app
@@ -14,6 +13,7 @@ from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
+import dataactcore.utils.duns
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ props_columns = {
     'business_types_codes': [],
     'business_types': [],
     'dba_name': None,
-    'ultimate_uei': None,
+    'ultimate_parent_uei': None,
     'ultimate_parent_unique_ide': None,
     'ultimate_parent_legal_enti': None,
     'high_comp_officer1_full_na': None,
@@ -112,7 +112,7 @@ def update_duns_props(df):
     batch_size = 100
     for duns_list in batch(all_duns, batch_size):
         logger.info("Gathering additional data for historic DUNS records {}-{}".format(index, index + batch_size))
-        duns_props_batch = get_duns_props_from_sam(duns_list)
+        duns_props_batch = dataactcore.utils.duns.get_duns_props_from_sam(duns_list)
         duns_props_batch.drop(column_headers[1:], axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
@@ -199,6 +199,7 @@ def import_historic_duns(sess):
             created_at,
             updated_at,
             awardee_or_recipient_uniqu,
+            uei,
             activation_date,
             expiration_date,
             registration_date,
@@ -206,6 +207,7 @@ def import_historic_duns(sess):
             legal_business_name,
             dba_name,
             ultimate_parent_unique_ide,
+            ultimate_parent_uei,
             ultimate_parent_legal_enti,
             address_line_1,
             address_line_2,
@@ -233,6 +235,7 @@ def import_historic_duns(sess):
             hd.created_at,
             hd.updated_at,
             hd.awardee_or_recipient_uniqu,
+            hd.uei,
             hd.activation_date,
             hd.expiration_date,
             hd.registration_date,
@@ -240,6 +243,7 @@ def import_historic_duns(sess):
             hd.legal_business_name,
             hd.dba_name,
             hd.ultimate_parent_unique_ide,
+            hd.ultimate_parent_uei,
             hd.ultimate_parent_legal_enti,
             hd.address_line_1,
             hd.address_line_2,
