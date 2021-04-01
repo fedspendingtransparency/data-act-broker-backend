@@ -221,11 +221,10 @@ def test_load_duns(database, monkeypatch):
             'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
             'dba_name': 'DBA NAME 000000005 V1 DAILY',
             'ultimate_parent_uei': None,
-            'ultimate_parent_unique_ide': None,
-            'ultimate_parent_legal_enti': None,
+            'ultimate_parent_unique_ide': '000000007',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME G7 V2 DAILY',  # via missing parent names
             'historic': False
-        },
-
+        }
     }
 
     # Ensure duplicates are covered
@@ -367,5 +366,4 @@ def test_load_exec_comp(database, monkeypatch):
             'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount,
             'last_exec_comp_mod_date': duns_obj.last_exec_comp_mod_date
         }
-    print(results)
     assert results == expected_results

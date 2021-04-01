@@ -139,7 +139,7 @@ def extract_dates_from_list(sam_files, data_type, period, version):
     """ Given a list of SAM files, extract the dates the files refer to
 
         Args:
-            sam: list of sam file names to extract dates from
+            sam_files: list of sam file names to extract dates from
             data_type: data type to load (DUNS or executive compensation)
             period: monthly or daily
             version: v1 or v2

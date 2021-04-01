@@ -49,6 +49,9 @@ def parse_duns_file(file_path, metrics=None):
         Args:
             file_path: the path to the SAM file
             metrics: dictionary representing metrics data for the load
+
+        Returns:
+            dataframe representing the contents in the file
     """
     if not metrics:
         metrics = {
@@ -330,6 +333,9 @@ def parse_exec_comp_file(file_path, metrics=None):
         Raises:
             Exception: couldn't extract the last exec comp modification date, this generally means the filename provided
                 doesn't match the expected format.
+
+        Returns:
+            dataframe representing the contents in the file
     """
     if not metrics:
         metrics = {
@@ -594,7 +600,6 @@ def get_duns_props_from_sam(duns_list):
                 value = [busi_type['businessTypeCode'] for busi_type in nested_obj.get('businessTypeList', [])]
                 duns_props_dict['business_types'] = [DUNS_BUSINESS_TYPE_DICT[type] for type in value
                                                      if type in DUNS_BUSINESS_TYPE_DICT]
-                print(duns_props_dict)
             if duns_props_name == 'executive_comp_data':
                 for index in range(1, 6):
                     duns_props_dict['high_comp_officer{}_full_na'.format(index)] = None
