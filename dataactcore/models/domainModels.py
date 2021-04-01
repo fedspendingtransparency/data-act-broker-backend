@@ -360,6 +360,7 @@ class HistoricDUNS(Base):
     uei = Column(Text)
     legal_business_name = Column(Text)
     dba_name = Column(Text)
+    entity_structure = Column(Text)
     activation_date = Column(Date)
     registration_date = Column(Date)
     expiration_date = Column(Date)
