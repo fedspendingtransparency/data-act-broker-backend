@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
+from dataactbroker.helpers.generic_helper import batch
 from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
 from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
 from dataactcore.models.jobModels import Submission # noqa
@@ -20,7 +21,11 @@ from dataactcore.models.userModel import User # noqa
 
 logger = logging.getLogger(__name__)
 
-BUSINESS_TYPES_SEPARATOR = '~'
+DUNS_COLUMNS = [col.key for col in DUNS.__table__.columns]
+EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date', 'activation_date',
+                    'legal_business_name', 'historic', 'created_at', 'updated_at', 'duns_id', 'deactivation_date',
+                    'last_exec_comp_mod_date']
+LOAD_BATCH_SIZE = 10000
 
 
 def clean_sam_data(data):
@@ -33,31 +38,8 @@ def clean_sam_data(data):
             a cleaned/updated dataframe to be imported
     """
     if not data.empty:
-        return clean_data(data, DUNS, {
-            "uei": "uei",
-            "awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
-            "activation_date": "activation_date",
-            "deactivation_date": "deactivation_date",
-            "registration_date": "registration_date",
-            "expiration_date": "expiration_date",
-            "last_sam_mod_date": "last_sam_mod_date",
-            "legal_business_name": "legal_business_name",
-            "dba_name": "dba_name",
-            "address_line_1": "address_line_1",
-            "address_line_2": "address_line_2",
-            "city": "city",
-            "state": "state",
-            "zip": "zip",
-            "zip4": "zip4",
-            "country_code": "country_code",
-            "congressional_district": "congressional_district",
-            "entity_structure": "entity_structure",
-            "business_types_codes": "business_types_codes",
-            "business_types": "business_types",
-            "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
-            "ultimate_parent_unique_ide": "ultimate_parent_unique_ide",
-            "ultimate_parent_uei": "ultimate_parent_uei"
-        }, {})
+        column_mappings = {col: col for col in data.columns}
+        return clean_data(data, DUNS, column_mappings, {})
     return data
 
 
@@ -184,7 +166,8 @@ def parse_duns_file(file_path, metrics=None):
     update_data = relevant_data[relevant_data['sam_extract_code'] == '3']
     updates_received = len(update_data.index)
     add_update_data = relevant_data[relevant_data['sam_extract_code'].isin(['A', 'E', '2', '3'])]
-    del relevant_data["sam_extract_code"]
+    del add_update_data["sam_extract_code"]
+    del delete_data["sam_extract_code"]
 
     # cleaning and replacing NaN/NaT with None's
     add_update_data = clean_sam_data(add_update_data)
@@ -209,35 +192,47 @@ def create_temp_duns_table(sess, table_name, data):
             data: pandas dataframe representing duns data
     """
     logger.info('Making {} table'.format(table_name))
-    create_table_sql = """
-        CREATE TABLE IF NOT EXISTS {} (
-            created_at TIMESTAMP WITHOUT TIME ZONE,
-            updated_at TIMESTAMP WITHOUT TIME ZONE,
-            uei TEXT,
-            awardee_or_recipient_uniqu TEXT,
-            activation_date DATE,
-            expiration_date DATE,
-            deactivation_date DATE,
-            registration_date DATE,
-            last_sam_mod_date DATE,
-            legal_business_name TEXT,
-            dba_name TEXT,
-            ultimate_parent_uei TEXT,
-            ultimate_parent_unique_ide TEXT,
-            ultimate_parent_legal_enti TEXT,
-            address_line_1 TEXT,
-            address_line_2 TEXT,
-            city TEXT,
-            state TEXT,
-            zip TEXT,
-            zip4 TEXT,
-            country_code TEXT,
-            congressional_district TEXT,
-            business_types_codes TEXT[],
-            business_types TEXT[],
-            entity_structure TEXT
-        );
-    """.format(table_name)
+    column_types = {
+        'created_at': 'TIMESTAMP WITHOUT TIME ZONE',
+        'updated_at': 'TIMESTAMP WITHOUT TIME ZONE',
+        'uei': 'TEXT',
+        'awardee_or_recipient_uniqu': 'TEXT',
+        'activation_date': 'DATE',
+        'expiration_date': 'DATE',
+        'deactivation_date': 'DATE',
+        'registration_date': 'DATE',
+        'last_sam_mod_date': 'DATE',
+        'legal_business_name': 'TEXT',
+        'dba_name': 'TEXT',
+        'ultimate_parent_uei': 'TEXT',
+        'ultimate_parent_unique_ide': 'TEXT',
+        'ultimate_parent_legal_enti': 'TEXT',
+        'address_line_1': 'TEXT',
+        'address_line_2': 'TEXT',
+        'city': 'TEXT',
+        'state': 'TEXT',
+        'zip': 'TEXT',
+        'zip4': 'TEXT',
+        'country_code': 'TEXT',
+        'congressional_district': 'TEXT',
+        'business_types_codes': 'TEXT[]',
+        'business_types': 'TEXT[]',
+        'entity_structure': 'TEXT',
+        'high_comp_officer1_amount': 'TEXT',
+        'high_comp_officer1_full_na': 'TEXT',
+        'high_comp_officer2_amount': 'TEXT',
+        'high_comp_officer2_full_na': 'TEXT',
+        'high_comp_officer3_amount': 'TEXT',
+        'high_comp_officer3_full_na': 'TEXT',
+        'high_comp_officer4_amount': 'TEXT',
+        'high_comp_officer4_full_na': 'TEXT',
+        'high_comp_officer5_amount': 'TEXT',
+        'high_comp_officer5_full_na': 'TEXT',
+        'last_exec_comp_mod_date': 'DATE'
+    }
+    columns = ', '.join(['{} {}'.format(column_name, column_type) for column_name, column_type in column_types.items()
+                         if column_name in list(data.columns)])
+    create_table_sql = 'CREATE TABLE IF NOT EXISTS {} ({});'.format(table_name, columns)
     sess.execute(create_table_sql)
     # Truncating in case we didn't clear out this table after a failure in the script
     sess.execute('TRUNCATE TABLE {};'.format(table_name))
@@ -262,107 +257,62 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
             'updated_duns': []
         }
 
-    temp_table_name = 'temp_duns_update'
-    create_temp_duns_table(sess, temp_table_name, duns_data)
+    temp_name = 'temp_duns_update'
+    temp_abbr = 'tdu'
+    create_temp_duns_table(sess, temp_name, duns_data)
 
     logger.info('Getting list of DUNS that will be added/updated for metrics')
     insert_sql = """
-        SELECT tdu.awardee_or_recipient_uniqu
-        FROM temp_duns_update AS tdu
-        LEFT JOIN duns ON duns.awardee_or_recipient_uniqu=tdu.awardee_or_recipient_uniqu
+        SELECT {temp_abbr}.awardee_or_recipient_uniqu
+        FROM {temp_name} AS {temp_abbr}
+        LEFT JOIN duns ON duns.awardee_or_recipient_uniqu={temp_abbr}.awardee_or_recipient_uniqu
         WHERE duns.awardee_or_recipient_uniqu IS NULL;
-    """
+    """.format(temp_name=temp_name, temp_abbr=temp_abbr)
     added_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(insert_sql).fetchall()]
     update_sql = """
         SELECT duns.awardee_or_recipient_uniqu
         FROM duns
-        JOIN temp_duns_update AS tdu ON duns.awardee_or_recipient_uniqu=tdu.awardee_or_recipient_uniqu;
-    """
+        JOIN {temp_name} AS {temp_abbr} ON duns.awardee_or_recipient_uniqu={temp_abbr}.awardee_or_recipient_uniqu;
+    """.format(temp_name=temp_name, temp_abbr=temp_abbr)
     updated_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
 
-    logger.info('Adding/updating DUNS based on temp_duns_update')
-    update_cols = """
-        updated_at = tdu.updated_at,
-        uei = tdu.uei,
-        activation_date = tdu.activation_date,
-        expiration_date = tdu.expiration_date,
-        deactivation_date = NULL,
-        registration_date = tdu.registration_date,
-        last_sam_mod_date = tdu.last_sam_mod_date,
-        legal_business_name = tdu.legal_business_name,
-        dba_name = tdu.dba_name,
-        ultimate_parent_uei = tdu.ultimate_parent_uei,
-        ultimate_parent_unique_ide = tdu.ultimate_parent_unique_ide,
-        ultimate_parent_legal_enti = tdu.ultimate_parent_legal_enti,
-        address_line_1 = tdu.address_line_1,
-        address_line_2 = tdu.address_line_2,
-        city = tdu.city,
-        state = tdu.state,
-        zip = tdu.zip,
-        zip4 = tdu.zip4,
-        country_code = tdu.country_code,
-        congressional_district = tdu.congressional_district,
-        business_types_codes = tdu.business_types_codes,
-        business_types = tdu.business_types,
-        entity_structure = tdu.entity_structure,
-    """
+    logger.info('Adding/updating DUNS based on {}'.format(temp_name))
     if deletes:
-        update_cols = """
-            deactivation_date = tdu.deactivation_date,
-        """
+        update_cols = 'deactivation_date = {temp_abbr}.deactivation_date'.format(temp_abbr=temp_abbr)
+    else:
+        update_cols = ', '.join(['{col} = {temp_abbr}.{col}'.format(col=col, temp_abbr=temp_abbr)
+                                 for col in list(duns_data.columns)
+                                 if col not in ['created_at', 'deactivation_date', 'awardee_or_recipient_uniqu']])
     update_sql = """
         UPDATE duns
         SET
-            {}
+            {update_cols},
             historic = FALSE
-        FROM temp_duns_update AS tdu
-        WHERE tdu.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu;
-    """.format(update_cols)
+        FROM {temp_name} AS {temp_abbr}
+        WHERE {temp_abbr}.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu;
+    """.format(update_cols=update_cols, temp_name=temp_name, temp_abbr=temp_abbr)
     sess.execute(update_sql)
 
+    insert_cols = ', '.join(list(duns_data.columns))
     insert_sql = """
         INSERT INTO duns (
-            created_at,
-            updated_at,
-            uei,
-            awardee_or_recipient_uniqu,
-            activation_date,
-            expiration_date,
-            deactivation_date,
-            registration_date,
-            last_sam_mod_date,
-            legal_business_name,
-            dba_name,
-            ultimate_parent_uei,
-            ultimate_parent_unique_ide,
-            ultimate_parent_legal_enti,
-            address_line_1,
-            address_line_2,
-            city,
-            state,
-            zip,
-            zip4,
-            country_code,
-            congressional_district,
-            business_types_codes,
-            business_types,
-            entity_structure,
+            {insert_cols},
             historic
         )
         SELECT
-            *,
+            {insert_cols},
             FALSE
-        FROM temp_duns_update AS tdu
+        FROM {temp_name} AS {temp_abbr}
         WHERE NOT EXISTS (
             SELECT 1
             FROM duns
-            WHERE duns.awardee_or_recipient_uniqu = tdu.awardee_or_recipient_uniqu
+            WHERE duns.awardee_or_recipient_uniqu = {temp_abbr}.awardee_or_recipient_uniqu
         );
-    """
+    """.format(insert_cols=insert_cols, temp_name=temp_name, temp_abbr=temp_abbr)
     sess.execute(insert_sql)
 
-    logger.info('Dropping {}'.format(temp_table_name))
-    sess.execute('DROP TABLE {};'.format(temp_table_name))
+    logger.info('Dropping {}'.format(temp_name))
+    sess.execute('DROP TABLE {};'.format(temp_name))
 
     sess.commit()
 
@@ -400,7 +350,7 @@ def parse_exec_comp_file(file_path, metrics=None):
     # It's the same column mapping between the versions
     column_header_mapping = {
         'awardee_or_recipient_uniqu': 0,
-        'sam_extract': 4,
+        'sam_extract_code': 4,
         'exec_comp_str': 89
     }
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
@@ -416,9 +366,9 @@ def parse_exec_comp_file(file_path, metrics=None):
     total_data = csv_data.copy()
     records_received = len(total_data.index)
     total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull()
-                            & total_data['sam_extract'].isin(['2', '3', 'A', 'E'])]
+                            & total_data['sam_extract_code'].isin(['2', '3', 'A', 'E'])]
     records_processed = len(total_data.index)
-    del total_data['sam_extract']
+    del total_data['sam_extract_code']
 
     # drop DUNS duplicates, taking only the last one
     keep = 'first' if period == 'MONTHLY' else 'last'
@@ -470,94 +420,6 @@ def parse_exec_comp_file(file_path, metrics=None):
     metrics['records_processed'] += records_processed
 
     return total_data
-
-
-def create_temp_exec_comp_table(sess, table_name, data):
-    """ Creates a temporary executive compensation table with the given name and data.
-
-        Args:
-            sess: database connection
-            table_name: what to name the table being created
-            data: pandas dataframe representing exec comp data
-    """
-    logger.info('Making {} table'.format(table_name))
-    create_table_sql = """
-        CREATE TABLE IF NOT EXISTS {} (
-            awardee_or_recipient_uniqu TEXT,
-            high_comp_officer1_amount TEXT,
-            high_comp_officer1_full_na TEXT,
-            high_comp_officer2_amount TEXT,
-            high_comp_officer2_full_na TEXT,
-            high_comp_officer3_amount TEXT,
-            high_comp_officer3_full_na TEXT,
-            high_comp_officer4_amount TEXT,
-            high_comp_officer4_full_na TEXT,
-            high_comp_officer5_amount TEXT,
-            high_comp_officer5_full_na TEXT,
-            last_exec_comp_mod_date DATE
-        );
-    """.format(table_name)
-    sess.execute(create_table_sql)
-    # Truncating in case we didn't clear out this table after a failure in the script
-    sess.execute('TRUNCATE TABLE {};'.format(table_name))
-    insert_dataframe(data, table_name, sess.connection())
-
-
-def update_exec_comp_duns(sess, exec_comp_data, metrics=None):
-    """ Takes in a dataframe of exec comp data and updates associated DUNS
-
-        Args:
-            sess: database connection
-            exec_comp_data: pandas dataframe representing exec comp data
-            metrics: dictionary representing metrics of the script
-
-        Returns:
-            list of DUNS updated
-    """
-    if not metrics:
-        metrics = {
-            'updated_duns': []
-        }
-
-    temp_table_name = 'temp_exec_comp_update'
-    create_temp_exec_comp_table(sess, temp_table_name, exec_comp_data)
-
-    # Note: this can work just by getting the row count from the following SQL
-    #       but this can run multiple times on possibly the same DUNS over several days,
-    #       so it'll be more accurate to keep track of which DUNS get updated
-    logger.info('Getting list of DUNS that will be updated for metrics')
-    update_sql = """
-        SELECT duns.awardee_or_recipient_uniqu
-        FROM duns
-        JOIN temp_exec_comp_update AS tecu ON duns.awardee_or_recipient_uniqu=tecu.awardee_or_recipient_uniqu;
-    """
-    duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
-
-    logger.info('Updating DUNS based on temp_exec_comp_update')
-    update_sql = """
-        UPDATE duns
-        SET
-            high_comp_officer1_amount = tecu.high_comp_officer1_amount,
-            high_comp_officer1_full_na = tecu.high_comp_officer1_full_na,
-            high_comp_officer2_amount = tecu.high_comp_officer2_amount,
-            high_comp_officer2_full_na = tecu.high_comp_officer2_full_na,
-            high_comp_officer3_amount = tecu.high_comp_officer3_amount,
-            high_comp_officer3_full_na = tecu.high_comp_officer3_full_na,
-            high_comp_officer4_amount = tecu.high_comp_officer4_amount,
-            high_comp_officer4_full_na = tecu.high_comp_officer4_full_na,
-            high_comp_officer5_amount = tecu.high_comp_officer5_amount,
-            high_comp_officer5_full_na = tecu.high_comp_officer5_full_na,
-            last_exec_comp_mod_date = tecu.last_exec_comp_mod_date
-        FROM temp_exec_comp_update AS tecu
-        WHERE duns.awardee_or_recipient_uniqu=tecu.awardee_or_recipient_uniqu;
-    """
-    sess.execute(update_sql)
-
-    logger.info('Dropping {}'.format(temp_table_name))
-    sess.execute('DROP TABLE {};'.format(temp_table_name))
-
-    sess.commit()
-    metrics['updated_duns'].extend(duns_list)
 
 
 def parse_exec_comp(exec_comp_str=None):
@@ -667,6 +529,14 @@ def update_missing_parent_names(sess, updated_date=None):
 
 
 def request_duns_api(duns_list):
+    """ Calls SAM API to retrieve DUNS data by DUNS number. Returns all SAM info pertaining to the DUNS provided
+
+        Args:
+            duns_list: list of DUNS to search
+
+        Returns:
+            json list of SAM objects representing entities
+    """
     params = urlencode({
         'api_key': CONFIG_BROKER['sam']['api_key'],
         'sensitivity': 'fouo',
@@ -680,7 +550,7 @@ def request_duns_api(duns_list):
 
 
 def get_duns_props_from_sam(duns_list):
-    """ Calls SAM API to retrieve DUNS data by DUNS number. Returns DUNS info as Data Frame
+    """ Calls SAM API to retrieve DUNS data by DUNS number. Returns relevant DUNS info as Data Frame
 
         Args:
             duns_list: list of DUNS to search
@@ -693,6 +563,7 @@ def get_duns_props_from_sam(duns_list):
         'uei': 'entityRegistration.ueiSAM',
         'legal_business_name': 'entityRegistration.legalBusinessName',
         'dba_name': 'entityRegistration.dbaName',
+        'entity_structure': 'coreData.generalInformation.entityStructureCode',
         'ultimate_parent_unique_ide': 'coreData.entityHierarchyInformation.ultimateParentEntity.ueiDUNS',
         'ultimate_parent_uei': 'coreData.entityHierarchyInformation.ultimateParentEntity.ueiSAM',
         'ultimate_parent_legal_enti': 'coreData.entityHierarchyInformation.ultimateParentEntity.legalBusinessName',
@@ -723,6 +594,7 @@ def get_duns_props_from_sam(duns_list):
                 value = [busi_type['businessTypeCode'] for busi_type in nested_obj.get('businessTypeList', [])]
                 duns_props_dict['business_types'] = [DUNS_BUSINESS_TYPE_DICT[type] for type in value
                                                      if type in DUNS_BUSINESS_TYPE_DICT]
+                print(duns_props_dict)
             if duns_props_name == 'executive_comp_data':
                 for index in range(1, 6):
                     duns_props_dict['high_comp_officer{}_full_na'.format(index)] = None
@@ -736,3 +608,58 @@ def get_duns_props_from_sam(duns_list):
         duns_props.append(duns_props_dict)
 
     return pd.DataFrame(duns_props)
+
+
+def update_duns_props(df):
+    """ Returns same dataframe with extraneous data updated"
+
+        Args:
+            df: the dataframe containing the duns data
+
+        Returns:
+            a merged dataframe with the duns updated with extraneous info from SAM's individual DUNS API
+    """
+    request_cols = [col for col in DUNS_COLUMNS if col not in EXCLUDE_FROM_API]
+    empty_row_template = {request_col: None for request_col in request_cols}
+    for array_col in ['business_types_codes', 'business_types']:
+        empty_row_template[array_col] = []
+    prefilled_cols = [col for col in list(df.columns) if col not in ['awardee_or_recipient_uniqu']]
+
+    all_duns = df['awardee_or_recipient_uniqu'].tolist()
+    duns_props_df = pd.DataFrame(columns=request_cols)
+    # SAM service only takes in batches of 100
+    index = 0
+    batch_size = 100
+    for duns_list in batch(all_duns, batch_size):
+        logger.info("Gathering additional data for DUNS records {}-{}".format(index, index + batch_size))
+        duns_props_batch = get_duns_props_from_sam(duns_list)
+        duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
+        # Adding in blank rows for DUNS where data was not found
+        added_duns_list = []
+        if not duns_props_batch.empty:
+            added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
+        empty_duns_rows = []
+        for duns in (set(added_duns_list) ^ set(duns_list)):
+            empty_duns_row = empty_row_template.copy()
+            empty_duns_row['awardee_or_recipient_uniqu'] = duns
+            empty_duns_rows.append(empty_duns_row)
+        duns_props_batch = duns_props_batch.append(pd.DataFrame(empty_duns_rows), sort=True)
+        duns_props_df = duns_props_df.append(duns_props_batch, sort=True)
+        index += batch_size
+    return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
+
+
+def backfill_uei(sess, table):
+    """ Backfill any extraneous data (ex. uei) missing from V1 data that wasnt updated by V2
+
+        Args:
+            sess: database connection
+            table: table to backfill
+    """
+    duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter_by(uei=None, ultimate_parent_uei=None).all()
+    for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
+        df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
+        df = df.append(duns_batch)
+        df = update_duns_props(df)
+        df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
+        update_duns(sess, df)

@@ -13,8 +13,8 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
-from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_exec_comp_duns,
-                                    update_missing_parent_names)
+from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_missing_parent_names,
+                                    backfill_uei)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -126,10 +126,13 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
                 logger.warning('No file found for {}, continuing'.format(daily_api_v2_date))
                 continue
 
-    if data_type == 'duns':
+    if data_type == 'DUNS':
         updated_date = datetime.date.today()
         metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
         metrics['parent_update_date'] = str(updated_date)
+
+        if historic:
+            backfill_uei(sess, DUNS)
 
 
 def extract_dates_from_list(sam_files, data_type, period, version):
@@ -234,7 +237,7 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
             update_duns(sess, delete_data, metrics=metrics, deletes=True)
     else:
         exec_comp_data = parse_exec_comp_file(file_path, metrics=metrics)
-        update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
+        update_duns(sess, exec_comp_data, metrics=metrics)
     if not local:
         os.remove(file_path)
 

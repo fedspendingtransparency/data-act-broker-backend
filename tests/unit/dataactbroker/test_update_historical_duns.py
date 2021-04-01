@@ -1,8 +1,9 @@
-import pandas as pd
 import os
+import pandas as pd
 
-from dataactcore.config import CONFIG_BROKER
 from dataactbroker.scripts import update_historical_duns
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.utils.duns import DUNS_COLUMNS, EXCLUDE_FROM_API
 from dataactcore.models.domainModels import DUNS, HistoricDUNS
 
 
@@ -23,41 +24,30 @@ def test_remove_existing_duns(database):
     assert sorted(expected_duns) == sorted(new_df['awardee_or_recipient_uniqu'].tolist())
 
 
-def test_batch():
-    """ Testing the batch function into chunks of 100 """
-    full_list = list(range(0, 1000))
-    initial_batch = list(range(0, 100))
-    iteration = 0
-    batch_size = 100
-    for batch in update_historical_duns.batch(full_list, batch_size):
-        expected_batch = [x + (batch_size * iteration) for x in initial_batch]
-        assert expected_batch == batch
-        iteration += 1
-    assert iteration == 10
-
-
 def mock_get_duns_props_from_sam(duns_list):
     """ Mock function for get_duns_props as we can't connect to the SAM service """
-    columns = ['awardee_or_recipient_uniqu'] + list(update_historical_duns.props_columns.keys())
+    request_cols = [col for col in DUNS_COLUMNS if col not in EXCLUDE_FROM_API]
+    columns = request_cols
     results = pd.DataFrame(columns=columns)
 
     duns_mappings = {
         '000000001': {
-            'awardee_or_recipient_uniqu': ['000000001'],
+            'awardee_or_recipient_uniqu': '000000001',
             'uei': 'A1',
-            'legal_business_name': ['Legal Name 1'],
-            'dba_name': ['Name 1'],
-            'ultimate_parent_unique_ide': ['999999999'],
+            'legal_business_name': 'Legal Name 1',
+            'dba_name': 'Name 1',
+            'entity_structure': '1A',
+            'ultimate_parent_unique_ide': '999999999',
             'ultimate_parent_uei': 'Z9',
-            'ultimate_parent_legal_enti': ['Parent Legal Name 1'],
-            'address_line_1': ['Test address 1'],
-            'address_line_2': ['Test address 2'],
-            'city': ['Test city'],
-            'state': ['Test state'],
-            'zip': ['Test zip'],
-            'zip4': ['Test zip4'],
-            'country_code': ['Test country'],
-            'congressional_district': ['Test congressional district'],
+            'ultimate_parent_legal_enti': 'Parent Legal Name 1',
+            'address_line_1': 'Test address 1',
+            'address_line_2': 'Test address 2',
+            'city': 'Test city',
+            'state': 'Test state',
+            'zip': 'Test zip',
+            'zip4': 'Test zip4',
+            'country_code': 'Test country',
+            'congressional_district': 'Test congressional district',
             'business_types_codes': [['A', 'B', 'C']],
             'business_types': [['Name A', 'Name B', 'Name C']],
             'high_comp_officer1_full_na': 'Test Exec 1',
@@ -72,21 +62,22 @@ def mock_get_duns_props_from_sam(duns_list):
             'high_comp_officer5_amount': '5'
         },
         '000000002': {
-            'awardee_or_recipient_uniqu': ['000000002'],
+            'awardee_or_recipient_uniqu': '000000002',
             'uei': 'B2',
-            'legal_business_name': ['Legal Name 2'],
-            'dba_name': ['Name 2'],
-            'ultimate_parent_unique_ide': ['999999998'],
+            'legal_business_name': 'Legal Name 2',
+            'dba_name': 'Name 2',
+            'entity_structure': '2B',
+            'ultimate_parent_unique_ide': '999999998',
             'ultimate_parent_uei': 'Y8',
-            'ultimate_parent_legal_enti': ['Parent Legal Name 2'],
-            'address_line_1': ['Other Test address 1'],
-            'address_line_2': ['Other Test address 2'],
-            'city': ['Other Test city'],
-            'state': ['Other Test state'],
-            'zip': ['Other Test zip'],
-            'zip4': ['Other Test zip4'],
-            'country_code': ['Other Test country'],
-            'congressional_district': ['Other Test congressional district'],
+            'ultimate_parent_legal_enti': 'Parent Legal Name 2',
+            'address_line_1': 'Other Test address 1',
+            'address_line_2': 'Other Test address 2',
+            'city': 'Other Test city',
+            'state': 'Other Test state',
+            'zip': 'Other Test zip',
+            'zip4': 'Other Test zip4',
+            'country_code': 'Other Test country',
+            'congressional_district': 'Other Test congressional district',
             'business_types_codes': [['D', 'E', 'F']],
             'business_types': [['Name D', 'Name E', 'Name F']],
             'high_comp_officer1_full_na': 'Test Other Exec 6',
@@ -104,6 +95,9 @@ def mock_get_duns_props_from_sam(duns_list):
     for duns in duns_list:
         if duns in duns_mappings:
             results = results.append(pd.DataFrame(duns_mappings[duns]), sort=True)
+            with pd.option_context('display.max_rows', None, 'display.max_columns',
+                                   None):  # more options can be specified also
+                print(results)
     return results
 
 
@@ -127,6 +121,7 @@ def test_update_duns_props(monkeypatch):
         'congressional_district': ['Test congressional district', 'Other Test congressional district', None],
         'business_types_codes': [['A', 'B', 'C'], ['D', 'E', 'F'], []],
         'business_types': [['Name A', 'Name B', 'Name C'], ['Name D', 'Name E', 'Name F'], []],
+        'entity_structure': ['1A', '2B', None],
         'dba_name': ['Name 1', 'Name 2', None],
         'ultimate_parent_unique_ide': ['999999999', '999999998', None],
         'ultimate_parent_uei': ['Z9', 'Y8', None],
@@ -168,6 +163,7 @@ def test_update_duns_props_empty(monkeypatch):
         'business_types_codes': [[]],
         'business_types': [[]],
         'dba_name': [None],
+        'entity_structure': [None],
         'ultimate_parent_unique_ide': [None],
         'ultimate_parent_uei': [None],
         'ultimate_parent_legal_enti': [None],
@@ -220,6 +216,7 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types_codes': ['A', 'B', 'C'],
             'business_types': ['Name A', 'Name B', 'Name C'],
             'dba_name': 'Name 1',
+            'entity_structure': '1A',
             'ultimate_parent_unique_ide': '999999999',
             'ultimate_parent_uei': 'Z9',
             'ultimate_parent_legal_enti': 'Parent Legal Name 1',
@@ -253,6 +250,7 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types_codes': ['D', 'E', 'F'],
             'business_types': ['Name D', 'Name E', 'Name F'],
             'dba_name': 'Name 2',
+            'entity_structure': '2B',
             'ultimate_parent_unique_ide': '999999998',
             'ultimate_parent_uei': 'Y8',
             'ultimate_parent_legal_enti': 'Parent Legal Name 2',
@@ -289,6 +287,7 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types_codes': duns_obj.business_types_codes,
             'business_types': duns_obj.business_types,
             'dba_name': duns_obj.dba_name,
+            'entity_structure': duns_obj.entity_structure,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
             'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
             'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
@@ -341,6 +340,7 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': ['A', 'B', 'C'],
             'business_types': ['Name A', 'Name B', 'Name C'],
             'dba_name': 'Name 1',
+            'entity_structure': '1A',
             'ultimate_parent_unique_ide': '999999999',
             'ultimate_parent_uei': 'Z9',
             'ultimate_parent_legal_enti': 'Parent Legal Name 1',
@@ -374,6 +374,7 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': ['D', 'E', 'F'],
             'business_types': ['Name D', 'Name E', 'Name F'],
             'dba_name': 'Name 2',
+            'entity_structure': '2B',
             'ultimate_parent_unique_ide': '999999998',
             'ultimate_parent_uei': 'Y8',
             'ultimate_parent_legal_enti': 'Parent Legal Name 2',
@@ -407,6 +408,7 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': None,
             'business_types': None,
             'dba_name': None,
+            'entity_structure': None,
             'ultimate_parent_unique_ide': None,
             'ultimate_parent_uei': None,
             'ultimate_parent_legal_enti': None,
@@ -440,6 +442,7 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': None,
             'business_types': None,
             'dba_name': None,
+            'entity_structure': None,
             'ultimate_parent_unique_ide': None,
             'ultimate_parent_uei': None,
             'ultimate_parent_legal_enti': None,
@@ -476,6 +479,7 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': duns_obj.business_types_codes,
             'business_types': duns_obj.business_types,
             'dba_name': duns_obj.dba_name,
+            'entity_structure': duns_obj.entity_structure,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
             'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
             'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
@@ -523,6 +527,7 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': duns_obj.business_types_codes,
             'business_types': duns_obj.business_types,
             'dba_name': duns_obj.dba_name,
+            'entity_structure': duns_obj.entity_structure,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
             'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
             'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
