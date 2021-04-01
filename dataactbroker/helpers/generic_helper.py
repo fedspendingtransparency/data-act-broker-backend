@@ -175,3 +175,18 @@ def fy(raw_date):
         result += 1
 
     return result
+
+
+def batch(iterable, n=1):
+    """ Simple function to create batches from a list
+
+        Args:
+            iterable: the list to be batched
+            n: the size of the batches
+
+        Yields:
+            the same list (iterable) in batches depending on the size of N
+    """
+    length = len(iterable)
+    for ndx in range(0, length, n):
+        yield iterable[ndx:min(ndx + n, length)]
