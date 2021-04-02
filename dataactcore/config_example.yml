@@ -119,6 +119,8 @@ broker:
 
     sam:
         api_key: example
+        account_user_id: example
+        account_password: example
 
         # used in load_federal_hierarchy.py
         federal_hierarchy:
@@ -128,7 +130,7 @@ broker:
         duns:
             csv_api_url: https://api.sam.gov/data-services/v1/extracts
             csv_archive_bucket: example
-            duns_api_url: https://api-alpha.sam.gov/entity-information/v2/entities
+            entity_api_url: https://api-alpha.sam.gov/entity-information/v2/entities
 
 services:
     debug: true

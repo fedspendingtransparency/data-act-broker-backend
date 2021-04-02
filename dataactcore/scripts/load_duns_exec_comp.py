@@ -5,16 +5,14 @@ import os
 import re
 import json
 import tempfile
-import requests
 import boto3
-from urllib.parse import urlencode
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_missing_parent_names,
-                                    backfill_uei)
+                                    backfill_uei, request_sam_csv_api)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -183,16 +181,7 @@ def download_sam_file(root_dir, file_name, api=False):
     """
     logger.info('Pulling {}'.format(file_name))
     if api:
-        params = urlencode({
-            'api_key': CONFIG_BROKER['sam']['api_key'],
-            'fileName': file_name
-        })
-        r = requests.get(CONFIG_BROKER['sam']['duns']['csv_api_url'], params=params)
-        if r.status_code == 200:
-            duns_file = os.path.join(root_dir, file_name)
-            open(duns_file, 'wb').write(r.content)
-        elif r.status_code == 400:
-            raise FileNotFoundError('File not found on SAM HTTP API.')
+        request_sam_csv_api(root_dir, file_name)
     else:
         s3_client = boto3.client('s3', region_name='us-gov-west-1')
         data_type = file_name.split('_')[1]

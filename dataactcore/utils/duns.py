@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from sqlalchemy import and_, func
-from urllib.parse import urlencode
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
@@ -534,8 +533,8 @@ def update_missing_parent_names(sess, updated_date=None):
     return total_updated_count
 
 
-def request_duns_api(duns_list):
-    """ Calls SAM API to retrieve DUNS data by DUNS number. Returns all SAM info pertaining to the DUNS provided
+def request_sam_entity_api(duns_list):
+    """ Calls the SAM entity API to retrieve SAM data by the DUNS numbers provided.
 
         Args:
             duns_list: list of DUNS to search
@@ -543,16 +542,62 @@ def request_duns_api(duns_list):
         Returns:
             json list of SAM objects representing entities
     """
-    params = urlencode({
-        'api_key': CONFIG_BROKER['sam']['api_key'],
-        'sensitivity': 'fouo',
-        'q': ' OR '.join(['ueiDUNS:{}'.format(duns) for duns in duns_list])
-    })
-    r = requests.get(CONFIG_BROKER['sam']['duns']['duns_api_url'], params=params)
+    logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
+    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], accept_type='json', sensitivity='fouo',
+                               q=' OR '.join(['ueiDUNS:{}'.format(duns) for duns in duns_list]))
+    return json.loads(content)['entityData']
+
+
+def request_sam_csv_api(root_dir, file_name):
+    """ Downloads the requested csv from the SAM CSV API
+
+        Args:
+            root_dir: where to download the file
+            file_name: the name of the file to download
+    """
+    logger.info('Downloading the following DUNS: {}'.format(file_name))
+    local_sam_file = os.path.join(root_dir, file_name)
+    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], accept_type='zip', sensitivity='fouo',
+                                    fileName=file_name)
+    open(local_sam_file, 'wb').write(file_content)
+
+
+def _request_sam_api(url, accept_type, **body):
+    """ Calls one of the SAM APIs and returns its content
+
+        Args:
+            url: the url to request
+            accept_type: what type of data to accept (either zip or json)
+            body: filters to use for the API
+
+        Returns:
+            the response's content
+
+        Raises:
+            ConnectionError if it's an unsuccessful request
+    """
+    if accept_type not in ['zip', 'json']:
+        return ValueError('accept_type must be \'zip\' or \'json\'')
+    auth = (CONFIG_BROKER['sam']['account_user_id'], CONFIG_BROKER['sam']['account_password'])
+    headers = {
+        'x-api-key': CONFIG_BROKER['sam']['api_key'],
+        'Accept': 'application/{}'.format(accept_type),
+        'Content-Type': 'application/json'
+    }
+    r = requests.post(url, auth=auth, headers=headers, json=json.dumps(body))
+    content = r.content
     if r.status_code == 200:
-        return json.loads(r.content)['entityData']
-    elif r.status_code == 400:
-        raise ConnectionError('The SAM DUNS URL was rejected: {}'.format(CONFIG_BROKER['sam']['duns']['duns_api_url']))
+        return content
+    else:
+        log_data = {
+            'status': r.status_code,
+            'details': json.loads(content.decode('utf-8')),
+            'url': url,
+            'body': body
+        }
+        exception = ConnectionError(log_data)
+        logger.exception(exception)
+        raise exception
 
 
 def get_duns_props_from_sam(duns_list):
@@ -585,7 +630,7 @@ def get_duns_props_from_sam(duns_list):
         'executive_comp_data': 'coreData.executiveCompensationInformation'
     }
     duns_props = []
-    for duns_obj in request_duns_api(duns_list):
+    for duns_obj in request_sam_entity_api(duns_list):
         duns_props_dict = {}
         for duns_props_name, duns_prop_path in duns_props_mappings.items():
             nested_obj = duns_obj
