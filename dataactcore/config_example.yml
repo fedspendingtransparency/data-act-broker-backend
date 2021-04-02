@@ -117,6 +117,7 @@ broker:
             username: ''
             password: ''
 
+    # We import DUNS and FH records from SAM
     sam:
         api_key: example
         account_user_id: example
