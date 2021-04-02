@@ -1,14 +1,14 @@
 """Adding UEI values to DUNS tables
 
 Revision ID: e72f2699bcaa
-Revises: 9e1acf1450dc
+Revises: 24e0fa72827a
 Create Date: 2021-02-26 20:40:28.254073
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'e72f2699bcaa'
-down_revision = '9e1acf1450dc'
+down_revision = '24e0fa72827a'
 branch_labels = None
 depends_on = None
 
