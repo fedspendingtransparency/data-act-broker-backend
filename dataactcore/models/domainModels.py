@@ -267,7 +267,7 @@ class SF133(Base):
     period = Column(Integer, nullable=False, index=True)
     line = Column(Integer, nullable=False)
     amount = Column(Numeric, nullable=False, default=0, server_default="0")
-    tas_id = Column(Integer, nullable=True)
+    account_num = Column(Integer, nullable=True)
     disaster_emergency_fund_code = Column(Text, index=True)
 
 
