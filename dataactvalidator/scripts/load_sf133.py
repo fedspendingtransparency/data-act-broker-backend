@@ -93,8 +93,8 @@ def fill_blank_sf133_lines(data):
     return data
 
 
-def update_tas_id(fiscal_year, fiscal_period):
-    """ Set the tas_id on newly SF133 entries. We use raw SQL as sqlalchemy doesn't have operators like OVERLAPS and IS
+def update_account_num(fiscal_year, fiscal_period):
+    """ Set the account_num on newly SF133 entries. We use raw SQL as sqlalchemy doesn't have operators like OVERLAPS and IS
         NOT DISTINCT FROM built in (resulting in a harder to understand query).
 
         Args:
@@ -114,10 +114,10 @@ def update_tas_id(fiscal_year, fiscal_period):
                     1)
 
     subquery = matching_cars_subquery(sess, SF133, start_date, end_date)
-    logger.info("Updating tas_ids for Fiscal %s-%s", fiscal_year, fiscal_period)
+    logger.info("Updating account_nums for Fiscal %s-%s", fiscal_year, fiscal_period)
     sess.query(SF133).\
         filter_by(fiscal_year=fiscal_year, period=fiscal_period).\
-        update({SF133.tas_id: subquery}, synchronize_session=False)
+        update({SF133.account_num: subquery}, synchronize_session=False)
     sess.commit()
 
 
@@ -185,7 +185,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False, met
         table_name = SF133.__table__.name
         num = insert_dataframe(data, table_name, sess.connection())
         metrics['records_inserted'] += num
-        update_tas_id(int(fiscal_year), int(fiscal_period))
+        update_account_num(int(fiscal_year), int(fiscal_period))
         sess.commit()
 
     logger.info('%s records inserted to %s', num, table_name)

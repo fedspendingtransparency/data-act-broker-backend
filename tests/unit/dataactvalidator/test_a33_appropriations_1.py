@@ -82,9 +82,9 @@ def test_financing_tas(database):
     cars_1 = TASFactory(financial_indicator2='other indicator')
     cars_2 = TASFactory(financial_indicator2=None)
 
-    gtas_1 = SF133Factory(tas_id=cars_1.account_num, allocation_transfer_agency=None)
+    gtas_1 = SF133Factory(account_num=cars_1.account_num, allocation_transfer_agency=None)
 
-    gtas_2 = SF133Factory(tas_id=cars_2.account_num, period=gtas_1.period, fiscal_year=gtas_1.fiscal_year,
+    gtas_2 = SF133Factory(account_num=cars_2.account_num, period=gtas_1.period, fiscal_year=gtas_1.fiscal_year,
                           agency_identifier=gtas_1.agency_identifier, allocation_transfer_agency=None)
 
     submission_1 = SubmissionFactory(
@@ -99,9 +99,9 @@ def test_financing_tas(database):
     cars_3 = TASFactory(financial_indicator2='f')
     cars_4 = TASFactory(financial_indicator2='F')
 
-    gtas_3 = SF133Factory(tas_id=cars_3.account_num, allocation_transfer_agency=None)
+    gtas_3 = SF133Factory(account_num=cars_3.account_num, allocation_transfer_agency=None)
 
-    gtas_4 = SF133Factory(tas_id=cars_4.account_num, period=gtas_3.period, fiscal_year=gtas_3.fiscal_year,
+    gtas_4 = SF133Factory(account_num=cars_4.account_num, period=gtas_3.period, fiscal_year=gtas_3.fiscal_year,
                           agency_identifier=gtas_3.agency_identifier, allocation_transfer_agency=None)
 
     submission_2 = SubmissionFactory(
