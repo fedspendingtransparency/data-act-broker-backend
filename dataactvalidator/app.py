@@ -201,8 +201,7 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                     # Mark all Jobs waiting on this FileGeneration as failed
                     generation_jobs = sess.query(Job).filter_by(file_generation_id=file_gen_id).all()
                     for job in generation_jobs:
-                        if job.job_status in [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready'],
-                                              JOB_STATUS_DICT['running']]:
+                        if job.job_status in RUNNING_STATUSES:
                             mark_job_status(job.job_id, 'failed')
                             sess.refresh(job)
                             job.file_generation_id = None
