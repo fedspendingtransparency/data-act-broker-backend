@@ -585,8 +585,8 @@ def _request_sam_api(url, request_type, accept_type, params=None, body=None):
         Raises:
             ConnectionError if it's an unsuccessful request
     """
-    if accept_type not in ['get', 'post']:
-        return ValueError('accept_type must be \'get\' or \'post\'')
+    if request_type not in ['get', 'post']:
+        return ValueError('request_type must be \'get\' or \'post\'')
     if accept_type not in ['zip', 'json']:
         return ValueError('accept_type must be \'zip\' or \'json\'')
     auth = (CONFIG_BROKER['sam']['account_user_id'], CONFIG_BROKER['sam']['account_password'])
@@ -595,7 +595,7 @@ def _request_sam_api(url, request_type, accept_type, params=None, body=None):
         'Accept': 'application/{}'.format(accept_type),
         'Content-Type': 'application/json'
     }
-    r = getattr(requests, request_type)(url, auth=auth, headers=headers, params=params, json=json.dumps(body))
+    r = requests.request(request_type, url, auth=auth, headers=headers, params=params, json=json.dumps(body))
     content = r.content
     if r.status_code == 200:
         return content
