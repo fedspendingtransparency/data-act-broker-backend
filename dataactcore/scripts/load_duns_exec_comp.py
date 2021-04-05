@@ -188,7 +188,6 @@ def download_sam_file(root_dir, file_name, api=False):
         data_type = reverse_map[file_name.split('_')[1]]
         version = 'v2' if 'V2' in file_name else 'v1'
         key = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
-        logger.info(key)
         s3_client.download_file(S3_ARCHIVE, key, os.path.join(root_dir, file_name))
 
 
