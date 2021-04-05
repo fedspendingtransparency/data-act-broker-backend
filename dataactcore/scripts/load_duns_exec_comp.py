@@ -238,7 +238,8 @@ def get_parser():
             argument parser to be used for commandline
     """
     parser = argparse.ArgumentParser(description='Get data from SAM and update duns/exec comp tables')
-    parser.add_argument("-t", "--data_type", choices=['duns', 'exec_comp', 'both'], help='Select data type to load')
+    parser.add_argument("-t", "--data_type", choices=['duns', 'exec_comp', 'both'], default='both',
+                        help='Select data type to load')
     scope = parser.add_mutually_exclusive_group(required=True)
     scope.add_argument("-a", "--historic", action="store_true", help='Reload from the first monthly file on')
     scope.add_argument("-u", "--update", action="store_true", help='Load daily files since latest last_sam_mod_date')
