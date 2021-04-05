@@ -184,7 +184,8 @@ def download_sam_file(root_dir, file_name, api=False):
         request_sam_csv_api(root_dir, file_name)
     else:
         s3_client = boto3.client('s3', region_name='us-gov-west-1')
-        data_type = file_name.split('_')[1]
+        reverse_map = {v:k for k, v in DATA_TYPES.items()}
+        data_type = reverse_map[file_name.split('_')[1]]
         version = 'v2' if 'V2' in file_name else 'v1'
         key = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
         logger.info(key)
