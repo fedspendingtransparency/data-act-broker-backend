@@ -543,8 +543,11 @@ def request_sam_entity_api(duns_list):
             json list of SAM objects representing entities
     """
     logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
-    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], accept_type='json', sensitivity='fouo',
-                               q=' OR '.join(['ueiDUNS:{}'.format(duns) for duns in duns_list]))
+    body = {
+        'sensitivity': 'fouo',
+        'q': ' OR '.join(['ueiDUNS:{}'.format(duns) for duns in duns_list])
+    }
+    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], accept_type='json', body=body)
     return json.loads(content)['entityData']
 
 
@@ -557,18 +560,21 @@ def request_sam_csv_api(root_dir, file_name):
     """
     logger.info('Downloading the following DUNS: {}'.format(file_name))
     local_sam_file = os.path.join(root_dir, file_name)
-    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], accept_type='zip', sensitivity='fouo',
-                                    fileName=file_name)
+    params = {
+        'fileName': file_name
+    }
+    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], accept_type='zip', params=params)
     open(local_sam_file, 'wb').write(file_content)
 
 
-def _request_sam_api(url, accept_type, **body):
+def _request_sam_api(url, accept_type, params=None, body=None):
     """ Calls one of the SAM APIs and returns its content
 
         Args:
             url: the url to request
             accept_type: what type of data to accept (either zip or json)
-            body: filters to use for the API
+            params: query filters to use for the API
+            body: json filters to use for the API
 
         Returns:
             the response's content
@@ -584,7 +590,7 @@ def _request_sam_api(url, accept_type, **body):
         'Accept': 'application/{}'.format(accept_type),
         'Content-Type': 'application/json'
     }
-    r = requests.post(url, auth=auth, headers=headers, json=json.dumps(body))
+    r = requests.post(url, auth=auth, headers=headers, params=params, json=json.dumps(body))
     content = r.content
     if r.status_code == 200:
         return content
