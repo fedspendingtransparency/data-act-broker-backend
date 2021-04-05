@@ -265,7 +265,7 @@ def get_normalized_agency_code(agency_code, subtier_code):
 
     return agency_code
 
-
+# TODO: Refecator to use generic helper's request_with_retries
 def get_with_exception_hand(url_string):
     """ Retrieve data from API, allow for multiple retries and timeouts
 

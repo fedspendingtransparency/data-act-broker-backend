@@ -6,6 +6,7 @@ import re
 import json
 import tempfile
 import boto3
+import requests
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -120,7 +121,8 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
             try:
                 process_sam_file(data_type, 'DAILY', 'v2', daily_api_v2_date, sess, local=local, api=True,
                                  metrics=metrics)
-            except FileNotFoundError:
+            except requests.exceptions.HTTPError as e:
+                logger.exception(e.response.content.decode('utf-8'))
                 logger.warning('No file found for {}, continuing'.format(daily_api_v2_date))
                 continue
 
@@ -177,7 +179,7 @@ def download_sam_file(root_dir, file_name, api=False):
             api: whether to use the SAM CSV API or not
 
         Raises:
-            FileNotFoundError if the SAM HTTP API doesnt have the file requested
+            requests.exceptions.HTTPError if the SAM HTTP API doesnt have the file requested
     """
     logger.info('Pulling {} via {}'.format(file_name, 'API' if api else 'archive'))
     if api:
@@ -204,7 +206,7 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
             metrics: dictionary representing metrics data for the load
 
         Raises:
-            FileNotFoundError if the SAM HTTP API doesnt have the file requested
+            requests.exceptions.HTTPError if the SAM HTTP API doesnt have the file requested
     """
     if not metrics:
         metrics = {}
@@ -213,10 +215,7 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
     file_name_format = SAM_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period, version=VERSIONS[version])
     file_name = date.strftime(file_name_format)
     if not local:
-        try:
-            download_sam_file(root_dir, file_name, api=api)
-        except FileNotFoundError as e:
-            raise e
+        download_sam_file(root_dir, file_name, api=api)
 
     file_path = os.path.join(root_dir, file_name)
     if data_type == 'DUNS':

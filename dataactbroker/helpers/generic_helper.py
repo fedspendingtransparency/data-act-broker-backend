@@ -1,5 +1,11 @@
 import re
 import calendar
+import logging
+import time
+import requests
+from requests.packages.urllib3.exceptions import ReadTimeoutError
+import sys
+import json
 from dateutil.parser import parse
 import datetime as dt
 
@@ -11,6 +17,9 @@ from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
 
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+
+logger = logging.getLogger(__name__)
+logging.getLogger('requests').setLevel(logging.WARNING)
 
 
 class StringLiteral(String):
@@ -190,3 +199,46 @@ def batch(iterable, n=1):
     length = len(iterable)
     for ndx in range(0, length, n):
         yield iterable[ndx:min(ndx + n, length)]
+
+
+def request_with_retries(request_type, url, headers=None, params=None, body=None, auth=None):
+    """ Wrapper for request.request, allowing for multiple retries and timeouts
+
+        Args:
+            url: the url to request
+            request_type: the REST type, get or post
+            headers: request headers
+            params: query filters to use for the API
+            body: json filters to use for the API
+            auth: basic auth if included
+
+        Returns:
+            Response object
+    """
+    exception_retries = -1
+    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+    request_timeout = 60
+
+    def handle_resp(exception_retries, request_timeout):
+        exception_retries += 1
+        request_timeout += 60
+        if exception_retries < len(retry_sleep_times):
+            logger.info('Sleeping {}s and then retrying with a max wait of {}s...'
+                        .format(retry_sleep_times[exception_retries], request_timeout))
+            time.sleep(retry_sleep_times[exception_retries])
+            return exception_retries, request_timeout
+        else:
+            logger.error('Maximum retry attempts exceeded.')
+            sys.exit(2)
+
+    while exception_retries < len(retry_sleep_times):
+        try:
+            r = requests.request(request_type, url, headers=headers, params=params, json=json.dumps(body), auth=auth,
+                                 timeout=request_timeout)
+            # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
+            r.raise_for_status()
+            return r
+        except (ConnectionError, ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
+                requests.exceptions.ReadTimeout, requests.exceptions.ChunkedEncodingError) as e:
+            logger.exception(e)
+            exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)

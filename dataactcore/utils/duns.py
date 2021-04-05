@@ -12,7 +12,7 @@ from sqlalchemy import and_, func
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
-from dataactbroker.helpers.generic_helper import batch
+from dataactbroker.helpers.generic_helper import batch, request_with_retries
 from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
 from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
 from dataactcore.models.jobModels import Submission # noqa
@@ -595,20 +595,7 @@ def _request_sam_api(url, request_type, accept_type, params=None, body=None):
         'Accept': 'application/{}'.format(accept_type),
         'Content-Type': 'application/json'
     }
-    r = requests.request(request_type, url, auth=auth, headers=headers, params=params, json=json.dumps(body))
-    content = r.content
-    if r.status_code == 200:
-        return content
-    else:
-        log_data = {
-            'status': r.status_code,
-            'details': json.loads(content.decode('utf-8')),
-            'url': url,
-            'body': body
-        }
-        exception = ConnectionError(log_data)
-        logger.exception(exception)
-        raise exception
+    return request_with_retries(request_type, url, auth=auth, headers=headers, params=params, body=body).content
 
 
 def get_duns_props_from_sam(duns_list):
