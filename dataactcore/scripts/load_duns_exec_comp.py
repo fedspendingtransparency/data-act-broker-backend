@@ -179,7 +179,7 @@ def download_sam_file(root_dir, file_name, api=False):
         Raises:
             FileNotFoundError if the SAM HTTP API doesnt have the file requested
     """
-    logger.info('Pulling {}'.format(file_name))
+    logger.info('Pulling {} via {}'.format(file_name, 'API' if api else 'archive'))
     if api:
         request_sam_csv_api(root_dir, file_name)
     else:
@@ -187,6 +187,7 @@ def download_sam_file(root_dir, file_name, api=False):
         data_type = file_name.split('_')[1]
         version = 'v2' if 'V2' in file_name else 'v1'
         key = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
+        logger.info(key)
         s3_client.download_file(S3_ARCHIVE, key, os.path.join(root_dir, file_name))
 
 
