@@ -547,7 +547,8 @@ def request_sam_entity_api(duns_list):
         'sensitivity': 'fouo',
         'q': ' OR '.join(['ueiDUNS:{}'.format(duns) for duns in duns_list])
     }
-    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], accept_type='json', body=body)
+    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], request_type='post', accept_type='json',
+                               body=body)
     return json.loads(content)['entityData']
 
 
@@ -563,15 +564,17 @@ def request_sam_csv_api(root_dir, file_name):
     params = {
         'fileName': file_name
     }
-    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], accept_type='zip', params=params)
+    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], request_type='get', accept_type='zip',
+                                    params=params)
     open(local_sam_file, 'wb').write(file_content)
 
 
-def _request_sam_api(url, accept_type, params=None, body=None):
+def _request_sam_api(url, request_type, accept_type, params=None, body=None):
     """ Calls one of the SAM APIs and returns its content
 
         Args:
             url: the url to request
+            request_type: the REST type, get or post
             accept_type: what type of data to accept (either zip or json)
             params: query filters to use for the API
             body: json filters to use for the API
@@ -582,6 +585,8 @@ def _request_sam_api(url, accept_type, params=None, body=None):
         Raises:
             ConnectionError if it's an unsuccessful request
     """
+    if accept_type not in ['get', 'post']:
+        return ValueError('accept_type must be \'get\' or \'post\'')
     if accept_type not in ['zip', 'json']:
         return ValueError('accept_type must be \'zip\' or \'json\'')
     auth = (CONFIG_BROKER['sam']['account_user_id'], CONFIG_BROKER['sam']['account_password'])
@@ -590,7 +595,7 @@ def _request_sam_api(url, accept_type, params=None, body=None):
         'Accept': 'application/{}'.format(accept_type),
         'Content-Type': 'application/json'
     }
-    r = requests.post(url, auth=auth, headers=headers, params=params, json=json.dumps(body))
+    r = getattr(requests, request_type)(url, auth=auth, headers=headers, params=params, json=json.dumps(body))
     content = r.content
     if r.status_code == 200:
         return content
