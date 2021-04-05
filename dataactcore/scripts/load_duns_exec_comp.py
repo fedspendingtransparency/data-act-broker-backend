@@ -165,7 +165,7 @@ def list_s3_archive_files(data_type, period, version):
     archive_bucket = s3_resource.Bucket(S3_ARCHIVE)
     file_name = SAM_FILE_FORMAT[:30].format(data_type=DATA_TYPES[data_type], period=period)
     prefix = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
-    return [object.key for object in archive_bucket.objects.filter(Prefix=prefix)]
+    return [os.path.basename(object.key) for object in archive_bucket.objects.filter(Prefix=prefix)]
 
 
 def download_sam_file(root_dir, file_name, api=False):
