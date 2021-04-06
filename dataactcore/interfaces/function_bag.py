@@ -282,6 +282,8 @@ def mark_job_status(job_id, status_name, skip_check=False):
     old_status = job.job_status.name
     # update job status
     job.job_status_id = JOB_STATUS_DICT[status_name]
+    if status_name in ('ready', 'waiting'):
+        job.error_message = None
     sess.commit()
 
     # if status is changed to finished for the first time, check dependencies
@@ -435,6 +437,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
         upload_job.job_status_id = JOB_STATUS_DICT['running']
         upload_job.original_filename = upload_file.file_name
         upload_job.filename = upload_file.upload_name
+        upload_job.error_message = None
 
     else:
         if upload_file.file_type in ["award", "award_procurement"]:

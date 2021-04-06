@@ -42,7 +42,7 @@ def test_fill_blank_sf133_lines():
     assert list(sorted(result[result['line'] == 3]['amount'])) == [0.0, 3.0]
 
 
-def test_update_tas_ids_fiscal_year(database):
+def test_update_account_nums_fiscal_year(database):
     """ Fiscal year math should be accurate when checking TAS entries """
     sess = database.session
     tas = TASFactory(internal_start_date=date(2010, 1, 1), internal_end_date=date(2010, 8, 31))
@@ -50,18 +50,18 @@ def test_update_tas_ids_fiscal_year(database):
     sess.add_all([tas, sf_133])
     sess.commit()
 
-    load_sf133.update_tas_id(2011, 1)
+    load_sf133.update_account_num(2011, 1)
     sess.refresh(sf_133)
-    assert sf_133.tas_id is None
+    assert sf_133.account_num is None
 
     tas.internal_end_date = date(2010, 9, 30)
     sess.commit()
-    load_sf133.update_tas_id(2011, 1)
+    load_sf133.update_account_num(2011, 1)
     sess.refresh(sf_133)
-    assert sf_133.tas_id is None
+    assert sf_133.account_num is None
 
     tas.internal_end_date = date(2010, 10, 31)
     sess.commit()
-    load_sf133.update_tas_id(2011, 1)
+    load_sf133.update_account_num(2011, 1)
     sess.refresh(sf_133)
-    assert sf_133.tas_id == tas.account_num
+    assert sf_133.account_num == tas.account_num
