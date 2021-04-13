@@ -602,13 +602,7 @@ def _request_sam_api(url, request_type, accept_type, params=None, body=None):
         'Accept': 'application/{}'.format(accept_type),
         'Content-Type': 'application/json'
     }
-    headers_copy = headers.copy()
-    del headers_copy['x-api-key']
-    logger.info(request_type)
-    logger.info(url)
-    logger.info(params)
-    logger.info(headers_copy)
-    r = requests.request(request_type, url, headers=headers, params=params, json=json.dumps(body), auth=auth,
+    r = requests.request(request_type.upper(), url, headers=headers, params=params, json=json.dumps(body), auth=auth,
                          timeout=60)
     # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
     r.raise_for_status()
