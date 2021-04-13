@@ -640,6 +640,8 @@ def get_duns_props_from_sam(duns_list):
     }
     duns_props = []
     for duns_obj in request_sam_entity_api(duns_list):
+        logger.info('FROM SAM')
+        logger.info(duns_obj)
         duns_props_dict = {}
         for duns_props_name, duns_prop_path in duns_props_mappings.items():
             nested_obj = duns_obj
@@ -667,6 +669,8 @@ def get_duns_props_from_sam(duns_list):
                 continue
             duns_props_dict[duns_props_name] = value
         duns_props.append(duns_props_dict)
+        logger.info('STORING AS')
+        logger.info(duns_props_dict)
 
     return pd.DataFrame(duns_props)
 
@@ -694,6 +698,8 @@ def update_duns_props(df):
     for duns_list in batch(all_duns, batch_size):
         logger.info("Gathering additional data for DUNS records {}-{}".format(index, index + batch_size))
         duns_props_batch = get_duns_props_from_sam(duns_list)
+        logger.info('BATCH')
+        logger.info(duns_props_batch)
         duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
