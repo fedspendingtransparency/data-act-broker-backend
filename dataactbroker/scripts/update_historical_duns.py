@@ -67,7 +67,7 @@ def run_duns_batches(file, sess, block_size=LOAD_BATCH_SIZE):
                                   names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
     duns_dfs = [duns_df for duns_df in duns_reader_obj]
     # TODO: FOR TESTING, REMOVE
-    duns_dfs = [duns_dfs[:5]]
+    duns_dfs = duns_dfs[:5]
     row_count = sum([len(duns_df.index) for duns_df in duns_dfs])
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now() - start).total_seconds()))
 
