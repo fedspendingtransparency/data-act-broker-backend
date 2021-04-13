@@ -1,11 +1,8 @@
 import re
 import calendar
 import logging
-import time
 import requests
 from requests.packages.urllib3.exceptions import ReadTimeoutError
-import sys
-import json
 from dateutil.parser import parse
 import datetime as dt
 
@@ -21,7 +18,7 @@ from dataactcore.utils.statusCode import StatusCode
 logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.WARNING)
 
-RETRY_REQUEST_EXCEPTIONS = (requests.exception.RequestException, ConnectionError, ConnectionResetError,
+RETRY_REQUEST_EXCEPTIONS = (requests.exceptions.RequestException, ConnectionError, ConnectionResetError,
                              ReadTimeoutError, requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout,
                              requests.exceptions.ChunkedEncodingError)
 
