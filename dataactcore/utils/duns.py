@@ -9,10 +9,12 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from sqlalchemy import and_, func
+from ratelimit import limits, sleep_and_retry
+from backoff import on_exception, expo
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
-from dataactbroker.helpers.generic_helper import batch, request_with_retries
+from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
 from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
 from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
 from dataactcore.models.jobModels import Submission # noqa
@@ -26,6 +28,9 @@ EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date',
                     'last_exec_comp_mod_date']
 LOAD_BATCH_SIZE = 10000
 
+# SAM's Rate Limit is 10k requests/day
+RATE_LIMIT_CALLS = 10000
+RATE_LIMIT_PERIOD = 24 * 60 * 60  # seconds
 
 def clean_sam_data(data):
     """ Wrapper around clean_data with the DUNS context
@@ -568,7 +573,9 @@ def request_sam_csv_api(root_dir, file_name):
                                     params=params)
     open(local_sam_file, 'wb').write(file_content)
 
-
+@limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
+@sleep_and_retry
+@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=10, logger=logger)
 def _request_sam_api(url, request_type, accept_type, params=None, body=None):
     """ Calls one of the SAM APIs and returns its content
 
@@ -595,7 +602,11 @@ def _request_sam_api(url, request_type, accept_type, params=None, body=None):
         'Accept': 'application/{}'.format(accept_type),
         'Content-Type': 'application/json'
     }
-    return request_with_retries(request_type, url, auth=auth, headers=headers, params=params, body=body).content
+    r = requests.request(request_type, url, headers=headers, params=params, json=json.dumps(body), auth=auth,
+                         timeout=60)
+    # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
+    r.raise_for_status()
+    return r.content
 
 
 def get_duns_props_from_sam(duns_list):
