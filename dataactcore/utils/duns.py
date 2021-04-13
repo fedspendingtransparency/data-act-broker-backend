@@ -658,10 +658,12 @@ def get_duns_props_from_sam(duns_list):
                 for index in range(1, 6):
                     duns_props_dict['high_comp_officer{}_full_na'.format(index)] = None
                     duns_props_dict['high_comp_officer{}_amount'.format(index)] = None
-                for index, exec_comp in enumerate(nested_obj.get('listOfExecutiveCompensation', []), start=1):
-                    if exec_comp['execName'] is not None:
-                        duns_props_dict['high_comp_officer{}_full_na'.format(index)] = exec_comp['execName']
-                        duns_props_dict['high_comp_officer{}_amount'.format(index)] = exec_comp['compensationAmount']
+                if nested_obj:
+                    for index, exec_comp in enumerate(nested_obj.get('listOfExecutiveCompensation', []), start=1):
+                        if exec_comp['execName'] is not None:
+                            duns_props_dict['high_comp_officer{}_full_na'.format(index)] = exec_comp['execName']
+                            duns_props_dict['high_comp_officer{}_amount'.format(index)] = \
+                                exec_comp['compensationAmount']
                 continue
             duns_props_dict[duns_props_name] = value
         duns_props.append(duns_props_dict)
