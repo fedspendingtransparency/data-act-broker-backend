@@ -550,8 +550,9 @@ def request_sam_entity_api(duns_list):
     logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
     params = {
         'sensitivity': 'fouo',
-        'ueiDUNS': duns_list
+        'ueiDUNS': '[{}]'.format('~'.join(duns_list))
     }
+    logger.info(params)
     content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], request_type='post', accept_type='json',
                                params=params)
     return json.loads(content)['entityData']
