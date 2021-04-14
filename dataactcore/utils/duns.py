@@ -699,7 +699,8 @@ def update_duns_props(df):
         logger.info("Gathering additional data for DUNS records {}-{}".format(index, index + batch_size))
         duns_props_batch = get_duns_props_from_sam(duns_list)
         logger.info('BATCH')
-        logger.info(duns_props_batch)
+        with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+            logger.info(duns_props_batch)
         duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
