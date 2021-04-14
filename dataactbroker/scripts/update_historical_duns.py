@@ -84,18 +84,9 @@ def run_duns_batches(file, sess, block_size=LOAD_BATCH_SIZE):
 
             # get address info for incoming duns
             duns_to_load = update_duns_props(duns_to_load)
-            logger.info('UPDATE DUNS PROPS')
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-                logger.info(duns_to_load)
             column_mappings = {col: col for col in duns_to_load.columns}
             duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
-            logger.info('CLEANED')
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-                logger.info(duns_to_load)
             duns_added += len(duns_to_load.index)
-            logger.info('FINAL ADDING TO DB')
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-                logger.info(duns_to_load)
             insert_dataframe(duns_to_load, HistoricDUNS.__table__.name, sess.connection())
             sess.commit()
 
