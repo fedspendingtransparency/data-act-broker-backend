@@ -702,27 +702,24 @@ def update_duns_props(df):
         with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
             logger.info(duns_props_batch)
         duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
-        logger.info('DROPPED PREFILLED COLS')
-        logger.info('PREFILLED COLS: {}'.format(prefilled_cols))
-        with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-            logger.info(duns_props_batch)
         # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
         if not duns_props_batch.empty:
             added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
-        logger.info('ADDED DUNS: {}'.format(added_duns_list))
         empty_duns_rows = []
         for duns in (set(added_duns_list) ^ set(duns_list)):
             empty_duns_row = empty_row_template.copy()
             empty_duns_row['awardee_or_recipient_uniqu'] = duns
             empty_duns_rows.append(empty_duns_row)
-        logger.info('EMPTY DUNS ROWS: {}'.format(empty_duns_rows))
         duns_props_batch = duns_props_batch.append(pd.DataFrame(empty_duns_rows), sort=True)
-        logger.info('ADDING EMPTY DUNSS ROWS')
-        with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-            logger.info(duns_props_batch)
         duns_props_df = duns_props_df.append(duns_props_batch, sort=True)
         index += batch_size
+    logger.info('ORIGINAL DF')
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+        logger.info(df)
+    logger.info('DUNS PROPS DF')
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+        logger.info(duns_props_df)
     return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
 
 
