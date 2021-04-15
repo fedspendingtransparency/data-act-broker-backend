@@ -154,134 +154,167 @@ SELECT NULL AS "source_row_number",
     ussgl487200_downward_adjus_cpe_sum_b AS "target_value_ussgl487200_downward_adjus_cpe_sum_b",
     ussgl497200_downward_adjus_cpe_sum_b AS "target_value_ussgl497200_downward_adjus_cpe_sum_b",
     deobligations_recov_by_pro_cpe_sum_b AS "target_value_deobligations_recov_by_pro_cpe_sum_b",
-    CASE WHEN ussgl480100_undelivered_or_fyb_sum_c < ussgl480100_undelivered_or_fyb_sum_b
-        THEN COALESCE(ussgl480100_undelivered_or_fyb_sum_c - ussgl480100_undelivered_or_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl480100_undelivered_or_fyb_sum",
-    CASE WHEN ussgl480100_undelivered_or_cpe_sum_c < ussgl480100_undelivered_or_cpe_sum_b
-        THEN COALESCE(ussgl480100_undelivered_or_cpe_sum_c - ussgl480100_undelivered_or_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl480100_undelivered_or_cpe_sum",
-    CASE WHEN ussgl483100_undelivered_or_cpe_sum_c < ussgl483100_undelivered_or_cpe_sum_b
-        THEN COALESCE(ussgl483100_undelivered_or_cpe_sum_c - ussgl483100_undelivered_or_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl483100_undelivered_or_cpe_sum",
-    CASE WHEN ussgl488100_upward_adjustm_cpe_sum_c < ussgl488100_upward_adjustm_cpe_sum_b
-        THEN COALESCE(ussgl488100_upward_adjustm_cpe_sum_c - ussgl488100_upward_adjustm_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl488100_upward_adjustm_cpe_sum",
-    CASE WHEN obligations_undelivered_or_fyb_sum_c < obligations_undelivered_or_fyb_sum_b
-        THEN COALESCE(obligations_undelivered_or_fyb_sum_c - obligations_undelivered_or_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_obligations_undelivered_or_fyb_sum",
-    CASE WHEN obligations_undelivered_or_cpe_sum_c < obligations_undelivered_or_cpe_sum_b
-        THEN COALESCE(obligations_undelivered_or_cpe_sum_c - obligations_undelivered_or_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_obligations_undelivered_or_cpe_sum",
-    CASE WHEN ussgl490100_delivered_orde_fyb_sum_c < ussgl490100_delivered_orde_fyb_sum_b
-        THEN COALESCE(ussgl490100_delivered_orde_fyb_sum_c - ussgl490100_delivered_orde_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl490100_delivered_orde_fyb_sum",
-    CASE WHEN ussgl490100_delivered_orde_cpe_sum_c < ussgl490100_delivered_orde_cpe_sum_b
-        THEN COALESCE(ussgl490100_delivered_orde_cpe_sum_c - ussgl490100_delivered_orde_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl490100_delivered_orde_cpe_sum",
-    CASE WHEN ussgl493100_delivered_orde_cpe_sum_c < ussgl493100_delivered_orde_cpe_sum_b
-        THEN COALESCE(ussgl493100_delivered_orde_cpe_sum_c - ussgl493100_delivered_orde_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl493100_delivered_orde_cpe_sum",
-    CASE WHEN ussgl498100_upward_adjustm_cpe_sum_c < ussgl498100_upward_adjustm_cpe_sum_b
-        THEN COALESCE(ussgl498100_upward_adjustm_cpe_sum_c - ussgl498100_upward_adjustm_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl498100_upward_adjustm_cpe_sum",
-    CASE WHEN obligations_delivered_orde_fyb_sum_c < obligations_delivered_orde_fyb_sum_b
-        THEN COALESCE(obligations_delivered_orde_fyb_sum_c - obligations_delivered_orde_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_obligations_delivered_orde_fyb_sum",
-    CASE WHEN obligations_delivered_orde_cpe_sum_c < obligations_delivered_orde_cpe_sum_b
-        THEN COALESCE(obligations_delivered_orde_cpe_sum_c - obligations_delivered_orde_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_obligations_delivered_orde_cpe_sum",
-    CASE WHEN ussgl480200_undelivered_or_fyb_sum_c < ussgl480200_undelivered_or_fyb_sum_b
-        THEN COALESCE(ussgl480200_undelivered_or_fyb_sum_c - ussgl480200_undelivered_or_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl480200_undelivered_or_fyb_sum",
-    CASE WHEN ussgl480200_undelivered_or_cpe_sum_c < ussgl480200_undelivered_or_cpe_sum_b
-        THEN COALESCE(ussgl480200_undelivered_or_cpe_sum_c - ussgl480200_undelivered_or_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl480200_undelivered_or_cpe_sum",
-    CASE WHEN ussgl483200_undelivered_or_cpe_sum_c < ussgl483200_undelivered_or_cpe_sum_b
-        THEN COALESCE(ussgl483200_undelivered_or_cpe_sum_c - ussgl483200_undelivered_or_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl483200_undelivered_or_cpe_sum",
-    CASE WHEN ussgl488200_upward_adjustm_cpe_sum_c < ussgl488200_upward_adjustm_cpe_sum_b
-        THEN COALESCE(ussgl488200_upward_adjustm_cpe_sum_c - ussgl488200_upward_adjustm_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl488200_upward_adjustm_cpe_sum",
-    CASE WHEN gross_outlays_undelivered_fyb_sum_c < gross_outlays_undelivered_fyb_sum_b
-        THEN COALESCE(gross_outlays_undelivered_fyb_sum_c - gross_outlays_undelivered_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_gross_outlays_undelivered_fyb_sum",
-    CASE WHEN gross_outlays_undelivered_cpe_sum_c < gross_outlays_undelivered_cpe_sum_b
-        THEN COALESCE(gross_outlays_undelivered_cpe_sum_c - gross_outlays_undelivered_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_gross_outlays_undelivered_cpe_sum",
-    CASE WHEN ussgl490200_delivered_orde_cpe_sum_c < ussgl490200_delivered_orde_cpe_sum_b
-        THEN COALESCE(ussgl490200_delivered_orde_cpe_sum_c - ussgl490200_delivered_orde_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl490200_delivered_orde_cpe_sum",
-    CASE WHEN ussgl490800_authority_outl_fyb_sum_c < ussgl490800_authority_outl_fyb_sum_b
-        THEN COALESCE(ussgl490800_authority_outl_fyb_sum_c - ussgl490800_authority_outl_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl490800_authority_outl_fyb_sum",
-    CASE WHEN ussgl490800_authority_outl_cpe_sum_c < ussgl490800_authority_outl_cpe_sum_b
-        THEN COALESCE(ussgl490800_authority_outl_cpe_sum_c - ussgl490800_authority_outl_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl490800_authority_outl_cpe_sum",
-    CASE WHEN ussgl498200_upward_adjustm_cpe_sum_c < ussgl498200_upward_adjustm_cpe_sum_b
-        THEN COALESCE(ussgl498200_upward_adjustm_cpe_sum_c - ussgl498200_upward_adjustm_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl498200_upward_adjustm_cpe_sum",
-    CASE WHEN gross_outlays_delivered_or_fyb_sum_c < gross_outlays_delivered_or_fyb_sum_b
-        THEN COALESCE(gross_outlays_delivered_or_fyb_sum_c - gross_outlays_delivered_or_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_gross_outlays_delivered_or_fyb_sum",
-    CASE WHEN gross_outlays_delivered_or_cpe_sum_c < gross_outlays_delivered_or_cpe_sum_b
-        THEN COALESCE(gross_outlays_delivered_or_cpe_sum_c - gross_outlays_delivered_or_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_gross_outlays_delivered_or_cpe_sum",
-    CASE WHEN gross_outlay_amount_by_awa_fyb_sum_c < gross_outlay_amount_by_pro_fyb_sum_b
-        THEN COALESCE(gross_outlay_amount_by_awa_fyb_sum_c - gross_outlay_amount_by_pro_fyb_sum_b, 0)
-        ELSE 0
-        END AS "difference_gross_outlay_amount_by_pro_fyb_sum",
-    CASE WHEN gross_outlay_amount_by_awa_cpe_sum_c < gross_outlay_amount_by_pro_cpe_sum_b
-        THEN COALESCE(gross_outlay_amount_by_awa_cpe_sum_c - gross_outlay_amount_by_pro_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_gross_outlay_amount_by_pro_cpe_sum",
-    CASE WHEN obligations_incurred_byawa_cpe_sum_c < obligations_incurred_by_pr_cpe_sum_b
-        THEN COALESCE(obligations_incurred_byawa_cpe_sum_c - obligations_incurred_by_pr_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_obligations_incurred_by_pr_cpe_sum",
-    CASE WHEN ussgl487100_downward_adjus_cpe_sum_c > ussgl487100_downward_adjus_cpe_sum_b
-        THEN COALESCE(ussgl487100_downward_adjus_cpe_sum_c - ussgl487100_downward_adjus_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl487100_downward_adjus_cpe_sum",
-    CASE WHEN ussgl497100_downward_adjus_cpe_sum_c > ussgl497100_downward_adjus_cpe_sum_b
-        THEN COALESCE(ussgl497100_downward_adjus_cpe_sum_c - ussgl497100_downward_adjus_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl497100_downward_adjus_cpe_sum",
-    CASE WHEN ussgl487200_downward_adjus_cpe_sum_c > ussgl487200_downward_adjus_cpe_sum_b
-        THEN COALESCE(ussgl487200_downward_adjus_cpe_sum_c - ussgl487200_downward_adjus_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl487200_downward_adjus_cpe_sum",
-    CASE WHEN ussgl497200_downward_adjus_cpe_sum_c > ussgl497200_downward_adjus_cpe_sum_b
-        THEN COALESCE(ussgl497200_downward_adjus_cpe_sum_c - ussgl497200_downward_adjus_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_ussgl497200_downward_adjus_cpe_sum",
-    CASE WHEN deobligations_recov_by_awa_cpe_sum_c > deobligations_recov_by_pro_cpe_sum_b
-        THEN COALESCE(deobligations_recov_by_awa_cpe_sum_c - deobligations_recov_by_pro_cpe_sum_b, 0)
-        ELSE 0
-        END AS "difference_deobligations_recov_by_pro_cpe_sum",
+    CONCAT_WS(', ',
+        CASE WHEN ussgl480100_undelivered_or_fyb_sum_c < ussgl480100_undelivered_or_fyb_sum_b
+                AND COALESCE(ussgl480100_undelivered_or_fyb_sum_c - ussgl480100_undelivered_or_fyb_sum_b, 0) != 0
+            THEN 'ussgl480100_undelivered_or_fyb_sum: ' || (ussgl480100_undelivered_or_fyb_sum_c - ussgl480100_undelivered_or_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl480100_undelivered_or_cpe_sum_c < ussgl480100_undelivered_or_cpe_sum_b
+                AND COALESCE(ussgl480100_undelivered_or_cpe_sum_c - ussgl480100_undelivered_or_cpe_sum_b, 0) != 0
+            THEN 'ussgl480100_undelivered_or_cpe_sum: ' || (ussgl480100_undelivered_or_cpe_sum_c - ussgl480100_undelivered_or_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl483100_undelivered_or_cpe_sum_c < ussgl483100_undelivered_or_cpe_sum_b
+                AND COALESCE(ussgl483100_undelivered_or_cpe_sum_c - ussgl483100_undelivered_or_cpe_sum_b, 0) != 0
+            THEN 'ussgl483100_undelivered_or_cpe_sum: ' || (ussgl483100_undelivered_or_cpe_sum_c - ussgl483100_undelivered_or_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl488100_upward_adjustm_cpe_sum_c < ussgl488100_upward_adjustm_cpe_sum_b
+                AND COALESCE(ussgl488100_upward_adjustm_cpe_sum_c - ussgl488100_upward_adjustm_cpe_sum_b, 0) != 0
+            THEN 'ussgl488100_upward_adjustm_cpe_sum: ' || (ussgl488100_upward_adjustm_cpe_sum_c - ussgl488100_upward_adjustm_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN obligations_undelivered_or_fyb_sum_c < obligations_undelivered_or_fyb_sum_b
+                AND COALESCE(obligations_undelivered_or_fyb_sum_c - obligations_undelivered_or_fyb_sum_b, 0) != 0
+            THEN 'obligations_undelivered_or_fyb_sum: ' || (obligations_undelivered_or_fyb_sum_c - obligations_undelivered_or_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN obligations_undelivered_or_cpe_sum_c < obligations_undelivered_or_cpe_sum_b
+                AND COALESCE(obligations_undelivered_or_cpe_sum_c - obligations_undelivered_or_cpe_sum_b, 0) != 0
+            THEN 'obligations_undelivered_or_cpe_sum: ' || (obligations_undelivered_or_cpe_sum_c - obligations_undelivered_or_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl490100_delivered_orde_fyb_sum_c < ussgl490100_delivered_orde_fyb_sum_b
+                AND COALESCE(ussgl490100_delivered_orde_fyb_sum_c - ussgl490100_delivered_orde_fyb_sum_b, 0) != 0
+            THEN 'ussgl490100_delivered_orde_fyb_sum: ' || (ussgl490100_delivered_orde_fyb_sum_c - ussgl490100_delivered_orde_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl490100_delivered_orde_cpe_sum_c < ussgl490100_delivered_orde_cpe_sum_b
+                AND COALESCE(ussgl490100_delivered_orde_cpe_sum_c - ussgl490100_delivered_orde_cpe_sum_b, 0) != 0
+            THEN 'ussgl490100_delivered_orde_cpe_sum: ' || (ussgl490100_delivered_orde_cpe_sum_c - ussgl490100_delivered_orde_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl493100_delivered_orde_cpe_sum_c < ussgl493100_delivered_orde_cpe_sum_b
+                AND COALESCE(ussgl493100_delivered_orde_cpe_sum_c - ussgl493100_delivered_orde_cpe_sum_b, 0) != 0
+            THEN 'ussgl493100_delivered_orde_cpe_sum: ' || (ussgl493100_delivered_orde_cpe_sum_c - ussgl493100_delivered_orde_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl498100_upward_adjustm_cpe_sum_c < ussgl498100_upward_adjustm_cpe_sum_b
+                AND COALESCE(ussgl498100_upward_adjustm_cpe_sum_c - ussgl498100_upward_adjustm_cpe_sum_b, 0) != 0
+            THEN 'ussgl498100_upward_adjustm_cpe_sum: ' || (ussgl498100_upward_adjustm_cpe_sum_c - ussgl498100_upward_adjustm_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN obligations_delivered_orde_fyb_sum_c < obligations_delivered_orde_fyb_sum_b
+                AND COALESCE(obligations_delivered_orde_fyb_sum_c - obligations_delivered_orde_fyb_sum_b, 0) != 0
+            THEN 'obligations_delivered_orde_fyb_sum: ' || (obligations_delivered_orde_fyb_sum_c - obligations_delivered_orde_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN obligations_delivered_orde_cpe_sum_c < obligations_delivered_orde_cpe_sum_b
+                AND COALESCE(obligations_delivered_orde_cpe_sum_c - obligations_delivered_orde_cpe_sum_b, 0) != 0
+            THEN 'obligations_delivered_orde_cpe_sum: ' || (obligations_delivered_orde_cpe_sum_c - obligations_delivered_orde_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl480200_undelivered_or_fyb_sum_c < ussgl480200_undelivered_or_fyb_sum_b
+                AND COALESCE(ussgl480200_undelivered_or_fyb_sum_c - ussgl480200_undelivered_or_fyb_sum_b, 0) != 0
+            THEN 'ussgl480200_undelivered_or_fyb_sum: ' || (ussgl480200_undelivered_or_fyb_sum_c - ussgl480200_undelivered_or_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl480200_undelivered_or_cpe_sum_c < ussgl480200_undelivered_or_cpe_sum_b
+                AND COALESCE(ussgl480200_undelivered_or_cpe_sum_c - ussgl480200_undelivered_or_cpe_sum_b, 0) != 0
+            THEN 'ussgl480200_undelivered_or_cpe_sum: ' || (ussgl480200_undelivered_or_cpe_sum_c - ussgl480200_undelivered_or_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl483200_undelivered_or_cpe_sum_c < ussgl483200_undelivered_or_cpe_sum_b
+                AND COALESCE(ussgl483200_undelivered_or_cpe_sum_c - ussgl483200_undelivered_or_cpe_sum_b, 0) != 0
+            THEN 'ussgl483200_undelivered_or_cpe_sum: ' || (ussgl483200_undelivered_or_cpe_sum_c - ussgl483200_undelivered_or_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl488200_upward_adjustm_cpe_sum_c < ussgl488200_upward_adjustm_cpe_sum_b
+                AND COALESCE(ussgl488200_upward_adjustm_cpe_sum_c - ussgl488200_upward_adjustm_cpe_sum_b, 0) != 0
+            THEN 'ussgl488200_upward_adjustm_cpe_sum: ' || (ussgl488200_upward_adjustm_cpe_sum_c - ussgl488200_upward_adjustm_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN gross_outlays_undelivered_fyb_sum_c < gross_outlays_undelivered_fyb_sum_b
+                AND COALESCE(gross_outlays_undelivered_fyb_sum_c - gross_outlays_undelivered_fyb_sum_b, 0) != 0
+            THEN 'gross_outlays_undelivered_fyb_sum: ' || (gross_outlays_undelivered_fyb_sum_c - gross_outlays_undelivered_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN gross_outlays_undelivered_cpe_sum_c < gross_outlays_undelivered_cpe_sum_b
+                AND COALESCE(gross_outlays_undelivered_cpe_sum_c - gross_outlays_undelivered_cpe_sum_b, 0) != 0
+            THEN 'gross_outlays_undelivered_cpe_sum: ' || (gross_outlays_undelivered_cpe_sum_c - gross_outlays_undelivered_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl490200_delivered_orde_cpe_sum_c < ussgl490200_delivered_orde_cpe_sum_b
+                AND COALESCE(ussgl490200_delivered_orde_cpe_sum_c - ussgl490200_delivered_orde_cpe_sum_b, 0) != 0
+            THEN 'ussgl490200_delivered_orde_cpe_sum: ' || (ussgl490200_delivered_orde_cpe_sum_c - ussgl490200_delivered_orde_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl490800_authority_outl_fyb_sum_c < ussgl490800_authority_outl_fyb_sum_b
+                AND COALESCE(ussgl490800_authority_outl_fyb_sum_c - ussgl490800_authority_outl_fyb_sum_b, 0) != 0
+            THEN 'ussgl490800_authority_outl_fyb_sum: ' || (ussgl490800_authority_outl_fyb_sum_c - ussgl490800_authority_outl_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl490800_authority_outl_cpe_sum_c < ussgl490800_authority_outl_cpe_sum_b
+                AND COALESCE(ussgl490800_authority_outl_cpe_sum_c - ussgl490800_authority_outl_cpe_sum_b, 0) != 0
+            THEN 'ussgl490800_authority_outl_cpe_sum: ' || (ussgl490800_authority_outl_cpe_sum_c - ussgl490800_authority_outl_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl498200_upward_adjustm_cpe_sum_c < ussgl498200_upward_adjustm_cpe_sum_b
+                AND COALESCE(ussgl498200_upward_adjustm_cpe_sum_c - ussgl498200_upward_adjustm_cpe_sum_b, 0) != 0
+            THEN 'ussgl498200_upward_adjustm_cpe_sum: ' || (ussgl498200_upward_adjustm_cpe_sum_c - ussgl498200_upward_adjustm_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN gross_outlays_delivered_or_fyb_sum_c < gross_outlays_delivered_or_fyb_sum_b
+                AND COALESCE(gross_outlays_delivered_or_fyb_sum_c - gross_outlays_delivered_or_fyb_sum_b, 0) != 0
+            THEN 'gross_outlays_delivered_or_fyb_sum: ' || (gross_outlays_delivered_or_fyb_sum_c - gross_outlays_delivered_or_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN gross_outlays_delivered_or_cpe_sum_c < gross_outlays_delivered_or_cpe_sum_b
+                AND COALESCE(gross_outlays_delivered_or_cpe_sum_c - gross_outlays_delivered_or_cpe_sum_b, 0) != 0
+            THEN 'gross_outlays_delivered_or_cpe_sum: ' || (gross_outlays_delivered_or_cpe_sum_c - gross_outlays_delivered_or_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN gross_outlay_amount_by_awa_fyb_sum_c < gross_outlay_amount_by_pro_fyb_sum_b
+                AND COALESCE(gross_outlay_amount_by_awa_fyb_sum_c - gross_outlay_amount_by_pro_fyb_sum_b, 0) != 0
+            THEN 'gross_outlay_amount_by_awa_fyb_sum: ' || (gross_outlay_amount_by_awa_fyb_sum_c - gross_outlay_amount_by_pro_fyb_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN gross_outlay_amount_by_awa_cpe_sum_c < gross_outlay_amount_by_pro_cpe_sum_b
+                AND COALESCE(gross_outlay_amount_by_awa_cpe_sum_c - gross_outlay_amount_by_pro_cpe_sum_b, 0) != 0
+            THEN 'gross_outlay_amount_by_awa_cpe_sum: ' || (gross_outlay_amount_by_awa_cpe_sum_c - gross_outlay_amount_by_pro_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN obligations_incurred_byawa_cpe_sum_c < obligations_incurred_by_pr_cpe_sum_b
+                AND COALESCE(obligations_incurred_byawa_cpe_sum_c - obligations_incurred_by_pr_cpe_sum_b, 0) != 0
+            THEN 'obligations_incurred_byawa_cpe_sum: ' || (obligations_incurred_byawa_cpe_sum_c - obligations_incurred_by_pr_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl487100_downward_adjus_cpe_sum_c > ussgl487100_downward_adjus_cpe_sum_b
+                AND COALESCE(ussgl487100_downward_adjus_cpe_sum_c - ussgl487100_downward_adjus_cpe_sum_b, 0) != 0
+            THEN 'ussgl487100_downward_adjus_cpe_sum: ' || (ussgl487100_downward_adjus_cpe_sum_c - ussgl487100_downward_adjus_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl497100_downward_adjus_cpe_sum_c > ussgl497100_downward_adjus_cpe_sum_b
+                AND COALESCE(ussgl497100_downward_adjus_cpe_sum_c - ussgl497100_downward_adjus_cpe_sum_b, 0) != 0
+            THEN 'ussgl497100_downward_adjus_cpe_sum: ' || (ussgl497100_downward_adjus_cpe_sum_c - ussgl497100_downward_adjus_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl487200_downward_adjus_cpe_sum_c > ussgl487200_downward_adjus_cpe_sum_b
+                AND COALESCE(ussgl487200_downward_adjus_cpe_sum_c - ussgl487200_downward_adjus_cpe_sum_b, 0) != 0
+            THEN 'ussgl487200_downward_adjus_cpe_sum: ' || (ussgl487200_downward_adjus_cpe_sum_c - ussgl487200_downward_adjus_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl497200_downward_adjus_cpe_sum_c > ussgl497200_downward_adjus_cpe_sum_b
+                AND COALESCE(ussgl497200_downward_adjus_cpe_sum_c - ussgl497200_downward_adjus_cpe_sum_b, 0) != 0
+            THEN 'ussgl497200_downward_adjus_cpe_sum: ' || (ussgl497200_downward_adjus_cpe_sum_c - ussgl497200_downward_adjus_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN deobligations_recov_by_awa_cpe_sum_c > deobligations_recov_by_pro_cpe_sum_b
+                AND COALESCE(deobligations_recov_by_awa_cpe_sum_c - deobligations_recov_by_pro_cpe_sum_b, 0) != 0
+            THEN 'deobligations_recov_by_awa_cpe_sum: ' || (deobligations_recov_by_awa_cpe_sum_c - deobligations_recov_by_pro_cpe_sum_b)
+            ELSE NULL
+            END) AS "difference",
     award_financial_records.display_tas AS "uniqueid_TAS",
     award_financial_records.disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM award_financial_records

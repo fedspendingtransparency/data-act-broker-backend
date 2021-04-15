@@ -81,23 +81,7 @@ def test_column_headers(database):
         'target_value_obligations_incurred_by_pr_cpe_sum_b', 'target_value_ussgl487100_downward_adjus_cpe_sum_b',
         'target_value_ussgl497100_downward_adjus_cpe_sum_b', 'target_value_ussgl487200_downward_adjus_cpe_sum_b',
         'target_value_ussgl497200_downward_adjus_cpe_sum_b', 'target_value_deobligations_recov_by_pro_cpe_sum_b',
-        'difference_ussgl480100_undelivered_or_fyb_sum', 'difference_ussgl480100_undelivered_or_cpe_sum',
-        'difference_ussgl483100_undelivered_or_cpe_sum', 'difference_ussgl488100_upward_adjustm_cpe_sum',
-        'difference_obligations_undelivered_or_fyb_sum', 'difference_obligations_undelivered_or_cpe_sum',
-        'difference_ussgl490100_delivered_orde_fyb_sum', 'difference_ussgl490100_delivered_orde_cpe_sum',
-        'difference_ussgl493100_delivered_orde_cpe_sum', 'difference_ussgl498100_upward_adjustm_cpe_sum',
-        'difference_obligations_delivered_orde_fyb_sum', 'difference_obligations_delivered_orde_cpe_sum',
-        'difference_ussgl480200_undelivered_or_fyb_sum', 'difference_ussgl480200_undelivered_or_cpe_sum',
-        'difference_ussgl483200_undelivered_or_cpe_sum', 'difference_ussgl488200_upward_adjustm_cpe_sum',
-        'difference_gross_outlays_undelivered_fyb_sum', 'difference_gross_outlays_undelivered_cpe_sum',
-        'difference_ussgl490200_delivered_orde_cpe_sum', 'difference_ussgl490800_authority_outl_fyb_sum',
-        'difference_ussgl490800_authority_outl_cpe_sum', 'difference_ussgl498200_upward_adjustm_cpe_sum',
-        'difference_gross_outlays_delivered_or_fyb_sum', 'difference_gross_outlays_delivered_or_cpe_sum',
-        'difference_gross_outlay_amount_by_pro_fyb_sum', 'difference_gross_outlay_amount_by_pro_cpe_sum',
-        'difference_obligations_incurred_by_pr_cpe_sum', 'difference_ussgl487100_downward_adjus_cpe_sum',
-        'difference_ussgl497100_downward_adjus_cpe_sum', 'difference_ussgl487200_downward_adjus_cpe_sum',
-        'difference_ussgl497200_downward_adjus_cpe_sum', 'difference_deobligations_recov_by_pro_cpe_sum',
-        'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode'
+        'difference', 'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode'
     }
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
