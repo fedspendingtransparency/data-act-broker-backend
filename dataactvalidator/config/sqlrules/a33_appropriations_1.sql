@@ -21,7 +21,7 @@ FROM sf_133 AS sf
             OR sf.allocation_transfer_agency = sub.cgac_code
         )
     LEFT JOIN tas_lookup
-        ON tas_lookup.account_num = sf.tas_id
+        ON tas_lookup.account_num = sf.account_num
 WHERE sub.submission_id = {0}
     AND NOT EXISTS (
         SELECT 1

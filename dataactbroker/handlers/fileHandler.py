@@ -1023,6 +1023,10 @@ class FileHandler:
 
         # set all jobs to their initial status of either "waiting" or "ready"
         for job in jobs:
+            if job.job_status_id == JOB_STATUS_DICT['running']:
+                return JsonResponse.error(ValueError('Submission is still uploading or validating'),
+                                          StatusCode.CLIENT_ERROR)
+
             if job.job_type_id == JOB_TYPE_DICT['file_upload'] and \
                job.file_type_id in [FILE_TYPE_DICT['award'], FILE_TYPE_DICT['award_procurement']]:
                 # file generation handled on backend, mark as ready
@@ -1035,6 +1039,7 @@ class FileHandler:
             else:
                 # these are dependent on file D2 validation
                 job.job_status_id = JOB_STATUS_DICT['waiting']
+            job.error_message = None
 
         # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
         upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']]

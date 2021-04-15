@@ -253,6 +253,20 @@ class TotalObligations(Base):
     total_asst_obligations = Column(Numeric)
 
 
+class CertifiedTotalObligations(Base):
+    """ Model keeping track of the certified total obligations from the AwardFinancial (C file) table. """
+    __tablename__ = "certified_total_obligations"
+
+    certified_total_obligations_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                               name="fk_certified_total_obligations_submission_id"),
+                           nullable=False, unique=True, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
+    total_obligations = Column(Numeric)
+    total_proc_obligations = Column(Numeric)
+    total_asst_obligations = Column(Numeric)
+
+
 class CertifiedFlexField(Base):
     """ Model for the certified flex field table. """
     __tablename__ = "certified_flex_field"
