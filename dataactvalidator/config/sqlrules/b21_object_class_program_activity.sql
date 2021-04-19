@@ -28,7 +28,7 @@ FROM limited_lines_sf_133_b21_{0} AS sf
             OR sf.allocation_transfer_agency = sub.cgac_code
         )
     LEFT JOIN tas_lookup
-        ON tas_lookup.account_num = sf.tas_id
+        ON tas_lookup.account_num = sf.account_num
 WHERE sub.submission_id = {0}
     AND sub.is_quarter_format IS FALSE
     AND NOT EXISTS (
