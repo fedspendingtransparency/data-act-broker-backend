@@ -8,7 +8,7 @@ import requests
 import sys
 import time
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pandas.io.json import json_normalize
 from requests.packages.urllib3.exceptions import ReadTimeoutError
 from sqlalchemy import func
@@ -73,9 +73,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
         # Create URL with the level parameter
         url_with_params = '{}&level={}'.format(API_URL, level)
 
-        # Add updateddatefrom parameter to the URL
+        # Add updateddatefrom and status parameters to the URL
         if not pull_all:
-            url_with_params += '&updateddatefrom={}'.format(updated_date_from)
+            url_with_params += '&updateddatefrom={}&status=all'.format(updated_date_from)
 
         # Retrieve the total count of expected records for this pull
         total_expected_records = get_with_exception_hand(url_with_params)['totalrecords']
@@ -113,6 +113,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             # Create an object with all the data from the API
             dataframe = pd.DataFrame()
             offices = {}
+            inactive_offices = []
             start = entries_processed + 1
             for response_dict in full_response:
                 # Process the entry if it isn't an error
@@ -132,6 +133,12 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     if update_db:
                         # trim incoming values
                         org = trim_nested_obj(org)
+
+                        # If it's inactive, we don't need all that craziness below, we just need to know which code
+                        # to delete
+                        if org['status'] == 'INACTIVE':
+                            inactive_offices.append(org.get('aacofficecode'))
+                            continue
 
                         agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'],
                                                                  org.get('agencycode'))
@@ -170,7 +177,8 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     dataframe.to_csv(f, index=False, header=False, columns=file_headers)
 
             if update_db:
-                office_codes = set(offices.keys())
+                # combine both lists of offices to determine what offices to delete, only active ones will be re-added
+                office_codes = set(offices.keys()).union(set(inactive_offices))
                 sess.query(Office).filter(Office.office_code.in_(office_codes)).delete(synchronize_session=False)
                 sess.add_all(offices.values())
 
@@ -358,7 +366,8 @@ def main():
         if not last_pull_date:
             logger.error('The -a or -d flag must be set when there are no Offices present in the database.')
             sys.exit(1)
-        updated_date_from = last_pull_date[0].date()
+        # We want to make the date one day earlier to account for any timing weirdness between the two systems
+        updated_date_from = last_pull_date[0].date() - timedelta(days=1)
 
     # Handle the filename parameter
     filename = args.filename[0] if args.filename else None
