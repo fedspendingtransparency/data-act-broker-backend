@@ -204,7 +204,7 @@ def get_error_metrics_by_job_id(job_id, include_file_types=False, severity_id=No
         ErrorMetadata.job_id == job_id, ErrorMetadata.severity_id == severity_id).all()
     for result in query_result:
         record_dict = {"field_name": result.field_name, "error_name": result.error_type.name,
-                       "error_description": result.error_type.description, "occurrences": str(result.occurrences),
+                       "error_description": result.error_type.description, "occurrences": result.occurrences,
                        "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
         if include_file_types:
             record_dict['source_file'] = FILE_TYPE_DICT_ID.get(result.file_type_id, '')
