@@ -32,7 +32,7 @@ This endpoint returns detailed validation job data for the requested submission.
             'field_name': "recordtype",
             'error_name': "required_error",
             'error_description': "This field is required for all submissions but was not provided in this row.",
-            'occurrences': "1",
+            'occurrences': 1,
             'rule_failed': "This field is required for all submissions but was not provided in this row.",
             'original_label': "FABSREQ3"
         }],
@@ -44,7 +44,7 @@ This endpoint returns detailed validation job data for the requested submission.
 ```
 
 ## Response Attributes
-- `job_id `: (int) database ID of the job
+- `job_id `: (integer) database ID of the job
 - `job_status`: (string) status of the job. Can be any of the following values:
     - `waiting`
     - `ready`
@@ -91,7 +91,7 @@ This endpoint returns detailed validation job data for the requested submission.
         -  `write_error`
         -  `length_error`
     -  `error_description`: (string) a description of the `error_name`
-    -  `occurrences`: (string) the number of times this error ocurred in this file
+    -  `occurrences`: (integer) the number of times this error ocurred in this file
     -  `rule_failed`: (string) the full description of the rule that failed
     -  `original_label`: (string) the rule label for the rule that failed
 -  `warning_data`: ([dict]), details of each warning that ocurred in the submission. Each entry is an dictionary containing the same keys as those found in `error_data` with the exception that `error_name` can only be `rule_failed`.
