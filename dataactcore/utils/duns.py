@@ -574,22 +574,17 @@ def request_sam_csv_api(root_dir, file_name):
     open(local_sam_file, 'wb').write(file_content)
 
 
-def non_existent_file(e):
-    give_up = False
-    error_content = e.response
-    if error_content is not None:
-        logger.info(error_content)
-        error_content = json.loads(error_content.content)
-        logger.info(error_content)
-        no_file_msg = 'The File does not exist with the provided parameters.'
-        if error_content.get('error') and error_content['error'].get('detail') == no_file_msg:
-            give_up = True
-    return give_up
+def is_non_existent_file_error(e):
+    non_existent_file_error = False
+    no_file_msg = 'The File does not exist with the provided parameters.'
+    if e.response is not None:
+        non_existent_file_error = (json.loads(e.response.content).get('detail') == no_file_msg)
+    return non_existent_file_error
 
 
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
 @sleep_and_retry
-@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=10, logger=logger, giveup=non_existent_file)
+@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=10, logger=logger, giveup=is_non_existent_file_error)
 def _request_sam_api(url, request_type, accept_type, params=None, body=None):
     """ Calls one of the SAM APIs and returns its content
 
