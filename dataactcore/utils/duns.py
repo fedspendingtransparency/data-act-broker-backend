@@ -575,6 +575,14 @@ def request_sam_csv_api(root_dir, file_name):
 
 
 def is_non_existent_file_error(e):
+    """ Differentiates between an abnormal connection issue or the file not existing
+
+        Args:
+            url: the error in question
+
+        Returns:
+            bool whether the error is a nonexistent file http error
+    """
     non_existent_file_error = False
     no_file_msg = 'The File does not exist with the provided parameters.'
     if e.response is not None:
