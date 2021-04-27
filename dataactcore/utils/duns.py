@@ -575,9 +575,14 @@ def request_sam_csv_api(root_dir, file_name):
 
 
 def non_existent_file(e):
-    error_content = e.response.content
-    logger.info(error_content)
-    return (error_content['error']['detail'] == 'The File does not exist with the provided parameters.')
+    give_up = False
+    error_content = e.response
+    no_file_msg = 'The File does not exist with the provided parameters.'
+    if error_content:
+        logger.info(error_content)
+        if error_content.get('error') and error_content['error'].get('detail') == no_file_msg:
+            give_up = True
+    return give_up
 
 
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
