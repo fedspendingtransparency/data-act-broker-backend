@@ -13,7 +13,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_missing_parent_names,
-                                    backfill_uei, request_sam_csv_api, is_non_existent_file_error)
+                                    backfill_uei, request_sam_csv_api, is_nonexistent_file_error)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
                 process_sam_file(data_type, 'DAILY', 'v2', daily_api_v2_date, sess, local=local, api=True,
                                  metrics=metrics)
             except requests.exceptions.HTTPError as e:
-                if is_non_existent_file_error(e):
+                if is_nonexistent_file_error(e):
                     logger.warning('No file found for {}, continuing'.format(daily_api_v2_date))
                     continue
                 else:
