@@ -578,9 +578,8 @@ def non_existent_file(e):
     give_up = False
     logger.exception(e)
     error_content = e.response
-    logger.info(error_content)
-    if error_content:
-        logger.info(error_content)
+    if error_content is not None:
+        error_content = error_content.text
         no_file_msg = 'The File does not exist with the provided parameters.'
         if error_content.get('error') and error_content['error'].get('detail') == no_file_msg:
             give_up = True
