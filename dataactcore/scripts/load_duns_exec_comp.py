@@ -94,7 +94,7 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
         load_date = earliest_date
     elif reload_date:
         # a bit redundant but also date validation
-        load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d')
+        load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d').date()
     else:
         sam_field = DUNS.last_sam_mod_date if data_type == 'DUNS' else DUNS.last_exec_comp_mod_date
         load_date = sess.query(sam_field).filter(sam_field.isnot(None)).order_by(sam_field.desc()).first()
