@@ -110,9 +110,9 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
 
     # TODO: Remove for testing, significantly excluding files to ensure the algorithm works
     window = 10
-    daily_v1_dates = daily_v1_dates[:window] + daily_v2_dates[-1*window:]
+    daily_v1_dates = daily_v1_dates[:window] + daily_v1_dates[-1*window:]
     daily_v2_dates = daily_v2_dates[:window] + daily_v2_dates[-1*window:]
-    daily_v2_api_dates = daily_v2_api_dates[:window] + daily_v2_dates[-1*window:]
+    daily_v2_api_dates = daily_v2_api_dates[:window] + daily_v2_api_dates[-1*window:]
     # TODO: Remove above
 
     if historic:
