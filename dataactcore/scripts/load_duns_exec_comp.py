@@ -108,13 +108,6 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
     daily_v2_dates = list(filter(lambda daily_date: daily_date >= load_date, daily_v2_dates))
     daily_v2_api_dates = list(filter(lambda daily_date: daily_date >= load_date, daily_v2_api_dates))
 
-    # TODO: Remove for testing, significantly excluding files to ensure the algorithm works
-    window = 10
-    daily_v1_dates = daily_v1_dates[:window] + daily_v1_dates[-1*window:]
-    daily_v2_dates = daily_v2_dates[:window] + daily_v2_dates[-1*window:]
-    daily_v2_api_dates = daily_v2_api_dates[:window] + daily_v2_api_dates[-1*window:]
-    # TODO: Remove above
-
     if historic:
         # load in the earliest monthly file and all daily files after
         version = 'v1' if earliest_date in monthly_v1_dates else 'v2'
