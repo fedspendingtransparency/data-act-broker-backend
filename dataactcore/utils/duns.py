@@ -32,6 +32,7 @@ LOAD_BATCH_SIZE = 10000
 RATE_LIMIT_CALLS = 10000
 RATE_LIMIT_PERIOD = 24 * 60 * 60  # seconds
 
+
 def clean_sam_data(data):
     """ Wrapper around clean_data with the DUNS context
 
@@ -547,7 +548,6 @@ def request_sam_entity_api(duns_list):
         Returns:
             json list of SAM objects representing entities
     """
-    logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
     params = {
         'sensitivity': 'fouo',
         'ueiDUNS': '[{}]'.format('~'.join(duns_list))
@@ -653,7 +653,6 @@ def get_duns_props_from_sam(duns_list):
         'executive_comp_data': 'coreData.executiveCompensationInformation'
     }
     duns_props = []
-    logger.info('Requested DUNS: {}'.format(duns_list))
     for duns_obj in request_sam_entity_api(duns_list):
         duns_props_dict = {}
         for duns_props_name, duns_prop_path in duns_props_mappings.items():
@@ -682,9 +681,6 @@ def get_duns_props_from_sam(duns_list):
                 continue
             duns_props_dict[duns_props_name] = value
         duns_props.append(duns_props_dict)
-    sam_duns = [sam['awardee_or_recipient_uniqu'] for sam in duns_props]
-    logger.info('Got back these DUNS: {}'.format(sam_duns))
-
     return pd.DataFrame(duns_props)
 
 
@@ -709,8 +705,10 @@ def update_duns_props(df):
     index = 0
     batch_size = 100
     for duns_list in batch(all_duns, batch_size):
-        logger.info("Gathering additional data for DUNS records {}-{}".format(index, index + batch_size))
+        logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
         duns_props_batch = get_duns_props_from_sam(duns_list)
+        sam_duns = [sam['awardee_or_recipient_uniqu'] for sam in duns_props_batch]
+        logger.info('Retrieved data for DUNS records: {}'.format(sam_duns))
         duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
