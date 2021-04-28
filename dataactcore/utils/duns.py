@@ -707,7 +707,7 @@ def update_duns_props(df):
     for duns_list in batch(all_duns, batch_size):
         logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
         duns_props_batch = get_duns_props_from_sam(duns_list)
-        sam_duns = [sam['awardee_or_recipient_uniqu'] for sam in duns_props_batch]
+        sam_duns = duns_props_batch['awardee_or_recipient_uniqu'].tolist()
         logger.info('Retrieved data for DUNS records: {}'.format(sam_duns))
         duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where data was not found
