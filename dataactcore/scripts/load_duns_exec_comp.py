@@ -101,7 +101,8 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
         if not load_date:
             field = 'sam' if data_type == 'duns' else 'executive compenstation'
             raise Exception('No last {} mod date found in DUNS table. Please run historic loader first.'.format(field))
-        load_date = load_date[0]
+        # we're not reloading that date again so adding a day
+        load_date = load_date[0] + datetime.timedelta(days=1)
 
     # only load in the daily files after the load date
     daily_v1_dates = list(filter(lambda daily_date: daily_date >= load_date, daily_v1_dates))
