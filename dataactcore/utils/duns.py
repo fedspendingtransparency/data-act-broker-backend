@@ -247,80 +247,87 @@ def create_temp_duns_table(sess, table_name, data):
     insert_dataframe(data, table_name, sess.connection())
 
 
-def update_duns(sess, duns_data, metrics=None, deletes=False):
+def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False):
     """ Takes in a dataframe of duns and adds/updates associated DUNS
 
         Args:
             sess: database connection
             duns_data: pandas dataframe representing duns data
+            table_name: the table to update ('duns', 'historic_duns')
             metrics: dictionary representing metrics of the script
             deletes: whether the data provided contains only delete records
 
         Returns:
             list of DUNS updated
     """
+    if table_name not in ('duns', 'historic_duns'):
+        raise ValueError('table argument must be \'duns\' or \'historic_duns\'')
     if not metrics:
         metrics = {
             'added_duns': [],
             'updated_duns': []
         }
 
-    temp_name = 'temp_duns_update'
-    temp_abbr = 'tdu'
-    create_temp_duns_table(sess, temp_name, duns_data)
+    tmp_name = 'temp_duns_update' if table_name == 'duns' else 'temp_historic_duns_update'
+    tmp_abbr = 'tdu' if table_name == 'duns' else 'thdu'
+    create_temp_duns_table(sess, tmp_name, duns_data)
 
     logger.info('Getting list of DUNS that will be added/updated for metrics')
     insert_sql = """
-        SELECT {temp_abbr}.awardee_or_recipient_uniqu
-        FROM {temp_name} AS {temp_abbr}
-        LEFT JOIN duns ON duns.awardee_or_recipient_uniqu={temp_abbr}.awardee_or_recipient_uniqu
-        WHERE duns.awardee_or_recipient_uniqu IS NULL;
-    """.format(temp_name=temp_name, temp_abbr=temp_abbr)
+        SELECT {tmp_abbr}.awardee_or_recipient_uniqu
+        FROM {tmp_name} AS {tmp_abbr}
+        LEFT JOIN {table_name} ON {table_name}.awardee_or_recipient_uniqu={tmp_abbr}.awardee_or_recipient_uniqu
+        WHERE {table_name}.awardee_or_recipient_uniqu IS NULL;
+    """.format(tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name)
     added_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(insert_sql).fetchall()]
     update_sql = """
-        SELECT duns.awardee_or_recipient_uniqu
-        FROM duns
-        JOIN {temp_name} AS {temp_abbr} ON duns.awardee_or_recipient_uniqu={temp_abbr}.awardee_or_recipient_uniqu;
-    """.format(temp_name=temp_name, temp_abbr=temp_abbr)
+        SELECT {table_name}.awardee_or_recipient_uniqu
+        FROM {table_name}
+        JOIN {tmp_name} AS {tmp_abbr} ON {table_name}.awardee_or_recipient_uniqu={tmp_abbr}.awardee_or_recipient_uniqu;
+    """.format(tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name)
     updated_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
 
-    logger.info('Adding/updating DUNS based on {}'.format(temp_name))
+    logger.info('Adding/updating DUNS based on {}'.format(tmp_name))
     if deletes:
-        update_cols = 'deactivation_date = {temp_abbr}.deactivation_date'.format(temp_abbr=temp_abbr)
+        update_cols = 'deactivation_date = {tmp_abbr}.deactivation_date'.format(tmp_abbr=tmp_abbr)
     else:
-        update_cols = ', '.join(['{col} = {temp_abbr}.{col}'.format(col=col, temp_abbr=temp_abbr)
-                                 for col in list(duns_data.columns)
-                                 if col not in ['created_at', 'deactivation_date', 'awardee_or_recipient_uniqu']])
+        update_cols = ['{col} = {tmp_abbr}.{col}'.format(col=col, tmp_abbr=tmp_abbr)
+                       for col in list(duns_data.columns)
+                       if col not in ['created_at', 'deactivation_date', 'awardee_or_recipient_uniqu']]
+        if table_name == 'duns':
+            update_cols.append('historic = FALSE')
+        update_cols = ', '.join(update_cols)
     update_sql = """
-        UPDATE duns
+        UPDATE {table_name}
         SET
-            {update_cols},
-            historic = FALSE
-        FROM {temp_name} AS {temp_abbr}
-        WHERE {temp_abbr}.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu;
-    """.format(update_cols=update_cols, temp_name=temp_name, temp_abbr=temp_abbr)
+            {update_cols}
+        FROM {tmp_name} AS {tmp_abbr}
+        WHERE {tmp_abbr}.awardee_or_recipient_uniqu = {table_name}.awardee_or_recipient_uniqu;
+    """.format(table_name=table_name, update_cols=update_cols, tmp_name=tmp_name, tmp_abbr=tmp_abbr)
     sess.execute(update_sql)
 
     insert_cols = ', '.join(list(duns_data.columns))
+    insert_historic = ('historic,', 'FALSE,') if table_name == 'duns' else ('', '')
     insert_sql = """
-        INSERT INTO duns (
-            {insert_cols},
-            historic
+        INSERT INTO {table_name} (
+            {historic_col}
+            {insert_cols}
         )
         SELECT
-            {insert_cols},
-            FALSE
-        FROM {temp_name} AS {temp_abbr}
+            {historic_val}
+            {insert_cols}
+        FROM {tmp_name} AS {tmp_abbr}
         WHERE NOT EXISTS (
             SELECT 1
-            FROM duns
-            WHERE duns.awardee_or_recipient_uniqu = {temp_abbr}.awardee_or_recipient_uniqu
+            FROM {table_name}
+            WHERE {table_name}.awardee_or_recipient_uniqu = {tmp_abbr}.awardee_or_recipient_uniqu
         );
-    """.format(insert_cols=insert_cols, temp_name=temp_name, temp_abbr=temp_abbr)
+    """.format(table_name=table_name, insert_cols=insert_cols, tmp_name=tmp_name, tmp_abbr=tmp_abbr,
+               historic_col=insert_historic[0], historic_val=insert_historic[1])
     sess.execute(insert_sql)
 
-    logger.info('Dropping {}'.format(temp_name))
-    sess.execute('DROP TABLE {};'.format(temp_name))
+    logger.info('Dropping {}'.format(tmp_name))
+    sess.execute('DROP TABLE {};'.format(tmp_name))
 
     sess.commit()
 
@@ -737,4 +744,4 @@ def backfill_uei(sess, table):
         df = df.append(duns_batch)
         df = update_duns_props(df)
         df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
-        update_duns(sess, df)
+        update_duns(sess, df, table_name=table.__table__.name)

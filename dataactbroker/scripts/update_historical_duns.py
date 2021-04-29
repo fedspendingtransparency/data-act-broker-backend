@@ -5,6 +5,7 @@ import pandas as pd
 import argparse
 from datetime import datetime
 
+from dataactbroker.helpers.generic_helper import batch
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactvalidator.health_check import create_app
 from dataactcore.models.domainModels import HistoricDUNS, DUNS
@@ -13,7 +14,7 @@ from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.duns import update_duns_props, LOAD_BATCH_SIZE
+from dataactcore.utils.duns import update_duns_props, LOAD_BATCH_SIZE, update_duns
 
 logger = logging.getLogger(__name__)
 
@@ -85,13 +86,27 @@ def run_duns_batches(file, sess, block_size=LOAD_BATCH_SIZE):
             column_mappings = {col: col for col in duns_to_load.columns}
             duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
             duns_added += len(duns_to_load.index)
-            insert_dataframe(duns_to_load, HistoricDUNS.__table__.name, sess.connection())
+            update_duns(sess, duns_to_load, HistoricDUNS.__table__.name)
             sess.commit()
 
             logger.info("Finished updating {} DUNS rows in {} s".format(len(duns_to_load.index),
                                                                         (datetime.now() - start).total_seconds()))
 
     logger.info("Imported {} historical duns".format(duns_added))
+
+
+def reload_from_sam(sess):
+    """ Reload current historic duns data from SAM to pull in any new columns or data
+
+        Args:
+            sess: database connection
+    """
+    historic_duns_to_update = sess.query(HistoricDUNS.awardee_or_recipient_uniqu).all()
+    for duns_batch in batch(historic_duns_to_update, LOAD_BATCH_SIZE):
+        df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
+        df = df.append(duns_batch)
+        df = update_duns_props(df)
+        update_duns(sess, df, table_name=HistoricDUNS.__table__.name)
 
 
 def clean_historic_duns(sess):
@@ -147,8 +162,11 @@ def get_parser():
     """
     parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
     parser.add_argument('--block_size', '-s', help='Number of rows to batch load', type=int, default=LOAD_BATCH_SIZE)
-    parser.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
                                                                          ' update from SAM')
+    action.add_argument('--update_from_sam', '-s', action='store_true', help='Update the current HistoricDUNS with any'
+                                                                         'new columns or updated data')
     return parser
 
 
@@ -157,6 +175,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
     reload_file = args.reload_file
+    update_from_sam = args.update_cols
     block_size = args.block_size
 
     sess = GlobalDB.db().session
@@ -185,6 +204,9 @@ def main():
     else:
         # if we're using an old historic duns table, clean it up before importing
         clean_historic_duns(sess)
+
+        if update_from_sam:
+            reload_from_sam(sess)
 
     # import the historic duns to the current DUNS table
     import_historic_duns(sess)
