@@ -87,7 +87,7 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
 
     # For any dates after the latest date we have in the archive, use the API
     daily_v2_api_dates = [latest_date + datetime.timedelta(days=i)
-                          for i in range((datetime.date.today() - latest_date).days + 1)]
+                          for i in range(1, (datetime.date.today() - latest_date).days + 1)]
 
     # determine which daily files to load in by setting the start load date
     if historic:
