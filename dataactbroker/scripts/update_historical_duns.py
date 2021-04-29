@@ -175,7 +175,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
     reload_file = args.reload_file
-    update_from_sam = args.update_cols
+    update_from_sam = args.update_from_sam
     block_size = args.block_size
 
     sess = GlobalDB.db().session
