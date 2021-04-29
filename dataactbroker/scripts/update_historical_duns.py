@@ -6,7 +6,7 @@ import argparse
 from datetime import datetime
 
 from dataactbroker.helpers.generic_helper import batch
-from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data
 from dataactvalidator.health_check import create_app
 from dataactcore.models.domainModels import HistoricDUNS, DUNS
 from dataactcore.interfaces.db import GlobalDB
@@ -166,7 +166,7 @@ def get_parser():
     action.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
                                                                          ' update from SAM')
     action.add_argument('--update_from_sam', '-s', action='store_true', help='Update the current HistoricDUNS with any'
-                                                                         'new columns or updated data')
+                                                                             'new columns or updated data')
     return parser
 
 

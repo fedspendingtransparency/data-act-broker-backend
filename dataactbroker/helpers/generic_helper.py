@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.WARNING)
 
 RETRY_REQUEST_EXCEPTIONS = (requests.exceptions.RequestException, ConnectionError, ConnectionResetError,
-                             ReadTimeoutError, requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout,
-                             requests.exceptions.ChunkedEncodingError)
+                            ReadTimeoutError, requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout,
+                            requests.exceptions.ChunkedEncodingError)
 
 
 class StringLiteral(String):
