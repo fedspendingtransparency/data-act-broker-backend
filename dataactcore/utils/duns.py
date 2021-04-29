@@ -707,13 +707,12 @@ def update_duns_props(df):
     for duns_list in batch(all_duns, batch_size):
         logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
         duns_props_batch = get_duns_props_from_sam(duns_list)
-        sam_duns = duns_props_batch['awardee_or_recipient_uniqu'].tolist()
-        logger.info('Retrieved data for DUNS records: {}'.format(sam_duns))
         duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
         if not duns_props_batch.empty:
             added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
+        logger.info('Retrieved data for DUNS records: []'.format(added_duns_list))
         empty_duns_rows = []
         for duns in (set(added_duns_list) ^ set(duns_list)):
             empty_duns_row = empty_row_template.copy()
