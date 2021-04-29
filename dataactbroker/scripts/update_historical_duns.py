@@ -165,7 +165,7 @@ def get_parser():
     action = parser.add_mutually_exclusive_group()
     action.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
                                                                          ' update from SAM')
-    action.add_argument('--update_from_sam', '-s', action='store_true', help='Update the current HistoricDUNS with any'
+    action.add_argument('--update_from_sam', '-u', action='store_true', help='Update the current HistoricDUNS with any'
                                                                              'new columns or updated data')
     return parser
 
