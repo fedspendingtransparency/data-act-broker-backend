@@ -18,7 +18,7 @@ from dataactcore.utils.duns import update_duns_props, LOAD_BATCH_SIZE, update_du
 
 logger = logging.getLogger(__name__)
 
-HD_COLUMNS = [col.key for col in HistoricDUNS.__table__.columns]
+HD_COLUMNS = [col.key for col in HistoricDUNS.__table__.columns if col not in 'duns_id']
 
 
 def remove_existing_duns(data, sess):
@@ -131,8 +131,22 @@ def import_historic_duns(sess):
         Args:
             sess: the database connection
     """
+    logger.info('Updating historic duns values in the DUNS table')
+    update_cols = ['{col} = hd.{col}'.format(col=col) for col in HD_COLUMNS
+                   if col not in ['created_at', 'awardee_or_recipient_uniqu']]
+    # only updating the historic records that are still not updated over time
+    update_sql = """
+        UPDATE duns
+        SET
+            {update_cols}
+        FROM historic_duns AS hd
+        WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
+            AND duns.historic = TRUE;
+    """.format(update_cols=','.format(update_cols))
+    sess.execute(update_sql)
+    logger.info('Updated historic duns values to DUNS table')
 
-    logger.info('Copying historic duns values to DUNS table')
+    logger.info('Inserting historic duns values to DUNS table')
     from_columns = ['hd.{}'.format(column) for column in HD_COLUMNS]
     copy_sql = """
         INSERT INTO duns (
@@ -151,7 +165,7 @@ def import_historic_duns(sess):
     """.format(columns=', '.join(HD_COLUMNS), from_columns=', '.join(from_columns))
     sess.execute(copy_sql)
     sess.commit()
-    logger.info('Copied historic duns values to DUNS table')
+    logger.info('Inserted new historic duns values to DUNS table')
 
 
 def get_parser():
@@ -171,7 +185,10 @@ def get_parser():
 
 
 def main():
-    """ Loads DUNS from the DUNS export file (comprised of DUNS pre-2014) """
+    """
+        Loads DUNS from the DUNS export file (comprised of DUNS pre-2014).
+        Note: Should only run after importing all the SAM csv data to prevent unnecessary reloading
+    """
     parser = get_parser()
     args = parser.parse_args()
     reload_file = args.reload_file
