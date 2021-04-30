@@ -18,7 +18,7 @@ from dataactcore.utils.duns import update_duns_props, LOAD_BATCH_SIZE, update_du
 
 logger = logging.getLogger(__name__)
 
-HD_COLUMNS = [col.key for col in HistoricDUNS.__table__.columns if col not in 'duns_id']
+HD_COLUMNS = [col.key for col in HistoricDUNS.__table__.columns if col.key not in 'duns_id']
 
 
 def remove_existing_duns(data, sess):
