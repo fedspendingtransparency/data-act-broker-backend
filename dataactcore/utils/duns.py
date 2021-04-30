@@ -585,7 +585,7 @@ def is_nonexistent_file_error(e):
     """ Differentiates between an abnormal connection issue or the file not existing
 
         Args:
-            url: the error in question
+            e: the HTTP exception to analyze
 
         Returns:
             bool whether the error is a nonexistent file http error
@@ -594,9 +594,27 @@ def is_nonexistent_file_error(e):
     return e.response is not None and (json.loads(e.response.content).get('detail') == no_file_msg)
 
 
+def give_up(e):
+    """ Determines whether to give up retrying the request, sleeps if rate limiting
+
+        Args:
+            e: the HTTP exception to analyze
+
+        Returns:
+            bool whether to stop retrying a specified request
+    """
+    if is_nonexistent_file_error(e):
+        return True
+    if e.response is not None and e.response.status_code == 429:
+        # TODO: we don't know if it's in seconds or a datetime so we're logging it for now, remove when confirmed
+        logger.info('Retry-After: {}'.format(e.reponse.headers.get("Retry-After")))
+        time.sleep(int(e.reponse.headers.get("Retry-After")))
+    return False
+
+
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
 @sleep_and_retry
-@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=10, logger=logger, giveup=is_nonexistent_file_error)
+@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=10, logger=logger, giveup=give_up)
 def _request_sam_api(url, request_type, accept_type, params=None, body=None):
     """ Calls one of the SAM APIs and returns its content
 
