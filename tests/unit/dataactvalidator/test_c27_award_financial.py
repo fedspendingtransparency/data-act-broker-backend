@@ -170,7 +170,7 @@ def test_failure(database):
                                               piid=None, parent_award_id=None, disaster_emergency_fund_code='N',
                                               gross_outlay_amount_by_awa_cpe=5)
     caf_defc_9 = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd',
-                                                uri=None, piid=None, parent_award_id=None,
+                                                uri=None, piid=None, parent_award_id='testingHere',
                                                 disaster_emergency_fund_code='9', gross_outlay_amount_by_awa_cpe=5)
     database.session.add_all([sub_1, caf_fain, caf_defc_9])
     database.session.commit()
@@ -189,7 +189,7 @@ def test_failure(database):
                                      piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                      gross_outlay_amount_by_awa_cpe=5)
     af_defc_9 = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri=None,
-                                      piid=None, parent_award_id=None, disaster_emergency_fund_code='9',
+                                      piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='9',
                                       gross_outlay_amount_by_awa_cpe=5)
 
     errors = number_of_errors(_FILE, database, models=[af_other, af_defc_9], submission=sub_3)
@@ -202,7 +202,7 @@ def test_failure(database):
                                     piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                     gross_outlay_amount_by_awa_cpe=None)
     af_defc_9 = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
-                                      piid=None, parent_award_id=None, disaster_emergency_fund_code='9',
+                                      piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='n',
                                       gross_outlay_amount_by_awa_cpe=5)
 
     errors = number_of_errors(_FILE, database, models=[af_null, af_defc_9], submission=sub_4)
