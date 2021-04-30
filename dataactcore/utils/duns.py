@@ -606,10 +606,12 @@ def give_up(e):
     if is_nonexistent_file_error(e):
         return True
     if e.response is not None and e.response.status_code == 429:
-        # TODO: we don't know if it's in seconds or a datetime so we're logging it for now, remove when confirmed
-        logger.info('Response: {}'.format(e.response.text))
-        wait_time = 0
-        time.sleep(wait_time)
+        # Seem like the rate limit resets at midnight, so wait until then
+        now = datetime.datetime.now()
+        tomorrow = now + datetime.timedelta(days=1)
+        wait = (datetime.datetime.combine(tomorrow, datetime.time.min) - now).seconds
+        logger.info('Rate limit hit. Sleeping for {} seconds until the next day where we can continue.'.format(wait))
+        time.sleep(wait)
     return False
 
 
