@@ -607,8 +607,8 @@ def give_up(e):
         return True
     if e.response is not None and e.response.status_code == 429:
         # TODO: we don't know if it's in seconds or a datetime so we're logging it for now, remove when confirmed
-        logger.info('Retry-After: {}'.format(e.reponse.headers.get("Retry-After")))
-        time.sleep(int(e.reponse.headers.get("Retry-After")))
+        logger.info('Retry-After: {}'.format(e.response.headers.get("Retry-After")))
+        time.sleep(int(e.response.headers.get("Retry-After")))
     return False
 
 
