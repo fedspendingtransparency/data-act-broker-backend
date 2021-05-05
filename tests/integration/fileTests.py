@@ -685,7 +685,7 @@ class FileTests(BaseTestAPI):
             self.assertEqual(rule_error_data['field_name'], 'header_three')
             self.assertEqual(rule_error_data['error_name'], 'rule_failed')
             self.assertEqual(rule_error_data['error_description'], 'A rule failed for this value.')
-            self.assertEqual(rule_error_data['occurrences'], '7')
+            self.assertEqual(rule_error_data['occurrences'], 7)
             self.assertEqual(rule_error_data['rule_failed'], 'Header three value must be real')
             self.assertEqual(rule_error_data['original_label'], 'A1')
             # Check warning metadata for specified warning
@@ -697,7 +697,7 @@ class FileTests(BaseTestAPI):
             self.assertEqual(warning_error_data['field_name'], 'header_three')
             self.assertEqual(warning_error_data['error_name'], 'rule_failed')
             self.assertEqual(warning_error_data['error_description'], 'A rule failed for this value.')
-            self.assertEqual(warning_error_data['occurrences'], '7')
+            self.assertEqual(warning_error_data['occurrences'], 7)
             self.assertEqual(warning_error_data['rule_failed'], 'Header three value looks odd')
             self.assertEqual(warning_error_data['original_label'], 'A2')
 
