@@ -31,7 +31,7 @@ def move_published_agency_files(old_code, new_code):
     files_in_bucket = list(certified_bucket.objects.all())
 
     logger.info('Moving published DABS submission files from {} to {}'.format(old_code, new_code))
-    old_file_paths = [old_file_path for old_file_path in files_in_bucket if old_file_path.startswith(old_code)]
+    old_file_paths = [old_file_path.key for old_file_path in files_in_bucket if old_file_path.key.startswith(old_code)]
     for old_file_path in old_file_paths:
         new_file_path = old_file_path.replace(old_code, new_code, 1)
         s3.Object(CONFIG_BROKER['certified_bucket'], new_file_path).copy_from(old_file_path)
@@ -40,8 +40,8 @@ def move_published_agency_files(old_code, new_code):
     # FABS directory structure
     # [certified bucket]/FABS/[agency code]/[fy]/[time period]/[files]
     logger.info('Moving published FABS submission files from {} to {}'.format(old_code, new_code))
-    old_file_paths = [old_file_path for old_file_path in files_in_bucket
-                      if old_file_path.startswith('FABS/{}'.format(old_code))]
+    old_file_paths = [old_file_path.key for old_file_path in files_in_bucket
+                      if old_file_path.key.startswith('FABS/{}'.format(old_code))]
     for old_file_path in old_file_paths:
         new_file_path = old_file_path.replace(old_code, new_code, 1)
         s3.Object(CONFIG_BROKER['certified_bucket'], new_file_path).copy_from(old_file_path)
