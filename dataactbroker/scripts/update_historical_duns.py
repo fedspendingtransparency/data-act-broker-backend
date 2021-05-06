@@ -132,7 +132,6 @@ def import_historic_duns(sess):
             sess: the database connection
     """
     logger.info('Updating historic duns values in the DUNS table')
-    logger.info(HD_COLUMNS)
     update_cols = ['{col} = hd.{col}'.format(col=col) for col in HD_COLUMNS
                    if col not in ['created_at', 'awardee_or_recipient_uniqu']]
     # only updating the historic records that are still not updated over time
@@ -143,8 +142,7 @@ def import_historic_duns(sess):
         FROM historic_duns AS hd
         WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
             AND duns.historic = TRUE;
-    """.format(update_cols=','.format(update_cols))
-    logger.info(update_sql)
+    """.format(update_cols=','.join(update_cols))
     sess.execute(update_sql)
     logger.info('Updated historic duns values to DUNS table')
 
@@ -165,7 +163,6 @@ def import_historic_duns(sess):
             WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
         );
     """.format(columns=', '.join(HD_COLUMNS), from_columns=', '.join(from_columns))
-    logger.info(copy_sql)
     sess.execute(copy_sql)
     sess.commit()
     logger.info('Inserted new historic duns values to DUNS table')
