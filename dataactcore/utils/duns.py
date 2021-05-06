@@ -289,14 +289,15 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
 
     logger.info('Adding/updating DUNS based on {}'.format(tmp_name))
     if deletes:
-        update_cols = 'deactivation_date = {tmp_abbr}.deactivation_date'.format(tmp_abbr=tmp_abbr)
+        update_cols = ['deactivation_date = {tmp_abbr}.deactivation_date'.format(tmp_abbr=tmp_abbr)]
     else:
         update_cols = ['{col} = {tmp_abbr}.{col}'.format(col=col, tmp_abbr=tmp_abbr)
                        for col in list(duns_data.columns)
-                       if col not in ['created_at', 'deactivation_date', 'awardee_or_recipient_uniqu']]
+                       if col not in ['created_at', 'updated_at', 'deactivation_date', 'awardee_or_recipient_uniqu']]
         if table_name == 'duns':
             update_cols.append('historic = FALSE')
-        update_cols = ', '.join(update_cols)
+    update_cols.append('updated_at = NOW()')
+    update_cols = ', '.join(update_cols)
     update_sql = """
         UPDATE {table_name}
         SET
