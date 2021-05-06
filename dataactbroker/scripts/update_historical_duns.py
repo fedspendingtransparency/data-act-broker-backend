@@ -18,7 +18,8 @@ from dataactcore.utils.duns import update_duns_props, LOAD_BATCH_SIZE, update_du
 
 logger = logging.getLogger(__name__)
 
-HD_COLUMNS = [col.key for col in HistoricDUNS.__table__.columns if col.key != 'duns_id']
+HD_COLUMNS = [col.key for col in HistoricDUNS.__table__.columns
+              if col.key not in ('duns_id', 'created_at', 'updated_at')]
 
 
 def remove_existing_duns(data, sess):
@@ -133,7 +134,8 @@ def import_historic_duns(sess):
     """
     logger.info('Updating historic duns values in the DUNS table')
     update_cols = ['{col} = hd.{col}'.format(col=col) for col in HD_COLUMNS
-                   if col not in ['created_at', 'awardee_or_recipient_uniqu']]
+                   if col not in ['created_at', 'updated_at', 'awardee_or_recipient_uniqu']]
+    update_cols.append('updated_at = NOW()')
     # only updating the historic records that are still not updated over time
     update_sql = """
         UPDATE duns
@@ -151,11 +153,15 @@ def import_historic_duns(sess):
     copy_sql = """
         INSERT INTO duns (
             {columns},
-            historic
+            historic,
+            updated_at,
+            created_at
         )
         SELECT
             {from_columns},
-            TRUE
+            TRUE,
+            NOW(),
+            NOW()
         FROM historic_duns AS hd
         WHERE NOT EXISTS (
             SELECT 1
