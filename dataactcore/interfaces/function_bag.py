@@ -57,7 +57,7 @@ def get_password_hash(password, bcrypt):
     salt = uuid.uuid4().hex
     # number 12 below iw the number of rounds for bcrypt
     encoded_hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
-    password_hash = encoded_hash.decode("utf-8")
+    password_hash = encoded_hash.decode('utf-8')
     return salt, password_hash
 
 
@@ -95,17 +95,17 @@ def sum_number_of_errors_for_job_list(submission_id, error_type='fatal'):
 def get_error_type(job_id):
     """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
     sess = GlobalDB.db().session
-    file_status_name = sess.query(File).options(joinedload("file_status")).\
+    file_status_name = sess.query(File).options(joinedload('file_status')).\
         filter(File.job_id == job_id).one().file_status.name
-    if file_status_name == "header_error":
+    if file_status_name == 'header_error':
         # Header errors occurred, return that
-        return "header_errors"
+        return 'header_errors'
     elif sess.query(Job).filter(Job.job_id == job_id).one().number_of_errors > 0:
         # Row errors occurred
-        return "row_errors"
+        return 'row_errors'
     else:
         # No errors occurred during validation
-        return "none"
+        return 'none'
 
 
 def create_file_if_needed(job_id, filename=None):
@@ -167,10 +167,10 @@ def write_file_error(job_id, filename, error_type, extra_info=None):
     # Mark error type and add header info if present
     file_rec.file_status_id = FILE_STATUS_DICT[ValidationError.get_error_type_string(error_type)]
     if extra_info is not None:
-        if "missing_headers" in extra_info:
-            file_rec.headers_missing = extra_info["missing_headers"]
-        if "duplicated_headers" in extra_info:
-            file_rec.headers_duplicated = extra_info["duplicated_headers"]
+        if 'missing_headers' in extra_info:
+            file_rec.headers_missing = extra_info['missing_headers']
+        if 'duplicated_headers' in extra_info:
+            file_rec.headers_duplicated = extra_info['duplicated_headers']
 
     sess.add(file_rec)
     sess.commit()
@@ -194,18 +194,18 @@ def get_error_metrics_by_job_id(job_id, include_file_types=False, severity_id=No
     sess = GlobalDB.db().session
     result_list = []
 
-    query_result = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
+    query_result = sess.query(File).options(joinedload('file_status')).filter(File.job_id == job_id).one()
 
     if not query_result.file_status.file_status_id == FILE_STATUS_DICT['complete']:
-        return [{"field_name": "File Level Error", "error_name": query_result.file_status.name,
-                 "error_description": query_result.file_status.description, "occurrences": 1, "rule_failed": ""}]
+        return [{'field_name': 'File Level Error', 'error_name': query_result.file_status.name,
+                 'error_description': query_result.file_status.description, 'occurrences': 1, 'rule_failed': ''}]
 
-    query_result = sess.query(ErrorMetadata).options(joinedload("error_type")).filter(
+    query_result = sess.query(ErrorMetadata).options(joinedload('error_type')).filter(
         ErrorMetadata.job_id == job_id, ErrorMetadata.severity_id == severity_id).all()
     for result in query_result:
-        record_dict = {"field_name": result.field_name, "error_name": result.error_type.name,
-                       "error_description": result.error_type.description, "occurrences": str(result.occurrences),
-                       "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
+        record_dict = {'field_name': result.field_name, 'error_name': result.error_type.name,
+                       'error_description': result.error_type.description, 'occurrences': result.occurrences,
+                       'rule_failed': result.rule_failed, 'original_label': result.original_rule_label}
         if include_file_types:
             record_dict['source_file'] = FILE_TYPE_DICT_ID.get(result.file_type_id, '')
             record_dict['target_file'] = FILE_TYPE_DICT_ID.get(result.target_file_type_id, '')
@@ -258,7 +258,7 @@ def run_job_checks(job_id):
 
     # Get count of job's prerequisites that are not yet finished
     incomplete_dependencies = sess.query(JobDependency). \
-        join("prerequisite_job"). \
+        join('prerequisite_job'). \
         filter(JobDependency.job_id == job_id, Job.job_status_id != JOB_STATUS_DICT['finished']). \
         count()
     if incomplete_dependencies:
@@ -320,7 +320,7 @@ def check_job_dependencies(job_id):
         dep_job_id = dependency.job_id
         if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
             log_data['message_type'] = 'CoreError'
-            log_data['message'] = "{} (dependency of {}) is not in a 'waiting' state".format(dep_job_id, job_id)
+            log_data['message'] = '{} (dependency of {}) is not in a \'waiting\' state'.format(dep_job_id, job_id)
             logger.error(log_data)
         else:
             # find the number of this job's prerequisites that do not have a status of 'finished' or have errors.
@@ -383,16 +383,16 @@ def create_jobs(upload_files, submission, existing_submission=False):
         val_job = sess.query(Job).\
             filter_by(
                 submission_id=submission_id,
-                job_type_id=JOB_TYPE_DICT["validation"]).\
+                job_type_id=JOB_TYPE_DICT['validation']).\
             one()
-        val_job.job_status_id = JOB_STATUS_DICT["waiting"]
-        submission.updated_at = time.strftime("%c")
+        val_job.job_status_id = JOB_STATUS_DICT['waiting']
+        submission.updated_at = time.strftime('%c')
     # todo: add these back in for detached_d2 when we have actual validations
     elif not submission.d2_submission:
         # create cross-file validation job
         validation_job = Job(
-            job_status_id=JOB_STATUS_DICT["waiting"],
-            job_type_id=JOB_TYPE_DICT["validation"],
+            job_status_id=JOB_STATUS_DICT['waiting'],
+            job_type_id=JOB_TYPE_DICT['validation'],
             submission_id=submission_id)
         sess.add(validation_job)
         sess.flush()
@@ -402,7 +402,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
             sess.add(val_dependency)
 
     sess.commit()
-    upload_dict["submission_id"] = submission_id
+    upload_dict['submission_id'] = submission_id
     return upload_dict
 
 
@@ -440,10 +440,10 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
         upload_job.error_message = None
 
     else:
-        if upload_file.file_type in ["award", "award_procurement"]:
+        if upload_file.file_type in ['award', 'award_procurement']:
             # file generation handled on backend, mark as ready
             upload_status = JOB_STATUS_DICT['ready']
-        elif upload_file.file_type in ["executive_compensation", "sub_award"]:
+        elif upload_file.file_type in ['executive_compensation', 'sub_award']:
             # these are dependent on file D2 validation
             upload_status = JOB_STATUS_DICT['waiting']
         else:
@@ -484,7 +484,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
 
     else:
         # create a new record validation job and add dependencies if necessary
-        if upload_file.file_type == "executive_compensation":
+        if upload_file.file_type == 'executive_compensation':
             d1_val_job = sess.query(Job).\
                 filter(Job.submission_id == submission_id,
                        Job.file_type_id == FILE_TYPE_DICT['award_procurement'],
@@ -492,17 +492,17 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
                 one_or_none()
             if d1_val_job is None:
                 logger.error({
-                    'message': "Cannot create E job without a D1 job",
+                    'message': 'Cannot create E job without a D1 job',
                     'message_type': 'CoreError',
                     'submission_id': submission_id,
                     'file_type': 'E'
                 })
-                raise Exception("Cannot create E job without a D1 job")
+                raise Exception('Cannot create E job without a D1 job')
             # Add dependency on D1 validation job
             d1_dependency = JobDependency(job_id=upload_job.job_id, prerequisite_id=d1_val_job.job_id)
             sess.add(d1_dependency)
 
-        elif upload_file.file_type == "sub_award":
+        elif upload_file.file_type == 'sub_award':
             # todo: check for C validation job
             c_val_job = sess.query(Job).\
                 filter(Job.submission_id == submission_id,
@@ -511,12 +511,12 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
                 one_or_none()
             if c_val_job is None:
                 logger.error({
-                    'message': "Cannot create F job without a C job",
+                    'message': 'Cannot create F job without a C job',
                     'message_type': 'CoreError',
                     'submission_id': submission_id,
                     'file_type': 'F'
                 })
-                raise Exception("Cannot create F job without a C job")
+                raise Exception('Cannot create F job without a C job')
             # add dependency on C validation job
             c_dependency = JobDependency(job_id=upload_job.job_id, prerequisite_id=c_val_job.job_id)
             sess.add(c_dependency)
@@ -642,12 +642,12 @@ def get_fabs_meta(submission_id):
         publish_date = publish_data
     else:
         publish_date, file_path = publish_data
-        if CONFIG_BROKER["use_aws"] and file_path:
+        if CONFIG_BROKER['use_aws'] and file_path:
             path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
             published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
                                                         bucket_route=CONFIG_BROKER['certified_bucket'],
-                                                        url_mapping=CONFIG_BROKER["certified_bucket_mapping"],
-                                                        method="get_object")
+                                                        url_mapping=CONFIG_BROKER['certified_bucket_mapping'],
+                                                        method='get_object')
         elif file_path:
             published_file = file_path
 
@@ -671,8 +671,8 @@ def get_action_dates(submission_id):
     """
 
     sess = GlobalDB.db().session
-    return sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label("min_action_date"),
-                      func.max(DetachedAwardFinancialAssistance.action_date).label("max_action_date"))\
+    return sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label('min_action_date'),
+                      func.max(DetachedAwardFinancialAssistance.action_date).label('max_action_date'))\
         .filter(DetachedAwardFinancialAssistance.submission_id == submission_id,
                 DetachedAwardFinancialAssistance.is_valid.is_(True)).one()
 

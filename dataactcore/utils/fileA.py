@@ -53,6 +53,8 @@ def query_data(session, agency_code, period, year):
     if not frec_provided:
         frec_list = session.query(FREC.frec_code).select_from(outerjoin(CGAC, FREC, CGAC.cgac_id == FREC.cgac_id)).\
             filter(CGAC.cgac_code == agency_code).all()
+        # Put the frec list in a format that can be read by a filter
+        frec_list = [frec.frec_code for frec in frec_list]
     # Group agencies together that need to be grouped
     agency_array = []
     if agency_code == '097':
