@@ -51,7 +51,6 @@ def move_published_agency_files(old_code, new_code):
             CopySource={'Bucket': CONFIG_BROKER['certified_bucket'], 'Key': old_file_path})
         s3.Object(CONFIG_BROKER['certified_bucket'], old_file_path).delete()
 
-
     logger.info('Moved published FABS submission files from {} to {}'.format(old_code, new_code))
 
 
