@@ -34,7 +34,9 @@ def move_published_agency_files(old_code, new_code):
     old_file_paths = [old_file_path.key for old_file_path in files_in_bucket if old_file_path.key.startswith(old_code)]
     for old_file_path in old_file_paths:
         new_file_path = old_file_path.replace(old_code, new_code, 1)
-        s3.Object(CONFIG_BROKER['certified_bucket'], new_file_path).copy_from(old_file_path)
+        s3.Object(CONFIG_BROKER['certified_bucket'], new_file_path).copy_from(CopySource=old_file_path)
+        s3.Object(CONFIG_BROKER['certified_bucket'], old_file_path).delete()
+
     logger.info('Moved published DABS submission files from {} to {}'.format(old_code, new_code))
 
     # FABS directory structure
@@ -44,7 +46,10 @@ def move_published_agency_files(old_code, new_code):
                       if old_file_path.key.startswith('FABS/{}'.format(old_code))]
     for old_file_path in old_file_paths:
         new_file_path = old_file_path.replace(old_code, new_code, 1)
-        s3.Object(CONFIG_BROKER['certified_bucket'], new_file_path).copy_from(old_file_path)
+        s3.Object(CONFIG_BROKER['certified_bucket'], new_file_path).copy_from(CopySource=old_file_path)
+        s3.Object(CONFIG_BROKER['certified_bucket'], old_file_path).delete()
+
+
     logger.info('Moved published FABS submission files from {} to {}'.format(old_code, new_code))
 
 
