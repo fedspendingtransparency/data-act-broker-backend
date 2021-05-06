@@ -57,7 +57,8 @@ WHERE NOT EXISTS (
         AND UPPER(COALESCE(po.piid, '')) = UPPER(COALESCE(af.piid, ''))
         AND UPPER(COALESCE(po.parent_award_id, '')) = UPPER(COALESCE(af.parent_award_id, ''))
         AND UPPER(COALESCE(po.tas, '')) = UPPER(COALESCE(af.tas, ''))
-        AND UPPER(COALESCE(po.disaster_emergency_fund_code, '')) = UPPER(COALESCE(af.disaster_emergency_fund_code, ''))
+        AND (UPPER(COALESCE(po.disaster_emergency_fund_code, '')) = UPPER(COALESCE(af.disaster_emergency_fund_code, ''))
+            OR UPPER(COALESCE(po.disaster_emergency_fund_code, '')) = '9')
         AND af.submission_id = {0}
         AND af.gross_outlay_amount_by_awa_cpe IS NOT NULL
 );

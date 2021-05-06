@@ -17,6 +17,8 @@ SELECT
     ap.row_number AS "source_row_number",
     ap.piid AS "source_value_piid",
     ap.parent_award_id AS "source_value_parent_award_id",
+    ap.federal_action_obligation AS "source_value_federal_action_obligation",
+    ap.federal_action_obligation AS "difference",
     ap.piid AS "uniqueid_PIID",
     ap.parent_award_id AS "uniqueid_ParentAwardId"
 FROM award_procurement_c12_{0} AS ap

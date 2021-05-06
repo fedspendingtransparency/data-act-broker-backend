@@ -42,6 +42,8 @@ SELECT
     af.row_number AS "source_row_number",
     af.piid AS "source_value_piid",
     af.parent_award_id AS "source_value_parent_award_id",
+    af.transaction_obligated_amou AS "source_value_transaction_obligated_amount",
+    af.transaction_obligated_amou AS "difference",
     af.display_tas AS "uniqueid_TAS",
     af.piid AS "uniqueid_PIID",
     af.parent_award_id AS "uniqueid_ParentAwardId"
