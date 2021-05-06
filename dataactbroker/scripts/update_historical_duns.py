@@ -143,6 +143,7 @@ def import_historic_duns(sess):
         WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
             AND duns.historic = TRUE;
     """.format(update_cols=','.format(update_cols))
+    logger.info(update_sql)
     sess.execute(update_sql)
     logger.info('Updated historic duns values to DUNS table')
 
@@ -163,6 +164,7 @@ def import_historic_duns(sess):
             WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
         );
     """.format(columns=', '.join(HD_COLUMNS), from_columns=', '.join(from_columns))
+    logger.info(copy_sql)
     sess.execute(copy_sql)
     sess.commit()
     logger.info('Inserted new historic duns values to DUNS table')
