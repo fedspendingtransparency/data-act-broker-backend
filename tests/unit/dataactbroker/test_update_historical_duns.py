@@ -92,12 +92,6 @@ def mock_get_duns_props_from_sam(duns_list):
             'high_comp_officer5_amount': '10'
         }
     }
-    for duns in duns_list:
-        if duns in duns_mappings:
-            results = results.append(pd.DataFrame(duns_mappings[duns]), sort=True)
-            with pd.option_context('display.max_rows', None, 'display.max_columns',
-                                   None):  # more options can be specified also
-                print(results)
     return results
 
 
