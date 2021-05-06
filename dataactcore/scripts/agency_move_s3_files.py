@@ -22,10 +22,12 @@ def move_published_agency_files(old_code, new_code):
     if not new_code.endswith('/'):
         new_code += '/'
 
+    # Note: the submissions bucket (aws_bucket) is not being used here as that path is based on submission ids
+
     # DABS directory structure
     # [certified bucket]/[agency code]/[fy]/[time period]/[publish history id]/[files]
     s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-    certified_bucket = s3.Bucket()
+    certified_bucket = s3.Bucket(CONFIG_BROKER['certified_bucket'])
     files_in_bucket = list(certified_bucket.objects.all())
 
     logger.info('Moving published DABS submission files from {} to {}'.format(old_code, new_code))
