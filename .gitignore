@@ -15,7 +15,8 @@ node_modules
 dataactbroker/venv
 dataactbroker/errorLog
 dataactbroker/responseErrorLog
-.venv/ 
+.venv/
+venv/
 .python-version
 .DS_Store
 tests/validatorResponse

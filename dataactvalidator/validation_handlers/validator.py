@@ -6,7 +6,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.interfaces.db import GlobalDB
-from dataactbroker.scripts.update_historical_duns import batch as batcher
+from dataactbroker.helpers.generic_helper import batch as batcher
 from dataactvalidator.validation_handlers.errorInterface import record_row_error
 
 logger = logging.getLogger(__name__)

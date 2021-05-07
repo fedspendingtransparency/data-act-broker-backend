@@ -1,19 +1,26 @@
 import re
 import calendar
+import logging
+import requests
+from requests.packages.urllib3.exceptions import ReadTimeoutError
 from dateutil.parser import parse
 import datetime as dt
 
-from suds.client import Client
 from suds.transport.https import HttpAuthenticated as SudsHttpsTransport
 from urllib.request import HTTPBasicAuthHandler
-
 
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
 
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+
+logger = logging.getLogger(__name__)
+logging.getLogger('requests').setLevel(logging.WARNING)
+
+RETRY_REQUEST_EXCEPTIONS = (requests.exceptions.RequestException, ConnectionError, ConnectionResetError,
+                            ReadTimeoutError, requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout,
+                            requests.exceptions.ChunkedEncodingError)
 
 
 class StringLiteral(String):
@@ -139,19 +146,6 @@ def format_internal_tas(row):
     return ''.join([ata, aid, bpoa, epoa, atc, mac, sac])
 
 
-def get_client():
-    """ Get the Client to access SAM. """
-    options = {'transport': WellBehavedHttpsTransport(username=CONFIG_BROKER['sam']['username'],
-                                                      password=CONFIG_BROKER['sam']['password'])}
-
-    try:
-        client = Client(CONFIG_BROKER['sam']['wsdl'], **options)
-    except ConnectionResetError:
-        raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
-                                "performance issues. Please try again later.", StatusCode.NOT_FOUND)
-    return client
-
-
 def generate_raw_quoted_query(queryset):
     """ Generates the raw sql from a queryset
 
@@ -191,3 +185,18 @@ def fy(raw_date):
         result += 1
 
     return result
+
+
+def batch(iterable, n=1):
+    """ Simple function to create batches from a list
+
+        Args:
+            iterable: the list to be batched
+            n: the size of the batches
+
+        Yields:
+            the same list (iterable) in batches depending on the size of N
+    """
+    length = len(iterable)
+    for ndx in range(0, length, n):
+        yield iterable[ndx:min(ndx + n, length)]
