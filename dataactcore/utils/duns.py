@@ -572,7 +572,7 @@ def request_sam_csv_api(root_dir, file_name):
             root_dir: where to download the file
             file_name: the name of the file to download
     """
-    logger.info('Downloading the following DUNS: {}'.format(file_name))
+    logger.info('Downloading the following DUNS file: {}'.format(file_name))
     local_sam_file = os.path.join(root_dir, file_name)
     params = {
         'fileName': file_name
