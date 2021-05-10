@@ -174,11 +174,10 @@ def import_historic_duns(sess):
     logger.info('Inserted new historic duns values to DUNS table')
 
 
-def get_parser():
-    """ Generates list of command-line arguments
-
-        Returns:
-            argument parser to be used for commandline
+def main():
+    """
+        Loads DUNS from the DUNS export file (comprised of DUNS pre-2014).
+        Note: Should only run after importing all the SAM csv data to prevent unnecessary reloading
     """
     parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
     parser.add_argument('--block_size', '-s', help='Number of rows to batch load', type=int, default=LOAD_BATCH_SIZE)
@@ -187,15 +186,7 @@ def get_parser():
                                                                          ' update from SAM')
     action.add_argument('--update_from_sam', '-u', action='store_true', help='Update the current HistoricDUNS with any'
                                                                              'new columns or updated data')
-    return parser
 
-
-def main():
-    """
-        Loads DUNS from the DUNS export file (comprised of DUNS pre-2014).
-        Note: Should only run after importing all the SAM csv data to prevent unnecessary reloading
-    """
-    parser = get_parser()
     args = parser.parse_args()
     reload_file = args.reload_file
     update_from_sam = args.update_from_sam
