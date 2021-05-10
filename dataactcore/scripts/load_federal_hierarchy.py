@@ -264,7 +264,7 @@ def get_normalized_agency_code(agency_code, subtier_code):
             FREC or CGAC agency code, depending on whether the speicified CGAC has been replaced with FREC
     """
     sess = GlobalDB.db().session
-    if agency_code in ['011', '016', '352', '537', '033']:
+    if agency_code in ['011', '016', '352', '537', '033', '511']:
         st_agency = sess.query(SubTierAgency).filter(SubTierAgency.sub_tier_agency_code == subtier_code).one_or_none()
         if st_agency:
             agency_code = st_agency.frec.frec_code
