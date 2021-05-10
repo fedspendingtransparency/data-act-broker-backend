@@ -714,7 +714,7 @@ def get_duns_props_from_sam(duns_list):
 
 
 def update_duns_props(df):
-    """ Returns same dataframe with extraneous data updated"
+    """ Returns same dataframe with extraneous data updated
 
         Args:
             df: the dataframe containing the duns data
