@@ -126,6 +126,7 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
                     continue
                 else:
                     logger.exception(e.response.content.decode('utf-8'))
+                    raise e
 
     if data_type == 'DUNS':
         updated_date = datetime.date.today()
