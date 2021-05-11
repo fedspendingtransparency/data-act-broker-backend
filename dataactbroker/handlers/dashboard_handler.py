@@ -12,7 +12,6 @@ from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         FILE_TYPE_DICT_LETTER, RULE_IMPACT_DICT_ID)
 from dataactcore.models.jobModels import Submission, Job
-from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -22,7 +21,6 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter, rule_severity_filter
 from dataactbroker.helpers.dashboard_helper import FILE_TYPES, agency_settings_filter, generate_file_type
-from dataactbroker.handlers.agency_handler import get_accessible_agencies
 
 
 logger = logging.getLogger(__name__)

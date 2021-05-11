@@ -16,7 +16,6 @@ from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers import filters_helper
 from dataactbroker.handlers import dashboard_handler
-from dataactbroker.handlers import agency_handler
 from dataactcore.utils.responseException import ResponseException
 
 
