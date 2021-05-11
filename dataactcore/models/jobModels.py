@@ -342,6 +342,6 @@ class FileGeneration(Base):
                        default='D1', server_default='D1')
     file_path = Column(Text)
     is_cached_file = Column(Boolean, nullable=False, default=False)
-    file_format = Column(Enum('csv', 'txt', name='generation_file_format'), nullable=False, index=True,
+    file_format = Column(Enum('csv', 'txt', name='generation_file_formats'), nullable=False, index=True,
                          default='csv', server_default='csv')
     element_numbers = Column(Boolean, nullable=False, default=False, server_default="False")
