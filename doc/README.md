@@ -77,7 +77,6 @@ Dashboard routes are primarily used by the DABS dashboard for analytical display
 - [get\_rule\_labels](./api_docs/dashboard/get_rule_labels.md)
 - [get\_significance\_counts](./api_docs/dashboard/get_significance_counts.md)
 - [historic\_dabs\_graphs](./api_docs/dashboard/historic_dabs_graphs.md)
-- [historic\_dabs\_summary](./api_docs/dashboard/historic_dabs_summary.md)
 - [historic\_dabs\_table](./api_docs/dashboard/historic_dabs_table.md)
 
 ### Domain Routes
