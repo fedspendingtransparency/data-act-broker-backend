@@ -240,6 +240,7 @@ class DunsFactory(factory.Factory):
         model = domainModels.DUNS
 
     duns_id = None
+    uei = fuzzy.FuzzyText()
     awardee_or_recipient_uniqu = fuzzy.FuzzyText()
     legal_business_name = fuzzy.FuzzyText()
     dba_name = fuzzy.FuzzyText()
@@ -259,6 +260,7 @@ class DunsFactory(factory.Factory):
     entity_structure = fuzzy.FuzzyText()
     business_types_codes = ['A', 'B', 'C']
     business_types = ['Full Name A', 'Full Name B', 'Full Name C']
+    ultimate_parent_uei = fuzzy.FuzzyText()
     ultimate_parent_unique_ide = fuzzy.FuzzyText()
     ultimate_parent_legal_enti = fuzzy.FuzzyText()
     high_comp_officer1_full_na = fuzzy.FuzzyText()
