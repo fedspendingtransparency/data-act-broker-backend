@@ -273,10 +273,11 @@ def test_load_exec_comp(database, monkeypatch):
     load_duns_exec_comp.load_from_sam('Executive Compensation', sess, True, exec_comp_dir, None)
 
     monthly_last_exec_date = datetime.date(2017, 9, 30)
-    daily_last_exec_date = datetime.date(2019, 3, 29)
+    first_daily_exec_date = datetime.date(2019, 3, 29)
+    last_daily_exec_date = datetime.date(2019, 3, 30)
 
     expected_results = {
-        # processed the earliest in the monthly, not updated as sam_extract = 1
+        # processed in the monthly, not updated as sam_extract = 1
         '000000001': {
             'awardee_or_recipient_uniqu': '000000001',
             'high_comp_officer1_full_na': 'Terence Test 1',
@@ -291,24 +292,9 @@ def test_load_exec_comp(database, monkeypatch):
             'high_comp_officer5_amount': '1248877',
             'last_exec_comp_mod_date': monthly_last_exec_date
         },
-        # processed the earliest in the monthly, processed latest of daily as sam_extract = 2
+        # processed in the monthly, processed only in first daily as sam_extract = 2
         '000000002': {
             'awardee_or_recipient_uniqu': '000000002',
-            'high_comp_officer1_full_na': 'Terence Test Updated 2',
-            'high_comp_officer1_amount': '21952013',
-            'high_comp_officer2_full_na': 'Aaron Test Updated 2',
-            'high_comp_officer2_amount': '51161',
-            'high_comp_officer3_full_na': 'Jason Test Updated 2',
-            'high_comp_officer3_amount': '386963',
-            'high_comp_officer4_full_na': 'Michael Test Updated 2',
-            'high_comp_officer4_amount': '329337',
-            'high_comp_officer5_full_na': 'Mark Test Updated 2',
-            'high_comp_officer5_amount': '3248877',
-            'last_exec_comp_mod_date': daily_last_exec_date
-        },
-        # processed the only one in the monthly, processed only one in daily as sam_extract = 3
-        '000000003': {
-            'awardee_or_recipient_uniqu': '000000003',
             'high_comp_officer1_full_na': 'Terence Test Updated 1',
             'high_comp_officer1_amount': '21952013',
             'high_comp_officer2_full_na': 'Aaron Test Updated 1',
@@ -319,22 +305,39 @@ def test_load_exec_comp(database, monkeypatch):
             'high_comp_officer4_amount': '329337',
             'high_comp_officer5_full_na': 'Mark Test Updated 1',
             'high_comp_officer5_amount': '3248877',
-            'last_exec_comp_mod_date': daily_last_exec_date
+            'last_exec_comp_mod_date': first_daily_exec_date
         },
+        # processed in the monthly, processed in both dailies as sam_extract = 3
+        '000000003': {
+            'awardee_or_recipient_uniqu': '000000003',
+            'high_comp_officer1_full_na': 'Terence Test Updated 2',
+            'high_comp_officer1_amount': '21952013',
+            'high_comp_officer2_full_na': 'Aaron Test Updated 2',
+            'high_comp_officer2_amount': '51161',
+            'high_comp_officer3_full_na': 'Jason Test Updated 2',
+            'high_comp_officer3_amount': '386963',
+            'high_comp_officer4_full_na': 'Michael Test Updated 2',
+            'high_comp_officer4_amount': '329337',
+            'high_comp_officer5_full_na': 'Mark Test Updated 2',
+            'high_comp_officer5_amount': '3248877',
+            'last_exec_comp_mod_date': last_daily_exec_date
+        },
+        # processed in the monthly, never updated since
         '000000004': {
             'awardee_or_recipient_uniqu': '000000004',
-            'high_comp_officer1_full_na': None,
-            'high_comp_officer1_amount': None,
-            'high_comp_officer2_full_na': None,
-            'high_comp_officer2_amount': None,
-            'high_comp_officer3_full_na': None,
-            'high_comp_officer3_amount': None,
-            'high_comp_officer4_full_na': None,
-            'high_comp_officer4_amount': None,
-            'high_comp_officer5_full_na': None,
-            'high_comp_officer5_amount': None,
-            'last_exec_comp_mod_date': None
+            'high_comp_officer1_full_na': 'Terence Test 2',
+            'high_comp_officer1_amount': '11952013',
+            'high_comp_officer2_full_na': 'Aaron Test 2',
+            'high_comp_officer2_amount': '41161',
+            'high_comp_officer3_full_na': 'Jason Test 2',
+            'high_comp_officer3_amount': '286963',
+            'high_comp_officer4_full_na': 'Michael Test 2',
+            'high_comp_officer4_amount': '129337',
+            'high_comp_officer5_full_na': 'Mark Test 2',
+            'high_comp_officer5_amount': '1248877',
+            'last_exec_comp_mod_date': monthly_last_exec_date
         },
+        # not included in any of the exec comp but listed in duns
         '000000005': {
             'awardee_or_recipient_uniqu': '000000005',
             'high_comp_officer1_full_na': None,
