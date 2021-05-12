@@ -208,7 +208,7 @@ DUNS_BUSINESS_TYPE = [
     LookupType(2, 'JT', 'SBA Certified 8(a), Joint Venture'),
     LookupType(3, 'XX', 'SBA Certified HUBZone Small Business Concern'),
     LookupType(4, 'A7', 'AbilityOne Non Profit Agency'),
-    LookupType(5, '2R', 'U.S Federal Government'),
+    LookupType(5, '2R', 'U.S. Federal Government'),
     LookupType(6, '2F', 'U.S. State Government'),
     LookupType(7, '12', 'U.S. Local Government'),
     LookupType(8, '3I', 'Tribal Government'),
