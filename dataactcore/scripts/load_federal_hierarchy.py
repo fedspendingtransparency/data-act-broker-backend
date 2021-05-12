@@ -24,7 +24,7 @@ from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.WARNING)
 
-API_URL = CONFIG_BROKER['sam']['federal_hierarchy_api_url'].format(CONFIG_BROKER['sam']['federal_hierarchy_api_key'])
+API_URL = CONFIG_BROKER['sam']['federal_hierarchy']['api_url'].format(CONFIG_BROKER['sam']['api_key'])
 REQUESTS_AT_ONCE = 5
 
 
@@ -40,7 +40,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             export_office: when provided, name of the file to export the office list to
             metrics: an object containing information for the metrics file
     """
-    logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['federal_hierarchy_api_key'], '[API_KEY]'))
+    logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
     top_sub_levels = ['1', '2']
     office_levels = ['3', '4', '5', '6', '7']
     levels = top_sub_levels + office_levels if filename else office_levels
@@ -274,6 +274,7 @@ def get_normalized_agency_code(agency_code, subtier_code):
     return agency_code
 
 
+# TODO: Refacator to use backoff
 def get_with_exception_hand(url_string):
     """ Retrieve data from API, allow for multiple retries and timeouts
 
