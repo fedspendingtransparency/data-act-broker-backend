@@ -390,6 +390,10 @@ def parse_exec_comp_file(file_path, metrics=None):
                                names=column_header_mapping_ordered.keys(), quoting=3)
     total_data = csv_data.copy()
     records_received = len(total_data.index)
+
+    # trimming all columns before cleaning to ensure the sam_extract is working as intended
+    total_data = total_data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
+
     total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull()
                             & total_data['sam_extract_code'].isin(['2', '3', 'A', 'E'])]
     records_processed = len(total_data.index)
