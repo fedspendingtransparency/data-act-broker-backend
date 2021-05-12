@@ -38,56 +38,6 @@ class DashboardTests(BaseTestAPI):
         super(DashboardTests, self).setUp()
         self.login_admin_user()
 
-    def test_post_dabs_summary(self):
-        """ Test successfully getting the dabs summary """
-        # Basic passing test
-        dabs_summary_json = {'filters': {'quarters': [], 'fys': [], 'agencies': []}}
-        response = self.app.post_json('/v1/historic_dabs_summary/', dabs_summary_json,
-                                      headers={'x-session-id': self.session_id})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual([{'agency_name': 'Admin Agency', 'submissions': []},
-                          {'agency_name': 'Example Agency', 'submissions': []}],
-                         sorted(response.json, key=lambda agency: agency['agency_name']))
-
-    def test_post_dabs_summary_fail(self):
-        """ Test failing getting the dabs summary """
-        # Not including any required filters
-        dabs_summary_json = {'filters': {}}
-        response = self.app.post_json('/v1/historic_dabs_summary/', dabs_summary_json, expect_errors=True,
-                                      headers={'x-session-id': self.session_id})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'The following filters were not provided: quarters, fys, agencies')
-
-        # Not including some required filters
-        dabs_summary_json = {'filters': {'quarters': []}}
-        response = self.app.post_json('/v1/historic_dabs_summary/', dabs_summary_json, expect_errors=True,
-                                      headers={'x-session-id': self.session_id})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'The following filters were not provided: fys, agencies')
-
-        # Wrong quarter
-        dabs_summary_json = {'filters': {'quarters': [6], 'fys': [], 'agencies': []}}
-        response = self.app.post_json('/v1/historic_dabs_summary/', dabs_summary_json, expect_errors=True,
-                                      headers={'x-session-id': self.session_id})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'Quarters must be a list of integers, each ranging 1-4,'
-                                                   ' or an empty list.')
-
-        # Wrong fys
-        dabs_summary_json = {'filters': {'quarters': [], 'fys': [2011], 'agencies': []}}
-        response = self.app.post_json('/v1/historic_dabs_summary/', dabs_summary_json, expect_errors=True,
-                                      headers={'x-session-id': self.session_id})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'Fiscal Years must be a list of integers, each ranging from 2017'
-                                                   ' through the current fiscal year, or an empty list.')
-
-        # Wrong agencies - integer instead of a string
-        dabs_summary_json = {'filters': {'quarters': [], 'fys': [], 'agencies': [90]}}
-        response = self.app.post_json('/v1/historic_dabs_summary/', dabs_summary_json, expect_errors=True,
-                                      headers={'x-session-id': self.session_id})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'Agencies must be a list of strings, or an empty list.')
-
     def test_get_rule_labels(self):
         """ Test successfully getting a list of rule labels. """
         # Getting all FABS warnings

@@ -12,7 +12,6 @@ from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         FILE_TYPE_DICT_LETTER, RULE_IMPACT_DICT_ID)
 from dataactcore.models.jobModels import Submission, Job
-from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -22,7 +21,6 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter, rule_severity_filter
 from dataactbroker.helpers.dashboard_helper import FILE_TYPES, agency_settings_filter, generate_file_type
-from dataactbroker.handlers.agency_handler import get_accessible_agencies
 
 
 logger = logging.getLogger(__name__)
@@ -201,78 +199,6 @@ def apply_historic_dabs_details_filters(query, filters):
         query = query.filter(CertifiedErrorMetadata.original_rule_label.in_(filters['rules']))
 
     return query
-
-
-def historic_dabs_warning_summary(filters):
-    """ Generate a list of submission summaries appropriate on the filters provided
-
-        Args:
-            filters: dictionary representing the filters provided to the historic dashboard endpoints
-
-        Return:
-            JsonResponse of the submission summaries appropriate on the filters provided
-    """
-    sess = GlobalDB.db().session
-
-    validate_historic_dashboard_filters(filters, graphs=False)
-
-    summary_query = sess.query(
-        Submission.submission_id,
-        (Submission.reporting_fiscal_period / 3).label('quarter'),
-        Submission.reporting_fiscal_year.label('fy'),
-        User.name.label('certifier'),
-        case([
-            (FREC.frec_code.isnot(None), FREC.frec_code),
-            (CGAC.cgac_code.isnot(None), CGAC.cgac_code)
-        ]).label('agency_code'),
-        case([
-            (FREC.agency_name.isnot(None), FREC.agency_name),
-            (CGAC.agency_name.isnot(None), CGAC.agency_name)
-        ]).label('agency_name')
-    ).join(User, User.user_id == Submission.publishing_user_id).\
-        outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code).\
-        outerjoin(FREC, FREC.frec_code == Submission.frec_code).\
-        filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
-        filter(Submission.d2_submission.is_(False))
-
-    summary_query = apply_historic_dabs_filters(sess, summary_query, filters)
-
-    # ordering submissions so they all come out in the same order
-    summary_query = summary_query.order_by(Submission.reporting_end_date)
-
-    # Build list of codes user has access to, use it to fill in the blanks if no subs are found for some agencies
-    user_agencies = get_accessible_agencies()
-    perms = {agency['cgac_code']: agency['agency_name'] for agency in user_agencies['cgac_agency_list']}
-    perms.update({agency['frec_code']: agency['agency_name'] for agency in user_agencies['frec_agency_list']})
-    perm_codes = list(perms.keys())
-    # Only care about the codes the user has access to and have requested
-    if perm_codes and filters['agencies']:
-        perm_codes = list(set(perm_codes) & set(filters['agencies']))
-
-    # Populate submission lists
-    results = {}
-    for query_result in summary_query.all():
-        result_dict = {
-            'submission_id': query_result.submission_id,
-            'fy': query_result.fy,
-            'quarter': query_result.quarter,
-            'certifier': query_result.certifier
-        }
-        if query_result.agency_name in results:
-            results[query_result.agency_name].append(result_dict)
-        else:
-            results[query_result.agency_name] = [result_dict]
-
-    # Fill in the blanks
-    for perm in perm_codes:
-        if perms[perm] not in results.keys():
-            results[perms[perm]] = []
-
-    # Convert to list for ease of use by frontend
-    response = [{'agency_name': agency_name, 'submissions': submissions}
-                for agency_name, submissions in results.items()]
-
-    return JsonResponse.create(StatusCode.OK, response)
 
 
 def historic_dabs_warning_graphs(filters):
