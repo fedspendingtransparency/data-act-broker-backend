@@ -362,16 +362,22 @@ def parse_exec_comp_file(file_path, metrics=None):
     dat_file_name = file_name + '.dat'
     file_name_props = file_name.split('_')
     dat_file_date = file_name_props[-1]
+    version = 'v2' if 'V2' in file_name else 'v1'
     period = file_name_props[3]
 
     zfile = zipfile.ZipFile(file_path)
 
-    # It's the same column mapping between the versions
-    column_header_mapping = {
+    v1_column_header_mapping = {
         'awardee_or_recipient_uniqu': 0,
         'sam_extract_code': 4,
         'exec_comp_str': 89
     }
+    v2_column_header_mapping = {
+        'awardee_or_recipient_uniqu': 1,
+        'sam_extract_code': 5,
+        'exec_comp_str': 91
+    }
+    column_header_mapping = v1_column_header_mapping if version == 'v1' else v2_column_header_mapping
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
 
     # can't use skipfooter, pandas' c engine doesn't work with skipfooter and the python engine doesn't work with dtype
