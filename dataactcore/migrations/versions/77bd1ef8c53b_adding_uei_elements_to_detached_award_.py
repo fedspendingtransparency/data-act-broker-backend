@@ -1,14 +1,14 @@
 """Adding UEI elements to detached_award_procurement table
 
 Revision ID: 77bd1ef8c53b
-Revises: 24e0fa72827a
+Revises: e72f2699bcaa
 Create Date: 2021-05-11 13:24:50.207342
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '77bd1ef8c53b'
-down_revision = '24e0fa72827a'
+down_revision = 'e72f2699bcaa'
 branch_labels = None
 depends_on = None
 
