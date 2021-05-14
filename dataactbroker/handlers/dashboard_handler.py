@@ -373,7 +373,7 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
         sort_order.append(Submission.reporting_fiscal_period)
     if sort in ['submitted_by', 'rule_label', 'instances', 'description']:
         sort_order.append(Submission.submission_id)
-    if sort in ['period', 'instances', 'submission_id']:
+    if sort in ['period', 'instances', 'submission_id', 'submitted_by']:
         sort_order.append(CertifiedErrorMetadata.original_rule_label)
 
     # Set the sort order
