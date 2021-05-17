@@ -10,8 +10,7 @@ Note: the results will only include the submissions the user has access to based
         "fys": [2017, 2019],
         "agencies": ["089", "1125"],
         "files": ["B"],
-        "rules": ["B11.4", "B9"],
-        "is_quarter": False
+        "rules": ["B11.4", "B9"]
     },
     "page": 1,
     "limit": 10,
@@ -22,13 +21,12 @@ Note: the results will only include the submissions the user has access to based
 
 ## Body Description
 - `filters`: (required, dict) used to filter the resulting error metadata list
-    - `periods`: (required, list[integer]) fiscal year periods, ranging 2-12, or an empty list to include all (must be multiples of 3 if `is_quarter` is `True`.
+    - `periods`: (required, list[integer]) fiscal year periods, ranging 2-12, or an empty list to include all.
     - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
               or an empty list to include all.
     - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
     - `files`: (required, list[string]) files, or an empty list to include all.
     - `rules`: (required, list[string]) validation rules, or an empty list to include all.
-    - `is_quarter`: (required, bool) a flag indicating whether or not to include all periods that would fall under the quarter a provided period encompasses. When this is `True`, if periods are provided they must be multiples of 3.
 - `page`: (integer) The page of warning metadata to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
 - `limit`: (integer) The total number of results to see from this request. Defaults to `5` if not provided
 - `sort`: (string) What value to sort by. Defaults to `period` if not provided. NOTE: Each sort value has a secondary (and sometimes tertiary) sort value to break ties. Valid values are:
