@@ -82,7 +82,7 @@ def validate_historic_dashboard_filters(filters, graphs=False):
         Exceptions:
             ResponseException if filter is invalid
     """
-    required_filters = ['periods', 'fys', 'is_quarter', 'agencies']
+    required_filters = ['periods', 'fys', 'agencies']
     if graphs:
         required_filters.extend(['files', 'rules'])
     missing_filters = [required_filter for required_filter in required_filters if required_filter not in filters]
@@ -90,21 +90,14 @@ def validate_historic_dashboard_filters(filters, graphs=False):
         raise ResponseException('The following filters were not provided: {}'.format(', '.join(missing_filters)),
                                 status=StatusCode.CLIENT_ERROR)
 
-    wrong_filter_types_list = [key for key, value in filters.items()
-                               if key != 'is_quarter' and not isinstance(value, list)]
+    wrong_filter_types_list = [key for key, value in filters.items() if not isinstance(value, list)]
     if wrong_filter_types_list:
         raise ResponseException('The following filters were not lists: {}'.format(', '.join(wrong_filter_types_list)),
                                 status=StatusCode.CLIENT_ERROR)
 
-    if not isinstance(filters['is_quarter'], bool):
-        raise ResponseException('is_quarter must be a boolean', status=StatusCode.CLIENT_ERROR)
-
     for period in filters['periods']:
         if period not in range(2, 13):
             raise ResponseException('Periods must be a list of integers, each ranging 2-12, or an empty list.',
-                                    status=StatusCode.CLIENT_ERROR)
-        if filters['is_quarter'] is True and period not in [3, 6, 9, 12]:
-            raise ResponseException('If is_quarter is True, provided periods must be 3, 6, 9, or 12 or an empty list.',
                                     status=StatusCode.CLIENT_ERROR)
 
     current_fy = fy(datetime.now())
@@ -177,12 +170,7 @@ def apply_historic_dabs_filters(sess, query, filters):
     query = permissions_filter(query)
 
     if filters['periods']:
-        periods = filters['periods'].copy()
-        # If we're doing the whole quarter, also pull in the 2 periods before it
-        if filters['is_quarter'] is True:
-            for period in filters['periods']:
-                periods.extend([period - 1, period - 2])
-        query = query.filter(Submission.reporting_fiscal_period.in_(periods))
+        query = query.filter(Submission.reporting_fiscal_period.in_(filters['periods']))
 
     if filters['fys']:
         query = query.filter(Submission.reporting_fiscal_year.in_(filters['fys']))

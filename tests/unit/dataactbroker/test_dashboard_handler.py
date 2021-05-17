@@ -64,55 +64,45 @@ def test_validate_historic_dashboard_filters():
         assert str(resp_except.value) == expected_response
 
     # missing a required filter
-    assert_validation({'periods': [], 'fys': [], 'is_quarter': False},
+    assert_validation({'periods': [], 'fys': []},
                       'The following filters were not provided: agencies')
 
     # not a list
-    filters = {'periods': [2], 'fys': 'not a list', 'agencies': ['097'], 'is_quarter': False}
+    filters = {'periods': [2], 'fys': 'not a list', 'agencies': ['097']}
     assert_validation(filters, 'The following filters were not lists: fys')
 
     # wrong periods
     error_message = 'Periods must be a list of integers, each ranging 2-12, or an empty list.'
-    filters = {'periods': [1], 'fys': [2017, 2019], 'agencies': ['097'], 'is_quarter': False}
+    filters = {'periods': [1], 'fys': [2017, 2019], 'agencies': ['097']}
     assert_validation(filters, error_message)
     filters['periods'] = ['5']
     assert_validation(filters, error_message)
-
-    # is_quarter isn't a boolean
-    filters = {'periods': [2], 'fys': [], 'agencies': ['097'], 'is_quarter': 1}
-    assert_validation(filters, 'is_quarter must be a boolean')
-
-    # Invalid period when is_quarter is True
-    filters = {'periods': [2], 'fys': [], 'agencies': ['097'], 'is_quarter': True}
-    assert_validation(filters, 'If is_quarter is True, provided periods must be 3, 6, 9, or 12 or an empty list.')
 
     # wrong fys
     current_fy = fy(datetime.now())
     error_message = 'Fiscal Years must be a list of integers, each ranging from 2017 through the current fiscal year,'\
                     ' or an empty list.'
-    filters = {'periods': [2, 3], 'fys': [2016, 2019], 'agencies': ['097'], 'is_quarter': False}
+    filters = {'periods': [2, 3], 'fys': [2016, 2019], 'agencies': ['097']}
     assert_validation(filters, error_message)
-    filters = {'periods': [2, 3], 'fys': [2017, current_fy + 1], 'agencies': ['097'], 'is_quarter': False}
+    filters = {'periods': [2, 3], 'fys': [2017, current_fy + 1], 'agencies': ['097']}
     assert_validation(filters, error_message)
-    filters = {'periods': [2, 3], 'fys': [2017, str(current_fy)], 'agencies': ['097'], 'is_quarter': False}
+    filters = {'periods': [2, 3], 'fys': [2017, str(current_fy)], 'agencies': ['097']}
     assert_validation(filters, error_message)
 
     # wrong agencies
-    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': [97], 'is_quarter': False}
+    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': [97]}
     assert_validation(filters, 'Agencies must be a list of strings, or an empty list.')
 
     # wrong files
-    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'is_quarter': False,
-               'files': ['R2D2', 'C3P0'], 'rules': []}
+    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': ['R2D2', 'C3P0'], 'rules': []}
     assert_validation(filters, 'Files must be a list of one or more of the following, or an empty list: '
                       'A, B, C, cross-AB, cross-BC, cross-CD1, cross-CD2', graphs=True)
-    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'is_quarter': False, 'files': [2, 3],
-               'rules': []}
+    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': [2, 3], 'rules': []}
     assert_validation(filters, 'Files must be a list of one or more of the following, or an empty list: '
                       'A, B, C, cross-AB, cross-BC, cross-CD1, cross-CD2', graphs=True)
 
     # wrong rules
-    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'is_quarter': False, 'files': ['A', 'B'],
+    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': ['A', 'B'],
                'rules': [2, 3]}
     assert_validation(filters, 'Rules must be a list of strings, or an empty list.', graphs=True)
 
@@ -483,7 +473,6 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
     # Perfect case
     filters = {
         'periods': [3, 9],
-        'is_quarter': False,
         'fys': [2017, 2019],
         'agencies': ['089', '1125', '091'],
         'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
@@ -502,7 +491,6 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
     # drop everything and get (mostly) same response, including empty cross-files
     filters = {
         'periods': [],
-        'is_quarter': False,
         'fys': [],
         'agencies': [],
         'files': [],
@@ -523,7 +511,6 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
     # use each of the basic filters - just submission 1
     filters = {
         'periods': [9],
-        'is_quarter': False,
         'fys': [2017],
         'agencies': ['089'],
         'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
@@ -542,7 +529,6 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
     # use each of the detailed filters
     filters = {
         'periods': [3, 9],
-        'is_quarter': False,
         'fys': [2017, 2019],
         'agencies': ['089', '1125', '091'],
         'files': ['A', 'C', 'cross-BC'],
@@ -559,7 +545,6 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
     # completely empty response
     filters = {
         'periods': [12],
-        'is_quarter': False,
         'fys': [2018],
         'agencies': ['091'],
         'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
@@ -643,8 +628,7 @@ def test_historic_dabs_warning_graphs_agency_user(database, monkeypatch):
         'fys': [],
         'agencies': [],
         'files': [],
-        'rules': [],
-        'is_quarter': False
+        'rules': []
     }
     expected_response = {
         'A': [sub1_single, sub3_empty, month_pub_sub_single],
@@ -780,7 +764,6 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     # Perfect case, default values
     filters = {
         'periods': [3, 9],
-        'is_quarter': False,
         'fys': [2017, 2019],
         'agencies': ['089', '1125', '091'],
         'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
@@ -812,7 +795,6 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     # No filters, should get everything
     filters = {
         'periods': [],
-        'is_quarter': False,
         'fys': [],
         'agencies': [],
         'files': [],
@@ -832,7 +814,6 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     # Only some basic filters included, shouldn't include cross results
     filters = {
         'periods': [3],
-        'is_quarter': False,
         'fys': [2019],
         'agencies': ['1125'],
         'files': ['B'],
@@ -852,7 +833,6 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     # Filtering with a set of filters that returns 0 results
     filters = {
         'periods': [9],
-        'is_quarter': False,
         'fys': [2019],
         'agencies': [],
         'files': [],
@@ -872,7 +852,6 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     # Return more results per page
     filters = {
         'periods': [],
-        'is_quarter': False,
         'fys': [],
         'agencies': [],
         'files': [],
@@ -914,10 +893,9 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     response = historic_dabs_warning_table_endpoint(filters, sort='instances')
     assert response == expected_response
 
-    # Get all of quarter 3 with is_quarter True
+    # Get all of quarter 3
     filters = {
-        'periods': [9],
-        'is_quarter': True,
+        'periods': [7, 8, 9],
         'fys': [],
         'agencies': [],
         'files': [],
