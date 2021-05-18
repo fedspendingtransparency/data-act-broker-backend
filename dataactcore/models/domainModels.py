@@ -314,6 +314,7 @@ class DUNS(Base):
     __tablename__ = "duns"
 
     duns_id = Column(Integer, primary_key=True)
+    uei = Column(Text, index=True)
     awardee_or_recipient_uniqu = Column(Text, index=True)
     legal_business_name = Column(Text)
     dba_name = Column(Text)
@@ -333,6 +334,7 @@ class DUNS(Base):
     entity_structure = Column(Text)
     business_types_codes = Column(ARRAY(Text))
     business_types = Column(ARRAY(Text))
+    ultimate_parent_uei = Column(Text)
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
     high_comp_officer1_full_na = Column(Text)
@@ -355,8 +357,10 @@ class HistoricDUNS(Base):
 
     duns_id = Column(Integer, primary_key=True)
     awardee_or_recipient_uniqu = Column(Text, index=True)
+    uei = Column(Text)
     legal_business_name = Column(Text)
     dba_name = Column(Text)
+    entity_structure = Column(Text)
     activation_date = Column(Date)
     registration_date = Column(Date)
     expiration_date = Column(Date)
@@ -372,6 +376,7 @@ class HistoricDUNS(Base):
     business_types_codes = Column(ARRAY(Text))
     business_types = Column(ARRAY(Text))
     ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_uei = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
     high_comp_officer1_full_na = Column(Text)
     high_comp_officer1_amount = Column(Text)
