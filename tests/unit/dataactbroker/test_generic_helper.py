@@ -2,7 +2,7 @@ import pytest
 import datetime as dt
 from sqlalchemy import func, or_
 
-from dataactbroker.helpers.generic_helper import year_period_to_dates, generate_raw_quoted_query, fy
+from dataactbroker.helpers.generic_helper import year_period_to_dates, generate_raw_quoted_query, fy, batch as batcher
 from dataactcore.models.jobModels import FileGeneration
 
 from dataactcore.utils.responseException import ResponseException
@@ -125,3 +125,16 @@ def test_fy_type_exceptions(not_date):
 
     with pytest.raises(TypeError):
         fy(not_date)
+
+
+def test_batch():
+    """ Testing the batch function into chunks of 100 """
+    full_list = list(range(0, 1000))
+    initial_batch = list(range(0, 100))
+    iteration = 0
+    batch_size = 100
+    for batch in batcher(full_list, batch_size):
+        expected_batch = [x + (batch_size * iteration) for x in initial_batch]
+        assert expected_batch == batch
+        iteration += 1
+    assert iteration == 10
