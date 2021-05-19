@@ -8,6 +8,8 @@ SELECT
     afa.row_number AS "source_row_number",
     afa.fain AS "source_value_fain",
     afa.uri AS "source_value_uri",
+    afa.federal_action_obligation AS "source_value_federal_action_obligation",
+    afa.federal_action_obligation AS "difference",
     afa.fain AS "uniqueid_FAIN",
     afa.uri AS "uniqueid_URI"
 FROM award_financial_assistance AS afa
@@ -33,6 +35,8 @@ SELECT
     afa.row_number AS "source_row_number",
     afa.fain AS "source_value_fain",
     afa.uri AS "source_value_uri",
+    afa.federal_action_obligation AS "source_value_federal_action_obligation",
+    afa.federal_action_obligation AS "difference",
     afa.fain AS "uniqueid_FAIN",
     afa.uri AS "uniqueid_URI"
 FROM award_financial_assistance AS afa
