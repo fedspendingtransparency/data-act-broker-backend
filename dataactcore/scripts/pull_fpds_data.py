@@ -35,8 +35,8 @@ from dataactcore.models.userModel import User  # noqa
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
-feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.0&q="
-delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.5.0&q="
+feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.2&q="
+delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.5.2&q="
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
@@ -672,15 +672,32 @@ def vendor_site_details_values(data, obj):
         except (KeyError, TypeError):
             obj[value] = None
 
-    # vendorDUNSInformation sub-level
-    value_map = {'cageCode': 'cage_code',
-                 'DUNSNumber': 'awardee_or_recipient_uniqu',
+    # entityIdentifiers sub-level
+    try:
+        obj['cage_code'] = extract_text(data['entityIdentifiers']['cageCode'])
+    except (KeyError, TypeError):
+        obj['cage_code'] = None
+
+    # entityIdentifiers > vendorDUNSInformation sub-level
+    value_map = {'DUNSNumber': 'awardee_or_recipient_uniqu',
                  'globalParentDUNSName': 'ultimate_parent_legal_enti',
                  'globalParentDUNSNumber': 'ultimate_parent_unique_ide'}
 
     for key, value in value_map.items():
         try:
-            obj[value] = extract_text(data['vendorDUNSInformation'][key])
+            obj[value] = extract_text(data['entityIdentifiers']['vendorDUNSInformation'][key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # entityIdentifiers > vendorUEIInformation sub-level
+    value_map = {'UEI': 'awardee_or_recipient_uei',
+                 'UEILegalBusinessName': 'awardee_or_recipient_uei_n',
+                 'ultimateParentUEI': 'ultimate_parent_uei',
+                 'ultimateParentUEIName': 'ultimate_parent_uei_name'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data['entityIdentifiers']['vendorUEIInformation'][key])
         except (KeyError, TypeError):
             obj[value] = None
 
