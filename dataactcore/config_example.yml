@@ -106,6 +106,33 @@ broker:
     # Session timeout, in seconds
     session_timeout: 1800
 
+    # We import award/subaward records from FSRS
+    fsrs:
+        procurement_service:
+            wsdl: ''  # e.g. https://example.com/?wsdl'
+            username: ''
+            password: ''
+        grant_service:
+            wsdl: ''  # e.g. https://example.com/?wsdl'
+            username: ''
+            password: ''
+
+    # We import DUNS and FH records from SAM
+    sam:
+        api_key: example
+        account_user_id: example
+        account_password: example
+
+        # used in load_federal_hierarchy.py
+        federal_hierarchy:
+            api_url: https://api.sam.gov/prod/federalorganizations/v1/orgs?api_key={}
+
+        # used in load_duns_exec_comp and update_historical_duns
+        duns:
+            csv_api_url: https://api.sam.gov/data-services/v1/extracts
+            csv_archive_bucket: example
+            entity_api_url: https://api-alpha.sam.gov/entity-information/v2/entities
+
 services:
     debug: true
 
@@ -132,17 +159,6 @@ services:
     # The paths to the sample D1 and D2 files for local development
     d2_file_path: /data-act/backend/tests/integration/data/d2_sample.csv
     d1_file_path: /data-act/backend/tests/integration/data/d1_sample.csv
-
-    # We import award/subaward records from FSRS
-    fsrs:
-       procurement_service:
-           wsdl: ''  # e.g. https://example.com/?wsdl'
-           username: ''
-           password: ''
-       grant_service:
-           wsdl: ''  # e.g. https://example.com/?wsdl'
-           username: ''
-           password: ''
 
 
 db:
