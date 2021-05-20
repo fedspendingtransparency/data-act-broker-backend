@@ -5,55 +5,21 @@ import pandas as pd
 import argparse
 from datetime import datetime
 
-from dataactcore.utils.parentDuns import sam_config_is_valid
-from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
-from dataactcore.models.domainModels import HistoricDUNS, DUNS
+from dataactbroker.helpers.generic_helper import batch
+from dataactvalidator.scripts.loader_utils import clean_data
 from dataactvalidator.health_check import create_app
+from dataactcore.models.domainModels import HistoricDUNS, DUNS
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-import dataactcore.utils.parentDuns
+from dataactcore.utils.duns import update_duns_props, LOAD_BATCH_SIZE, update_duns
 
 logger = logging.getLogger(__name__)
 
-# CSV column header name in DUNS file
-column_headers = [
-    "awardee_or_recipient_uniqu",  # DUNS Field
-    "registration_date",  # Registration_Date
-    "expiration_date",  # Expiration_Date
-    "last_sam_mod_date",  # Last_Update_Date
-    "activation_date",  # Activation_Date
-    "legal_business_name"  # Legal_Business_Name
-]
-props_columns = {
-    'address_line_1': None,
-    'address_line_2': None,
-    'city': None,
-    'state': None,
-    'zip': None,
-    'zip4': None,
-    'country_code': None,
-    'congressional_district': None,
-    'business_types_codes': [],
-    'business_types': [],
-    'dba_name': None,
-    'ultimate_parent_unique_ide': None,
-    'ultimate_parent_legal_enti': None,
-    'high_comp_officer1_full_na': None,
-    'high_comp_officer1_amount': None,
-    'high_comp_officer2_full_na': None,
-    'high_comp_officer2_amount': None,
-    'high_comp_officer3_full_na': None,
-    'high_comp_officer3_amount': None,
-    'high_comp_officer4_full_na': None,
-    'high_comp_officer4_amount': None,
-    'high_comp_officer5_full_na': None,
-    'high_comp_officer5_amount': None
-}
-
-column_mappings = {x: x for x in column_headers + list(props_columns.keys())}
+HD_COLUMNS = [col.key for col in HistoricDUNS.__table__.columns
+              if col.key not in ('duns_id', 'created_at', 'updated_at')]
 
 
 def remove_existing_duns(data, sess):
@@ -79,67 +45,26 @@ def remove_existing_duns(data, sess):
     return missing_duns
 
 
-def batch(iterable, n=1):
-    """ Simple function to create batches from a list
-
-        Args:
-            iterable: the list to be batched
-            n: the size of the batches
-
-        Yields:
-            the same list (iterable) in batches depending on the size of N
-    """
-    length = len(iterable)
-    for ndx in range(0, length, n):
-        yield iterable[ndx:min(ndx + n, length)]
-
-
-def update_duns_props(df, client):
-    """ Returns same dataframe with address data updated"
-
-        Args:
-            df: the dataframe containing the duns data
-            client: the connection to the SAM service
-
-        Returns:
-            a merged dataframe with the duns updated with location info from SAM
-    """
-    all_duns = df['awardee_or_recipient_uniqu'].tolist()
-    columns = ['awardee_or_recipient_uniqu'] + list(props_columns.keys())
-    duns_props_df = pd.DataFrame(columns=columns)
-    # SAM service only takes in batches of 100
-    index = 0
-    batch_size = 100
-    for duns_list in batch(all_duns, batch_size):
-        logger.info("Gathering addtional data for historic DUNS records {}-{}".format(index, index + batch_size))
-        duns_props_batch = dataactcore.utils.parentDuns.get_duns_props_from_sam(client, duns_list)
-        duns_props_batch.drop(column_headers[1:], axis=1, inplace=True, errors='ignore')
-        # Adding in blank rows for DUNS where data was not found
-        added_duns_list = []
-        if not duns_props_batch.empty:
-            added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
-        empty_duns_rows = []
-        for duns in (set(added_duns_list) ^ set(duns_list)):
-            empty_duns_row = props_columns.copy()
-            empty_duns_row['awardee_or_recipient_uniqu'] = duns
-            empty_duns_rows.append(empty_duns_row)
-        duns_props_batch = duns_props_batch.append(pd.DataFrame(empty_duns_rows), sort=True)
-        duns_props_df = duns_props_df.append(duns_props_batch, sort=True)
-        index += batch_size
-    return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
-
-
-def run_duns_batches(file, sess, client, block_size=10000):
-    """ Updates DUNS table in chunks from csv file
+def run_duns_batches(file, sess, block_size=LOAD_BATCH_SIZE):
+    """ Updates Historic DUNS table in chunks from csv file
 
         Args:
             file: path to the DUNS export file to use
             sess: the database connection
-            client: the connection to the SAM service
             block_size: the size of the batches to read from the DUNS export file.
     """
     logger.info("Retrieving total rows from duns file")
     start = datetime.now()
+
+    # CSV column header name in DUNS file
+    column_headers = [
+        "awardee_or_recipient_uniqu",  # DUNS Field
+        "registration_date",  # Registration_Date
+        "expiration_date",  # Expiration_Date
+        "last_sam_mod_date",  # Last_Update_Date
+        "activation_date",  # Activation_Date
+        "legal_business_name"  # Legal_Business_Name
+    ]
     duns_reader_obj = pd.read_csv(file, skipinitialspace=True, header=None, quotechar='"', dtype=str,
                                   names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
     duns_dfs = [duns_df for duns_df in duns_reader_obj]
@@ -158,17 +83,31 @@ def run_duns_batches(file, sess, client, block_size=10000):
             start = datetime.now()
 
             # get address info for incoming duns
-            duns_to_load = update_duns_props(duns_to_load, client)
+            duns_to_load = update_duns_props(duns_to_load)
+            column_mappings = {col: col for col in duns_to_load.columns}
             duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
             duns_added += len(duns_to_load.index)
-
-            insert_dataframe(duns_to_load, HistoricDUNS.__table__.name, sess.connection())
+            update_duns(sess, duns_to_load, HistoricDUNS.__table__.name)
             sess.commit()
 
             logger.info("Finished updating {} DUNS rows in {} s".format(len(duns_to_load.index),
                                                                         (datetime.now() - start).total_seconds()))
 
     logger.info("Imported {} historical duns".format(duns_added))
+
+
+def reload_from_sam(sess):
+    """ Reload current historic duns data from SAM to pull in any new columns or data
+
+        Args:
+            sess: database connection
+    """
+    historic_duns_to_update = sess.query(HistoricDUNS.awardee_or_recipient_uniqu).all()
+    for duns_batch in batch(historic_duns_to_update, LOAD_BATCH_SIZE):
+        df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
+        df = df.append(duns_batch)
+        df = update_duns_props(df)
+        update_duns(sess, df, table_name=HistoricDUNS.__table__.name)
 
 
 def clean_historic_duns(sess):
@@ -193,103 +132,69 @@ def import_historic_duns(sess):
         Args:
             sess: the database connection
     """
+    logger.info('Updating historic duns values in the DUNS table')
+    update_cols = ['{col} = hd.{col}'.format(col=col) for col in HD_COLUMNS
+                   if col not in ['created_at', 'updated_at', 'awardee_or_recipient_uniqu']]
+    update_cols.append('updated_at = NOW()')
+    # only updating the historic records that are still not updated over time
+    update_sql = """
+        UPDATE duns
+        SET
+            {update_cols}
+        FROM historic_duns AS hd
+        WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
+            AND duns.historic = TRUE;
+    """.format(update_cols=','.join(update_cols))
+    sess.execute(update_sql)
+    logger.info('Updated historic duns values to DUNS table')
 
-    logger.info('Copying historic duns values to DUNS table')
+    logger.info('Inserting historic duns values to DUNS table')
+    from_columns = ['hd.{}'.format(column) for column in HD_COLUMNS]
     copy_sql = """
         INSERT INTO duns (
-            created_at,
+            {columns},
+            historic,
             updated_at,
-            awardee_or_recipient_uniqu,
-            activation_date,
-            expiration_date,
-            registration_date,
-            last_sam_mod_date,
-            legal_business_name,
-            dba_name,
-            ultimate_parent_unique_ide,
-            ultimate_parent_legal_enti,
-            address_line_1,
-            address_line_2,
-            city,
-            state,
-            zip,
-            zip4,
-            country_code,
-            congressional_district,
-            business_types_codes,
-            business_types,
-            high_comp_officer1_amount,
-            high_comp_officer1_full_na,
-            high_comp_officer2_amount,
-            high_comp_officer2_full_na,
-            high_comp_officer3_amount,
-            high_comp_officer3_full_na,
-            high_comp_officer4_amount,
-            high_comp_officer4_full_na,
-            high_comp_officer5_amount,
-            high_comp_officer5_full_na,
-            historic
+            created_at
         )
         SELECT
-            hd.created_at,
-            hd.updated_at,
-            hd.awardee_or_recipient_uniqu,
-            hd.activation_date,
-            hd.expiration_date,
-            hd.registration_date,
-            hd.last_sam_mod_date,
-            hd.legal_business_name,
-            hd.dba_name,
-            hd.ultimate_parent_unique_ide,
-            hd.ultimate_parent_legal_enti,
-            hd.address_line_1,
-            hd.address_line_2,
-            hd.city,
-            hd.state,
-            hd.zip,
-            hd.zip4,
-            hd.country_code,
-            hd.congressional_district,
-            hd.business_types_codes,
-            hd.business_types,
-            hd.high_comp_officer1_amount,
-            hd.high_comp_officer1_full_na,
-            hd.high_comp_officer2_amount,
-            hd.high_comp_officer2_full_na,
-            hd.high_comp_officer3_amount,
-            hd.high_comp_officer3_full_na,
-            hd.high_comp_officer4_amount,
-            hd.high_comp_officer4_full_na,
-            hd.high_comp_officer5_amount,
-            hd.high_comp_officer5_full_na,
-            TRUE
+            {from_columns},
+            TRUE,
+            NOW(),
+            NOW()
         FROM historic_duns AS hd
         WHERE NOT EXISTS (
             SELECT 1
             FROM duns
             WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
         );
-    """
+    """.format(columns=', '.join(HD_COLUMNS), from_columns=', '.join(from_columns))
     sess.execute(copy_sql)
     sess.commit()
-    logger.info('Copied historic duns values to DUNS table')
+    logger.info('Inserted new historic duns values to DUNS table')
 
 
 def main():
-    """ Loads DUNS from the DUNS export file (comprised of DUNS pre-2014) """
+    """
+        Loads DUNS from the DUNS export file (comprised of DUNS pre-2014).
+        Note: Should only run after importing all the SAM csv data to prevent unnecessary reloading
+    """
     parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
-    parser.add_argument('--block_size', '-s', help='Number of rows to batch load', type=int, default=10000)
-    parser.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
+    parser.add_argument('--block_size', '-s', help='Number of rows to batch load', type=int, default=LOAD_BATCH_SIZE)
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
                                                                          ' update from SAM')
+    action.add_argument('--update_from_sam', '-u', action='store_true', help='Update the current HistoricDUNS with any'
+                                                                             'new columns or updated data')
+
     args = parser.parse_args()
     reload_file = args.reload_file
+    update_from_sam = args.update_from_sam
     block_size = args.block_size
 
     sess = GlobalDB.db().session
 
     if reload_file:
-        client = sam_config_is_valid()
-
         logger.info('Retrieving historical DUNS file')
         start = datetime.now()
         if CONFIG_BROKER["use_aws"]:
@@ -306,13 +211,16 @@ def main():
         logger.info("Retrieved historical DUNS file in {} s".format((datetime.now() - start).total_seconds()))
 
         try:
-            run_duns_batches(duns_file, sess, client, block_size)
+            run_duns_batches(duns_file, sess, block_size)
         except Exception as e:
             logger.exception(e)
             sess.rollback()
     else:
         # if we're using an old historic duns table, clean it up before importing
         clean_historic_duns(sess)
+
+        if update_from_sam:
+            reload_from_sam(sess)
 
     # import the historic duns to the current DUNS table
     import_historic_duns(sess)
@@ -322,9 +230,6 @@ def main():
 
 
 if __name__ == '__main__':
-
+    configure_logging()
     with create_app().app_context():
-        configure_logging()
-
-        with create_app().app_context():
-            main()
+        main()
