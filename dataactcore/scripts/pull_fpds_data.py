@@ -9,6 +9,7 @@ import datetime
 import time
 import re
 import json
+import math
 
 from sqlalchemy import func
 
@@ -47,7 +48,7 @@ FPDS_NAMESPACES = {'http://www.fpdsng.com/FPDS': None,
 
 # Used for asyncio get requests against the ATOM feed
 MAX_ENTRIES = 10
-REQUESTS_AT_ONCE = 100
+MAX_REQUESTS_AT_ONCE = 100
 SPOT_CHECK_COUNT = 10000
 
 logger = logging.getLogger(__name__)
@@ -1366,8 +1367,11 @@ def get_with_exception_hand(url_string):
     while exception_retries < len(retry_sleep_times):
         try:
             resp = requests.get(url_string, timeout=request_timeout)
+            # we should always expect entries, otherwise we shouldn't be calling it
+            resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+            len(list_data(resp_dict['feed']['entry']))
             break
-        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout) as e:
+        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout, KeyError) as e:
             exception_retries += 1
             request_timeout += 60
             if exception_retries < len(retry_sleep_times):
@@ -1477,16 +1481,21 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
 
     entries_processed = 0
     while True:
-        async def atom_async_get(entries_already_processed):
+        # pull in the next MAX_ENTRIES * REQUESTS_AT_ONCE until we get anything less than the MAX_ENTRIES
+        async def atom_async_get(entries_already_processed, total_expected_records):
             response_list = []
             loop = asyncio.get_event_loop()
+            requests_at_once = MAX_REQUESTS_AT_ONCE
+            if total_expected_records - entries_already_processed < (MAX_REQUESTS_AT_ONCE * MAX_ENTRIES):
+                requests_at_once = math.ceil((total_expected_records-entries_already_processed)/MAX_ENTRIES)
+
             futures = [
                 loop.run_in_executor(
                     None,
                     get_with_exception_hand,
                     base_url + "&start=" + str(entries_already_processed + (start_offset * MAX_ENTRIES))
                 )
-                for start_offset in range(REQUESTS_AT_ONCE)
+                for start_offset in range(requests_at_once)
             ]
             for response in await asyncio.gather(*futures):
                 response_list.append(response.text)
@@ -1495,7 +1504,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         # End async get requests def
 
         loop = asyncio.get_event_loop()
-        full_response = loop.run_until_complete(atom_async_get(entries_processed))
+        full_response = loop.run_until_complete(atom_async_get(entries_processed, total_expected_records))
 
         for next_resp in full_response:
             response_dict = xmltodict.parse(next_resp, process_namespaces=True, namespaces=FPDS_NAMESPACES)
@@ -1542,7 +1551,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                         len(data), contract_type, award_type)
 
         # if we got less than the full set of records, we can stop calling the feed
-        if len(data) < (MAX_ENTRIES * REQUESTS_AT_ONCE):
+        if len(data) < (MAX_ENTRIES * MAX_REQUESTS_AT_ONCE):
             # ensure we loaded the number of records we expected to, otherwise we'll need to reload
             if entries_processed != total_expected_records:
                 raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
