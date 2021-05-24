@@ -1487,7 +1487,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             loop = asyncio.get_event_loop()
             requests_at_once = MAX_REQUESTS_AT_ONCE
             if total_expected_records - entries_already_processed < (MAX_REQUESTS_AT_ONCE * MAX_ENTRIES):
-                requests_at_once = math.ceil((total_expected_records-entries_already_processed)/MAX_ENTRIES)
+                requests_at_once = math.ceil((total_expected_records - entries_already_processed) / MAX_ENTRIES)
 
             futures = [
                 loop.run_in_executor(
