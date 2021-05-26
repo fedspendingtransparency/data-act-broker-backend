@@ -49,7 +49,6 @@ FPDS_NAMESPACES = {'http://www.fpdsng.com/FPDS': None,
 # Used for asyncio get requests against the ATOM feed
 MAX_ENTRIES = 10
 MAX_REQUESTS_AT_ONCE = 100
-SPOT_CHECK_COUNT = 10000
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -1358,7 +1357,7 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
                 sess.commit()
 
 
-def get_with_exception_hand(url_string):
+def get_with_exception_hand(url_string, expect_entries=True):
     """ Retrieve data from FPDS, allow for multiple retries and timeouts """
     exception_retries = -1
     retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
@@ -1367,9 +1366,10 @@ def get_with_exception_hand(url_string):
     while exception_retries < len(retry_sleep_times):
         try:
             resp = requests.get(url_string, timeout=request_timeout)
-            # we should always expect entries, otherwise we shouldn't be calling it
-            resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-            len(list_data(resp_dict['feed']['entry']))
+            if expect_entries:
+                # we should always expect entries, otherwise we shouldn't be calling it
+                resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+                len(list_data(resp_dict['feed']['entry']))
             break
         except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout, KeyError) as e:
             exception_retries += 1
@@ -1487,13 +1487,15 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             loop = asyncio.get_event_loop()
             requests_at_once = MAX_REQUESTS_AT_ONCE
             if total_expected_records - entries_already_processed < (MAX_REQUESTS_AT_ONCE * MAX_ENTRIES):
-                requests_at_once = math.ceil((total_expected_records - entries_already_processed) / MAX_ENTRIES)
+                # adding +1 to ensure that they're not adding anything since we got the expected count
+                requests_at_once = math.ceil((total_expected_records - entries_already_processed) / MAX_ENTRIES) + 1
 
             futures = [
                 loop.run_in_executor(
                     None,
                     get_with_exception_hand,
-                    base_url + "&start=" + str(entries_already_processed + (start_offset * MAX_ENTRIES))
+                    base_url + "&start=" + str(entries_already_processed + (start_offset * MAX_ENTRIES)),
+                    total_expected_records > entries_already_processed + (start_offset * MAX_ENTRIES)
                 )
                 for start_offset in range(requests_at_once)
             ]
@@ -1523,7 +1525,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                                                        exec_comp_dict))
                 entries_processed += len(entries_per_response)
 
-        if len(data) % SPOT_CHECK_COUNT == 0 and entries_processed > total_expected_records:
+        if entries_processed > total_expected_records:
             # Find entries that don't have FPDS content and print them all
             for next_resp in full_response:
                 response_dict = xmltodict.parse(next_resp, process_namespaces=True, namespaces=FPDS_NAMESPACES)
@@ -1620,7 +1622,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
         except KeyError:
             listed_data = []
 
-        if len(listed_data) % SPOT_CHECK_COUNT == 0 and processed_deletions > total_expected_records:
+        if processed_deletions > total_expected_records:
             raise Exception("Total number of expected records has changed\nExpected: {}\nRetrieved so far: {}"
                             .format(total_expected_records, len(processed_deletions)))
 
