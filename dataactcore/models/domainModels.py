@@ -357,7 +357,7 @@ class HistoricDUNS(Base):
 
     duns_id = Column(Integer, primary_key=True)
     awardee_or_recipient_uniqu = Column(Text, index=True)
-    uei = Column(Text)
+    uei = Column(Text, index=True)
     legal_business_name = Column(Text)
     dba_name = Column(Text)
     entity_structure = Column(Text)
