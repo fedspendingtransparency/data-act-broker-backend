@@ -15,12 +15,12 @@ WITH award_financial_b20_{0} AS
         program_activity_code,
         program_activity_name,
         object_class,
-        tas_id,
+        account_num,
         display_tas
     FROM award_financial
     WHERE submission_id = {0}),
 ocpa_b20_{0} AS
-    (SELECT tas_id,
+    (SELECT account_num,
         program_activity_code,
         program_activity_name,
         object_class
@@ -41,7 +41,7 @@ JOIN submission AS sub
 WHERE NOT EXISTS (
         SELECT 1
         FROM ocpa_b20_{0} AS op
-        WHERE COALESCE(af.tas_id, 0) = COALESCE(op.tas_id, 0)
+        WHERE COALESCE(af.account_num, 0) = COALESCE(op.account_num, 0)
             AND (COALESCE(af.program_activity_code, '') = COALESCE(op.program_activity_code, '')
                 OR COALESCE(af.program_activity_code, '') = ''
                 OR af.program_activity_code = '0000'

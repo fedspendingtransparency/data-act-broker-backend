@@ -39,7 +39,7 @@ def test_success(database):
                                unobligated_balance_cpe=0, status_of_budgetary_resour_cpe=0)
     # Non-matching ATA with financial_indicator2 of F
     ap5 = AppropriationFactory(submission_id=sub.submission_id, allocation_transfer_agency='Not a match',
-                               tas_id=tas.account_num, adjustments_to_unobligated_cpe=15)
+                               account_num=tas.account_num, adjustments_to_unobligated_cpe=15)
 
     assert number_of_errors(_FILE, database, submission=sub, models=[cgac, tas, ap1, ap2, ap3, ap4, ap5]) == 0
 

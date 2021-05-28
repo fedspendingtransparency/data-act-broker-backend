@@ -3,12 +3,12 @@
 WITH appropriation_a35_{0} AS
     (SELECT row_number,
         deobligations_recoveries_r_cpe,
-        tas_id,
+        account_num,
         display_tas
     FROM appropriation
     WHERE submission_id = {0}),
 ocpa_a35_{0} AS
-    (SELECT tas_id,
+    (SELECT account_num,
         ussgl487100_downward_adjus_cpe,
         ussgl497100_downward_adjus_cpe,
         ussgl487200_downward_adjus_cpe,
@@ -29,7 +29,7 @@ SELECT
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a35_{0} AS approp
     JOIN ocpa_a35_{0} AS op
-        ON approp.tas_id = op.tas_id
+        ON approp.account_num = op.account_num
 GROUP BY approp.row_number,
     approp.deobligations_recoveries_r_cpe,
     approp.display_tas
