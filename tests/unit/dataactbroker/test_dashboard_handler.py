@@ -64,44 +64,46 @@ def test_validate_historic_dashboard_filters():
         assert str(resp_except.value) == expected_response
 
     # missing a required filter
-    assert_validation({'quarters': [], 'fys': []}, 'The following filters were not provided: agencies')
+    assert_validation({'periods': [], 'fys': []},
+                      'The following filters were not provided: agencies')
 
     # not a list
-    filters = {'quarters': [1], 'fys': 'not a list', 'agencies': ['097']}
+    filters = {'periods': [2], 'fys': 'not a list', 'agencies': ['097']}
     assert_validation(filters, 'The following filters were not lists: fys')
 
-    # wrong quarters
-    error_message = 'Quarters must be a list of integers, each ranging 1-4, or an empty list.'
-    filters = {'quarters': [5], 'fys': [2017, 2019], 'agencies': ['097']}
+    # wrong periods
+    error_message = 'Periods must be a list of integers, each ranging 2-12, or an empty list.'
+    filters = {'periods': [1], 'fys': [2017, 2019], 'agencies': ['097']}
     assert_validation(filters, error_message)
-    filters['quarters'] = ['3']
+    filters['periods'] = ['5']
     assert_validation(filters, error_message)
 
     # wrong fys
     current_fy = fy(datetime.now())
     error_message = 'Fiscal Years must be a list of integers, each ranging from 2017 through the current fiscal year,'\
                     ' or an empty list.'
-    filters = {'quarters': [1, 3], 'fys': [2016, 2019], 'agencies': ['097']}
+    filters = {'periods': [2, 3], 'fys': [2016, 2019], 'agencies': ['097']}
     assert_validation(filters, error_message)
-    filters = {'quarters': [1, 3], 'fys': [2017, current_fy + 1], 'agencies': ['097']}
+    filters = {'periods': [2, 3], 'fys': [2017, current_fy + 1], 'agencies': ['097']}
     assert_validation(filters, error_message)
-    filters = {'quarters': [1, 3], 'fys': [2017, str(current_fy)], 'agencies': ['097']}
+    filters = {'periods': [2, 3], 'fys': [2017, str(current_fy)], 'agencies': ['097']}
     assert_validation(filters, error_message)
 
     # wrong agencies
-    filters = {'quarters': [1, 3], 'fys': [2017, 2019], 'agencies': [97]}
+    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': [97]}
     assert_validation(filters, 'Agencies must be a list of strings, or an empty list.')
 
     # wrong files
-    filters = {'quarters': [1, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': ['R2D2', 'C3P0'], 'rules': []}
+    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': ['R2D2', 'C3P0'], 'rules': []}
     assert_validation(filters, 'Files must be a list of one or more of the following, or an empty list: '
                       'A, B, C, cross-AB, cross-BC, cross-CD1, cross-CD2', graphs=True)
-    filters = {'quarters': [1, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': [2, 3], 'rules': []}
+    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': [2, 3], 'rules': []}
     assert_validation(filters, 'Files must be a list of one or more of the following, or an empty list: '
                       'A, B, C, cross-AB, cross-BC, cross-CD1, cross-CD2', graphs=True)
 
     # wrong rules
-    filters = {'quarters': [1, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': ['A', 'B'], 'rules': [2, 3]}
+    filters = {'periods': [2, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': ['A', 'B'],
+               'rules': [2, 3]}
     assert_validation(filters, 'Rules must be a list of strings, or an empty list.', graphs=True)
 
 
@@ -156,30 +158,31 @@ def setup_submissions(sess, admin=False):
                                  d2_submission=True, user_id=agency_user.user_id, is_quarter_format=False,
                                  test_submission=False)
     monthly_sub = SubmissionFactory(submission_id=6, reporting_fiscal_period=9, reporting_fiscal_year=2017,
-                                    publishing_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
+                                    publishing_user_id=None, cgac_code=cgac1.cgac_code, frec_code=None,
                                     publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
                                     user_id=agency_user.user_id, is_quarter_format=False,
                                     reporting_start_date=datetime(2017, 6, 1), test_submission=False)
     test_sub = SubmissionFactory(submission_id=7, reporting_fiscal_period=9, reporting_fiscal_year=2017,
-                                 publishing_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
+                                 publishing_user_id=None, cgac_code=cgac1.cgac_code, frec_code=None,
                                  publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
                                  user_id=agency_user.user_id, is_quarter_format=True, test_submission=True)
-    db_objects.extend([sub1, sub2, sub3, sub4, fabs_sub, monthly_sub, test_sub])
+    pub_month_sub = SubmissionFactory(submission_id=8, reporting_fiscal_period=8, reporting_fiscal_year=2017,
+                                      publishing_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
+                                      publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                      user_id=agency_user.user_id, is_quarter_format=False,
+                                      reporting_start_date=datetime(2017, 6, 1), test_submission=False)
+    db_objects.extend([sub1, sub2, sub3, sub4, fabs_sub, monthly_sub, test_sub, pub_month_sub])
 
     # Setup validation jobs
-    sub1_a = JobFactory(submission=sub1, file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                        original_filename='sub1_filea.csv')
-    sub1_b = JobFactory(submission=sub1, file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                        original_filename='sub1_fileb.csv')
+    sub1_a = JobFactory(submission=sub1, file_type_id=FILE_TYPE_DICT_LETTER_ID['A'])
+    sub1_b = JobFactory(submission=sub1, file_type_id=FILE_TYPE_DICT_LETTER_ID['B'])
     sub1_ab = JobFactory(submission=sub1, file_type_id=None)
-    sub2_b = JobFactory(submission=sub2, file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                        original_filename='sub2_fileb.csv')
-    sub2_c = JobFactory(submission=sub2, file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
-                        original_filename='sub2_filec.csv')
+    sub2_b = JobFactory(submission=sub2, file_type_id=FILE_TYPE_DICT_LETTER_ID['B'])
+    sub2_c = JobFactory(submission=sub2, file_type_id=FILE_TYPE_DICT_LETTER_ID['C'])
     sub2_bc = JobFactory(submission=sub2, file_type_id=None)
-    sub3_c = JobFactory(submission=sub3, file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
-                        original_filename='sub3_filec.csv')
-    db_objects.extend([sub1_a, sub1_b, sub1_ab, sub2_b, sub2_c, sub2_bc, sub3_c])
+    sub3_c = JobFactory(submission=sub3, file_type_id=FILE_TYPE_DICT_LETTER_ID['C'])
+    pub_month_sub_a = JobFactory(submission=pub_month_sub, file_type_id=FILE_TYPE_DICT_LETTER_ID['A'])
+    db_objects.extend([sub1_a, sub1_b, sub1_ab, sub2_b, sub2_c, sub2_bc, sub3_c, pub_month_sub_a])
 
     # Setup a couple of rules
     rule_a1 = RuleSql(rule_sql='', rule_label='A1', rule_error_message='first rule', query_name='',
@@ -229,8 +232,12 @@ def setup_submissions(sess, admin=False):
     sub3_c2 = ErrorMetadata(job=sub3_c, original_rule_label='C2', occurrences=15,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['C'], target_file_type_id=None,
                             rule_failed='first rule', severity_id=RULE_SEVERITY_DICT['warning'])
+    pub_month_sub_a1 = ErrorMetadata(job=pub_month_sub_a, original_rule_label=rule_a1.rule_label, occurrences=75,
+                                     file_type_id=FILE_TYPE_DICT_LETTER_ID['A'], target_file_type_id=None,
+                                     rule_failed=rule_a1.rule_error_message, severity_id=rule_a1.rule_severity_id)
 
-    db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub1_b1, sub2_b1, sub2_bc1, sub3_c1, sub3_c2])
+    db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub1_b1, sub2_b1, sub2_bc1, sub3_c1, sub3_c2,
+                       pub_month_sub_a1])
 
     # Setup certified error metadata
     cert_sub1_a1 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
@@ -254,8 +261,12 @@ def setup_submissions(sess, admin=False):
                                            file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                                            target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
                                            rule_failed='another cross rule')
+    cert_pub_month_sub_a1 = CertifiedErrorMetadata(job=pub_month_sub_a, original_rule_label='A1', occurrences=75,
+                                                   file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                                   target_file_type_id=None, rule_failed='first rule')
     # no warnings for sub3
-    db_objects.extend([cert_sub1_a1, cert_sub1_a2, cert_sub1_ab1, cert_sub1_ab2, cert_sub2_b1, cert_sub2_bc1])
+    db_objects.extend([cert_sub1_a1, cert_sub1_a2, cert_sub1_ab1, cert_sub1_ab2, cert_sub2_b1, cert_sub2_bc1,
+                       cert_pub_month_sub_a1])
 
     # Setup submission window schedule
     today = datetime.now().date()
@@ -374,6 +385,7 @@ def test_list_rule_labels(database):
 @pytest.mark.usefixtures('user_constants')
 @pytest.mark.usefixtures('validation_constants')
 def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
+    # TODO: Update for inclusion of monthly submissions when we get there
     sess = database.session
 
     user = setup_submissions(sess, admin=True)
@@ -413,6 +425,17 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
         'total_warnings': 0,
         'warnings': []
     }
+    month_pub_sub_empty = {
+        'submission_id': 8,
+        'quarter': 2,
+        'fy': 2017,
+        'agency': {
+            'name': 'CGAC',
+            'code': '089'
+        },
+        'total_warnings': 0,
+        'warnings': []
+    }
     all_subs_empty_results = [sub1_empty, sub2_empty, sub3_empty]
 
     a1_warning = {'label': 'A1', 'instances': 20, 'percent_total': 40}
@@ -420,6 +443,10 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
     a_single = {'total_warnings': 50, 'warnings': [a1_warning, a2_warning]}
     sub1_single = copy.deepcopy(sub1_empty)
     sub1_single.update(a_single)
+
+    a1_warning_month = {'total_warnings': 75, 'warnings': [{'label': 'A1', 'instances': 75, 'percent_total': 100}]}
+    month_pub_sub_single = copy.deepcopy(month_pub_sub_empty)
+    month_pub_sub_single.update(a1_warning_month)
 
     a1_warning_filtered = {'label': 'A1', 'instances': 20, 'percent_total': 100}
     a_single_filtered = {'total_warnings': 20, 'warnings': [a1_warning_filtered]}
@@ -445,7 +472,7 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
 
     # Perfect case
     filters = {
-        'quarters': [1, 3],
+        'periods': [3, 9],
         'fys': [2017, 2019],
         'agencies': ['089', '1125', '091'],
         'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
@@ -463,27 +490,27 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
 
     # drop everything and get (mostly) same response, including empty cross-files
     filters = {
-        'quarters': [],
+        'periods': [],
         'fys': [],
         'agencies': [],
         'files': [],
         'rules': []
     }
     expected_response = {
-        'A': [sub1_single, sub2_empty, sub3_empty],
-        'B': [sub1_empty, sub2_single, sub3_empty],
-        'C': all_subs_empty_results,
-        'cross-AB': [sub1_cross, sub2_empty, sub3_empty],
-        'cross-BC': [sub1_empty, sub2_cross, sub3_empty],
-        'cross-CD1': all_subs_empty_results,
-        'cross-CD2': all_subs_empty_results
+        'A': [sub1_single, sub2_empty, sub3_empty, month_pub_sub_single],
+        'B': [sub1_empty, sub2_single, sub3_empty, month_pub_sub_empty],
+        'C': all_subs_empty_results + [month_pub_sub_empty],
+        'cross-AB': [sub1_cross, sub2_empty, sub3_empty, month_pub_sub_empty],
+        'cross-BC': [sub1_empty, sub2_cross, sub3_empty, month_pub_sub_empty],
+        'cross-CD1': all_subs_empty_results + [month_pub_sub_empty],
+        'cross-CD2': all_subs_empty_results + [month_pub_sub_empty]
     }
     response = historic_dabs_warning_graphs_endpoint(filters)
     assert response == expected_response
 
     # use each of the basic filters - just submission 1
     filters = {
-        'quarters': [3],
+        'periods': [9],
         'fys': [2017],
         'agencies': ['089'],
         'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
@@ -501,7 +528,7 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
 
     # use each of the detailed filters
     filters = {
-        'quarters': [1, 3],
+        'periods': [3, 9],
         'fys': [2017, 2019],
         'agencies': ['089', '1125', '091'],
         'files': ['A', 'C', 'cross-BC'],
@@ -517,7 +544,7 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
 
     # completely empty response
     filters = {
-        'quarters': [2],
+        'periods': [12],
         'fys': [2018],
         'agencies': ['091'],
         'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
@@ -538,6 +565,7 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
 @pytest.mark.usefixtures('user_constants')
 @pytest.mark.usefixtures('validation_constants')
 def test_historic_dabs_warning_graphs_agency_user(database, monkeypatch):
+    # TODO: Update for inclusion of monthly submissions when we get there
     sess = database.session
 
     user = setup_submissions(sess, admin=False)
@@ -566,6 +594,17 @@ def test_historic_dabs_warning_graphs_agency_user(database, monkeypatch):
         'total_warnings': 0,
         'warnings': []
     }
+    month_pub_sub_empty = {
+        'submission_id': 8,
+        'quarter': 2,
+        'fy': 2017,
+        'agency': {
+            'name': 'CGAC',
+            'code': '089'
+        },
+        'total_warnings': 0,
+        'warnings': []
+    }
 
     a1_warning = {'label': 'A1', 'instances': 20, 'percent_total': 40}
     a2_warning = {'label': 'A2', 'instances': 30, 'percent_total': 60}
@@ -573,28 +612,32 @@ def test_historic_dabs_warning_graphs_agency_user(database, monkeypatch):
     sub1_single = copy.deepcopy(sub1_empty)
     sub1_single.update(a_single)
 
+    a1_warning_month = {'total_warnings': 75, 'warnings': [{'label': 'A1', 'instances': 75, 'percent_total': 100}]}
+    month_pub_sub_single = copy.deepcopy(month_pub_sub_empty)
+    month_pub_sub_single.update(a1_warning_month)
+
     a3_warning = {'label': 'A3', 'instances': 70, 'percent_total': 35}
     b1_warning = {'label': 'B1', 'instances': 130, 'percent_total': 65}
     ab_cross = {'total_warnings': 200, 'warnings': [a3_warning, b1_warning]}
     sub1_cross = copy.deepcopy(sub1_empty)
     sub1_cross.update(ab_cross)
 
-    # Get everything, notice this is already just submission 1 (their current agency) and sub3 (they made it)
+    # Get everything, notice this is already just submission 1 (their current agency) and sub3/monthly (they made them)
     filters = {
-        'quarters': [],
+        'periods': [],
         'fys': [],
         'agencies': [],
         'files': [],
         'rules': []
     }
     expected_response = {
-        'A': [sub1_single, sub3_empty],
-        'B': [sub1_empty, sub3_empty],
-        'C': [sub1_empty, sub3_empty],
-        'cross-AB': [sub1_cross, sub3_empty],
-        'cross-BC': [sub1_empty, sub3_empty],
-        'cross-CD1': [sub1_empty, sub3_empty],
-        'cross-CD2': [sub1_empty, sub3_empty]
+        'A': [sub1_single, sub3_empty, month_pub_sub_single],
+        'B': [sub1_empty, sub3_empty, month_pub_sub_empty],
+        'C': [sub1_empty, sub3_empty, month_pub_sub_empty],
+        'cross-AB': [sub1_cross, sub3_empty, month_pub_sub_empty],
+        'cross-BC': [sub1_empty, sub3_empty, month_pub_sub_empty],
+        'cross-CD1': [sub1_empty, sub3_empty, month_pub_sub_empty],
+        'cross-CD2': [sub1_empty, sub3_empty, month_pub_sub_empty]
     }
     response = historic_dabs_warning_graphs_endpoint(filters)
     assert response == expected_response
@@ -643,103 +686,84 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     warning_sub1_a1 = {
         'submission_id': 1,
         'fy': 2017,
-        'quarter': 3,
+        'period': 9,
+        'is_quarter': True,
         'rule_label': 'A1',
         'instance_count': 20,
         'rule_description': 'first rule',
-        'files': [
-            {
-                'type': 'A',
-                'filename': 'sub1_filea.csv'
-            }
-        ]
+        'files': ['A'],
+        'submitted_by': 'Agency User'
     }
     warning_sub1_a2 = {
         'submission_id': 1,
         'fy': 2017,
-        'quarter': 3,
+        'period': 9,
+        'is_quarter': True,
         'rule_label': 'A2',
         'instance_count': 30,
         'rule_description': 'second rule',
-        'files': [
-            {
-                'type': 'A',
-                'filename': 'sub1_filea.csv'
-            }
-        ]
+        'files': ['A'],
+        'submitted_by': 'Agency User'
     }
     warning_sub1_ab1 = {
         'submission_id': 1,
         'fy': 2017,
-        'quarter': 3,
+        'period': 9,
+        'is_quarter': True,
         'rule_label': 'A3',
         'instance_count': 70,
         'rule_description': 'first cross rule',
-        'files': [
-            {
-                'type': 'A',
-                'filename': 'sub1_filea.csv'
-            },
-            {
-                'type': 'B',
-                'filename': 'sub1_fileb.csv'
-            }
-        ]
+        'files': ['A', 'B'],
+        'submitted_by': 'Agency User'
     }
     warning_sub1_ab2 = {
         'submission_id': 1,
         'fy': 2017,
-        'quarter': 3,
+        'period': 9,
+        'is_quarter': True,
         'rule_label': 'B1',
         'instance_count': 130,
         'rule_description': 'second cross rule',
-        'files': [
-            {
-                'type': 'B',
-                'filename': 'sub1_fileb.csv'
-            },
-            {
-                'type': 'A',
-                'filename': 'sub1_filea.csv'
-            }
-        ]
+        'files': ['B', 'A'],
+        'submitted_by': 'Agency User'
     }
     warning_sub2_b1 = {
         'submission_id': 2,
         'fy': 2019,
-        'quarter': 1,
+        'period': 3,
+        'is_quarter': True,
         'rule_label': 'B2',
         'instance_count': 70,
         'rule_description': 'first B rule',
-        'files': [
-            {
-                'type': 'B',
-                'filename': 'sub2_fileb.csv'
-            }
-        ]
+        'files': ['B'],
+        'submitted_by': 'Administrator'
     }
     warning_sub2_bc1 = {
         'submission_id': 2,
         'fy': 2019,
-        'quarter': 1,
+        'period': 3,
+        'is_quarter': True,
         'rule_label': 'B3',
         'instance_count': 120,
         'rule_description': 'another cross rule',
-        'files': [
-            {
-                'type': 'B',
-                'filename': 'sub2_fileb.csv'
-            },
-            {
-                'type': 'C',
-                'filename': 'sub2_filec.csv'
-            }
-        ]
+        'files': ['B', 'C'],
+        'submitted_by': 'Administrator'
+    }
+    warning_month_pub_sub_a1 = {
+        'submission_id': 8,
+        'fy': 2017,
+        'period': 8,
+        'is_quarter': False,
+        'rule_label': 'A1',
+        'instance_count': 75,
+        'rule_description': 'first rule',
+        'files': ['A'],
+        'submitted_by': 'Agency User'
     }
 
     # Perfect case, default values
     filters = {
-        'quarters': [1, 3],
+        'periods': [3, 9],
         'fys': [2017, 2019],
         'agencies': ['089', '1125', '091'],
         'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
@@ -770,7 +794,7 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
 
     # No filters, should get everything
     filters = {
-        'quarters': [],
+        'periods': [],
         'fys': [],
         'agencies': [],
         'files': [],
@@ -779,7 +803,7 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     expected_response = {
         'results': [warning_sub2_bc1, warning_sub2_b1, warning_sub1_ab2, warning_sub1_ab1, warning_sub1_a2],
         'page_metadata': {
-            'total': 6,
+            'total': 7,
             'page': 1,
             'limit': 5
         }
@@ -789,7 +813,7 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
 
     # Only some basic filters included, shouldn't include cross results
     filters = {
-        'quarters': [1],
+        'periods': [3],
         'fys': [2019],
         'agencies': ['1125'],
         'files': ['B'],
@@ -808,7 +832,7 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
 
     # Filtering with a set of filters that returns 0 results
     filters = {
-        'quarters': [3],
+        'periods': [9],
         'fys': [2019],
         'agencies': [],
         'files': [],
@@ -827,7 +851,7 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
 
     # Return more results per page
     filters = {
-        'quarters': [],
+        'periods': [],
         'fys': [],
         'agencies': [],
         'files': [],
@@ -835,9 +859,9 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
     }
     expected_response = {
         'results': [warning_sub2_bc1, warning_sub2_b1, warning_sub1_ab2, warning_sub1_ab1, warning_sub1_a2,
-                    warning_sub1_a1],
+                    warning_sub1_a1, warning_month_pub_sub_a1],
         'page_metadata': {
-            'total': 6,
+            'total': 7,
             'page': 1,
             'limit': 10
         }
@@ -847,9 +871,9 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
 
     # change sort order
     expected_response = {
-        'results': [warning_sub1_a1, warning_sub1_a2, warning_sub1_ab1, warning_sub1_ab2, warning_sub2_b1],
+        'results': [warning_month_pub_sub_a1, warning_sub1_a1, warning_sub1_a2, warning_sub1_ab1, warning_sub1_ab2],
         'page_metadata': {
-            'total': 6,
+            'total': 7,
             'page': 1,
             'limit': 5
         }
@@ -859,14 +883,33 @@ def test_historic_dabs_warning_table_admin(database, monkeypatch):
 
     # change sort by occurrences
     expected_response = {
-        'results': [warning_sub1_ab2, warning_sub2_bc1, warning_sub1_ab1, warning_sub2_b1, warning_sub1_a2],
+        'results': [warning_sub1_ab2, warning_sub2_bc1, warning_month_pub_sub_a1, warning_sub2_b1, warning_sub1_ab1],
         'page_metadata': {
-            'total': 6,
+            'total': 7,
             'page': 1,
             'limit': 5
         }
     }
     response = historic_dabs_warning_table_endpoint(filters, sort='instances')
+    assert response == expected_response
+
+    # Get all of quarter 3
+    filters = {
+        'periods': [7, 8, 9],
+        'fys': [],
+        'agencies': [],
+        'files': [],
+        'rules': []
+    }
+    expected_response = {
+        'results': [warning_sub1_ab2, warning_sub1_ab1, warning_sub1_a2, warning_sub1_a1, warning_month_pub_sub_a1],
+        'page_metadata': {
+            'total': 5,
+            'page': 1,
+            'limit': 5
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters)
     assert response == expected_response
 
 
