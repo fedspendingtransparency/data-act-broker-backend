@@ -8,7 +8,8 @@ _TAS = 'c9_award_financial_tas'
 
 
 def test_column_headers(database):
-    expected_subset = {'source_row_number', 'source_value_fain', 'source_value_uri', 'uniqueid_FAIN', 'uniqueid_URI'}
+    expected_subset = {'source_row_number', 'source_value_fain', 'source_value_uri',
+                       'source_value_federal_action_obligation', 'difference', 'uniqueid_FAIN', 'uniqueid_URI'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 

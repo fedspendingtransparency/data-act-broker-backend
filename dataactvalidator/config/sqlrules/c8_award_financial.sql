@@ -7,6 +7,8 @@ SELECT
     af.row_number AS "source_row_number",
     af.fain AS "source_value_fain",
     af.uri AS "source_value_uri",
+    af.transaction_obligated_amou AS "source_value_transaction_obligated_amount",
+    af.transaction_obligated_amou AS "difference",
     af.display_tas AS "uniqueid_TAS",
     af.fain AS "uniqueid_FAIN",
     af.uri AS "uniqueid_URI"
@@ -31,6 +33,8 @@ SELECT
     af.row_number AS "source_row_number",
     af.fain AS "source_value_fain",
     af.uri AS "source_value_uri",
+    af.transaction_obligated_amou AS "source_value_transaction_obligated_amount",
+    af.transaction_obligated_amou AS "difference",
     af.display_tas AS "uniqueid_TAS",
     af.fain AS "uniqueid_FAIN",
     af.uri AS "uniqueid_URI"
