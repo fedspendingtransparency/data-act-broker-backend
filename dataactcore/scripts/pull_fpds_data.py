@@ -1404,7 +1404,7 @@ def get_with_exception_hand(url_string, expect_entries=True):
 def get_total_expected_records(base_url):
     """ Retrieve the total number of expected records based on the last paginated URL """
     # get a single call so we can find the last page
-    initial_request = get_with_exception_hand(base_url)
+    initial_request = get_with_exception_hand(base_url, expect_entries=False)
     initial_request_xml = xmltodict.parse(initial_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
 
     # retrieve all URLs
