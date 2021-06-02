@@ -1,6 +1,6 @@
 # FABS Derivations
 
-The following are explanations of the single and chained derivations used in the logic of [fabs_derivations_helper.py](./fabs_derivations_helper.py) 
+The following are explanations of the single and chained derivations used in the logic of [fabs_derivations_helper.py](../dataactbroker/helpers/fabs_derivations_helper.py) 
 
 ## Single Derivations
 

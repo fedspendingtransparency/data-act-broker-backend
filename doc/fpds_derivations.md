@@ -1,6 +1,6 @@
 # FPDS Derivations
 
-The following are explanations of the single and chained derivations used in the logic of [pull_fpds_data.py](./pull_fpds_data.py) 
+The following are explanations of the single and chained derivations used in the logic of [pull_fpds_data.py](../dataactcore/scripts/pull_fpds_data.py) 
 
 ## Single Derivations
 
