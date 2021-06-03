@@ -166,10 +166,6 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False, met
         # Uppercasing DEFC to save on indexing
         # Empty values are still empty strings ('') at this point
         data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code'].str.upper()
-        # only keep the last character of any DEFC provided
-        # TODO: Remove when Broker supports 3 character DEFCs
-        last_char_only = (lambda defc: str(defc)[-1] if defc else '')
-        data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code'].apply(last_char_only)
 
         # we didn't use the the 'keep_null' option when padding allocation transfer agency, because nulls in that column
         # break the pivot (see above comments). so, replace the ata '000' with an empty value before inserting to db
