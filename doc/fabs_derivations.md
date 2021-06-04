@@ -7,47 +7,47 @@ The following are explanations of the single and chained derivations used in the
 These are derivations that can happen in any order.
 
 - `derive_total_funding_amount`
-	`federal_action_obligation` + `non_federal_funding_amount` => `total_funding_amount`
+	- `federal_action_obligation` + `non_federal_funding_amount` => `total_funding_amount`
 - `derive_cfda`
-	`cfda.program_title` => `cfda_title`
+	- `cfda.program_title` => `cfda_title`
 - `derive_awarding_agency_data`
-	`office.sub_tier_code` => `awarding_sub_tier_agency_c`
-	`cgac.cgac_code` or `frec.frec_code` => `awarding_agency_code`
-	`cgac.cgac_name` or `frec.frec_name` => `awarding_agency_name`
-	`sta.sub_tier_agency_name` => `awarding_sub_tier_agency_n`
+	- `office.sub_tier_code` => `awarding_sub_tier_agency_c`
+	- `cgac.cgac_code` or `frec.frec_code` => `awarding_agency_code`
+	- `cgac.cgac_name` or `frec.frec_name` => `awarding_agency_name`
+	- `sta.sub_tier_agency_name` => `awarding_sub_tier_agency_n`
 - `derive_funding_agency_data`
-	`office.sub_tier_code` => `funding_sub_tier_agency_c`
-	`cgac.cgac_code` or `frec.frec_code` => `funding_agency_code`
-	`cgac.cgac_name` or `frec.frec_name` => `funding_agency_name`
-	`sta.sub_tier_agency_name` => `funding_sub_tier_agency_n`
+	- `office.sub_tier_code` => `funding_sub_tier_agency_c`
+	- `cgac.cgac_code` or `frec.frec_code` => `funding_agency_code`
+	- `cgac.cgac_name` or `frec.frec_name` => `funding_agency_name`
+	- `sta.sub_tier_agency_name` => `funding_sub_tier_agency_n`
 - `derive_office_data`
-	`office.office_code` => `awarding_office_code`
-	`office.office_code` => `funding_office_code`
-	`office.office_name` => `awarding_office_name`
-	`office.office_name` => `funding_office_name`
+	- `office.office_code` => `awarding_office_code`
+	- `office.office_code` => `funding_office_code`
+	- `office.office_name` => `awarding_office_name`
+	- `office.office_name` => `funding_office_name`
 - `derive_parent_duns`
-	`duns.ultimate_parent_legal_enti` => `ultimate_parent_legal_enti`
-	`duns.ultimate_parent_unique_ide` => `ultimate_parent_unique_ide`
+	- `duns.ultimate_parent_legal_enti` => `ultimate_parent_legal_enti`
+	- `duns.ultimate_parent_unique_ide` => `ultimate_parent_unique_ide`
 - `derive_executive_compensation`
-	`duns.high_comp_officer1_full_na` => `high_comp_officer1_full_na`
-	`duns.high_comp_officer1_amount` => `high_comp_officer1_amount`
-	`duns.high_comp_officer2_full_na` => `high_comp_officer2_full_na`
-	`duns.high_comp_officer2_amount` => `high_comp_officer2_amount`
-	`duns.high_comp_officer3_full_na` => `high_comp_officer3_full_na`
-	`duns.high_comp_officer3_amount` => `high_comp_officer3_amount`
-	`duns.high_comp_officer4_full_na` => `high_comp_officer4_full_na`
-	`duns.high_comp_officer4_amount` => `high_comp_officer4_amount`
-	`duns.high_comp_officer5_full_na` => `high_comp_officer5_full_na`
-	`duns.high_comp_officer5_amount` => `high_comp_officer5_amount`
+	- `duns.high_comp_officer1_full_na` => `high_comp_officer1_full_na`
+	- `duns.high_comp_officer1_amount` => `high_comp_officer1_amount`
+	- `duns.high_comp_officer2_full_na` => `high_comp_officer2_full_na`
+	- `duns.high_comp_officer2_amount` => `high_comp_officer2_amount`
+	- `duns.high_comp_officer3_full_na` => `high_comp_officer3_full_na`
+	- `duns.high_comp_officer3_amount` => `high_comp_officer3_amount`
+	- `duns.high_comp_officer4_full_na` => `high_comp_officer4_full_na`
+	- `duns.high_comp_officer4_amount` => `high_comp_officer4_amount`
+	- `duns.high_comp_officer5_full_na` => `high_comp_officer5_full_na`
+	- `duns.high_comp_officer5_amount` => `high_comp_officer5_amount`
 - `derive_labels`
-	`action_type_desc.description` => `action_type_description`
-	`assistance_type_description.description` => `assistance_type_desc`
-	`cdi_desc.description` => `correction_delete_ind_desc`
-	`record_type_desc.description` => `record_type_description`
-	`business_funds_ind_description.description` => `business_funds_ind_desc`
-	`business_type_desc.description` => `business_types_desc`
+	- `action_type_desc.description` => `action_type_description`
+	- `assistance_type_description.description` => `assistance_type_desc`
+	- `cdi_desc.description` => `correction_delete_ind_desc`
+	- `record_type_desc.description` => `record_type_description`
+	- `business_funds_ind_description.description` => `business_funds_ind_desc`
+	- `business_type_desc.description` => `business_types_desc`
 - `derive_fabs_business_categories`
-	`business_types` => `business_categories`
+	- `business_types` => `business_categories`
   
 
 ## Chain Derivations
