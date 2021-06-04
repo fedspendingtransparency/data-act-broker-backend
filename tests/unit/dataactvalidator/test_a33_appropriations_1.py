@@ -1,6 +1,6 @@
 from random import randint
 
-from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory, CGACFactory, FRECFactory
+from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.staging import AppropriationFactory
 from tests.unit.dataactvalidator.utils import error_rows, number_of_errors, query_columns
@@ -32,23 +32,6 @@ def test_success_populated_ata(database):
     assert error_rows(_FILE, database, models=[sf1, ap], submission=submission) == []
 
 
-def test_success_populated_ata_frec(database):
-    """ Tests that TAS for SF-133 are present in File A (for FREC agencies) """
-    submission_id = randint(1000, 10000)
-    tas, period, year, cgac_code, frec_code = 'some-tas', 2, 2002, 'some-cgac-code', 'some-frec-code'
-
-    cgac = CGACFactory(cgac_code=cgac_code, cgac_id=1)
-    frec = FRECFactory(frec_code=frec_code, frec_id=1, cgac_id=1)
-
-    sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=cgac_code,
-                       agency_identifier='some-other-code')
-    submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
-                                   reporting_fiscal_year=year, cgac_code=None, frec_code=frec_code)
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
-
-    assert error_rows(_FILE, database, models=[sf1, ap, cgac, frec], submission=submission) == []
-
-
 def test_success_null_ata(database):
     """ Tests that TAS for SF-133 are present in File A """
     submission_id = randint(1000, 10000)
@@ -61,23 +44,6 @@ def test_success_null_ata(database):
     ap = AppropriationFactory(tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf1, ap], submission=submission) == []
-
-
-def test_success_null_ata_frec(database):
-    """ Tests that TAS for SF-133 are present in File A (for FREC agencies) """
-    submission_id = randint(1000, 10000)
-    tas, period, year, cgac_code, frec_code = 'some-tas', 2, 2002, 'some-cgac-code', 'some-frec-code'
-
-    cgac = CGACFactory(cgac_code=cgac_code, cgac_id=1)
-    frec = FRECFactory(frec_code=frec_code, frec_id=1, cgac_id=1)
-
-    sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None,
-                       agency_identifier=cgac_code)
-    submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
-                                   reporting_fiscal_year=year, cgac_code=None, frec_code=frec_code)
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
-
-    assert error_rows(_FILE, database, models=[sf1, ap, frec, cgac], submission=submission) == []
 
 
 def test_failure_populated_ata(database):
@@ -94,23 +60,6 @@ def test_failure_populated_ata(database):
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 1
 
-def test_failure_populated_ata_frec(database):
-    """ Tests that TAS for SF-133 are not present in File A (for FREC agencies) """
-    submission_id = randint(1000, 10000)
-    tas, period, year, cgac_code, frec_code = 'some-tas', 2, 2002, 'some-cgac-code', 'some-frec-code'
-
-    cgac = CGACFactory(cgac_code=cgac_code, cgac_id=1)
-    frec = FRECFactory(frec_code=frec_code, frec_id=2, cgac_id=1)
-
-    sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=cgac_code,
-                       agency_identifier=cgac_code)
-    submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
-                                   reporting_fiscal_year=year, cgac_code=None, frec_code=frec_code)
-    ap = AppropriationFactory(tas='a-different-tas', submission_id=submission_id)
-
-    errors = number_of_errors(_FILE, database, models=[sf1, ap, cgac, frec], submission=submission)
-    assert errors == 1
-
 
 def test_failure_null_ata(database):
     """ Tests that TAS for SF-133 are not present in File A """
@@ -124,24 +73,6 @@ def test_failure_null_ata(database):
     ap = AppropriationFactory(tas='a-different-tas', submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
-    assert errors == 1
-
-
-def test_failure_null_ata_frec(database):
-    """ Tests that TAS for SF-133 are not present in File A (for FREC agencies) """
-    submission_id = randint(1000, 10000)
-    tas, period, year, cgac_code, frec_code = 'some-tas', 2, 2002, 'some-cgac-code', 'some-frec-code'
-
-    cgac = CGACFactory(cgac_code=cgac_code, cgac_id=1)
-    frec = FRECFactory(frec_code=frec_code, frec_id=2, cgac_id=1)
-
-    sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None,
-                       agency_identifier=cgac_code)
-    submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
-                                   reporting_fiscal_year=year, cgac_code=None, frec_code=frec_code)
-    ap = AppropriationFactory(tas='a-different-tas', submission_id=submission_id)
-
-    errors = number_of_errors(_FILE, database, models=[sf1, ap, cgac, frec], submission=submission)
     assert errors == 1
 
 
