@@ -72,7 +72,7 @@ def query_data(session, agency_code, period, year):
         agency_filters.append(tas_gtas.c.allocation_transfer_agency.in_(agency_array))
 
     # Save the AID filter
-    if agency_code == '097' and not frec_provided:
+    if agency_code == '097':
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.agency_identifier.in_(agency_array)))
     elif not frec_provided:
@@ -88,7 +88,7 @@ def query_data(session, agency_code, period, year):
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.agency_identifier == '011',
                                    tas_gtas.c.fr_entity_type.in_(frec_list)))
-    elif not frec_provided:
+    elif frec_provided:
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.agency_identifier == '011',
                                    tas_gtas.c.fr_entity_type == agency_code))
