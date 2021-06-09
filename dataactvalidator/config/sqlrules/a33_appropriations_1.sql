@@ -65,10 +65,6 @@ FROM sf_133 AS sf
                     THEN sf.allocation_transfer_agency IS NULL
                         AND sf.agency_identifier = '011'
                         AND tl.fr_entity_type IN sub_c.frec_list
-                WHEN sub_c.frec_code IS NOT NULL
-                    THEN sf.allocation_transfer_agency IS NULL
-                        AND sf.agency_identifier = '011'
-                        AND tl.fr_entity_type = sub_c.frec_code
                 ELSE
                     FALSE
             END
