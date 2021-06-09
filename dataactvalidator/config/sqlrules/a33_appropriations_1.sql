@@ -60,13 +60,10 @@ FROM sf_133 AS sf
                 ELSE tl.fr_entity_type = sub_c.frec_code
             END
             -- match against FRECs related to CGAC 011
-            OR CASE
-                WHEN sub_c.frec_list IS NOT NULL
-                    THEN sf.allocation_transfer_agency IS NULL
-                        AND sf.agency_identifier = '011'
-                        AND tl.fr_entity_type IN sub_c.frec_list
-                ELSE
-                    FALSE
+            OR sub_c.frec_list IS NOT NULL
+                AND sf.allocation_transfer_agency IS NULL
+                AND sf.agency_identifier = '011'
+                AND tl.fr_entity_type IN sub_c.frec_list
             END
         )
 WHERE NOT EXISTS (
