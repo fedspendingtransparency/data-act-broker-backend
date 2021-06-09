@@ -64,7 +64,6 @@ FROM sf_133 AS sf
                 AND sf.allocation_transfer_agency IS NULL
                 AND sf.agency_identifier = '011'
                 AND tl.fr_entity_type = ANY(sub_c.frec_list)
-            END
         )
 WHERE NOT EXISTS (
         SELECT 1
