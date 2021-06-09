@@ -4,9 +4,11 @@
 
 -- Note: This logic should exactly match the logic used to generate file A
 WITH frec_list AS (
-    SELECT cgac_code, array_agg(frec.frec_code) AS "frec_list"
+    SELECT cgac_code,
+        array_agg(frec.frec_code) AS "frec_list"
     FROM cgac
-    JOIN frec ON cgac.cgac_id=frec.cgac_id
+    JOIN frec
+        ON cgac.cgac_id=frec.cgac_id
     GROUP BY cgac.cgac_code
 ),
 cgac_exceptions AS (
@@ -18,16 +20,17 @@ cgac_exceptions AS (
 	) AS t (agency_code, associated_codes)
 ),
 sub_{0}_combo AS (
-    SELECT
-        sub.cgac_code,
+    SELECT sub.cgac_code,
         sub.frec_code,
         sub.reporting_fiscal_period,
         sub.reporting_fiscal_year,
         COALESCE(ce.associated_codes, ARRAY [COALESCE(sub.cgac_code, sub.frec_code)]) AS "associated_codes",
         fl.frec_list AS "frec_list"
     FROM submission AS sub
-    LEFT JOIN cgac_exceptions AS ce ON COALESCE(sub.cgac_code, sub.frec_code) = ce.agency_code
-    LEFT JOIN frec_list AS fl ON sub.cgac_code = fl.cgac_code
+    LEFT JOIN cgac_exceptions AS ce
+        ON COALESCE(sub.cgac_code, sub.frec_code) = ce.agency_code
+    LEFT JOIN frec_list AS fl
+        ON sub.cgac_code = fl.cgac_code
     WHERE sub.submission_id = {0}
 )
 SELECT DISTINCT
@@ -48,21 +51,24 @@ FROM sf_133 AS sf
         AND sf.fiscal_year = sub_c.reporting_fiscal_year
         AND (
             -- ATA filter, should only apply for CGACs (and FREC in cgac_exceptions) as it's always 3 digits
-            sf.allocation_transfer_agency = ANY(sub_c.associated_codes)
-            OR
+            sf.allocation_transfer_agency IN sub_c.associated_codes
             -- AID filter, should only apply for CGACs as it's always 3 digits
             -- fr_entity_type should only apply for FRECs as it's always 4 digits
-            CASE WHEN sub_c.cgac_code IS NOT NULL
-                THEN sf.allocation_transfer_agency IS NULL AND sf.agency_identifier = ANY(sub_c.associated_codes)
+            OR CASE WHEN sub_c.cgac_code IS NOT NULL
+                THEN sf.allocation_transfer_agency IS NULL
+                    AND sf.agency_identifier IN sub_c.associated_codes
                 ELSE tl.fr_entity_type = sub_c.frec_code
             END
-            OR
             -- match against FRECs related to CGAC 011
-            CASE
+            OR CASE
                 WHEN sub_c.frec_list IS NOT NULL
-                    THEN sf.allocation_transfer_agency IS NULL AND sf.agency_identifier = '011' AND tl.fr_entity_type = ANY(sub_c.frec_list)
+                    THEN sf.allocation_transfer_agency IS NULL
+                        AND sf.agency_identifier = '011'
+                        AND tl.fr_entity_type IN sub_c.frec_list
                 WHEN sub_c.frec_code IS NOT NULL
-                    THEN sf.allocation_transfer_agency IS NULL AND sf.agency_identifier = '011' AND tl.fr_entity_type = sub_c.frec_code
+                    THEN sf.allocation_transfer_agency IS NULL
+                        AND sf.agency_identifier = '011'
+                        AND tl.fr_entity_type = sub_c.frec_code
                 ELSE
                     FALSE
             END
