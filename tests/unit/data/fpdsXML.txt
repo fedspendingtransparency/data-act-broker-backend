@@ -200,12 +200,21 @@
               <ns1:congressionalDistrictCode>08</ns1:congressionalDistrictCode></ns1:vendorLocation>
             <ns1:vendorSiteCode>806585717</ns1:vendorSiteCode>
             <ns1:vendorAlternateSiteCode>22202</ns1:vendorAlternateSiteCode>
-            <ns1:vendorDUNSInformation>
-              <ns1:DUNSNumber>806585717</ns1:DUNSNumber>
-              <ns1:vendorName>B.F. SAUL PROPERTY COMPANY</ns1:vendorName>
-              <ns1:globalParentDUNSNumber>006920342</ns1:globalParentDUNSNumber>
-              <ns1:globalParentDUNSName>B.F. SAUL COMPANY</ns1:globalParentDUNSName>
-              <ns1:cageCode>0PW76</ns1:cageCode></ns1:vendorDUNSInformation>
+            <ns1:entityIdentifiers>
+              <ns1:vendorDUNSInformation>
+                <ns1:DUNSNumber>806585717</ns1:DUNSNumber>
+                <ns1:vendorName>B.F. SAUL PROPERTY COMPANY</ns1:vendorName>
+                <ns1:globalParentDUNSNumber>006920342</ns1:globalParentDUNSNumber>
+                <ns1:globalParentDUNSName>B.F. SAUL COMPANY</ns1:globalParentDUNSName>
+              </ns1:vendorDUNSInformation>
+              <ns1:vendorUEIInformation>
+                <ns1:UEI>G4M3KUF95AL3</ns1:UEI>
+                <ns1:UEILegalBusinessName>ROBERTSON FUEL SYSTEMS, L.L.C.</ns1:UEILegalBusinessName>
+                <ns1:ultimateParentUEI>WF9TN8AWH8K5</ns1:ultimateParentUEI>
+                <ns1:ultimateParentUEIName>HEICO CORPORATION</ns1:ultimateParentUEIName>
+              </ns1:vendorUEIInformation>
+              <ns1:cageCode>0PW76</ns1:cageCode>
+            </ns1:entityIdentifiers>
             <ns1:ccrRegistrationDetails>
               <ns1:registrationDate>2001-06-29 00:00:00</ns1:registrationDate>
               <ns1:renewalDate>2017-07-11 00:00:00</ns1:renewalDate></ns1:ccrRegistrationDetails></ns1:vendorSiteDetails>
@@ -390,11 +399,21 @@
               <ns1:ZIPCode>200365405</ns1:ZIPCode>
               <ns1:countryCode>0</ns1:countryCode>
               <ns1:congressionalDistrictCode>00</ns1:congressionalDistrictCode></ns1:vendorLocation>
-            <ns1:vendorDUNSInformation>
-              <ns1:DUNSNumber>148078801</ns1:DUNSNumber>
-              <ns1:vendorName>MEAD DATA CENTRAL</ns1:vendorName>
-              <ns1:globalParentDUNSNumber>148078801</ns1:globalParentDUNSNumber>
-              <ns1:globalParentDUNSName>MEAD DATA CENTRAL</ns1:globalParentDUNSName></ns1:vendorDUNSInformation>
+            <ns1:entityIdentifiers>
+              <ns1:vendorDUNSInformation>
+                <ns1:DUNSNumber>148078801</ns1:DUNSNumber>
+                <ns1:vendorName>MEAD DATA CENTRAL</ns1:vendorName>
+                <ns1:globalParentDUNSNumber>148078801</ns1:globalParentDUNSNumber>
+                <ns1:globalParentDUNSName>MEAD DATA CENTRAL</ns1:globalParentDUNSName>
+              </ns1:vendorDUNSInformation>
+              <ns1:vendorUEIInformation>
+                <ns1:UEI>G4M3KUF95AL3</ns1:UEI>
+                <ns1:UEILegalBusinessName>ROBERTSON FUEL SYSTEMS, L.L.C.</ns1:UEILegalBusinessName>
+                <ns1:ultimateParentUEI>WF9TN8AWH8K5</ns1:ultimateParentUEI>
+                <ns1:ultimateParentUEIName>HEICO CORPORATION</ns1:ultimateParentUEIName>
+              </ns1:vendorUEIInformation>
+              <ns1:cageCode>0PW76</ns1:cageCode>
+            </ns1:entityIdentifiers>
             <ns1:ccrRegistrationDetails></ns1:ccrRegistrationDetails></ns1:vendorSiteDetails>
           <ns1:contractingOfficerBusinessSizeDetermination description="SMALL BUSINESS">S</ns1:contractingOfficerBusinessSizeDetermination></ns1:vendor>
         <ns1:competition>
