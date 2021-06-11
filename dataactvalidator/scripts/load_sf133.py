@@ -14,14 +14,16 @@ from dataactbroker.helpers.generic_helper import format_internal_tas
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import matching_cars_subquery, SF133, concat_display_tas_dict
+from dataactcore.models.domainModels import (matching_cars_subquery, SF133, TASLookup, TAS_COMPONENTS,
+                                             concat_display_tas_dict)
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
 
-def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133', fix_links=True):
+def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133', fix_links=True,
+                   update_tas_fields=True):
     """ Load any SF-133 files that are not yet in the database and fix any broken links
 
         Args:
@@ -29,6 +31,7 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133',
             force_sf133_load: boolean to indicate whether to force a reload of the data
             aws_prefix: prefix to filter which files to pull from AWS
             fix_links: fix any SF133 records not linked to TAS data
+            update_tas_fields: rederive SF133 records if the associated TAS record has been updated
     """
     now = datetime.now()
     metrics_json = {
@@ -53,6 +56,8 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133',
             logger.info('Starting %s...', sf133.full_file)
             load_sf133(sess, sf133.full_file, file_match.group('year'), file_match.group('period'),
                        force_sf133_load=force_sf133_load, metrics=metrics_json)
+        if update_tas_fields:
+            rederive_tas_fields(sess, metrics=metrics_json)
         if fix_links:
             fix_broken_links(sess, metrics=metrics_json)
 
@@ -285,19 +290,39 @@ def get_sf133_list(sf133_path, aws_prefix='sf_133'):
     return sf133_list
 
 
+def rederive_tas_fields(sess, metrics=None):
+    """ Using the already derived account_num to update the TAS components for out-of-date SF133 records
+
+        Args:
+            sess: connection to the database
+            metrics: an object containing information for the metrics file
+    """
+    if not metrics:
+        metrics = {}
+
+    logger.info('Updating any linked SF133 records that are out of date with TAS')
+    tas_fields = list(TAS_COMPONENTS) + ['tas', 'display_tas']
+    updates = {getattr(SF133, component): getattr(TASLookup, component) for component in tas_fields}
+    updated_count = sess.query(SF133).\
+        filter(SF133.tas != TASLookup.tas, SF133.account_num == TASLookup.account_num).\
+        update(updates, synchronize_session=False)
+    sess.commit()
+
+    metrics['updated_tas_fields'] = updated_count
+    logger.info('Updated the TAS fields of {} SF133 records'.format(updated_count))
+
+
 def fix_broken_links(sess, metrics=None):
     """ Simply checks and links any GTAS data currently not linked to TAS data
 
         Args:
             sess: connection to the database
             metrics: an object containing information for the metrics file
-
     """
     if not metrics:
         metrics = {}
 
     logger.info('Updating SF133 data that haven\'t been linked to TAS')
-    sess = GlobalDB.db().session
     unlink_count_before = sess.query(SF133).filter(SF133.account_num.is_(None)).count()
     bl_periods = sess.query(SF133.fiscal_year, SF133.period).filter(SF133.account_num.is_(None)).distinct()
     for fiscal_year, period in bl_periods:
@@ -321,9 +346,11 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('-b', '--fix_links', help='Checks/updates any SF133 data that isn\'t linked to TAS',
                         action='store_true')
+    parser.add_argument('-t', '--update_tas_fields', help='Checks/updates any SF133 data with updated TAS data',
+                        action='store_true')
     args = parser.parse_args()
 
     if not args.remote:
-        load_all_sf133(args.local_path, args.force, args.fix_links)
+        load_all_sf133(args.local_path, args.force, args.fix_links, args.update_tas_fields)
     else:
-        load_all_sf133(None, args.force, args.aws_prefix, args.fix_links)
+        load_all_sf133(None, args.force, args.aws_prefix, args.fix_links, args.update_tas_fields)
