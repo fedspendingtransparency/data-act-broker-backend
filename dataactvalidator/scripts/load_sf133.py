@@ -324,7 +324,8 @@ def fix_broken_links(sess, metrics=None):
 
     logger.info('Updating SF133 data that haven\'t been linked to TAS')
     unlink_count_before = sess.query(SF133).filter(SF133.account_num.is_(None)).count()
-    bl_periods = sess.query(SF133.fiscal_year, SF133.period).filter(SF133.account_num.is_(None)).distinct()
+    bl_periods = sess.query(SF133.fiscal_year, SF133.period).filter(SF133.account_num.is_(None)).distinct()\
+        .order_by(SF133.fiscal_year, SF133.period)
     for fiscal_year, period in bl_periods:
         update_account_num(fiscal_year, period, only_broken_links=True)
     sess.commit()
@@ -351,6 +352,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not args.remote:
-        load_all_sf133(args.local_path, args.force, args.fix_links, args.update_tas_fields)
+        load_all_sf133(args.local_path, args.force, None, args.fix_links, args.update_tas_fields)
     else:
         load_all_sf133(None, args.force, args.aws_prefix, args.fix_links, args.update_tas_fields)
