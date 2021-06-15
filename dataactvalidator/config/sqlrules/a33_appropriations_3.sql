@@ -70,4 +70,7 @@ FROM appropriation_a33_3_{0} AS approp
         OR COALESCE(approp.status_of_budgetary_resour_cpe, 0) <> 0
     )
     AND COALESCE(approp.allocation_transfer_agency, '') <> ''
-    AND approp.allocation_transfer_agency <> sub.cgac_code;
+    AND CASE WHEN sub.cgac_code <> '097'
+        THEN approp.allocation_transfer_agency <> sub.cgac_code
+        ELSE approp.allocation_transfer_agency NOT IN ('017', '021', '057', '097')
+    END;
