@@ -105,39 +105,39 @@ class ErrorWarningTests(BaseTestValidator):
             tas1 = TASFactory(account_num=1, allocation_transfer_agency='019', agency_identifier='072',
                               beginning_period_of_availa=None, ending_period_of_availabil=None,
                               availability_type_code='X', main_account_code='0306', sub_account_code='000',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas2 = TASFactory(account_num=2, allocation_transfer_agency=None, agency_identifier='019',
                               beginning_period_of_availa='2016', ending_period_of_availabil='2016',
                               availability_type_code=None, main_account_code='0113', sub_account_code='000',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas3 = TASFactory(account_num=3, allocation_transfer_agency=None, agency_identifier='028',
                               beginning_period_of_availa=None, ending_period_of_availabil=None,
                               availability_type_code='X', main_account_code='0406', sub_account_code='000',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas4 = TASFactory(account_num=4, allocation_transfer_agency=None, agency_identifier='028',
                               beginning_period_of_availa='2010', ending_period_of_availabil='2011',
                               availability_type_code=None, main_account_code='0406', sub_account_code='000',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas5 = TASFactory(account_num=5, allocation_transfer_agency='069', agency_identifier='013',
                               beginning_period_of_availa=None, ending_period_of_availabil=None,
                               availability_type_code='X', main_account_code='2050', sub_account_code='005',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas6 = TASFactory(account_num=6, allocation_transfer_agency='028', agency_identifier='028',
                               beginning_period_of_availa=None, ending_period_of_availabil=None,
                               availability_type_code='X', main_account_code='8007', sub_account_code='000',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas7 = TASFactory(account_num=7, allocation_transfer_agency=None, agency_identifier='049',
                               beginning_period_of_availa=None, ending_period_of_availabil=None,
                               availability_type_code='X', main_account_code='0100', sub_account_code='000',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas8 = TASFactory(account_num=8, allocation_transfer_agency=None, agency_identifier='049',
                               beginning_period_of_availa='2010', ending_period_of_availabil='2011',
                               availability_type_code=None, main_account_code='0100', sub_account_code='000',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas9 = TASFactory(account_num=9, allocation_transfer_agency=None, agency_identifier='049',
                               beginning_period_of_availa='2014', ending_period_of_availabil='2015',
                               availability_type_code=None, main_account_code='0100', sub_account_code='000',
-                              internal_start_date='01-01-2000')
+                              internal_start_date='01-01-2000', financial_indicator2='F')
             tas10 = TASFactory(account_num=10, allocation_transfer_agency=None, agency_identifier='049',
                                beginning_period_of_availa='2015', ending_period_of_availabil='2016',
                                availability_type_code=None, main_account_code='0100', sub_account_code='000',
