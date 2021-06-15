@@ -23,7 +23,7 @@ from dataactcore.models.validationModels import FileColumn
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import insert_dataframe
-from dataactvalidator.validation_handlers.validationManager import update_tas_ids
+from dataactvalidator.validation_handlers.validationManager import update_account_nums
 
 logger = logging.getLogger(__name__)
 
@@ -218,8 +218,8 @@ def main():
                     # Insert data by file
                     insert_file(filename, submission_id, file_type_id, csv_schema, long_to_short_dict[file_type_id])
 
-                    # Populate tas and tas_id
-                    update_tas_ids(FTI_TABLE_DICT[file_type_id], submission_id)
+                    # Populate tas and account_num
+                    update_account_nums(FTI_TABLE_DICT[file_type_id], submission_id)
                     sess.commit()
             else:
                 logger.info('Skipping file "{}"; Submission {} already loaded'.format(filename, submission_id))

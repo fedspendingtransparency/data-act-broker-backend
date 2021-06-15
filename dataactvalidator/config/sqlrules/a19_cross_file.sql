@@ -10,7 +10,7 @@ WITH appropriation_a19_{0} AS
         main_account_code,
         sub_account_code,
         obligations_incurred_total_cpe,
-        tas_id,
+        account_num,
         submission_id,
         display_tas
     FROM appropriation
@@ -23,7 +23,7 @@ SELECT
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a19_{0} AS approp
     JOIN object_class_program_activity op
-        ON approp.tas_id = op.tas_id
+        ON approp.account_num = op.account_num
         AND approp.submission_id = op.submission_id
 GROUP BY approp.row_number,
     approp.allocation_transfer_agency,
