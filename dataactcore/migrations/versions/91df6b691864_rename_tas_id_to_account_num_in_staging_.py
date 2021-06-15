@@ -1,14 +1,14 @@
 """Rename tas_id to account_num in staging tables
 
 Revision ID: 91df6b691864
-Revises: 77bd1ef8c53b
+Revises: bbc020fa7961
 Create Date: 2021-05-27 09:57:41.745637
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '91df6b691864'
-down_revision = '77bd1ef8c53b'
+down_revision = 'bbc020fa7961'
 branch_labels = None
 depends_on = None
 
