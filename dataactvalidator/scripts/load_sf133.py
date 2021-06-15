@@ -345,7 +345,7 @@ if __name__ == '__main__':
                         default="sf_133")
     parser.add_argument('-f', '--force', help='Forces actions to occur in certain scripts regardless of checks',
                         action='store_true')
-    parser.add_argument('-b', '--fix_links', help='Checks/updates any SF133 data that isn\'t linked to TAS',
+    parser.add_argument('-l', '--fix_links', help='Checks/updates any SF133 data that isn\'t linked to TAS',
                         action='store_true')
     parser.add_argument('-t', '--update_tas_fields', help='Checks/updates any SF133 data with updated TAS data',
                         action='store_true')
