@@ -72,7 +72,7 @@ def query_data(session, agency_code, period, year):
         agency_filters.append(tas_gtas.c.allocation_transfer_agency.in_(agency_array))
 
     # Save the AID filter
-    if agency_code == '097' and not frec_provided:
+    if agency_code == '097':
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.agency_identifier.in_(agency_array)))
     elif not frec_provided:
@@ -82,16 +82,11 @@ def query_data(session, agency_code, period, year):
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.fr_entity_type == agency_code))
 
-    # If we're checking a CGAC, we want to filter on all of the related FRECs for AID 011, otherwise just filter on
-    # that FREC
+    # If we're checking a CGAC, we want to filter on all of the related FRECs for AID 011
     if frec_list:
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.agency_identifier == '011',
                                    tas_gtas.c.fr_entity_type.in_(frec_list)))
-    elif not frec_provided:
-        agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas.c.agency_identifier == '011',
-                                   tas_gtas.c.fr_entity_type == agency_code))
 
     rows = initial_query(session, tas_gtas.c, year).\
         filter(func.coalesce(tas_gtas.c.financial_indicator2, '') != 'F').\

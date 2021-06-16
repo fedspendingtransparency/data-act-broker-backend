@@ -56,7 +56,7 @@ class Appropriation(Base):
     unobligated_balance_cpe = Column(Numeric)
     tas = Column(Text, index=True, nullable=False, default=concat_tas)
     display_tas = Column(Text, default=concat_display_tas)
-    tas_id = Column(Integer, nullable=True, index=True)
+    account_num = Column(Integer, nullable=True, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -65,8 +65,8 @@ class Appropriation(Base):
         super(Appropriation, self).__init__(**clean_kwargs)
 
 
-Index("ix_appropriation_tas_id_submission_id",
-      Appropriation.tas_id,
+Index("ix_appropriation_account_num_submission_id",
+      Appropriation.account_num,
       Appropriation.submission_id,
       unique=False)
 
@@ -128,7 +128,7 @@ class ObjectClassProgramActivity(Base):
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concat_tas)
     display_tas = Column(Text, default=concat_display_tas)
-    tas_id = Column(Integer, nullable=True)
+    account_num = Column(Integer, nullable=True)
     disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
@@ -144,8 +144,8 @@ Index("ix_oc_pa_tas_oc_pa",
       ObjectClassProgramActivity.program_activity_code,
       unique=False)
 
-Index("ix_oc_pa_tas_id_submission_id",
-      ObjectClassProgramActivity.tas_id,
+Index("ix_oc_pa_account_num_submission_id",
+      ObjectClassProgramActivity.account_num,
       ObjectClassProgramActivity.submission_id,
       unique=False)
 
@@ -215,7 +215,7 @@ class AwardFinancial(Base):
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concat_tas, index=True)
     display_tas = Column(Text, default=concat_display_tas)
-    tas_id = Column(Integer, nullable=True, index=True)
+    account_num = Column(Integer, nullable=True, index=True)
     general_ledger_post_date = Column(Date)
     disaster_emergency_fund_code = Column(Text)
 
@@ -316,7 +316,7 @@ class CertifiedAppropriation(Base):
     sub_account_code = Column(Text)
     unobligated_balance_cpe = Column(Numeric)
     tas = Column(Text)
-    tas_id = Column(Integer)
+    account_num = Column(Integer)
     display_tas = Column(Text)
 
     def __init__(self, **kwargs):
@@ -381,7 +381,7 @@ class CertifiedObjectClassProgramActivity(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, default=concat_tas)
-    tas_id = Column(Integer)
+    account_num = Column(Integer)
     display_tas = Column(Text)
     disaster_emergency_fund_code = Column(Text)
 
@@ -452,7 +452,7 @@ class CertifiedAwardFinancial(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text)
-    tas_id = Column(Integer)
+    account_num = Column(Integer)
     general_ledger_post_date = Column(Date)
     display_tas = Column(Text)
     disaster_emergency_fund_code = Column(Text)

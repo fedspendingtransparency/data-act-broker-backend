@@ -25,7 +25,7 @@ WITH appropriation_a33_3_{0} AS
         approp.status_of_budgetary_resour_cpe
     FROM appropriation as approp
     LEFT JOIN tas_lookup
-        ON tas_lookup.account_num = approp.tas_id
+        ON tas_lookup.account_num = approp.account_num
     WHERE submission_id = {0}
         -- In case a file a submission contains a financial account
         AND COALESCE(UPPER(tas_lookup.financial_indicator2), '') <> 'F'),
@@ -70,4 +70,7 @@ FROM appropriation_a33_3_{0} AS approp
         OR COALESCE(approp.status_of_budgetary_resour_cpe, 0) <> 0
     )
     AND COALESCE(approp.allocation_transfer_agency, '') <> ''
-    AND approp.allocation_transfer_agency <> sub.cgac_code;
+    AND CASE WHEN sub.cgac_code <> '097'
+        THEN approp.allocation_transfer_agency <> sub.cgac_code
+        ELSE approp.allocation_transfer_agency NOT IN ('017', '021', '057', '097')
+    END;

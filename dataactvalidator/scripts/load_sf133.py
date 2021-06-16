@@ -14,20 +14,24 @@ from dataactbroker.helpers.generic_helper import format_internal_tas
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import matching_cars_subquery, SF133, concat_display_tas_dict
+from dataactcore.models.domainModels import (matching_cars_subquery, SF133, TASLookup, TAS_COMPONENTS,
+                                             concat_display_tas_dict)
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
 
-def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133'):
-    """ Load any SF-133 files that are not yet in the database.
+def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133', fix_links=True,
+                   update_tas_fields=True):
+    """ Load any SF-133 files that are not yet in the database and fix any broken links
 
         Args:
             sf133_path: path to the SF133 files
             force_sf133_load: boolean to indicate whether to force a reload of the data
             aws_prefix: prefix to filter which files to pull from AWS
+            fix_links: fix any SF133 records not linked to TAS data
+            update_tas_fields: rederive SF133 records if the associated TAS record has been updated
     """
     now = datetime.now()
     metrics_json = {
@@ -36,18 +40,26 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133')
         'records_deleted': 0,
         'records_inserted': 0
     }
-    # get a list of SF 133 files to load
-    sf133_list = get_sf133_list(sf133_path, aws_prefix=aws_prefix)
-    sf_re = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
-    for sf133 in sf133_list:
-        # for each SF file, parse out fiscal year and period and call the SF 133 loader
-        file_match = sf_re.match(sf133.file)
-        if not file_match:
-            logger.info('Skipping SF 133 file with invalid name: %s', sf133.full_file)
-            continue
-        logger.info('Starting %s...', sf133.full_file)
-        load_sf133(sf133.full_file, file_match.group('year'), file_match.group('period'),
-                   force_sf133_load=force_sf133_load, metrics=metrics_json)
+
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+
+        # get a list of SF 133 files to load
+        sf133_list = get_sf133_list(sf133_path, aws_prefix=aws_prefix)
+        sf_re = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
+        for sf133 in sf133_list:
+            # for each SF file, parse out fiscal year and period and call the SF 133 loader
+            file_match = sf_re.match(sf133.file)
+            if not file_match:
+                logger.info('Skipping SF 133 file with invalid name: %s', sf133.full_file)
+                continue
+            logger.info('Starting %s...', sf133.full_file)
+            load_sf133(sess, sf133.full_file, file_match.group('year'), file_match.group('period'),
+                       force_sf133_load=force_sf133_load, metrics=metrics_json)
+        if update_tas_fields:
+            rederive_tas_fields(sess, metrics=metrics_json)
+        if fix_links:
+            fix_broken_links(sess, metrics=metrics_json)
 
     metrics_json['duration'] = str(datetime.now() - now)
 
@@ -93,13 +105,14 @@ def fill_blank_sf133_lines(data):
     return data
 
 
-def update_account_num(fiscal_year, fiscal_period):
-    """ Set the account_num on newly SF133 entries. We use raw SQL as sqlalchemy doesn't have operators like OVERLAPS and IS
-        NOT DISTINCT FROM built in (resulting in a harder to understand query).
+def update_account_num(fiscal_year, fiscal_period, only_broken_links=False):
+    """ Set the account_num on newly SF133 entries. We use raw SQL as sqlalchemy doesn't have operators like OVERLAPS
+        and IS NOT DISTINCT FROM built in (resulting in a harder to understand query).
 
         Args:
             fiscal_year: fiscal year to update TAS IDs for
             fiscal_period: fiscal period to update TAS IDs for
+            only_broken_links: only update ones with a blank account number
     """
     sess = GlobalDB.db().session
     # number of months since 0AD for this fiscal period
@@ -115,16 +128,20 @@ def update_account_num(fiscal_year, fiscal_period):
 
     subquery = matching_cars_subquery(sess, SF133, start_date, end_date)
     logger.info("Updating account_nums for Fiscal %s-%s", fiscal_year, fiscal_period)
+    filters = [SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period]
+    if only_broken_links:
+        filters.append(SF133.account_num.is_(None))
     sess.query(SF133).\
-        filter_by(fiscal_year=fiscal_year, period=fiscal_period).\
+        filter(*filters).\
         update({SF133.account_num: subquery}, synchronize_session=False)
     sess.commit()
 
 
-def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False, metrics=None):
+def load_sf133(sess, filename, fiscal_year, fiscal_period, force_sf133_load=False, metrics=None):
     """ Load SF 133 (budget execution report) lookup table.
 
         Args:
+            sess: connection to database
             filename: name/path of the file to read in
             fiscal_year: fiscal year of the file being loaded
             fiscal_period: fiscal period of the file being loaded
@@ -133,60 +150,54 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False, met
     """
     if not metrics:
         metrics = {}
-    with create_app().app_context():
-        sess = GlobalDB.db().session
 
-        existing_records = sess.query(SF133).filter(SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
-        if force_sf133_load:
-            # force a reload of this period's current data
-            logger.info('Force SF 133 load: deleting existing records for %s %s', fiscal_year, fiscal_period)
-            delete_count = existing_records.delete()
-            logger.info('%s records deleted', delete_count)
-            metrics['records_deleted'] += delete_count
-        elif existing_records.count():
-            # if there's existing data & we're not forcing a load, skip
-            logger.info('SF133 %s %s already in database (%s records). Skipping file.', fiscal_year, fiscal_period,
-                        existing_records.count())
-            return
+    existing_records = sess.query(SF133).filter(SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
+    if force_sf133_load:
+        # force a reload of this period's current data
+        logger.info('Force SF 133 load: deleting existing records for %s %s', fiscal_year, fiscal_period)
+        delete_count = existing_records.delete()
+        logger.info('%s records deleted', delete_count)
+        metrics['records_deleted'] += delete_count
+    elif existing_records.count():
+        # if there's existing data & we're not forcing a load, skip
+        logger.info('SF133 %s %s already in database (%s records). Skipping file.', fiscal_year, fiscal_period,
+                    existing_records.count())
+        return
 
-        data = clean_sf133_data(filename, SF133)
+    data = clean_sf133_data(filename, SF133)
 
-        # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones we don't actually
-        # use in the validations. Arguably, it would be better just to include everything, but that drastically
-        # increases the number of records we're inserting to the sf_133 table. If we ever decide that we need *all*
-        # SF 133 lines that are zero value, remove the next two lines.
-        sf_133_validation_lines = [
-            '1000', '1010', '1011', '1012', '1013', '1020', '1021', '1022', '1023', '1024', '1025', '1026', '1029',
-            '1030', '1031', '1032', '1033', '1040', '1041', '1042', '1160', '1180', '1260', '1280', '1340', '1440',
-            '1540', '1640', '1750', '1850', '1910', '2190', '2490', '2500', '3020', '4801', '4802', '4881', '4882',
-            '4901', '4902', '4908', '4981', '4982'
-        ]
-        data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
+    # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones we don't actually
+    # use in the validations. Arguably, it would be better just to include everything, but that drastically
+    # increases the number of records we're inserting to the sf_133 table. If we ever decide that we need *all*
+    # SF 133 lines that are zero value, remove the next two lines.
+    sf_133_validation_lines = [
+        '1000', '1010', '1011', '1012', '1013', '1020', '1021', '1022', '1023', '1024', '1025', '1026', '1029',
+        '1030', '1031', '1032', '1033', '1040', '1041', '1042', '1160', '1180', '1260', '1280', '1340', '1440',
+        '1540', '1640', '1750', '1850', '1910', '2190', '2490', '2500', '3020', '4801', '4802', '4881', '4882',
+        '4901', '4902', '4908', '4981', '4982'
+    ]
+    data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
 
-        # Uppercasing DEFC to save on indexing
-        # Empty values are still empty strings ('') at this point
-        data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code'].str.upper()
-        # only keep the last character of any DEFC provided
-        # TODO: Remove when Broker supports 3 character DEFCs
-        last_char_only = (lambda defc: str(defc)[-1] if defc else '')
-        data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code'].apply(last_char_only)
+    # Uppercasing DEFC to save on indexing
+    # Empty values are still empty strings ('') at this point
+    data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code'].str.upper()
 
-        # we didn't use the the 'keep_null' option when padding allocation transfer agency, because nulls in that column
-        # break the pivot (see above comments). so, replace the ata '000' with an empty value before inserting to db
-        data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
-        # make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
-        # NULL in the db.
-        data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+    # we didn't use the the 'keep_null' option when padding allocation transfer agency, because nulls in that column
+    # break the pivot (see above comments). so, replace the ata '000' with an empty value before inserting to db
+    data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
+    # make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
+    # NULL in the db.
+    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
-        # Keeping display_tas out here as it depends on empty allocation_transfer_agency being None and not 000
-        data['display_tas'] = data.apply(lambda row: concat_display_tas_dict(row), axis=1)
+    # Keeping display_tas out here as it depends on empty allocation_transfer_agency being None and not 000
+    data['display_tas'] = data.apply(lambda row: concat_display_tas_dict(row), axis=1)
 
-        # insert to db
-        table_name = SF133.__table__.name
-        num = insert_dataframe(data, table_name, sess.connection())
-        metrics['records_inserted'] += num
-        update_account_num(int(fiscal_year), int(fiscal_period))
-        sess.commit()
+    # insert to db
+    table_name = SF133.__table__.name
+    num = insert_dataframe(data, table_name, sess.connection())
+    metrics['records_inserted'] += num
+    update_account_num(int(fiscal_year), int(fiscal_period))
+    sess.commit()
 
     logger.info('%s records inserted to %s', num, table_name)
 
@@ -279,6 +290,51 @@ def get_sf133_list(sf133_path, aws_prefix='sf_133'):
     return sf133_list
 
 
+def rederive_tas_fields(sess, metrics=None):
+    """ Using the already derived account_num to update the TAS components for out-of-date SF133 records
+
+        Args:
+            sess: connection to the database
+            metrics: an object containing information for the metrics file
+    """
+    if not metrics:
+        metrics = {}
+
+    logger.info('Updating any linked SF133 records that are out of date with TAS')
+    tas_fields = list(TAS_COMPONENTS) + ['tas', 'display_tas']
+    updates = {getattr(SF133, component): getattr(TASLookup, component) for component in tas_fields}
+    updated_count = sess.query(SF133).\
+        filter(SF133.tas != TASLookup.tas, SF133.account_num == TASLookup.account_num).\
+        update(updates, synchronize_session=False)
+    sess.commit()
+
+    metrics['updated_tas_fields'] = updated_count
+    logger.info('Updated the TAS fields of {} SF133 records'.format(updated_count))
+
+
+def fix_broken_links(sess, metrics=None):
+    """ Simply checks and links any GTAS data currently not linked to TAS data
+
+        Args:
+            sess: connection to the database
+            metrics: an object containing information for the metrics file
+    """
+    if not metrics:
+        metrics = {}
+
+    logger.info('Updating SF133 data that haven\'t been linked to TAS')
+    unlink_count_before = sess.query(SF133).filter(SF133.account_num.is_(None)).count()
+    bl_periods = sess.query(SF133.fiscal_year, SF133.period).filter(SF133.account_num.is_(None)).distinct()\
+        .order_by(SF133.fiscal_year, SF133.period)
+    for fiscal_year, period in bl_periods:
+        update_account_num(fiscal_year, period, only_broken_links=True)
+    sess.commit()
+    unlink_count_after = sess.query(SF133).filter(SF133.account_num.is_(None)).count()
+
+    metrics['fixed_links'] = unlink_count_before - unlink_count_after
+    logger.info('Fixed {} broken links to TAS data, {} remain'.format(metrics['fixed_links'], unlink_count_after))
+
+
 if __name__ == '__main__':
     configure_logging()
     parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
@@ -289,9 +345,13 @@ if __name__ == '__main__':
                         default="sf_133")
     parser.add_argument('-f', '--force', help='Forces actions to occur in certain scripts regardless of checks',
                         action='store_true')
+    parser.add_argument('-l', '--fix_links', help='Checks/updates any SF133 data that isn\'t linked to TAS',
+                        action='store_true')
+    parser.add_argument('-t', '--update_tas_fields', help='Checks/updates any SF133 data with updated TAS data',
+                        action='store_true')
     args = parser.parse_args()
 
     if not args.remote:
-        load_all_sf133(args.local_path, args.force)
+        load_all_sf133(args.local_path, args.force, None, args.fix_links, args.update_tas_fields)
     else:
-        load_all_sf133(None, args.force, args.aws_prefix)
+        load_all_sf133(None, args.force, args.aws_prefix, args.fix_links, args.update_tas_fields)
