@@ -55,15 +55,15 @@ def test_financial_tas_approp(database):
     tas_1 = TASFactory(financial_indicator2='other indicator')
     tas_2 = TASFactory(financial_indicator2=None)
 
-    ap_1 = AppropriationFactory(tas_id=tas_1.account_num)
-    ap_2 = AppropriationFactory(tas_id=tas_2.account_num)
+    ap_1 = AppropriationFactory(account_num=tas_1.account_num)
+    ap_2 = AppropriationFactory(account_num=tas_2.account_num)
 
     assert number_of_errors(_FILE, database, models=[tas_1, tas_2, ap_1, ap_2]) == 2
 
     tas_3 = TASFactory(financial_indicator2='F')
     tas_4 = TASFactory(financial_indicator2='f')
 
-    ap_3 = AppropriationFactory(tas_id=tas_3.account_num)
-    ap_4 = AppropriationFactory(tas_id=tas_4.account_num)
+    ap_3 = AppropriationFactory(account_num=tas_3.account_num)
+    ap_4 = AppropriationFactory(account_num=tas_4.account_num)
 
     assert number_of_errors(_FILE, database, models=[tas_3, tas_4, ap_3, ap_4]) == 0

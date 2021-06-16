@@ -27,28 +27,28 @@ def test_success(database):
     database.session.add_all([tas, tas2])
     database.session.flush()
 
-    op = ObjectClassProgramActivityFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
-                                           object_class='1')
-    op2 = ObjectClassProgramActivityFactory(tas_id=tas2.tas_id, program_activity_code='2', program_activity_name='PA2',
-                                            object_class='0')
+    op = ObjectClassProgramActivityFactory(account_num=tas.account_num, program_activity_code='1',
+                                           program_activity_name='PA1', object_class='1')
+    op2 = ObjectClassProgramActivityFactory(account_num=tas2.account_num, program_activity_code='2',
+                                            program_activity_name='PA2', object_class='0')
 
-    af = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
+    af = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='1', program_activity_name='PA1',
                                object_class='1')
     # Allow program activity code to be null, empty, or zero
-    af2 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='', program_activity_name='Pa1',
+    af2 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='', program_activity_name='Pa1',
                                 object_class='1')
-    af3 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='0000', program_activity_name='pA1',
+    af3 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='0000', program_activity_name='pA1',
                                 object_class='1')
-    af4 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code=None, program_activity_name='pa1',
+    af4 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code=None, program_activity_name='pa1',
                                 object_class='1')
     # Allow program activity name to be null or empty
-    af5 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='', program_activity_name='',
+    af5 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='', program_activity_name='',
                                 object_class='1')
-    af6 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='0000', program_activity_name=None,
+    af6 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='0000', program_activity_name=None,
                                 object_class='1')
     # Allow different object classes if pacs are the same and tas IDs are the same and object classes are just
     # different numbers of zeroes
-    af7 = AwardFinancialFactory(tas_id=tas2.tas_id, program_activity_code='2', program_activity_name='pa2',
+    af7 = AwardFinancialFactory(account_num=tas2.account_num, program_activity_code='2', program_activity_name='pa2',
                                 object_class='00')
 
     assert number_of_errors(_FILE, database, models=[op, op2, af, af2, af3, af4, af5, af6, af7]) == 0
@@ -60,12 +60,12 @@ def test_success_ignore_optional_before_2021(database):
     database.session.add(tas)
     database.session.flush()
 
-    op = ObjectClassProgramActivityFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
-                                           object_class='1')
+    op = ObjectClassProgramActivityFactory(account_num=tas.account_num, program_activity_code='1',
+                                           program_activity_name='PA1', object_class='1')
 
-    af = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
+    af = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='1', program_activity_name='PA1',
                                object_class='1')
-    af2 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='OPTN',
+    af2 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='OPTN',
                                 program_activity_name='FIELD IS optional PRIOR TO FY21', object_class='1')
 
     sub = SubmissionFactory(reporting_fiscal_year=2020)
@@ -85,21 +85,21 @@ def test_failure(database):
     database.session.add_all([tas1, tas2, tas3])
     database.session.flush()
 
-    op = ObjectClassProgramActivityFactory(tas_id=tas1.tas_id, program_activity_code='1', program_activity_name='PA1',
-                                           object_class='1')
-    op2 = ObjectClassProgramActivityFactory(tas_id=tas2.tas_id, program_activity_code='1', program_activity_name='PA2',
-                                            object_class='2')
+    op = ObjectClassProgramActivityFactory(account_num=tas1.account_num, program_activity_code='1',
+                                           program_activity_name='PA1', object_class='1')
+    op2 = ObjectClassProgramActivityFactory(account_num=tas2.account_num, program_activity_code='1',
+                                            program_activity_name='PA2', object_class='2')
 
-    af1 = AwardFinancialFactory(tas_id=tas3.tas_id, program_activity_code='1', program_activity_name='PA1',
+    af1 = AwardFinancialFactory(account_num=tas3.account_num, program_activity_code='1', program_activity_name='PA1',
                                 object_class='1')
-    af2 = AwardFinancialFactory(tas_id=tas1.tas_id, program_activity_code='2', program_activity_name='PA1',
+    af2 = AwardFinancialFactory(account_num=tas1.account_num, program_activity_code='2', program_activity_name='PA1',
                                 object_class='1')
-    af3 = AwardFinancialFactory(tas_id=tas1.tas_id, program_activity_code='1', program_activity_name='PA2',
+    af3 = AwardFinancialFactory(account_num=tas1.account_num, program_activity_code='1', program_activity_name='PA2',
                                 object_class='1')
-    af4 = AwardFinancialFactory(tas_id=tas1.tas_id, program_activity_code='1', program_activity_name='PA1',
+    af4 = AwardFinancialFactory(account_num=tas1.account_num, program_activity_code='1', program_activity_name='PA1',
                                 object_class='2')
     # Should error even if object class is 0 because it doesn't match the object class of the op
-    af5 = AwardFinancialFactory(tas_id=tas2.tas_id, program_activity_code='1', object_class='0')
+    af5 = AwardFinancialFactory(account_num=tas2.account_num, program_activity_code='1', object_class='0')
 
     assert number_of_errors(_FILE, database, models=[op, op2, af1, af2, af3, af4, af5]) == 5
 
@@ -110,12 +110,12 @@ def test_fail_ignore_optional_2021(database):
     database.session.add(tas)
     database.session.flush()
 
-    op = ObjectClassProgramActivityFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
-                                           object_class='1')
+    op = ObjectClassProgramActivityFactory(account_num=tas.account_num, program_activity_code='1',
+                                           program_activity_name='PA1', object_class='1')
 
-    af = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='1', program_activity_name='PA1',
+    af = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='1', program_activity_name='PA1',
                                object_class='1')
-    af2 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='OPTN',
+    af2 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='OPTN',
                                 program_activity_name='FIELD IS optional PRIOR TO FY21', object_class='1')
 
     sub = SubmissionFactory(reporting_fiscal_year=2021)

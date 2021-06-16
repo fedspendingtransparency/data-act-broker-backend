@@ -145,6 +145,8 @@ class TASLookup(Base):
     budget_function_title = Column(Text, nullable=True)
     budget_subfunction_code = Column(Text, nullable=True)
     budget_subfunction_title = Column(Text, nullable=True)
+    tas = Column(Text, nullable=False, default=concat_tas, index=True)
+    display_tas = Column(Text, default=concat_display_tas)
 
     def component_dict(self):
         """ We'll often want to copy TAS component fields; this method returns a dictionary of field_name to value """
@@ -357,7 +359,7 @@ class HistoricDUNS(Base):
 
     duns_id = Column(Integer, primary_key=True)
     awardee_or_recipient_uniqu = Column(Text, index=True)
-    uei = Column(Text)
+    uei = Column(Text, index=True)
     legal_business_name = Column(Text)
     dba_name = Column(Text)
     entity_structure = Column(Text)
