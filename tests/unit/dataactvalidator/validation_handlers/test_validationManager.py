@@ -18,27 +18,26 @@ with_factory_parameters = pytest.mark.parametrize('factory', (
 
 
 @with_factory_parameters
-def test_update_tas_ids_has_match_open_ended(database, factory):
-    """If there are models which match the TAS (with an undefined end date),
-    they should be modified"""
+def test_update_account_nums_has_match_open_ended(database, factory):
+    """ If there are models which match the TAS (with an undefined end date), they should be modified """
     sess = database.session
     submission = SubmissionFactory(reporting_start_date=date(2010, 10, 1), reporting_end_date=date(2010, 10, 1))
     sess.add(submission)
     sess.flush()
     tas = TASFactory(internal_start_date=date(2010, 9, 1))
     model = factory(submission_id=submission.submission_id, **tas.component_dict())
-    assert model.tas_id is None
+    assert model.account_num is None
     sess.add_all([tas, model])
     sess.commit()
 
-    validationManager.update_tas_ids(model.__class__, submission.submission_id)
+    validationManager.update_account_nums(model.__class__, submission.submission_id)
 
     model = sess.query(model.__class__).one()   # we'll only have one entry
-    assert model.tas_id == tas.account_num
+    assert model.account_num == tas.account_num
 
 
 @with_factory_parameters
-def test_update_tas_ids_has_match_closed(database, factory):
+def test_update_account_nums_has_match_closed(database, factory):
     """If there are models which match the TAS (with an defined end date),
     they should be modified"""
     sess = database.session
@@ -47,18 +46,18 @@ def test_update_tas_ids_has_match_closed(database, factory):
     sess.flush()
     tas = TASFactory(internal_start_date=date(2010, 9, 1), internal_end_date=date(2010, 10, 15))
     model = factory(submission_id=submission.submission_id, **tas.component_dict())
-    assert model.tas_id is None
+    assert model.account_num is None
     sess.add_all([tas, model])
     sess.commit()
 
-    validationManager.update_tas_ids(model.__class__, submission.submission_id)
+    validationManager.update_account_nums(model.__class__, submission.submission_id)
 
     model = sess.query(model.__class__).one()   # we'll only have one entry
-    assert model.tas_id == tas.account_num
+    assert model.account_num == tas.account_num
 
 
 @with_factory_parameters
-def test_update_tas_ids_no_match(database, factory):
+def test_update_account_nums_no_match(database, factory):
     """If a TAS doesn't share fields, we don't expect a match"""
     sess = database.session
     submission = SubmissionFactory(reporting_start_date=date(2010, 10, 10), reporting_end_date=date(2010, 10, 31))
@@ -67,18 +66,18 @@ def test_update_tas_ids_no_match(database, factory):
     tas = TASFactory(internal_start_date=date(2010, 9, 1))
     # note these will have different fields
     model = factory(submission_id=submission.submission_id)
-    assert model.tas_id is None
+    assert model.account_num is None
     sess.add_all([tas, model])
     sess.commit()
 
-    validationManager.update_tas_ids(model.__class__, submission.submission_id)
+    validationManager.update_account_nums(model.__class__, submission.submission_id)
 
     model = sess.query(model.__class__).one()   # we'll only have one entry
-    assert model.tas_id is None
+    assert model.account_num is None
 
 
 @with_factory_parameters
-def test_update_tas_ids_bad_dates(database, factory):
+def test_update_account_nums_bad_dates(database, factory):
     """If the relevant TAS does not overlap the date of the submission, it
     should not be used"""
     sess = database.session
@@ -87,14 +86,14 @@ def test_update_tas_ids_bad_dates(database, factory):
     sess.flush()
     tas = TASFactory(internal_start_date=date(2011, 1, 1))
     model = factory(submission_id=submission.submission_id, **tas.component_dict())
-    assert model.tas_id is None
+    assert model.account_num is None
     sess.add_all([tas, model])
     sess.commit()
 
-    validationManager.update_tas_ids(model.__class__, submission.submission_id)
+    validationManager.update_account_nums(model.__class__, submission.submission_id)
 
     model = sess.query(model.__class__).one()   # we'll only have one entry
-    assert model.tas_id is None
+    assert model.account_num is None
 
 
 @pytest.mark.usefixtures('database')

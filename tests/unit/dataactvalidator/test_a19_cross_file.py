@@ -20,10 +20,10 @@ def test_sum_matches(database):
     database.session.add(tas)
     database.session.flush()
 
-    op1 = ObjectClassProgramActivityFactory(tas_id=tas.tas_id)
-    op2 = ObjectClassProgramActivityFactory(tas_id=tas.tas_id)
+    op1 = ObjectClassProgramActivityFactory(account_num=tas.account_num)
+    op2 = ObjectClassProgramActivityFactory(account_num=tas.account_num)
     approp_val = -sum(op.obligations_incurred_by_pr_cpe for op in (op1, op2))
-    approp = AppropriationFactory(tas_id=tas.tas_id, obligations_incurred_total_cpe=approp_val)
+    approp = AppropriationFactory(account_num=tas.account_num, obligations_incurred_total_cpe=approp_val)
     assert number_of_errors(_FILE, database, models=[approp, op1, op2]) == 0
 
 
@@ -32,9 +32,9 @@ def test_sum_does_not_match(database):
     database.session.add(tas)
     database.session.flush()
 
-    op1 = ObjectClassProgramActivityFactory(tas_id=tas.tas_id)
-    op2 = ObjectClassProgramActivityFactory(tas_id=tas.tas_id)
+    op1 = ObjectClassProgramActivityFactory(account_num=tas.account_num)
+    op2 = ObjectClassProgramActivityFactory(account_num=tas.account_num)
     approp_val = -sum(op.obligations_incurred_by_pr_cpe for op in (op1, op2))
     approp_val += randint(1, 9999)  # different value now
-    approp = AppropriationFactory(tas_id=tas.tas_id, obligations_incurred_total_cpe=approp_val)
+    approp = AppropriationFactory(account_num=tas.account_num, obligations_incurred_total_cpe=approp_val)
     assert number_of_errors(_FILE, database, models=[approp, op1, op2]) == 1

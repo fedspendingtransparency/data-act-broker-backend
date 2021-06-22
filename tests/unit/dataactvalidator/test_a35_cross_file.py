@@ -27,14 +27,14 @@ def test_success(database):
     database.session.add(tas)
     database.session.flush()
 
-    ap = AppropriationFactory(tas_id=tas.tas_id, deobligations_recoveries_r_cpe=8)
+    ap = AppropriationFactory(account_num=tas.account_num, deobligations_recoveries_r_cpe=8)
     # Contributes 4
     op_1 = ObjectClassProgramActivityFactory(
-        tas_id=tas.tas_id, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+        account_num=tas.account_num, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
     # Contributes another 4
     op_2 = ObjectClassProgramActivityFactory(
-        tas_id=tas.tas_id, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+        account_num=tas.account_num, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
 
     assert number_of_errors(_FILE, database, models=[ap, op_1, op_2]) == 0
@@ -46,18 +46,18 @@ def test_success_scenario2(database):
     database.session.add_all([tas1, tas2])
     database.session.flush()
 
-    ap = AppropriationFactory(tas_id=tas1.tas_id, deobligations_recoveries_r_cpe=8)
+    ap = AppropriationFactory(account_num=tas1.account_num, deobligations_recoveries_r_cpe=8)
     # Contributes 4
     op_1 = ObjectClassProgramActivityFactory(
-        tas_id=tas1.tas_id, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+        account_num=tas1.account_num, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
     # Contributes another 4
     op_2 = ObjectClassProgramActivityFactory(
-        tas_id=tas1.tas_id, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+        account_num=tas1.account_num, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
     # Doesn't contribute, different TAS
     op_3 = ObjectClassProgramActivityFactory(
-        tas_id=tas2.tas_id, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+        account_num=tas2.account_num, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
     assert number_of_errors(_FILE, database, models=[ap, op_1, op_2, op_3]) == 0
 
@@ -72,14 +72,14 @@ def test_failure(database):
     database.session.add(tas)
     database.session.flush()
 
-    ap = AppropriationFactory(tas_id=tas.tas_id, deobligations_recoveries_r_cpe=7)
+    ap = AppropriationFactory(account_num=tas.account_num, deobligations_recoveries_r_cpe=7)
     # Contributes 4
     op_1 = ObjectClassProgramActivityFactory(
-        tas_id=tas.tas_id, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+        account_num=tas.account_num, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
     # Contributes another 4
     op_2 = ObjectClassProgramActivityFactory(
-        tas_id=tas.tas_id, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+        account_num=tas.account_num, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
 
     assert number_of_errors(_FILE, database, models=[ap, op_1, op_2]) == 1

@@ -13,6 +13,6 @@ WHERE op.submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM appropriation AS approp
-        WHERE op.tas_id IS NOT DISTINCT FROM approp.tas_id
+        WHERE op.account_num IS NOT DISTINCT FROM approp.account_num
             AND op.submission_id = approp.submission_id
     );

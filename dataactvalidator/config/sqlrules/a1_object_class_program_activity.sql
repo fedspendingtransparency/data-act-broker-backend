@@ -1,7 +1,7 @@
 -- The combination of all the elements that make up the TAS must match the Treasury Central Accounting Reporting System
 -- (CARS). AgencyIdentifier, MainAccountCode, and SubAccountCode are always required.
 -- AllocationTransferAgencyIdentifier, BeginningPeriodOfAvailability, EndingPeriodOfAvailability and
--- AvailabilityTypeCode are required if present in the CARS table. tas_id will be null if the combination of these
+-- AvailabilityTypeCode are required if present in the CARS table. account_num will be null if the combination of these
 -- elements is not in the system.
 SELECT
     row_number,
@@ -15,4 +15,4 @@ SELECT
     display_tas AS "uniqueid_TAS"
 FROM object_class_program_activity AS op
 WHERE op.submission_id = {0}
-AND op.tas_id IS NULL;
+AND op.account_num IS NULL;

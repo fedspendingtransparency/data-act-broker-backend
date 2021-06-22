@@ -234,7 +234,7 @@ class ValidationManager:
             self.load_file_data(sess, bucket_name, region_name)
 
             if self.file_type.name in ('appropriations', 'program_activity', 'award_financial'):
-                update_tas_ids(self.model, self.submission_id)
+                update_account_nums(self.model, self.submission_id)
 
                 if self.file_type.name == 'award_financial':
                     update_total_obligations(self.submission_id, total_obligations=self.total_obligations,
@@ -1051,7 +1051,7 @@ class ValidationManager:
             spawn_of_job.kill()
 
 
-def update_tas_ids(model_class, submission_id):
+def update_account_nums(model_class, submission_id):
     sess = GlobalDB.db().session
 
     submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
@@ -1093,7 +1093,7 @@ def update_tas_ids(model_class, submission_id):
                 sub_account_code
         )
         UPDATE {model}
-        SET tas_id = min_account_num
+        SET account_num = min_account_num
         FROM relevant_tas
         WHERE {model}.submission_id = {submission_id}
             AND coalesce(relevant_tas.allocation_transfer_agency, '') = coalesce({model}.allocation_transfer_agency, '')

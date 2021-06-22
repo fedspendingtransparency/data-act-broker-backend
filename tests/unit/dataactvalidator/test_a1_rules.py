@@ -33,7 +33,7 @@ def test_success(database, sql_file, factory):
     tas = TASFactory()
     database.session.add(tas)
     database.session.flush()
-    model = factory(tas_id=tas.tas_id)
+    model = factory(account_num=tas.account_num)
 
     assert number_of_errors(sql_file, database, models=[tas, model]) == 0
 
@@ -42,5 +42,5 @@ def test_success(database, sql_file, factory):
 def test_failure(database, sql_file, factory):
     """If no TAS value is set, we fail"""
     tas = TASFactory()
-    model = factory(tas_id=None)
+    model = factory(account_num=None)
     assert number_of_errors(sql_file, database, models=[tas, model]) == 1

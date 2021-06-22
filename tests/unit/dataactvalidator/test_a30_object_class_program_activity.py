@@ -21,8 +21,8 @@ def test_success(database):
     database.session.add(tas)
     database.session.flush()
 
-    op = ObjectClassProgramActivityFactory(tas_id=tas.tas_id)
-    ap = AppropriationFactory(tas_id=tas.tas_id)
+    op = ObjectClassProgramActivityFactory(account_num=tas.account_num)
+    ap = AppropriationFactory(account_num=tas.account_num)
 
     assert number_of_errors(_FILE, database, models=[op, ap]) == 0
 
@@ -34,7 +34,7 @@ def test_failure(database):
     database.session.add_all([tas1, tas2])
     database.session.flush()
 
-    op = ObjectClassProgramActivityFactory(tas_id=tas1.tas_id)
-    ap = AppropriationFactory(tas_id=tas2.tas_id)
+    op = ObjectClassProgramActivityFactory(account_num=tas1.account_num)
+    ap = AppropriationFactory(account_num=tas2.account_num)
 
     assert number_of_errors(_FILE, database, models=[op, ap]) == 1

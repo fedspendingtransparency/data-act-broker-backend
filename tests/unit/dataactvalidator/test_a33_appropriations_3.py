@@ -39,7 +39,7 @@ def test_success(database):
                                unobligated_balance_cpe=0, status_of_budgetary_resour_cpe=0)
     # Non-matching ATA with financial_indicator2 of F
     ap5 = AppropriationFactory(submission_id=sub.submission_id, allocation_transfer_agency='Not a match',
-                               tas_id=tas.account_num, adjustments_to_unobligated_cpe=15)
+                               account_num=tas.account_num, adjustments_to_unobligated_cpe=15)
 
     assert number_of_errors(_FILE, database, submission=sub, models=[cgac, tas, ap1, ap2, ap3, ap4, ap5]) == 0
 
@@ -56,6 +56,20 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, submission=sub, models=[frec, ap]) == 0
 
+    # Accounting for CGAC 097 (021 is allowed)
+    dod_cgac = CGACFactory(cgac_code='097')
+    database.session.add(dod_cgac)
+    database.session.commit()
+
+    frec = FRECFactory(frec_code='abcde', cgac_id=dod_cgac.cgac_id)
+    sub = SubmissionFactory(cgac_code=None, frec_code=frec.frec_code)
+
+    # Matching ATA for a FREC
+    ap = AppropriationFactory(submission_id=sub.submission_id, allocation_transfer_agency='021',
+                              adjustments_to_unobligated_cpe=15)
+
+    assert number_of_errors(_FILE, database, submission=sub, models=[frec, ap]) == 0
+
 
 def test_failure(database):
     """ Tests that TAS with non-matching ATA don't pass. """
@@ -66,3 +80,12 @@ def test_failure(database):
                               adjustments_to_unobligated_cpe=1)
 
     assert number_of_errors(_FILE, database, submission=sub, models=[cgac, ap]) == 1
+
+    # Accounting for CGAC 097
+    dod_sub = SubmissionFactory(cgac_code='097')
+    dod_cgac = CGACFactory(cgac_code='097')
+
+    ap = AppropriationFactory(submission_id=dod_sub.submission_id, allocation_transfer_agency='Not a match',
+                              adjustments_to_unobligated_cpe=1)
+
+    assert number_of_errors(_FILE, database, submission=dod_sub, models=[dod_cgac, ap]) == 1
