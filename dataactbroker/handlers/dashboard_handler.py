@@ -216,8 +216,9 @@ def historic_dabs_warning_graphs(filters):
 
     subs_query = sess.query(
         Submission.submission_id,
-        (Submission.reporting_fiscal_period / 3).label('quarter'),
+        Submission.reporting_fiscal_period.label('period'),
         Submission.reporting_fiscal_year.label('fy'),
+        Submission.is_quarter_format.label('is_quarter'),
         case([
             (FREC.frec_code.isnot(None), FREC.frec_code),
             (CGAC.cgac_code.isnot(None), CGAC.cgac_code)
@@ -240,7 +241,8 @@ def historic_dabs_warning_graphs(filters):
         sub_metadata[sub_id] = {
             'submission_id': sub_id,
             'fy': query_result.fy,
-            'quarter': query_result.quarter,
+            'period': query_result.period,
+            'is_quarter': query_result.is_quarter,
             'agency': {
                 'name': query_result.agency_name,
                 'code': query_result.agency_code,
