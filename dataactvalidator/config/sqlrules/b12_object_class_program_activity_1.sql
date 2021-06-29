@@ -1,5 +1,5 @@
--- Reimbursable flag indicator is required when reporting obligation or outlay USSGL account balances
--- (excluding downward adjustments SGL accounts).
+-- Reimbursable flag indicator is required when reporting non-zero obligation or outlay USSGL account balances
+-- (excluding USSGL accounts for downward adjustments and transfers).
 SELECT
     row_number,
     object_class,
@@ -22,5 +22,4 @@ WHERE submission_id = {0}
         OR COALESCE(ussgl490800_authority_outl_cpe, 0) <> 0
         OR COALESCE(ussgl498200_upward_adjustm_cpe, 0) <> 0
     )
-    AND LENGTH(COALESCE(object_class, '')) = 3
     AND COALESCE(by_direct_reimbursable_fun, '') = '';
