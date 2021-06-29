@@ -61,6 +61,7 @@ FROM sf_133 AS sf
             END
             -- match against FRECs related to CGAC 011
             OR sub_c.frec_list IS NOT NULL
+                AND sub_c.cgac_code IS NOT NULL
                 AND sf.allocation_transfer_agency IS NULL
                 AND sf.agency_identifier = '011'
                 AND tl.fr_entity_type = ANY(sub_c.frec_list)
