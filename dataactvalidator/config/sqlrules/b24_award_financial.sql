@@ -1,4 +1,4 @@
--- DEFC values must be A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T or 9
+-- DEFC values must be A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, or T
 -- (plus future codes as determined by OMB). DEFC cannot be blank.
 SELECT
     row_number,
