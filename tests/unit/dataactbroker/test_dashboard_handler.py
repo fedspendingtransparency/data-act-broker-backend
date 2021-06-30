@@ -394,79 +394,90 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
     # Shared Expected Data
     sub1_empty = {
         'submission_id': 1,
-        'quarter': 3,
+        'period': 9,
+        'is_quarter': True,
         'fy': 2017,
         'agency': {
             'name': 'CGAC',
             'code': '089'
         },
         'total_warnings': 0,
+        'filtered_warnings': 0,
         'warnings': []
     }
     sub2_empty = {
         'submission_id': 2,
-        'quarter': 1,
+        'period': 3,
+        'is_quarter': True,
         'fy': 2019,
         'agency': {
             'name': 'FREC',
             'code': '1125'
         },
         'total_warnings': 0,
+        'filtered_warnings': 0,
         'warnings': []
     }
     sub3_empty = {
         'submission_id': 3,
-        'quarter': 1,
+        'period': 3,
+        'is_quarter': True,
         'fy': 2019,
         'agency': {
             'name': 'Other CGAC',
             'code': '091'
         },
         'total_warnings': 0,
+        'filtered_warnings': 0,
         'warnings': []
     }
     month_pub_sub_empty = {
         'submission_id': 8,
-        'quarter': 2,
+        'period': 8,
+        'is_quarter': False,
         'fy': 2017,
         'agency': {
             'name': 'CGAC',
             'code': '089'
         },
         'total_warnings': 0,
+        'filtered_warnings': 0,
         'warnings': []
     }
     all_subs_empty_results = [sub1_empty, sub2_empty, sub3_empty]
 
     a1_warning = {'label': 'A1', 'instances': 20, 'percent_total': 40}
     a2_warning = {'label': 'A2', 'instances': 30, 'percent_total': 60}
-    a_single = {'total_warnings': 50, 'warnings': [a1_warning, a2_warning]}
+    a_single = {'total_warnings': 50, 'filtered_warnings': 50, 'warnings': [a1_warning, a2_warning]}
     sub1_single = copy.deepcopy(sub1_empty)
     sub1_single.update(a_single)
 
-    a1_warning_month = {'total_warnings': 75, 'warnings': [{'label': 'A1', 'instances': 75, 'percent_total': 100}]}
+    a1_warning_month = {'total_warnings': 75, 'filtered_warnings': 75,
+                        'warnings': [{'label': 'A1', 'instances': 75, 'percent_total': 100}]}
     month_pub_sub_single = copy.deepcopy(month_pub_sub_empty)
     month_pub_sub_single.update(a1_warning_month)
 
-    a1_warning_filtered = {'label': 'A1', 'instances': 20, 'percent_total': 100}
-    a_single_filtered = {'total_warnings': 20, 'warnings': [a1_warning_filtered]}
-    a_single_filtered['warnings'][0]['percent_total'] = 100
+    a1_warning_filtered = {'label': 'A1', 'instances': 20, 'percent_total': 40}
+    a_single_filtered = {'total_warnings': 50, 'filtered_warnings': 20, 'warnings': [a1_warning_filtered]}
     sub1_single_filtered = copy.deepcopy(sub1_empty)
     sub1_single_filtered.update(a_single_filtered)
 
+    sub2_empty_bc = copy.deepcopy(sub2_empty)
+    sub2_empty_bc['total_warnings'] = 120
+
     b2_warning = {'label': 'B2', 'instances': 70, 'percent_total': 100}
-    b_populated = {'total_warnings': 70, 'warnings': [b2_warning]}
+    b_populated = {'total_warnings': 70, 'filtered_warnings': 70, 'warnings': [b2_warning]}
     sub2_single = copy.deepcopy(sub2_empty)
     sub2_single.update(b_populated)
 
     a3_warning = {'label': 'A3', 'instances': 70, 'percent_total': 35}
     b1_warning = {'label': 'B1', 'instances': 130, 'percent_total': 65}
-    ab_cross = {'total_warnings': 200, 'warnings': [a3_warning, b1_warning]}
+    ab_cross = {'total_warnings': 200, 'filtered_warnings': 200, 'warnings': [a3_warning, b1_warning]}
     sub1_cross = copy.deepcopy(sub1_empty)
     sub1_cross.update(ab_cross)
 
     b3_warning = {'label': 'B3', 'instances': 120, 'percent_total': 100}
-    bc_cross = {'total_warnings': 120, 'warnings': [b3_warning]}
+    bc_cross = {'total_warnings': 120, 'filtered_warnings': 120, 'warnings': [b3_warning]}
     sub2_cross = copy.deepcopy(sub2_empty)
     sub2_cross.update(bc_cross)
 
@@ -537,7 +548,7 @@ def test_historic_dabs_warning_graphs_admin(database, monkeypatch):
     expected_response = {
         'A': [sub1_single_filtered, sub2_empty, sub3_empty],
         'C': all_subs_empty_results,
-        'cross-BC': [sub1_empty, sub2_empty, sub3_empty]
+        'cross-BC': [sub1_empty, sub2_empty_bc, sub3_empty]
     }
     response = historic_dabs_warning_graphs_endpoint(filters)
     assert response == expected_response
@@ -574,51 +585,58 @@ def test_historic_dabs_warning_graphs_agency_user(database, monkeypatch):
     # Shared Expected Data
     sub1_empty = {
         'submission_id': 1,
-        'quarter': 3,
+        'period': 9,
+        'is_quarter': True,
         'fy': 2017,
         'agency': {
             'name': 'CGAC',
             'code': '089'
         },
         'total_warnings': 0,
+        'filtered_warnings': 0,
         'warnings': []
     }
     sub3_empty = {
         'submission_id': 3,
-        'quarter': 1,
+        'period': 3,
+        'is_quarter': True,
         'fy': 2019,
         'agency': {
             'name': 'Other CGAC',
             'code': '091'
         },
         'total_warnings': 0,
+        'filtered_warnings': 0,
         'warnings': []
     }
     month_pub_sub_empty = {
         'submission_id': 8,
-        'quarter': 2,
+        'period': 8,
+        'is_quarter': False,
         'fy': 2017,
         'agency': {
             'name': 'CGAC',
             'code': '089'
         },
         'total_warnings': 0,
+        'filtered_warnings': 0,
         'warnings': []
     }
 
     a1_warning = {'label': 'A1', 'instances': 20, 'percent_total': 40}
     a2_warning = {'label': 'A2', 'instances': 30, 'percent_total': 60}
-    a_single = {'total_warnings': 50, 'warnings': [a1_warning, a2_warning]}
+    a_single = {'total_warnings': 50, 'filtered_warnings': 50, 'warnings': [a1_warning, a2_warning]}
     sub1_single = copy.deepcopy(sub1_empty)
     sub1_single.update(a_single)
 
-    a1_warning_month = {'total_warnings': 75, 'warnings': [{'label': 'A1', 'instances': 75, 'percent_total': 100}]}
+    a1_warning_month = {'total_warnings': 75, 'filtered_warnings': 75,
+                        'warnings': [{'label': 'A1', 'instances': 75, 'percent_total': 100}]}
     month_pub_sub_single = copy.deepcopy(month_pub_sub_empty)
     month_pub_sub_single.update(a1_warning_month)
 
     a3_warning = {'label': 'A3', 'instances': 70, 'percent_total': 35}
     b1_warning = {'label': 'B1', 'instances': 130, 'percent_total': 65}
-    ab_cross = {'total_warnings': 200, 'warnings': [a3_warning, b1_warning]}
+    ab_cross = {'total_warnings': 200, 'filtered_warnings': 200, 'warnings': [a3_warning, b1_warning]}
     sub1_cross = copy.deepcopy(sub1_empty)
     sub1_cross.update(ab_cross)
 

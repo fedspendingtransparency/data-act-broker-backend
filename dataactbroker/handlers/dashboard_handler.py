@@ -216,8 +216,9 @@ def historic_dabs_warning_graphs(filters):
 
     subs_query = sess.query(
         Submission.submission_id,
-        (Submission.reporting_fiscal_period / 3).label('quarter'),
+        Submission.reporting_fiscal_period.label('period'),
         Submission.reporting_fiscal_year.label('fy'),
+        Submission.is_quarter_format.label('is_quarter'),
         case([
             (FREC.frec_code.isnot(None), FREC.frec_code),
             (CGAC.cgac_code.isnot(None), CGAC.cgac_code)
@@ -240,12 +241,14 @@ def historic_dabs_warning_graphs(filters):
         sub_metadata[sub_id] = {
             'submission_id': sub_id,
             'fy': query_result.fy,
-            'quarter': query_result.quarter,
+            'period': query_result.period,
+            'is_quarter': query_result.is_quarter,
             'agency': {
                 'name': query_result.agency_name,
                 'code': query_result.agency_code,
             },
             'total_warnings': 0,
+            'filtered_warnings': 0,
             'warnings': []
         }
     sub_ids = list(sub_metadata.keys())
@@ -267,7 +270,17 @@ def historic_dabs_warning_graphs(filters):
         ).join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
             filter(Job.submission_id.in_(sub_ids))
 
+        # Get the total number of warnings for each submission
+        total_warnings_query = sess.query(
+            func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).label('total_instances'),
+            CertifiedErrorMetadata.file_type_id,
+            CertifiedErrorMetadata.target_file_type_id,
+            Job.submission_id
+        ).join(Job, Job.job_id == CertifiedErrorMetadata.job_id).filter(Job.submission_id.in_(sub_ids)).\
+            group_by(Job.submission_id, CertifiedErrorMetadata.file_type_id, CertifiedErrorMetadata.target_file_type_id)
+
         error_metadata_query = apply_historic_dabs_details_filters(error_metadata_query, filters)
+        total_warnings_query = file_filter(total_warnings_query, CertifiedErrorMetadata, filters['files'])
 
         # ordering warnings so they all come out in the same order
         error_metadata_query = error_metadata_query.order_by(CertifiedErrorMetadata.original_rule_label)
@@ -278,13 +291,19 @@ def historic_dabs_warning_graphs(filters):
             submission_id = query_result.submission_id
 
             # update based on warning data
-            results_data[file_type][submission_id]['total_warnings'] += query_result.instances
+            results_data[file_type][submission_id]['filtered_warnings'] += query_result.instances
             warning = {
                 'label': query_result.label,
                 'instances': query_result.instances,
                 'percent_total': 0
             }
             results_data[file_type][submission_id]['warnings'].append(warning)
+
+        # Add total warnings to results dict
+        for query_result in total_warnings_query.all():
+            file_type = generate_file_type(query_result.file_type_id, query_result.target_file_type_id)
+            submission_id = query_result.submission_id
+            results_data[file_type][submission_id]['total_warnings'] += query_result.total_instances
 
         # Calculate the percentages
         for _, file_dict in results_data.items():
