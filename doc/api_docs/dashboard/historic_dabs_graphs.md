@@ -7,7 +7,7 @@ Note: the results will only include the submissions the user has access to based
 ```
 {
     "filters": {
-        "quarters": [1, 3],
+        "periods": [1, 3],
         "fys": [2017, 2019],
         "agencies": ["089", "1125"],
         "files": ["B"],
@@ -18,7 +18,7 @@ Note: the results will only include the submissions the user has access to based
 
 ## Body Description
 - `filters`: (required, dict) used to filter the resulting summaries
-    - `quarters`: (required, list[integer]) fiscal year quarters, ranging 1-4, or an empty list to include all.
+    - `periods`: (required, list[integer]) fiscal year periods, ranging 2-12, or an empty list to include all.
     - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
               or an empty list to include all.
     - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
@@ -34,7 +34,8 @@ Note: the results will only include the submissions the user has access to based
             "submission_id": 1234,
             "agency": 097,
             "fy": 2017,
-            "quarter": 1,
+            "period": 3,
+            "is_quarter": True,
             "total_warnings": 519,
             "warnings": [
                 {
@@ -55,7 +56,8 @@ Note: the results will only include the submissions the user has access to based
             "submission_id": 1234,
             "agency": 012,
             "fy": 2017,
-            "quarter": 1,
+            "period": 3,
+            "is_quarter": True,
             "total_warnings": 389,
             "warnings": [
                  {
@@ -78,8 +80,10 @@ The response is a dictionary of lists representing the submission graphs, each w
     - `name`: (string) the agency's name
     - `code`: (string) the agency's code
 - `fy`: (integer) the fiscal year of the summary
-- `quarter`: (integer) the fiscal quarter of the summary
+- `period`: (integer) the fiscal period of the summary
+- `is_quarter`: (boolean) whether the submission is monthly or quarterly (True for quarterly)
 - `total_warnings`: (integer) the total instances of warnings associated with this submission and file
+- `filtered_warnings`: (integer) the total instances of warnings that fit the rule filters for the request
 - `warnings`: ([dict]) list of warning dicts with the following attributes:
     - `label`: (string) rule number/label
     - `instances`: (integer) instances of this specific warning for this file and submission
