@@ -45,10 +45,7 @@ def test_success(database):
     caf_tas = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='different_tas', fain='hiJK',
                                              uri=None, piid=None, parent_award_id=None,
                                              disaster_emergency_fund_code='n', gross_outlay_amount_by_awa_cpe=5)
-    caf_all_9 = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='aBcD',
-                                               uri='eFgH', piid='mNoP', parent_award_id='qRsT',
-                                               disaster_emergency_fund_code='9', gross_outlay_amount_by_awa_cpe=5)
-    database.session.add_all([sub_1, caf_fain, caf_uri, caf_piid, caf_paid, caf_zero, caf_null, caf_tas, caf_all_9])
+    database.session.add_all([sub_1, caf_fain, caf_uri, caf_piid, caf_paid, caf_zero, caf_null, caf_tas])
     database.session.commit()
 
     # quarterly submission with each of the previous values (one of them is 0 now)
@@ -169,13 +166,13 @@ def test_failure(database):
     caf_fain = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd', uri=None,
                                               piid=None, parent_award_id=None, disaster_emergency_fund_code='N',
                                               gross_outlay_amount_by_awa_cpe=5)
-    caf_defc_9 = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd',
-                                                uri=None, piid=None, parent_award_id='testingHere',
-                                                disaster_emergency_fund_code='9', gross_outlay_amount_by_awa_cpe=5)
-    database.session.add_all([sub_1, caf_fain, caf_defc_9])
+    caf_defc = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd', uri=None,
+                                              piid=None, parent_award_id='testingHere',
+                                              disaster_emergency_fund_code='O', gross_outlay_amount_by_awa_cpe=5)
+    database.session.add_all([sub_1, caf_fain, caf_defc])
     database.session.commit()
 
-    # submission missing previous period value, missing value of 9 still registers an error
+    # submission missing previous period value
     sub_2 = SubmissionFactory(submission_id=2, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
                               frec_code=None, is_quarter_format=False, d2_submission=False)
 
@@ -188,11 +185,11 @@ def test_failure(database):
     af_other = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri='efgh',
                                      piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                      gross_outlay_amount_by_awa_cpe=5)
-    af_defc_9 = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri=None,
-                                      piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='9',
-                                      gross_outlay_amount_by_awa_cpe=5)
+    af_defc = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri=None,
+                                    piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='O',
+                                    gross_outlay_amount_by_awa_cpe=5)
 
-    errors = number_of_errors(_FILE, database, models=[af_other, af_defc_9], submission=sub_3)
+    errors = number_of_errors(_FILE, database, models=[af_other, af_defc], submission=sub_3)
     assert errors == 1
 
     # submission with a row that matches but has gross outlay of NULL
@@ -201,9 +198,9 @@ def test_failure(database):
     af_null = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
                                     piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                     gross_outlay_amount_by_awa_cpe=None)
-    af_defc_9 = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
-                                      piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='n',
-                                      gross_outlay_amount_by_awa_cpe=5)
+    af_defc = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
+                                    piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='o',
+                                    gross_outlay_amount_by_awa_cpe=5)
 
-    errors = number_of_errors(_FILE, database, models=[af_null, af_defc_9], submission=sub_4)
+    errors = number_of_errors(_FILE, database, models=[af_null, af_defc], submission=sub_4)
     assert errors == 1
