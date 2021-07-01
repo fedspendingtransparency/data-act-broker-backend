@@ -72,15 +72,11 @@ def test_success(database):
     af_tas = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='different_tas', fain='hijk', uri=None,
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                    gross_outlay_amount_by_awa_cpe=2)
-    # matches the DEFC of 9 with a different DEFC
-    af_9_match = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
-                                       piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
-                                       gross_outlay_amount_by_awa_cpe=5)
     # Additional line doesn't mess anything up
     af_bonus = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='something_different')
 
     errors = number_of_errors(_FILE, database, models=[af_fain, af_uri, af_piid, af_paid, af_zero, af_null, af_tas,
-                                                       af_9_match, af_bonus],
+                                                       af_bonus],
                               submission=sub_q)
     assert errors == 0
 
@@ -108,15 +104,11 @@ def test_success(database):
     af_tas = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='different_tas', fain='hijk', uri=None,
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                    gross_outlay_amount_by_awa_cpe=2)
-    # matches the DEFC of 9 with a different DEFC
-    af_9_match = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
-                                       piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
-                                       gross_outlay_amount_by_awa_cpe=5)
     # Additional line doesn't mess anything up
     af_bonus = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='something_different')
 
     errors = number_of_errors(_FILE, database, models=[af_fain, af_uri, af_piid, af_paid, af_zero, af_null, af_tas,
-                                                       af_9_match, af_bonus],
+                                                       af_bonus],
                               submission=sub_p)
     assert errors == 0
 
@@ -138,11 +130,8 @@ def test_success(database):
     af_tas = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='different_tas', fain='hijk', uri=None,
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                    gross_outlay_amount_by_awa_cpe=2)
-    af_9_match = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
-                                       piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
-                                       gross_outlay_amount_by_awa_cpe=5)
 
-    errors = number_of_errors(_FILE, database, models=[af_fain, af_uri, af_piid, af_paid, af_tas, af_9_match],
+    errors = number_of_errors(_FILE, database, models=[af_fain, af_uri, af_piid, af_paid, af_tas],
                               submission=sub_4)
     assert errors == 0
 
