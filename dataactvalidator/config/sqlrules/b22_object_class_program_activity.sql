@@ -1,5 +1,5 @@
 -- GrossOutlayAmountByProgramObjectClass_CPE = value for GTAS SF 133 line #3020 for the same reporting period for the
--- TAS and DEFC combination (except for when '9' is provided as DEFC).
+-- TAS and DEFC combination.
 WITH object_class_program_activity_b22_{0} AS
     (SELECT submission_id,
         row_number,
@@ -8,8 +8,7 @@ WITH object_class_program_activity_b22_{0} AS
         display_tas,
         disaster_emergency_fund_code
     FROM object_class_program_activity
-    WHERE submission_id = {0}
-        AND UPPER(disaster_emergency_fund_code) <> '9')
+    WHERE submission_id = {0})
 SELECT
     NULL AS "row_number",
     SUM(COALESCE(op.gross_outlay_amount_by_pro_cpe, 0)) AS "gross_outlay_amount_by_pro_cpe_sum",
