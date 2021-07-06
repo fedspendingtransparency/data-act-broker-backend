@@ -1,9 +1,8 @@
 import os
 import logging
 import json
-
+import requests
 import pandas as pd
-import boto3
 import datetime
 
 from dataactcore.config import CONFIG_BROKER
@@ -31,12 +30,15 @@ def load_object_class(base_path):
         'records_deleted': 0,
         'records_inserted': 0
     }
-    if CONFIG_BROKER["use_aws"]:
-        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        filename = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                   'Key': "object_class.csv"}, ExpiresIn=600)
-    else:
-        filename = os.path.join(base_path, "object_class.csv")
+
+    filename = os.path.join(base_path, 'object_class.csv')
+    try:
+        # Update file from public S3 bucket
+        object_class_url = '{}/object_class.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
+        r = requests.get(object_class_url, allow_redirects=True)
+        open(filename, 'wb').write(r.content)
+    except Exception:
+        pass
 
     # Load object class lookup table
     logger.info('Loading Object Class File: object_class.csv')
