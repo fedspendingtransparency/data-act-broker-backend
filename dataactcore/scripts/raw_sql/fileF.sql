@@ -25,7 +25,7 @@ submission_awards_{0} AS
     WHERE EXISTS (SELECT 1
         FROM afa_sub_{0} AS afa
         WHERE UPPER(TRANSLATE(subaward.award_id, '-', '')) = UPPER(TRANSLATE(afa.fain, '-', ''))
-            AND UPPER(subaward.awarding_sub_tier_agency_c) = UPPER(afa.awarding_sub_tier_agency_c)
+            AND UPPER(subaward.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(afa.awarding_sub_tier_agency_c)
             AND subaward.subaward_type = 'sub-grant'
     ))
 SELECT
