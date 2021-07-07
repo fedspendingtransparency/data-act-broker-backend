@@ -28,7 +28,6 @@ WITH aw_pafa AS
             FROM fsrs_grant
             WHERE record_type <> 1
                 AND fsrs_grant.id {0} {1}
-                -- Subgrant Award linking logic, should be consistent with FileF SQL and link broken subgrant SQL
                 AND UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
                 AND UPPER(fsrs_grant.federal_agency_id) IS NOT DISTINCT FROM UPPER(pafa.awarding_sub_tier_agency_c)
         )
@@ -381,7 +380,6 @@ FROM fsrs_grant
     JOIN fsrs_subgrant
         ON fsrs_subgrant.parent_id = fsrs_grant.id
     LEFT OUTER JOIN aw_pafa
-        -- Subgrant Award linking logic, should be consistent with FileF SQL and link broken subgrant SQL
         ON UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', '')
         AND UPPER(fsrs_grant.federal_agency_id) IS NOT DISTINCT FROM UPPER(aw_pafa.awarding_sub_tier_agency_c))
     LEFT OUTER JOIN country_code AS le_country

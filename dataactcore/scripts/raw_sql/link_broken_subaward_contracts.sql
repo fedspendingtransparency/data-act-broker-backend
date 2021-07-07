@@ -30,7 +30,6 @@ aw_dap AS
     WHERE EXISTS (
         SELECT 1
         FROM unlinked_subs
-        -- Subcontract Award linking logic, should be consistent with FileF SQL and poppulate subcontract SQL
         WHERE UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(dap.piid, '-', ''))
             AND UPPER(TRANSLATE(unlinked_subs.parent_award_id, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(dap.parent_award_id, '-', ''))
             AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(dap.awarding_sub_tier_agency_c)
@@ -48,7 +47,6 @@ SET
     naics_description = aw_dap.naics_description
 FROM unlinked_subs
     JOIN aw_dap
-        -- Subcontract Award linking logic, should be consistent with FileF SQL and poppulate subcontract SQL
         ON UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(aw_dap.piid, '-', ''))
         AND UPPER(TRANSLATE(unlinked_subs.parent_award_id, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(aw_dap.parent_award_id, '-', ''))
         AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(aw_dap.awarding_sub_tier_agency_c)
