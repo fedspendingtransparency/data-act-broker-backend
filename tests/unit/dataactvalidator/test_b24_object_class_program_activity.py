@@ -13,22 +13,22 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test DEFC values must be A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T or 9 (plus future codes as
+    """ Test DEFC values must be A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, or T (plus future codes as
         determined by OMB). DEFC cannot be blank.
     """
     op1 = ObjectClassProgramActivityFactory(disaster_emergency_fund_code='a')
     op2 = ObjectClassProgramActivityFactory(disaster_emergency_fund_code='Q')
-    op3 = ObjectClassProgramActivityFactory(disaster_emergency_fund_code='9')
+    op3 = ObjectClassProgramActivityFactory(disaster_emergency_fund_code='o')
     defc1 = DEFCFactory(code='A')
     defc2 = DEFCFactory(code='Q')
-    defc3 = DEFCFactory(code='9')
+    defc3 = DEFCFactory(code='O')
 
     errors = number_of_errors(_FILE, database, models=[op1, op2, op3, defc1, defc2, defc3])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test fail DEFC values must be A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T or 9 (plus future
+    """ Test fail DEFC values must be A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, or T (plus future
         codes as determined by OMB). DEFC cannot be blank.
     """
     op1 = ObjectClassProgramActivityFactory(disaster_emergency_fund_code='z')
