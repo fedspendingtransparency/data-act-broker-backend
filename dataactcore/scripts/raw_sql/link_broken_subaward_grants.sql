@@ -34,6 +34,7 @@ aw_pafa AS
             SELECT 1
             FROM unlinked_subs
             WHERE pafa.record_type <> 1
+                -- Subgrant Award linking logic, should be consistent with FileF SQL and populate subgrant SQL
                 AND UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
                 AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(pafa.awarding_sub_tier_agency_c)
         )
@@ -57,6 +58,7 @@ SET
     business_types = aw_pafa.business_types_desc
 FROM unlinked_subs
      JOIN aw_pafa
+        -- Subgrant Award linking logic, should be consistent with FileF SQL and populate subgrant SQL
         ON UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', ''))
         AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(aw_pafa.awarding_sub_tier_agency_c)
 WHERE subaward.id = unlinked_subs.id;
