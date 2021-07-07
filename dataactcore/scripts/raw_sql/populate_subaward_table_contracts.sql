@@ -19,7 +19,6 @@ WITH aw_dap AS
     WHERE EXISTS (
         SELECT 1
         FROM fsrs_procurement
-        -- Subcontract Award linking logic, should be consistent with FileF SQL and link broken subcontract SQL
         WHERE UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(dap.piid, '-', ''))
             AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(dap.parent_award_id, '-', ''))
             AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
@@ -315,7 +314,6 @@ FROM fsrs_procurement
     JOIN fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN aw_dap
-        -- Subcontract Award linking logic, should be consistent with FileF SQL and link broken subcontract SQL
         ON UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(aw_dap.piid, '-', ''))
         AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(aw_dap.parent_award_id, '-', ''))
         AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(aw_dap.awarding_sub_tier_agency_c)
