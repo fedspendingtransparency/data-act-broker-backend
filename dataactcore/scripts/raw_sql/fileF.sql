@@ -14,6 +14,7 @@ submission_awards_{0} AS
     FROM subaward
     WHERE EXISTS (SELECT 1
         FROM ap_sub_{0} AS ap
+        -- Subcontract Award linking logic, should be consistent with populate and link subcontract SQL
         WHERE UPPER(TRANSLATE(subaward.award_id, '-', '')) = UPPER(TRANSLATE(ap.piid, '-', ''))
             AND UPPER(TRANSLATE(subaward.parent_award_id, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(ap.parent_award_id, '-', ''))
             AND UPPER(subaward.awarding_sub_tier_agency_c) = UPPER(ap.awarding_sub_tier_agency_c)
@@ -24,6 +25,7 @@ submission_awards_{0} AS
     FROM subaward
     WHERE EXISTS (SELECT 1
         FROM afa_sub_{0} AS afa
+        -- Subgrant Award linking logic, should be consistent with populate and link subgrant SQL
         WHERE UPPER(TRANSLATE(subaward.award_id, '-', '')) = UPPER(TRANSLATE(afa.fain, '-', ''))
             AND UPPER(subaward.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(afa.awarding_sub_tier_agency_c)
             AND subaward.subaward_type = 'sub-grant'
