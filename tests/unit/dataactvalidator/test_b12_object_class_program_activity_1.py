@@ -18,9 +18,6 @@ def test_success(database):
     op = ObjectClassProgramActivityFactory()
     assert number_of_errors(_FILE, database, models=[op]) == 0
 
-    op = ObjectClassProgramActivityFactory(object_class=1234, by_direct_reimbursable_fun=None)
-    assert number_of_errors(_FILE, database, models=[op]) == 0
-
 
 def test_failure(database):
     """ Test for USSGL 48XX & 49XX (except 487X & 497X) if any one is provided and
