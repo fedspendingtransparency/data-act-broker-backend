@@ -380,8 +380,8 @@ FROM fsrs_grant
     JOIN fsrs_subgrant
         ON fsrs_subgrant.parent_id = fsrs_grant.id
     LEFT OUTER JOIN aw_pafa
-        ON (UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', ''))
-        AND UPPER(fsrs_grant.federal_agency_id) IS NOT DISTINCT FROM UPPER(aw_pafa.awarding_sub_tier_agency_c))
+        ON UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', ''))
+        AND UPPER(fsrs_grant.federal_agency_id) IS NOT DISTINCT FROM UPPER(aw_pafa.awarding_sub_tier_agency_c)
     LEFT OUTER JOIN country_code AS le_country
         ON UPPER(fsrs_grant.awardee_address_country) = UPPER(le_country.country_code)
     LEFT OUTER JOIN country_code AS ppop_country
