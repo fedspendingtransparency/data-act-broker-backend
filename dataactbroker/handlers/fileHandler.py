@@ -511,6 +511,7 @@ class FileHandler:
             job_data = {}
             # Check for existing submission
             existing_submission_id = request_params.get('existing_submission_id')
+            test_submission = str(request_params.get('test_submission')).upper() == 'TRUE'
             if existing_submission_id:
                 existing_submission = True
                 existing_submission_obj = sess.query(Submission).\
@@ -550,7 +551,7 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
+            submission = create_submission(g.user.user_id, job_data, existing_submission_obj, test_submission)
             sess.add(submission)
             sess.commit()
             if existing_submission_obj is None:
