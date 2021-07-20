@@ -637,6 +637,8 @@ class FileHandler:
             raise ResponseException('Submission is already publishing', StatusCode.CLIENT_ERROR)
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
             raise ResponseException('Submission has already been published', StatusCode.CLIENT_ERROR)
+        if submission.test_submission:
+            raise ValueError('Test submissions cannot be published')
 
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
