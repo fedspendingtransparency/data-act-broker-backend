@@ -29,6 +29,9 @@ def load_defc():
     with create_app().app_context():
         data = pd.read_csv(defc_file, dtype=str)
 
+        # Remove all invalid DEFCs that have been left in the file so USAS can continue to display them correctly
+        data = data[data['Is Valid'] == 'true']
+
         data = clean_data(
             data,
             DEFC,

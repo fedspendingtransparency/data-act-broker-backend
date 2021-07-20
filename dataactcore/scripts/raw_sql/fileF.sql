@@ -5,7 +5,8 @@ WITH ap_sub_{0} AS (
     FROM award_procurement
     WHERE submission_id = {0}),
 afa_sub_{0} AS (
-    SELECT fain
+    SELECT fain,
+        awarding_sub_tier_agency_c
     FROM award_financial_assistance
     WHERE submission_id = {0}),
 submission_awards_{0} AS
@@ -13,8 +14,8 @@ submission_awards_{0} AS
     FROM subaward
     WHERE EXISTS (SELECT 1
         FROM ap_sub_{0} AS ap
-        WHERE UPPER(subaward.award_id) = UPPER(ap.piid)
-            AND COALESCE(UPPER(subaward.parent_award_id), '') = COALESCE(UPPER(ap.parent_award_id), '')
+        WHERE UPPER(TRANSLATE(subaward.award_id, '-', '')) = UPPER(TRANSLATE(ap.piid, '-', ''))
+            AND UPPER(TRANSLATE(subaward.parent_award_id, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(ap.parent_award_id, '-', ''))
             AND UPPER(subaward.awarding_sub_tier_agency_c) = UPPER(ap.awarding_sub_tier_agency_c)
             AND subaward.subaward_type = 'sub-contract'
     )
@@ -23,7 +24,8 @@ submission_awards_{0} AS
     FROM subaward
     WHERE EXISTS (SELECT 1
         FROM afa_sub_{0} AS afa
-        WHERE UPPER(subaward.award_id) = UPPER(afa.fain)
+        WHERE UPPER(TRANSLATE(subaward.award_id, '-', '')) = UPPER(TRANSLATE(afa.fain, '-', ''))
+            AND UPPER(subaward.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(afa.awarding_sub_tier_agency_c)
             AND subaward.subaward_type = 'sub-grant'
     ))
 SELECT
