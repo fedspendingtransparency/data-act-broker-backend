@@ -912,12 +912,13 @@ def derive_parent_duns_uei(sess, submission_id):
     """
     # TODO: Once we stop using DUNS, clean this up so it's just UEI and using that to get the name
     start_time = datetime.now()
-    log_derivation('Beginning parent DUNS derivation', submission_id)
+    log_derivation('Beginning parent DUNS/UEI derivation', submission_id)
 
     query = """
         UPDATE tmp_fabs_{submission_id} AS pafa
         SET ultimate_parent_legal_enti = duns.ultimate_parent_legal_enti,
-            ultimate_parent_unique_ide = duns.ultimate_parent_unique_ide
+            ultimate_parent_unique_ide = duns.ultimate_parent_unique_ide,
+            ultimate_parent_uei = duns.ultimate_parent_uei
         FROM duns
         WHERE pafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
             AND (duns.ultimate_parent_legal_enti IS NOT NULL
@@ -925,21 +926,7 @@ def derive_parent_duns_uei(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
 
-    log_derivation('Completed parent DUNS derivation, updated {}'.format(res.rowcount), submission_id, start_time)
-
-    start_time = datetime.now()
-    log_derivation('Beginning parent UEI derivation', submission_id)
-
-    query = """
-            UPDATE tmp_fabs_{submission_id} AS pafa
-            SET ultimate_parent_uei = duns.ultimate_parent_uei
-            FROM duns
-            WHERE pafa.uei = duns.uei
-                AND duns.ultimate_parent_uei IS NOT NULL;
-        """
-    res = sess.execute(query.format(submission_id=submission_id))
-
-    log_derivation('Completed parent UEI derivation, updated {}'.format(res.rowcount), submission_id, start_time)
+    log_derivation('Completed parent DUNS/UEI derivation, updated {}'.format(res.rowcount), submission_id, start_time)
 
 
 def derive_executive_compensation(sess, submission_id):
