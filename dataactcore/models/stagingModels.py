@@ -1608,6 +1608,8 @@ class DetachedAwardFinancialAssistance(Base):
     uri = Column(Text, index=True)
     is_valid = Column(Boolean, nullable=False, default=False, server_default="False")
     unique_award_key = Column(Text, index=True)
+    uei = Column(Text, index=True)
+    ultimate_parent_uei = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1718,6 +1720,8 @@ class PublishedAwardFinancialAssistance(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+    uei = Column(Text, index=True)
+    ultimate_parent_uei = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
