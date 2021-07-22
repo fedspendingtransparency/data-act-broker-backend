@@ -12,6 +12,7 @@ This route will upload the file, then kick off the validation jobs. It will retu
       -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
       -H "Content-Type: multipart/form-data"
       -F 'agency_code=2000'
+      -F 'test_submission=true'
       -F "fabs=@/local/path/to/fabs.csv"
     /v1/upload_fabs_file/
 ```
@@ -30,6 +31,7 @@ This route will upload the file, then kick off the validation jobs. It will retu
 - `fabs`: (required, string) local path to file using @ notation
 - `agency_code`: (string) sub tier agency code. Required if existing_submission_id is not included
 - `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
+- `test_submission`: (boolean) True when you want to create a test submission. Defaults to false (will not update existing submissions)
 
 ## Response (JSON)
 ```
