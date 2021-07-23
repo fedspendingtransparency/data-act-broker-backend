@@ -1538,9 +1538,7 @@ class DetachedAwardProcurement(Base):
     high_comp_officer5_amount = Column(Text)
     additional_reporting = Column(Text)
     awardee_or_recipient_uei = Column(Text, index=True)
-    awardee_or_recipient_uei_n = Column(Text)
     ultimate_parent_uei = Column(Text)
-    ultimate_parent_uei_name = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
