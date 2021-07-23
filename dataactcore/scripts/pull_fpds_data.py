@@ -691,9 +691,7 @@ def vendor_site_details_values(data, obj):
 
     # entityIdentifiers > vendorUEIInformation sub-level
     value_map = {'UEI': 'awardee_or_recipient_uei',
-                 'UEILegalBusinessName': 'awardee_or_recipient_uei_n',
-                 'ultimateParentUEI': 'ultimate_parent_uei',
-                 'ultimateParentUEIName': 'ultimate_parent_uei_name'}
+                 'ultimateParentUEI': 'ultimate_parent_uei'}
 
     for key, value in value_map.items():
         try:
