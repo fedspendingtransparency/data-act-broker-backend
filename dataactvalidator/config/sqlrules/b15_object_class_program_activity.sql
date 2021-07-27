@@ -1,7 +1,6 @@
--- All the Reimbursable (R) amounts reported for (4801_CPE less 4801_FYB) + (4802_CPE less 4802_FYB) + 4881_CPE +
--- 4882_CPE + (4901_CPE less 4901_FYB) + 4902_CPE + (4908_CPE less 4908_FYB) + 4981_CPE + 4982_CPE = the opposite sign
--- of SF 133 line 2104 per TAS, for the same reporting period and TAS/DEFC combination. If the DEFC is other than Q,
--- this value should be $0 since there should not be reimbursable work reported for disasters or emergencies.
+-- All the Reimbursable (R) amounts reported for (4801_CPE - 4801_FYB) + (4802_CPE - 4802_FYB) + 4881_CPE +
+-- 4882_CPE + (4901_CPE - 4901_FYB) + 4902_CPE + (4908_CPE - 4908_FYB) + 4981_CPE + 4982_CPE =
+-- the opposite sign of SF-133 line 2104 per TAS, for the same reporting period and TAS/DEFC combination.
 WITH object_class_program_activity_b15_{0} AS
     (SELECT submission_id,
         tas,
@@ -66,26 +65,14 @@ GROUP BY op.tas,
     UPPER(op.disaster_emergency_fund_code),
     sf.amount,
     op.display_tas
-HAVING (UPPER(op.disaster_emergency_fund_code) = 'Q'
-        AND (
-            SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
-            SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
-            SUM(ussgl488100_upward_adjustm_cpe) +
-            SUM(ussgl488200_upward_adjustm_cpe) +
-            SUM(ussgl490100_delivered_orde_cpe) - SUM(ussgl490100_delivered_orde_fyb) +
-            SUM(ussgl490200_delivered_orde_cpe) +
-            SUM(ussgl490800_authority_outl_cpe) - SUM(ussgl490800_authority_outl_fyb) +
-            SUM(ussgl498100_upward_adjustm_cpe) +
-            SUM(ussgl498200_upward_adjustm_cpe)
-        ) <> (-1 * sf.amount))
-    OR (UPPER(op.disaster_emergency_fund_code) <> 'Q'
-        AND (SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
-            SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
-            SUM(ussgl488100_upward_adjustm_cpe) +
-            SUM(ussgl488200_upward_adjustm_cpe) +
-            SUM(ussgl490100_delivered_orde_cpe) - SUM(ussgl490100_delivered_orde_fyb) +
-            SUM(ussgl490200_delivered_orde_cpe) +
-            SUM(ussgl490800_authority_outl_cpe) - SUM(ussgl490800_authority_outl_fyb) +
-            SUM(ussgl498100_upward_adjustm_cpe) +
-            SUM(ussgl498200_upward_adjustm_cpe)
-        ) <> 0);
+HAVING (
+        SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
+        SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
+        SUM(ussgl488100_upward_adjustm_cpe) +
+        SUM(ussgl488200_upward_adjustm_cpe) +
+        SUM(ussgl490100_delivered_orde_cpe) - SUM(ussgl490100_delivered_orde_fyb) +
+        SUM(ussgl490200_delivered_orde_cpe) +
+        SUM(ussgl490800_authority_outl_cpe) - SUM(ussgl490800_authority_outl_fyb) +
+        SUM(ussgl498100_upward_adjustm_cpe) +
+        SUM(ussgl498200_upward_adjustm_cpe)
+    ) <> (-1 * sf.amount);
