@@ -1,9 +1,10 @@
 -- For new modifications to existing awards, we derive AwardingOfficeCode from the original transaction establishing the
 -- award, when it is provided there and not provided in the new modification. For this row, we are declining to derive
--- the AwardingOfficeCode from the original transaction establishing the award because the AwardingOfficeCode is not
--- present in the Federal Hierarchy. If the code is accurate, please update the Federal Hierarchy to include it. If it
--- is not accurate, please correct the original award transaction to reference a valid Financial Assistance AAC/office
--- code in the hierarchy. This validation rule does not apply to delete records (CorrectionDeleteIndicator = D).
+-- the AwardingOfficeCode from the original transaction establishing the award because the AwardingOfficeCode is either
+-- not present in the Federal Hierarchy or not specifically designated as an Assistance Awarding Office there. If the
+-- code you are providing in this row is accurate, please update the Federal Hierarchy to include it and flag it as an
+-- Assistance Awarding Office. If it is not accurate, please correct the original award transaction to reference a
+-- valid Financial Assistance Awarding AAC/office code in the hierarchy.
 WITH detached_award_financial_assistance_38_4_2_{0} AS
     (SELECT unique_award_key,
     	row_number,
