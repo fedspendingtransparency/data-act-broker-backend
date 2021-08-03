@@ -44,7 +44,6 @@ def clean_expired_submissions(fy17q1_subs=False):
         expiration_cutoff = datetime.utcnow() - relativedelta(months=6)
         expired_submissions = sess.query(Submission).filter(
             Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'],
-            Submission.d2_submission.is_(False),
             Submission.test_submission.is_(True),
             updated_at_view.updated_at < expiration_cutoff
         ).outerjoin(updated_at_view.table, updated_at_view.submission_id == Submission.submission_id).all()

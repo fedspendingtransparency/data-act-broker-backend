@@ -109,21 +109,27 @@ def test_generate_file_f_sql(database, monkeypatch):
 
     d1_show = AwardProcurementFactory(submission_id=sub1.submission_id, piid='PIID1', parent_award_id='PID1',
                                       awarding_sub_tier_agency_c='ASAC1')
-    d2_show = AwardFinancialAssistanceFactory(submission_id=sub1.submission_id, fain='FAIN1')
+    d2_show = AwardFinancialAssistanceFactory(submission_id=sub1.submission_id, fain='FAIN1',
+                                              awarding_sub_tier_agency_c='SUBTIER1')
     d1_hide = AwardProcurementFactory(submission_id=sub2.submission_id, piid='PIID2', parent_award_id='PID2',
                                       awarding_sub_tier_agency_c='ASAC2')
-    d2_hide = AwardFinancialAssistanceFactory(submission_id=sub2.submission_id, fain='FAIN2')
+    d2_hide = AwardFinancialAssistanceFactory(submission_id=sub2.submission_id, fain='FAIN2',
+                                              awarding_sub_tier_agency_c='SUBTIER2')
 
     sub_contracts_show = [SubawardFactory(id=i, subaward_type='sub-contract', award_id=d1_show.piid,
                                           parent_award_id=d1_show.parent_award_id,
                                           awarding_sub_tier_agency_c=d1_show.awarding_sub_tier_agency_c)
                           for i in range(0, 5)]
-    sub_grants_show = [SubawardFactory(id=i, subaward_type='sub-grant', award_id=d2_show.fain) for i in range(5, 10)]
+    sub_grants_show = [SubawardFactory(id=i, subaward_type='sub-grant', award_id=d2_show.fain,
+                                       awarding_sub_tier_agency_c=d2_show.awarding_sub_tier_agency_c)
+                       for i in range(5, 10)]
     sub_contracts_hide = [SubawardFactory(id=i, subaward_type='sub-contract', award_id=d1_hide.piid,
                                           parent_award_id=d1_hide.parent_award_id,
                                           awarding_sub_tier_agency_c=d1_hide.awarding_sub_tier_agency_c)
                           for i in range(10, 15)]
-    sub_grants_hide = [SubawardFactory(id=i, subaward_type='sub-grant', award_id=d2_hide.fain) for i in range(15, 20)]
+    sub_grants_hide = [SubawardFactory(id=i, subaward_type='sub-grant', award_id=d2_hide.fain,
+                                       awarding_sub_tier_agency_c=d2_hide.awarding_sub_tier_agency_c)
+                       for i in range(15, 20)]
     subawards = sub_contracts_show + sub_grants_show + sub_contracts_hide + sub_grants_hide
 
     sess.add_all([sub1, sub2, d1_hide, d1_show, d2_hide, d2_show] + subawards)

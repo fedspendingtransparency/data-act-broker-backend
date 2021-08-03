@@ -143,7 +143,8 @@ ACTION_TYPE = [
     LookupType(1, 'A', 'New'),
     LookupType(2, 'B', 'Continuation'),
     LookupType(3, 'C', 'Revision'),
-    LookupType(4, 'D', 'Adjustment to Completed Project')
+    LookupType(4, 'D', 'Adjustment to Completed Project'),
+    LookupType(4, 'E', 'Aggregate Mixed')
 ]
 ACTION_TYPE_DICT = {item.name: item.desc for item in ACTION_TYPE}
 
