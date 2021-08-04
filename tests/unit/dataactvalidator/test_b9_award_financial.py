@@ -222,7 +222,7 @@ def test_failure_pa_code_0000(database):
     assert number_of_errors(_FILE, database, models=[af, pa], submission=submission) == 1
 
 
-def test_success_ignore_pa_code_0000_pa_name_unknown_other(database):
+def test_failure_ignore_pa_code_0000_pa_name_unknown_other(database):
     """ Test that rule is ignored when program_activity_code is 0000 AND program_activity_name is unknown/other """
 
     populate_publish_status(database)
@@ -241,4 +241,4 @@ def test_success_ignore_pa_code_0000_pa_name_unknown_other(database):
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=12,
                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    assert number_of_errors(_FILE, database, models=[af_1, af_2, pa], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[af_1, af_2, pa], submission=submission) == 2

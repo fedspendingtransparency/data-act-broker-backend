@@ -29,7 +29,7 @@ def test_success(database):
 
     # This uses the default submission created in utils for 10/2015 which is period 1 of FY 2016
     sf = SF133(line=2104, tas=tas, period=1, fiscal_year=2016, amount=-15, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000", disaster_emergency_fund_code='Q')
+               main_account_code="000", sub_account_code="000", disaster_emergency_fund_code='C')
 
     op = ObjectClassProgramActivity(job_id=1, row_number=1, tas=tas, by_direct_reimbursable_fun='r',
                                     ussgl480100_undelivered_or_cpe=1, ussgl480100_undelivered_or_fyb=1,
@@ -38,7 +38,7 @@ def test_success(database):
                                     ussgl490100_delivered_orde_cpe=1, ussgl490100_delivered_orde_fyb=1,
                                     ussgl490200_delivered_orde_cpe=1, ussgl490800_authority_outl_cpe=1,
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
-                                    ussgl498200_upward_adjustm_cpe=1, disaster_emergency_fund_code='Q')
+                                    ussgl498200_upward_adjustm_cpe=1, disaster_emergency_fund_code='C')
     op2 = ObjectClassProgramActivity(job_id=1, row_number=2, tas=tas, by_direct_reimbursable_fun='r',
                                      ussgl480100_undelivered_or_cpe=2, ussgl480100_undelivered_or_fyb=2,
                                      ussgl480200_undelivered_or_cpe=2, ussgl480200_undelivered_or_fyb=2,
@@ -46,7 +46,7 @@ def test_success(database):
                                      ussgl490100_delivered_orde_cpe=2, ussgl490100_delivered_orde_fyb=2,
                                      ussgl490200_delivered_orde_cpe=2, ussgl490800_authority_outl_cpe=2,
                                      ussgl490800_authority_outl_fyb=2, ussgl498100_upward_adjustm_cpe=2,
-                                     ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='q')
+                                     ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='c')
 
     # Record for other TAS should not be included in sum
     op3 = ObjectClassProgramActivity(job_id=1, row_number=3, tas=tas2, by_direct_reimbursable_fun='r',
@@ -56,7 +56,7 @@ def test_success(database):
                                      ussgl490100_delivered_orde_cpe=2, ussgl490100_delivered_orde_fyb=2,
                                      ussgl490200_delivered_orde_cpe=2, ussgl490800_authority_outl_cpe=2,
                                      ussgl490800_authority_outl_fyb=2, ussgl498100_upward_adjustm_cpe=2,
-                                     ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='q')
+                                     ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='C')
     # Record for other DEFC should not be included in sum
     op4 = ObjectClassProgramActivity(job_id=1, row_number=3, tas=tas, by_direct_reimbursable_fun='r',
                                      ussgl480100_undelivered_or_cpe=2, ussgl480100_undelivered_or_fyb=2,
@@ -77,7 +77,7 @@ def test_failure(database):
     tas = "".join([_TAS, "_failure"])
 
     sf = SF133(line=2104, tas=tas, period=1, fiscal_year=2016, amount=5, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000", disaster_emergency_fund_code='Q')
+               main_account_code="000", sub_account_code="000", disaster_emergency_fund_code='D')
 
     op = ObjectClassProgramActivity(job_id=1, row_number=1, tas=tas, by_direct_reimbursable_fun='r',
                                     ussgl480100_undelivered_or_cpe=1, ussgl480100_undelivered_or_fyb=1,
@@ -86,7 +86,7 @@ def test_failure(database):
                                     ussgl490100_delivered_orde_cpe=1, ussgl490100_delivered_orde_fyb=1,
                                     ussgl490200_delivered_orde_cpe=1, ussgl490800_authority_outl_cpe=1,
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
-                                    ussgl498200_upward_adjustm_cpe=1, disaster_emergency_fund_code='Q')
+                                    ussgl498200_upward_adjustm_cpe=1, disaster_emergency_fund_code='D')
 
     op2 = ObjectClassProgramActivity(job_id=1, row_number=2, tas=tas, by_direct_reimbursable_fun='r',
                                      ussgl480100_undelivered_or_cpe=2, ussgl480100_undelivered_or_fyb=2,
@@ -95,20 +95,6 @@ def test_failure(database):
                                      ussgl490100_delivered_orde_cpe=2, ussgl490100_delivered_orde_fyb=2,
                                      ussgl490200_delivered_orde_cpe=2, ussgl490800_authority_outl_cpe=2,
                                      ussgl490800_authority_outl_fyb=2, ussgl498100_upward_adjustm_cpe=2,
-                                     ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='q')
+                                     ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='D')
 
     assert number_of_errors(_FILE, database, models=[sf, op, op2]) == 1
-
-    # Testing failure for DEFC other than Q not adding up to 0 (regardless of what SF 133 says and if it matches
-    sf = SF133(line=2104, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000", disaster_emergency_fund_code='D')
-
-    op = ObjectClassProgramActivity(job_id=1, row_number=1, tas=tas, by_direct_reimbursable_fun='r',
-                                    ussgl480100_undelivered_or_cpe=0, ussgl480100_undelivered_or_fyb=0,
-                                    ussgl480200_undelivered_or_cpe=0, ussgl480200_undelivered_or_fyb=0,
-                                    ussgl488100_upward_adjustm_cpe=1, ussgl488200_upward_adjustm_cpe=0,
-                                    ussgl490100_delivered_orde_cpe=0, ussgl490100_delivered_orde_fyb=0,
-                                    ussgl490200_delivered_orde_cpe=0, ussgl490800_authority_outl_cpe=0,
-                                    ussgl490800_authority_outl_fyb=0, ussgl498100_upward_adjustm_cpe=0,
-                                    ussgl498200_upward_adjustm_cpe=0, disaster_emergency_fund_code='D')
-    assert number_of_errors(_FILE, database, models=[sf, op]) == 1

@@ -1,6 +1,5 @@
--- Each unique PIID (or combination of PIID/ParentAwardId) from file C (award financial) should exist in
--- file D1 (award procurement). Do not process if allocation transfer agency is not null and does
--- not match agency ID (per C24, a non-SQL rule negation)
+-- Each unique PIID (or combination of PIID/ParentAwardId) from file C should exist in file D1.
+-- Note that this only compares award identifiers when the TransactionObligatedAmount is not null.
 WITH award_financial_c11_{0} AS
     (SELECT transaction_obligated_amou,
         piid,
