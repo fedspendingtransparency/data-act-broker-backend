@@ -1550,6 +1550,7 @@ class DetachedAwardProcurement(Base):
 Index("ix_dap_piid_upper", func.upper(DetachedAwardProcurement.piid))
 Index("ix_dap_parent_award_id_upper", func.upper(DetachedAwardProcurement.parent_award_id))
 Index("ix_dap_awarding_sub_tier_agency_c_upper", func.upper(DetachedAwardProcurement.awarding_sub_tier_agency_c))
+Index("ix_dap_awardee_or_recipient_uei_upper", func.upper(DetachedAwardProcurement.awardee_or_recipient_uei))
 
 
 class DetachedAwardFinancialAssistance(Base):
@@ -1617,6 +1618,7 @@ class DetachedAwardFinancialAssistance(Base):
 
 
 Index("ix_dafa_afa_generated_unique_upper", func.upper(DetachedAwardFinancialAssistance.afa_generated_unique))
+Index("ix_dafa_uei_upper", func.upper(DetachedAwardFinancialAssistance.uei))
 
 
 class PublishedAwardFinancialAssistance(Base):
@@ -1759,3 +1761,4 @@ Index("ix_pafa_fain_upper", func.upper(PublishedAwardFinancialAssistance.fain))
 Index("ix_pafa_uri_upper", func.upper(PublishedAwardFinancialAssistance.uri))
 Index("ix_pafa_awarding_subtier_c_upper", func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c))
 Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
+Index("ix_pafa_uei_upper", func.upper(PublishedAwardFinancialAssistance.uei))
