@@ -6,6 +6,7 @@ SELECT
     record_type,
     business_types,
     awardee_or_recipient_uniqu,
+    uei,
     business_types,
     record_type,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
