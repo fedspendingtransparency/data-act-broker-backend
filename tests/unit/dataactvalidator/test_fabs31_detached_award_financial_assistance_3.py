@@ -37,20 +37,13 @@ def test_success(database):
                                                           record_type=2, business_types='A',
                                                           correction_delete_indicatr=None)
 
-    # Handled by d31_1
-    det_award_8 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='ABCDEFGHI', uei='1',
-                                                          record_type=1, correction_delete_indicatr='')
-    det_award_9 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='0000', uei='123456789aBc00',
-                                                          business_types='p', correction_delete_indicatr='')
-
     # Ignore correction delete indicator of D
-    det_award_10 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='00000000A', uei='2',
-                                                           record_type=2, business_types='A',
-                                                           correction_delete_indicatr='d')
+    det_award_8 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='00000000A', uei='2',
+                                                          record_type=2, business_types='A',
+                                                          correction_delete_indicatr='d')
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4,
-                                                       det_award_5, det_award_6, det_award_7, det_award_8,
-                                                       det_award_9, det_award_10])
+                                                       det_award_5, det_award_6, det_award_7, det_award_8])
     assert errors == 0
 
 
