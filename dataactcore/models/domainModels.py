@@ -353,6 +353,9 @@ class DUNS(Base):
     historic = Column(Boolean, default=False, server_default="False")
 
 
+Index("ix_duns_uei_upper", sa.func.upper(DUNS.uei))
+
+
 class HistoricDUNS(Base):
     """ Legacy DUNS Records with their latest updates """
     __tablename__ = "historic_duns"
@@ -390,6 +393,9 @@ class HistoricDUNS(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+
+
+Index("ix_historic_duns_uei_upper", sa.func.upper(HistoricDUNS.uei))
 
 
 class CFDAProgram(Base):
