@@ -19,7 +19,7 @@ def test_success(database):
         or the recipient is an individual (BusinessTypes includes 'P').
     """
     # Note: for FABS 31.1.1, we're setting assistance types to NOT 06, 07, 08, 09, 10, or 11 or having the base
-    #       actiondate NOT be greater than April 4, 2022. This rule will not trigger if those *dont* apply.
+    #       actiondate NOT be less than April 4, 2022. This rule will not trigger if those *don't* apply.
     #       FABS 31.1.2 *will* trigger when these apply.
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
@@ -97,7 +97,7 @@ def test_success(database):
                                                            action_date='10/02/2010', assistance_type='08',
                                                            correction_delete_indicatr='d',
                                                            unique_award_key='new_key')
-    # Ensuring that this rule gets ignored when the base actiondate case doesn't apply
+    # Ensuring that this rule gets ignored when the base actiondate case does apply
     det_award_14 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC',
                                                            awardee_or_recipient_uniqu=None, uei=None,
                                                            action_date='10/02/2010', assistance_type='06',
@@ -117,9 +117,9 @@ def test_failure(database):
         October 1, 2010, unless the record is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3)
         or the recipient is an individual (BusinessTypes includes 'P').
     """
-    # Note: for FABS 31.1.1, we're setting assistance types to NOT 06, 07, 08, 09, 10, or 11 or having the actiondate
-    #       NOT be before April 4, 2022. This rule will not trigger if those *dont* apply. FABS 31.1.2 *will*
-    #       trigger when these apply.
+    # Note: for FABS 31.1.1, we're setting assistance types to NOT 06, 07, 08, 09, 10, or 11 or having the base
+    #       actiondate NOT be less than April 4, 2022. This rule will not trigger if those *don't* apply.
+    #       FABS 31.1.2 *will* trigger when these apply.
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
                                                            is_active=True)

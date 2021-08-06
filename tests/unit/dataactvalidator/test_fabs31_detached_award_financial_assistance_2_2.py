@@ -21,7 +21,7 @@ def test_success(database):
         this will produce a warning rather than a fatal error.
     """
     # Note: for FABS 31.1.2, we're setting assistance types to 06, 07, 08, 09, 10, or 11 and having the base
-    #       actiondate be less than April 4, 2022. This rule will only trigger if those apply.
+    #       actiondate be less than April 4, 2022. This rule will not trigger if those *do* apply.
     #       FABS 31.1.1 *will not* trigger when these apply.
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
@@ -137,7 +137,7 @@ def test_failure(database):
         this will produce a warning rather than a fatal error.
     """
     # Note: for FABS 31.1.2, we're setting assistance types to 06, 07, 08, 09, 10, or 11 and having the base
-    #       actiondate be less than April 4, 2022. This rule will trigger if those apply.
+    #       actiondate be less than April 4, 2022. This rule will not trigger if those *do* apply.
     #       FABS 31.1.1 *will not* trigger when these apply.
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
