@@ -13,4 +13,5 @@ WHERE submission_id = {0}
     AND (CASE
             WHEN is_date(COALESCE(action_date, '0'))
             THEN CAST(action_date AS DATE)
-        END) >= CAST('04/04/2022' AS DATE);
+        END) >= CAST('04/04/2022' AS DATE)
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
