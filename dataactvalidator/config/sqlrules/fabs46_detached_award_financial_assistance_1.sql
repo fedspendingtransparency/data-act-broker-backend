@@ -8,4 +8,5 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND indirect_federal_sharing IS NOT NULL
-    AND COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11');
+    AND COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11')
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

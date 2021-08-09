@@ -25,7 +25,11 @@ def test_success(database):
     # Still doesn't trigger when blank for other assistance types
     det_award_4 = DetachedAwardFinancialAssistanceFactory(indirect_federal_sharing=None, assistance_type='03')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    # Ignore when CorrectionDeleteIndicator is D
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(indirect_federal_sharing=123, assistance_type='09',
+                                                          correction_delete_indicatr='d')
+
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
     assert errors == 0
 
 
