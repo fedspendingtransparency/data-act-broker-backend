@@ -38,76 +38,49 @@ def test_pubished_date_success(database):
     duns_3 = DUNS(awardee_or_recipient_uniqu='333333333', uei='333333333333')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei=None,
                                                           assistance_type='06', action_date='10/02/2010',
-                                                          record_type=2, business_types='a',
                                                           correction_delete_indicatr='',
                                                           unique_award_key='before_key')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu=None, uei='222222222222',
                                                           assistance_type='07', action_date='10/02/2010',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='c',
                                                           unique_award_key='before_key')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='333333333', uei='333333333333',
                                                           assistance_type='08', action_date='10/02/2010',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='c',
                                                           unique_award_key='before_key')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei=None,
                                                           assistance_type='09', action_date='10/02/2010',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='c',
                                                           unique_award_key='before_key')
     # Before October 1, 2010
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='444444444', uei='',
                                                           assistance_type='10', action_date='09/30/2010',
-                                                          record_type=2, business_types='A',
-                                                          correction_delete_indicatr='C',
-                                                          unique_award_key='before_key')
-    # Record Types
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='444444444', uei='',
-                                                          assistance_type='11', action_date='10/02/2010',
-                                                          record_type=1, business_types='A',
-                                                          correction_delete_indicatr='C',
-                                                          unique_award_key='before_key')
-    det_award_7 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='444444444', uei='',
-                                                          assistance_type='06', action_date='10/02/2010',
-                                                          record_type=3, business_types='A',
-                                                          correction_delete_indicatr='C',
-                                                          unique_award_key='before_key')
-    # Individual
-    det_award_8 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='444444444', uei='',
-                                                          assistance_type='06', action_date='10/02/2010',
-                                                          record_type=2, business_types='Ap',
                                                           correction_delete_indicatr='C',
                                                           unique_award_key='before_key')
     # Ignore correction delete indicator of D
-    det_award_9 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
                                                           assistance_type='06', action_date='10/02/2010',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='d',
                                                           unique_award_key='before_key')
     # Ensuring that this rule gets ignored when the base actiondate case doesn't apply
+    det_award_7 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
+                                                          assistance_type='02', action_date='10/02/2010',
+                                                          correction_delete_indicatr='',
+                                                          unique_award_key='before_key')
+    det_award_8 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
+                                                          assistance_type='06', action_date='10/02/2010',
+                                                          correction_delete_indicatr='',
+                                                          unique_award_key='after_key')
+    det_award_9 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
+                                                          assistance_type='06', action_date='10/02/2010',
+                                                          correction_delete_indicatr='',
+                                                          unique_award_key='inactive_key')
     det_award_10 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
-                                                           assistance_type='02', action_date='10/02/2010',
-                                                           record_type=2, business_types='A',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='before_key')
-    det_award_11 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
                                                            assistance_type='06', action_date='10/02/2010',
-                                                           record_type=2, business_types='A',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='after_key')
-    det_award_12 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
-                                                           assistance_type='06', action_date='10/02/2010',
-                                                           record_type=2, business_types='A',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='inactive_key')
-    det_award_13 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
-                                                           assistance_type='06', action_date='10/02/2010',
-                                                           record_type=2, business_types='A',
                                                            correction_delete_indicatr='',
                                                            unique_award_key='new_key')
     models += [duns_1, duns_2, duns_3, det_award_1, det_award_2, det_award_3, det_award_4, det_award_5, det_award_6,
-               det_award_7, det_award_8, det_award_9, det_award_10, det_award_11, det_award_12, det_award_13]
+               det_award_7, det_award_8, det_award_9, det_award_10]
 
     errors = number_of_errors(_FILE, database, models=models)
     assert errors == 0
@@ -136,22 +109,18 @@ def test_pubished_date_failure(database):
     duns_1 = DUNS(awardee_or_recipient_uniqu='111111111', uei=None)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='444444444', uei='',
                                                           assistance_type='06', action_date='10/02/2010',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='',
                                                           unique_award_key='before_key')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
                                                           assistance_type='06', action_date='10/03/2010',
-                                                          record_type=2, business_types='a',
                                                           correction_delete_indicatr='c',
                                                           unique_award_key='before_key')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='444444444', uei='',
                                                           assistance_type='06', action_date='10/04/2010',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='C',
                                                           unique_award_key='before_key')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='444444444444',
                                                           assistance_type='06', action_date='10/05/2010',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr=None,
                                                           unique_award_key='before_key')
     models += [duns_1, det_award_1, det_award_2, det_award_3, det_award_4]

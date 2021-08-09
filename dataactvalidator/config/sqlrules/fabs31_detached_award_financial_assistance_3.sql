@@ -1,5 +1,4 @@
--- If the record is not an aggregate record (RecordType=1) or individual recipient
--- (BusinessTypes includes 'P') and AwardeeOrRecipientUEI is provided, it must be twelve characters.
+-- When AwardeeOrRecipientUEI is provided, it must be twelve characters.
 -- When AwardeeOrRecipientDUNS is provided, it must be nine digits.
 SELECT
     row_number,
@@ -12,9 +11,6 @@ SELECT
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
-    AND NOT (record_type = 1
-        OR UPPER(business_types) LIKE '%%P%%'
-    )
     AND (
         (COALESCE(awardee_or_recipient_uniqu, '') <> ''
             AND awardee_or_recipient_uniqu !~ '^\d{{9}}$'

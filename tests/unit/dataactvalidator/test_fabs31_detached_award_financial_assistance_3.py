@@ -12,34 +12,27 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test success for if the record is not an aggregate record (RecordType=1) or individual recipient
-        (BusinessTypes includes 'P') and AwardeeOrRecipientUEI is provided, it must be twelve characters.
+    """
+        Test success for when AwardeeOrRecipientUEI is provided, it must be twelve characters.
         When AwardeeOrRecipientDUNS is provided, it must be nine digits.
     """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='000000001', uei='123456789aBc',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='123456789aBc',
                                                           correction_delete_indicatr='c')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='103493922', uei='abc000000000',
-                                                          record_type=2, business_types='a',
                                                           correction_delete_indicatr='C')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='100000000', uei='000000000000',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr=None)
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='100000000', uei=None,
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr=None)
     det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='000000000000',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr=None)
     det_award_7 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei=None,
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr=None)
 
     # Ignore correction delete indicator of D
     det_award_8 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='00000000A', uei='2',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='d')
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4,
@@ -48,27 +41,21 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure for if the record is not an aggregate record (RecordType=1) or individual recipient
-        (BusinessTypes includes 'P') and AwardeeOrRecipientUEI is provided, it must be twelve characters.
+    """
+        Test failure for when AwardeeOrRecipientUEI is provided, it must be twelve characters.
         When AwardeeOrRecipientDUNS is provided, it must be nine digits.
     """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='00000000A', uei='123456789aBc',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='ABCDEFGHI', uei='123456789aBc',
-                                                          record_type=2, business_types='A',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='ABCDEFGHI', uei='1234567s89aBc',
                                                           correction_delete_indicatr='c')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='AAA', uei='123456789aBc',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr='C')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='AAAAAAAAAAA', uei='123456789aBc',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr=None)
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='123456789', uei='1',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr=None)
     det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='123456789', uei='123456789ABcd',
-                                                          record_type=2, business_types='A',
                                                           correction_delete_indicatr=None)
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,

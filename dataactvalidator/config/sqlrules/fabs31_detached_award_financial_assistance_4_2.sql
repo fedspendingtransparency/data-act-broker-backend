@@ -13,9 +13,6 @@ WITH detached_award_financial_assistance_31_4_2_{0} AS
         afa_generated_unique
     FROM detached_award_financial_assistance AS dafa
     WHERE submission_id = {0}
-        AND NOT (record_type IN (1, 3)
-            OR UPPER(business_types) LIKE '%%P%%'
-        )
         AND (CASE
             WHEN is_date(COALESCE(action_date, '0'))
             THEN CAST(action_date AS DATE)
