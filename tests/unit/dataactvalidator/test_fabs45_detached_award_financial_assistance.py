@@ -28,8 +28,12 @@ def test_success(database):
     det_award_5 = DetachedAwardFinancialAssistanceFactory(indirect_federal_sharing=-1, federal_action_obligation=-1)
     det_award_6 = DetachedAwardFinancialAssistanceFactory(indirect_federal_sharing=5, federal_action_obligation=6)
 
+    # Ignore when CorrectionDeleteIndicator is D
+    det_award_7 = DetachedAwardFinancialAssistanceFactory(indirect_federal_sharing=123, federal_action_obligation=0,
+                                                          correction_delete_indicatr='d')
+
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6])
+                                                       det_award_6, det_award_7])
     assert errors == 0
 
 

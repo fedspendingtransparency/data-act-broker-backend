@@ -10,4 +10,5 @@ WHERE submission_id = {0}
     AND federal_action_obligation IS NOT NULL
     AND (federal_action_obligation = 0
         OR federal_action_obligation * indirect_federal_sharing < 0
-        OR ABS(federal_action_obligation) < ABS(indirect_federal_sharing));
+        OR ABS(federal_action_obligation) < ABS(indirect_federal_sharing))
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
