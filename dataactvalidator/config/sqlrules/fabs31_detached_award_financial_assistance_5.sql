@@ -3,15 +3,10 @@
 WITH detached_award_financial_assistance_fabs31_5_{0} AS
     (SELECT
         row_number,
-        assistance_type,
         action_date,
         action_type,
         awardee_or_recipient_uniqu,
         uei,
-        business_types,
-        record_type,
-        correction_delete_indicatr,
-        submission_id,
         afa_generated_unique
     FROM detached_award_financial_assistance AS dafa
     WHERE submission_id = {0}
@@ -24,14 +19,10 @@ WITH detached_award_financial_assistance_fabs31_5_{0} AS
         AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D')
 SELECT
     dafa.row_number,
-    dafa.assistance_type,
     dafa.action_date,
     dafa.action_type,
     dafa.awardee_or_recipient_uniqu,
     dafa.uei,
-    dafa.business_types,
-    dafa.record_type,
-    dafa.correction_delete_indicatr,
     dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs31_5_{0} AS dafa
 WHERE NOT EXISTS (

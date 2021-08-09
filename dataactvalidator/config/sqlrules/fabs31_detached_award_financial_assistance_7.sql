@@ -3,14 +3,12 @@
 -- FederalActionObligation is <=0 and ActionType = D.
 WITH detached_award_financial_assistance_fabs31_7_{0} AS
     (SELECT row_number,
-        assistance_type,
         action_date,
         action_type,
         awardee_or_recipient_uniqu,
         uei,
         business_types,
         record_type,
-        correction_delete_indicatr,
         federal_action_obligation,
         afa_generated_unique
     FROM detached_award_financial_assistance AS dafa
@@ -22,7 +20,6 @@ WITH detached_award_financial_assistance_fabs31_7_{0} AS
         AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D')
 SELECT
     dafa.row_number,
-    dafa.assistance_type,
     dafa.action_date,
     dafa.action_type,
     dafa.awardee_or_recipient_uniqu,

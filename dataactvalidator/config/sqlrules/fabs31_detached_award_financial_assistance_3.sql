@@ -2,12 +2,8 @@
 -- When AwardeeOrRecipientDUNS is provided, it must be nine digits.
 SELECT
     row_number,
-    assistance_type,
-    action_date,
     awardee_or_recipient_uniqu,
     uei,
-    business_types,
-    record_type,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
