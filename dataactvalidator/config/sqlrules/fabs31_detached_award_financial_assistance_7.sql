@@ -24,8 +24,6 @@ SELECT
     dafa.action_type,
     dafa.awardee_or_recipient_uniqu,
     dafa.uei,
-    dafa.business_types,
-    dafa.record_type,
     dafa.federal_action_obligation,
     dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs31_7_{0} AS dafa
