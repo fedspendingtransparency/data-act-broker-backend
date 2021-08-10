@@ -13,6 +13,9 @@ WITH detached_award_financial_assistance_fabs31_7_{0} AS
         afa_generated_unique
     FROM detached_award_financial_assistance AS dafa
     WHERE submission_id = {0}
+        AND (COALESCE(dafa.awardee_or_recipient_uniqu, '') <> ''
+            OR COALESCE(dafa.uei, '') <> ''
+        )
         AND UPPER(dafa.action_type) IN ('B', 'C', 'D')
         AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)
