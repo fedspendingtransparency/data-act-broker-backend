@@ -157,7 +157,7 @@ def initial_query(session, model, year):
         model.availability_type_code,
         model.main_account_code,
         model.sub_account_code,
-        func.sum(case([(model.line.in_([1910, 1902]), model.amount)], else_=0)).label('total_budgetary_resources_cpe'),
+        func.sum(case([(model.line == 1910, model.amount)], else_=0)).label('total_budgetary_resources_cpe'),
         func.sum(case([(model.line.in_([1160, 1180, 1260, 1280]), model.amount)],
                       else_=0)).label('budget_authority_appropria_cpe'),
         func.sum(case([(model.line == 1000, model.amount)], else_=0)).label('budget_authority_unobligat_fyb'),
