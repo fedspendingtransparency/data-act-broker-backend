@@ -18,10 +18,9 @@ WITH detached_award_financial_assistance_31_2_2_{0} AS
         AND NOT (record_type IN (1, 3)
             OR UPPER(business_types) LIKE '%%P%%'
         )
-        AND (CASE
-            WHEN is_date(COALESCE(action_date, '0'))
-            THEN CAST(action_date AS DATE)
-        END) > CAST('10/01/2010' AS DATE)
+        AND (CASE WHEN is_date(COALESCE(action_date, '0'))
+             THEN CAST(action_date AS DATE)
+             END) > CAST('10/01/2010' AS DATE)
         AND (COALESCE(awardee_or_recipient_uniqu, '') = ''
             AND COALESCE(uei, '') = ''
         )
@@ -36,7 +35,8 @@ min_dates_{0} AS
             SELECT 1
             FROM detached_award_financial_assistance_31_2_2_{0} AS dafa
             WHERE pafa.unique_award_key = dafa.unique_award_key)
-    GROUP BY unique_award_key)
+    GROUP BY unique_award_key
+    )
 SELECT
     row_number,
     assistance_type,

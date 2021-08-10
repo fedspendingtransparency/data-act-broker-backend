@@ -18,9 +18,10 @@ WITH detached_award_financial_assistance_fabs31_7_{0} AS
         )
         AND UPPER(dafa.action_type) IN ('B', 'C', 'D')
         AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
-            THEN CAST(dafa.action_date AS DATE)
-        END) > CAST('10/01/2010' AS DATE)
-        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D')
+             THEN CAST(dafa.action_date AS DATE)
+             END) > CAST('10/01/2010' AS DATE)
+        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+    )
 SELECT
     dafa.row_number,
     dafa.action_date,
@@ -40,9 +41,11 @@ WHERE NOT (dafa.federal_action_obligation <= 0
                 THEN dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
                 ELSE dafa.uei = duns.uei
             END
-            AND ((CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
-              THEN CAST(dafa.action_date AS DATE)
-              END) >= CAST(duns.registration_date AS DATE)
             AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
-                THEN CAST(dafa.action_date AS DATE)
-            END) < CAST(duns.expiration_date AS DATE))));
+                  THEN CAST(dafa.action_date AS DATE)
+                  END) >= CAST(duns.registration_date AS DATE)
+            AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
+                 THEN CAST(dafa.action_date AS DATE)
+                 END) < CAST(duns.expiration_date AS DATE)
+        )
+   );

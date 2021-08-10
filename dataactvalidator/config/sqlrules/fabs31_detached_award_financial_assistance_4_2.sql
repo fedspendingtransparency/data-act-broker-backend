@@ -14,7 +14,7 @@ WITH detached_award_financial_assistance_31_4_2_{0} AS
         AND (CASE
             WHEN is_date(COALESCE(action_date, '0'))
             THEN CAST(action_date AS DATE)
-        END) > CAST('10/01/2010' AS DATE)
+            END) > CAST('10/01/2010' AS DATE)
         AND (
             (COALESCE(dafa.awardee_or_recipient_uniqu, '') <> ''
              AND NOT EXISTS (
