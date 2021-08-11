@@ -15,6 +15,7 @@ SELECT
     disaster_emergency_fund_code,
     display_tas AS "uniqueid_TAS",
     program_activity_code AS "uniqueid_ProgramActivityCode",
+    program_activity_name AS "uniqueid_ProgramActivityName",
     object_class AS "uniqueid_ObjectClass",
     by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
@@ -29,6 +30,7 @@ FROM (
         op.sub_account_code,
         op.object_class,
         op.program_activity_code,
+        op.program_activity_name,
         op.by_direct_reimbursable_fun,
         op.submission_id,
         op.tas,
@@ -45,6 +47,7 @@ FROM (
             op.sub_account_code,
             op.object_class,
             op.program_activity_code,
+            op.program_activity_name,
             op.by_direct_reimbursable_fun,
             UPPER(op.disaster_emergency_fund_code)
         ) AS row
