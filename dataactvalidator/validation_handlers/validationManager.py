@@ -133,6 +133,14 @@ class ValidationManager:
                 self.short_to_daims_dict[col.file_id] = {}
             self.short_to_daims_dict[col.file_id][col.name_short] = col.daims_name
 
+        # accounting for the column duns/uei <-> mismatch
+        if self.short_to_long_dict:
+            self.short_to_long_dict[FILE_TYPE_DICT['fabs']]['awardee_or_recipient_uniqu'] = 'awardeeorrecipientduns'
+            self.short_to_long_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'awardeeorrecipientuei'
+        if self.short_to_daims_dict:
+            self.short_to_daims_dict[FILE_TYPE_DICT['fabs']]['awardee_or_recipient_uniqu'] = 'AwardeeOrRecipientDUNS'
+            self.short_to_daims_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'AwardeeOrRecipientUEI'
+
     def get_file_name(self, path):
         """ Return full path of error report based on provided name
 
