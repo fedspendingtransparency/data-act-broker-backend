@@ -17,8 +17,7 @@ WITH detached_award_financial_assistance_fabs31_5_{0} AS
         AND (CASE WHEN is_date(COALESCE(action_date, '0'))
              THEN CAST(action_date AS DATE)
              END) > CAST('10/01/2010' AS DATE)
-        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-    )
+        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D')
 SELECT
     dafa.row_number,
     dafa.action_date,

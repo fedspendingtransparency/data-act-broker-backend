@@ -29,8 +29,7 @@ WITH detached_award_financial_assistance_31_4_1_{0} AS
                 )
             )
         )
-        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-    ),
+        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'),
 min_dates_{0} AS
     (SELECT unique_award_key,
         MIN(cast_as_date(action_date)) AS min_date
@@ -41,8 +40,7 @@ min_dates_{0} AS
             FROM detached_award_financial_assistance_31_4_1_{0} AS dafa
             WHERE pafa.unique_award_key = dafa.unique_award_key
         )
-    GROUP BY unique_award_key
-    )
+    GROUP BY unique_award_key)
 SELECT
     row_number,
     assistance_type,
@@ -61,4 +59,4 @@ WHERE NOT (
                THEN CAST(action_date AS DATE)
                END) < CAST('04/04/2022' AS DATE)
     END
-)
+);

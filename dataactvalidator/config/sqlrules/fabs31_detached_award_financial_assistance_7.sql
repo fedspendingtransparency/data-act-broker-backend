@@ -20,8 +20,7 @@ WITH detached_award_financial_assistance_fabs31_7_{0} AS
         AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
              THEN CAST(dafa.action_date AS DATE)
              END) > CAST('10/01/2010' AS DATE)
-        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-    )
+        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D')
 SELECT
     dafa.row_number,
     dafa.action_date,
@@ -32,7 +31,7 @@ SELECT
     dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs31_7_{0} AS dafa
 WHERE NOT (dafa.federal_action_obligation <= 0
-        AND UPPER(dafa.action_type) IN ('D'))
+        AND UPPER(dafa.action_type) = 'D')
     AND NOT EXISTS (
         SELECT 1
         FROM duns
