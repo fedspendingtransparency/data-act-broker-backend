@@ -11,6 +11,7 @@ af_dict = dict(
     submission_id=randint(1000, 10000),
     tas='some-tas',
     object_class='some-class',
+    by_direct_reimbursable_fun='some-dr',
     ussgl480100_undelivered_or_fyb=randint(-10000, -1000),
     ussgl480100_undelivered_or_cpe=randint(-10000, -1000),
     ussgl483100_undelivered_or_cpe=randint(-10000, -1000),
@@ -129,6 +130,7 @@ def test_success(database):
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
         tas=af_dict['tas'],
         object_class=af_dict['object_class'],
+        by_direct_reimbursable_fun=af_dict['by_direct_reimbursable_fun'],
         submission_id=af_dict['submission_id']
     )
 
@@ -167,6 +169,7 @@ def test_success(database):
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
         tas='some-other-tas',
         object_class=af_dict['object_class'],
+        by_direct_reimbursable_fun=af_dict['by_direct_reimbursable_fun'],
         submission_id=af_dict['submission_id']
     )
 
@@ -204,11 +207,51 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
         tas=af_dict['tas'],
-        object_class='some-other-class',
+        object_class=af_dict['object_class'],
+        by_direct_reimbursable_fun=af_dict['by_direct_reimbursable_fun'],
         submission_id=af_dict['submission_id']
     )
 
-    errors = number_of_errors(_FILE, database, models=[af1, af2, op1, op2, op3])
+    op4 = ObjectClassProgramActivityFactory(
+        ussgl480100_undelivered_or_fyb=af_dict['ussgl480100_undelivered_or_fyb'] - 2,
+        ussgl480100_undelivered_or_cpe=af_dict['ussgl480100_undelivered_or_cpe'] - 2,
+        ussgl483100_undelivered_or_cpe=af_dict['ussgl483100_undelivered_or_cpe'] - 2,
+        ussgl488100_upward_adjustm_cpe=af_dict['ussgl488100_upward_adjustm_cpe'] - 2,
+        obligations_undelivered_or_fyb=af_dict['obligations_undelivered_or_fyb'] - 2,
+        obligations_undelivered_or_cpe=af_dict['obligations_undelivered_or_cpe'] - 2,
+        ussgl490100_delivered_orde_fyb=af_dict['ussgl490100_delivered_orde_fyb'] - 2,
+        ussgl490100_delivered_orde_cpe=af_dict['ussgl490100_delivered_orde_cpe'] - 2,
+        ussgl493100_delivered_orde_cpe=af_dict['ussgl493100_delivered_orde_cpe'] - 2,
+        ussgl498100_upward_adjustm_cpe=af_dict['ussgl498100_upward_adjustm_cpe'] - 2,
+        obligations_delivered_orde_fyb=af_dict['obligations_delivered_orde_fyb'] - 2,
+        obligations_delivered_orde_cpe=af_dict['obligations_delivered_orde_cpe'] - 2,
+        ussgl480200_undelivered_or_fyb=af_dict['ussgl480200_undelivered_or_fyb'] - 2,
+        ussgl480200_undelivered_or_cpe=af_dict['ussgl480200_undelivered_or_cpe'] - 2,
+        ussgl483200_undelivered_or_cpe=af_dict['ussgl483200_undelivered_or_cpe'] - 2,
+        ussgl488200_upward_adjustm_cpe=af_dict['ussgl488200_upward_adjustm_cpe'] - 2,
+        gross_outlays_undelivered_fyb=af_dict['gross_outlays_undelivered_fyb'] - 2,
+        gross_outlays_undelivered_cpe=af_dict['gross_outlays_undelivered_cpe'] - 2,
+        ussgl490200_delivered_orde_cpe=af_dict['ussgl490200_delivered_orde_cpe'] - 2,
+        ussgl490800_authority_outl_fyb=af_dict['ussgl490800_authority_outl_fyb'] - 2,
+        ussgl490800_authority_outl_cpe=af_dict['ussgl490800_authority_outl_cpe'] - 2,
+        ussgl498200_upward_adjustm_cpe=af_dict['ussgl498200_upward_adjustm_cpe'] - 2,
+        gross_outlays_delivered_or_fyb=af_dict['gross_outlays_delivered_or_fyb'] - 2,
+        gross_outlays_delivered_or_cpe=af_dict['gross_outlays_delivered_or_cpe'] - 2,
+        gross_outlay_amount_by_pro_fyb=af_dict['gross_outlay_amount_by_awa_fyb'] - 2,
+        gross_outlay_amount_by_pro_cpe=af_dict['gross_outlay_amount_by_awa_cpe'] - 2,
+        obligations_incurred_by_pr_cpe=af_dict['obligations_incurred_byawa_cpe'] - 2,
+        ussgl487100_downward_adjus_cpe=af_dict['ussgl487100_downward_adjus_cpe'] + 2,
+        ussgl497100_downward_adjus_cpe=af_dict['ussgl497100_downward_adjus_cpe'] + 2,
+        ussgl487200_downward_adjus_cpe=af_dict['ussgl487200_downward_adjus_cpe'] + 2,
+        ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 2,
+        deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
+        tas=af_dict['tas'],
+        object_class='some-other-class',
+        by_direct_reimbursable_fun='some-other-dr',
+        submission_id=af_dict['submission_id']
+    )
+
+    errors = number_of_errors(_FILE, database, models=[af1, af2, op1, op2, op3, op4])
     assert errors == 0
 
 
@@ -253,6 +296,7 @@ def test_failure(database):
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas=af_dict['tas'],
         object_class=af_dict['object_class'],
+        by_direct_reimbursable_fun=af_dict['by_direct_reimbursable_fun'],
         submission_id=af_dict['submission_id']
     )
 
@@ -291,6 +335,7 @@ def test_failure(database):
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas='some-other-tas',
         object_class=af_dict['object_class'],
+        by_direct_reimbursable_fun=af_dict['by_direct_reimbursable_fun'],
         submission_id=af_dict['submission_id']
     )
 
@@ -329,8 +374,48 @@ def test_failure(database):
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas=af_dict['tas'],
         object_class='some-other-class',
+        by_direct_reimbursable_fun=af_dict['by_direct_reimbursable_fun'],
         submission_id=af_dict['submission_id']
     )
 
-    errors = number_of_errors(_FILE, database, models=[af1, op1, op2, op3])
+    op4 = ObjectClassProgramActivityFactory(
+        ussgl480100_undelivered_or_fyb=af_dict['ussgl480100_undelivered_or_fyb'] + 1,
+        ussgl480100_undelivered_or_cpe=af_dict['ussgl480100_undelivered_or_cpe'] + 1,
+        ussgl483100_undelivered_or_cpe=af_dict['ussgl483100_undelivered_or_cpe'] + 1,
+        ussgl488100_upward_adjustm_cpe=af_dict['ussgl488100_upward_adjustm_cpe'] + 1,
+        obligations_undelivered_or_fyb=af_dict['obligations_undelivered_or_fyb'] + 1,
+        obligations_undelivered_or_cpe=af_dict['obligations_undelivered_or_cpe'] + 1,
+        ussgl490100_delivered_orde_fyb=af_dict['ussgl490100_delivered_orde_fyb'] + 1,
+        ussgl490100_delivered_orde_cpe=af_dict['ussgl490100_delivered_orde_cpe'] + 1,
+        ussgl493100_delivered_orde_cpe=af_dict['ussgl493100_delivered_orde_cpe'] + 1,
+        ussgl498100_upward_adjustm_cpe=af_dict['ussgl498100_upward_adjustm_cpe'] + 1,
+        obligations_delivered_orde_fyb=af_dict['obligations_delivered_orde_fyb'] + 1,
+        obligations_delivered_orde_cpe=af_dict['obligations_delivered_orde_cpe'] + 1,
+        ussgl480200_undelivered_or_fyb=af_dict['ussgl480200_undelivered_or_fyb'] + 1,
+        ussgl480200_undelivered_or_cpe=af_dict['ussgl480200_undelivered_or_cpe'] + 1,
+        ussgl483200_undelivered_or_cpe=af_dict['ussgl483200_undelivered_or_cpe'] + 1,
+        ussgl488200_upward_adjustm_cpe=af_dict['ussgl488200_upward_adjustm_cpe'] + 1,
+        gross_outlays_undelivered_fyb=af_dict['gross_outlays_undelivered_fyb'] + 1,
+        gross_outlays_undelivered_cpe=af_dict['gross_outlays_undelivered_cpe'] + 1,
+        ussgl490200_delivered_orde_cpe=af_dict['ussgl490200_delivered_orde_cpe'] + 1,
+        ussgl490800_authority_outl_fyb=af_dict['ussgl490800_authority_outl_fyb'] + 1,
+        ussgl490800_authority_outl_cpe=af_dict['ussgl490800_authority_outl_cpe'] + 1,
+        ussgl498200_upward_adjustm_cpe=af_dict['ussgl498200_upward_adjustm_cpe'] + 1,
+        gross_outlays_delivered_or_fyb=af_dict['gross_outlays_delivered_or_fyb'] + 1,
+        gross_outlays_delivered_or_cpe=af_dict['gross_outlays_delivered_or_cpe'] + 1,
+        gross_outlay_amount_by_pro_fyb=af_dict['gross_outlay_amount_by_awa_fyb'] + 1,
+        gross_outlay_amount_by_pro_cpe=af_dict['gross_outlay_amount_by_awa_cpe'] + 1,
+        obligations_incurred_by_pr_cpe=af_dict['obligations_incurred_byawa_cpe'] + 1,
+        ussgl487100_downward_adjus_cpe=af_dict['ussgl487100_downward_adjus_cpe'] + 1,
+        ussgl497100_downward_adjus_cpe=af_dict['ussgl497100_downward_adjus_cpe'] + 1,
+        ussgl487200_downward_adjus_cpe=af_dict['ussgl487200_downward_adjus_cpe'] + 1,
+        ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 1,
+        deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
+        tas=af_dict['tas'],
+        object_class=af_dict['other-class'],
+        by_direct_reimbursable_fun='some-other-dr',
+        submission_id=af_dict['submission_id']
+    )
+
+    errors = number_of_errors(_FILE, database, models=[af1, op1, op2, op3, op4])
     assert errors == 1
