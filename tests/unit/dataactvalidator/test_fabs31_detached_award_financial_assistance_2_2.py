@@ -28,8 +28,8 @@ def test_success(database):
                                                            is_active=True)
     pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='after_key', action_date='20220404',
                                                            is_active=True)
-    pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='inactive_key', action_date='20220404',
-                                                           is_active=True)
+    pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='inactive_key', action_date='20091001',
+                                                           is_active=False)
     models = [pub_award_1, pub_award_2, pub_award_3]
 
     # new records that may or may not be related to older awards
@@ -85,14 +85,14 @@ def test_success(database):
                                                            unique_award_key='before_key')
     det_award_11 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types='AbC',
                                                            awardee_or_recipient_uniqu='', uei='',
-                                                           action_date='10/02/2010', assistance_type='10',
+                                                           action_date='04/05/2022', assistance_type='10',
                                                            correction_delete_indicatr='',
-                                                           unique_award_key='before_key')
+                                                           unique_award_key='inactive_key')
     det_award_12 = DetachedAwardFinancialAssistanceFactory(record_type=3, business_types='AbC',
                                                            awardee_or_recipient_uniqu='', uei='',
-                                                           action_date='10/02/2010', assistance_type='11',
+                                                           action_date='04/05/2022', assistance_type='11',
                                                            correction_delete_indicatr='',
-                                                           unique_award_key='before_key')
+                                                           unique_award_key='new_key')
     # Ignore correction delete indicator of D
     det_award_13 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC',
                                                            awardee_or_recipient_uniqu=None, uei=None,
@@ -112,12 +112,12 @@ def test_success(database):
                                                            unique_award_key='after_key')
     det_award_16 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC',
                                                            awardee_or_recipient_uniqu='', uei='',
-                                                           action_date='10/02/2010', assistance_type='06',
+                                                           action_date='04/05/2022', assistance_type='06',
                                                            correction_delete_indicatr='',
                                                            unique_award_key='inactive_key')
     det_award_17 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC',
                                                            awardee_or_recipient_uniqu='', uei='',
-                                                           action_date='10/02/2010', assistance_type='06',
+                                                           action_date='04/05/2022', assistance_type='06',
                                                            correction_delete_indicatr='',
                                                            unique_award_key='new_key')
     models += [det_award_01, det_award_02, det_award_03, det_award_04, det_award_05, det_award_06, det_award_07,
@@ -144,8 +144,8 @@ def test_failure(database):
                                                            is_active=True)
     pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='after_key', action_date='20220404',
                                                            is_active=True)
-    pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='inactive_key', action_date='20220404',
-                                                           is_active=True)
+    pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='inactive_key', action_date='20091001',
+                                                           is_active=False)
     models = [pub_award_1, pub_award_2, pub_award_3]
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC',
@@ -168,7 +168,17 @@ def test_failure(database):
                                                           action_date='10/02/2010', assistance_type='09',
                                                           correction_delete_indicatr=None,
                                                           unique_award_key='before_key')
-    models += [det_award_1, det_award_2, det_award_3, det_award_4]
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC',
+                                                          awardee_or_recipient_uniqu='', uei='',
+                                                          action_date='10/02/2010', assistance_type='06',
+                                                          correction_delete_indicatr='',
+                                                          unique_award_key='inactive_key')
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC',
+                                                          awardee_or_recipient_uniqu='', uei='',
+                                                          action_date='10/02/2010', assistance_type='06',
+                                                          correction_delete_indicatr='',
+                                                          unique_award_key='new_key')
+    models += [det_award_1, det_award_2, det_award_3, det_award_4, det_award_5, det_award_6]
 
     errors = number_of_errors(_FILE, database, models=models)
-    assert errors == 4
+    assert errors == 6
