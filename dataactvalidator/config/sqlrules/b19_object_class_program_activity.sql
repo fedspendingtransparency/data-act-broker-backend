@@ -1,4 +1,4 @@
--- The combination of TAS/object class/program activity code/reimbursable flag/DEFC in File B (object class program
+-- The combination of TAS/object class/program activity code+name/reimbursable flag/DEFC in File B (object class program
 -- activity) should be unique
 SELECT
     row_number,
