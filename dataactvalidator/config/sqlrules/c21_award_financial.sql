@@ -7,6 +7,7 @@
 SELECT NULL AS "source_row_number",
     award_financial_records.display_tas AS "source_value_tas",
     award_financial_records.program_activity_code AS "source_value_program_activity_code",
+    award_financial_records.program_activity_name AS "source_value_program_activity_name",
     ussgl480100_undelivered_or_fyb_sum_c AS "source_value_ussgl480100_undelivered_or_fyb_sum_c",
     ussgl480100_undelivered_or_cpe_sum_c AS "source_value_ussgl480100_undelivered_or_cpe_sum_c",
     ussgl483100_undelivered_or_cpe_sum_c AS "source_value_ussgl483100_undelivered_or_cpe_sum_c",
@@ -233,8 +234,9 @@ SELECT NULL AS "source_row_number",
             ELSE NULL
             END) AS "difference",
     award_financial_records.display_tas AS "uniqueid_TAS",
-    award_financial_records.program_activity_code AS "uniqueid_ProgramActivityCode"
--- This first subquery is selecting the sum of 32 elements in File C based on TAS, PAC, and Submission ID
+    award_financial_records.program_activity_code AS "uniqueid_ProgramActivityCode",
+    award_financial_records.program_activity_name AS "uniqueid_ProgramActivityName"
+-- This first subquery is selecting the sum of 32 elements in File C based on TAS, PAC, PAN, and Submission ID
 FROM (
     SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
         SUM(af.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_c,
@@ -270,17 +272,19 @@ FROM (
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
         af.program_activity_code,
+        af.program_activity_name,
         af.display_tas
     FROM award_financial AS af
     WHERE af.submission_id = {0}
     GROUP BY af.tas,
         af.program_activity_code,
+        af.program_activity_name,
         af.display_tas,
         af.submission_id
 ) AS award_financial_records
 -- The second subquery selects the sum of the corresponding 32 elements in File B
--- Again, the sum is based on TAS, PAC, and Submission ID
--- We do a FULL OUTER JOIN of this result, as we don't care if TAS/PAC combinations from File B aren't in File C
+-- Again, the sum is based on TAS, PAC, PAN, and Submission ID
+-- We do a FULL OUTER JOIN of this result, as we don't care if TAS/PAC/PAN combinations from File B aren't in File C
 FULL OUTER JOIN (
     SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_b,
@@ -315,16 +319,19 @@ FULL OUTER JOIN (
         SUM(op.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_b,
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
-        op.program_activity_code
+        op.program_activity_code,
+        op.program_activity_name
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
     GROUP BY op.tas,
         op.program_activity_code,
+        op.program_activity_name,
         op.submission_id
 ) AS object_class_records
-    -- We join these two subqueries based on the same TAS and PAC combination
+    -- We join these two subqueries based on the same TAS, PAC, and PAN combination
     ON object_class_records.tas = award_financial_records.tas
     AND object_class_records.program_activity_code = award_financial_records.program_activity_code
+    AND object_class_records.program_activity_name = award_financial_records.program_activity_name
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value
