@@ -45,7 +45,7 @@ def test_success(database):
 
     # Testing for a submission after 2022
     sub = SubmissionFactory(submission_id=2, reporting_fiscal_period=9, reporting_fiscal_year=2022,
-                                   cgac_code='TEST', frec_code=None)
+                            cgac_code='TEST', frec_code=None)
     op1 = AwardFinancialFactory(disaster_emergency_fund_code='p', transaction_obligated_amou=None,
                                 gross_outlay_amount_by_awa_cpe=2, submission_id=2)
 
