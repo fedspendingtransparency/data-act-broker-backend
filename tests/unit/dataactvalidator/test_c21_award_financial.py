@@ -90,8 +90,10 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests that each USSGL account balance or subtotal, when totaled by combination of TAS/program activity code
-        provided in File C, should be a subset of, or equal to, the same combinations in File B.
+    """
+        Tests that each USSGL account balance or subtotal, when totaled by combination of
+        TAS/program activity name/program activity code provided in File C, should be a subset of, or equal to, the same
+        combinations in File B.
     """
     af1 = AwardFinancialFactory(**af_dict)
     af2 = AwardFinancialFactory(**af_dict)
@@ -257,8 +259,10 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests failing that each USSGL account balance or subtotal, when totaled by combination of TAS/program activity
-        code provided in File C, should be a subset of, or equal to, the same combinations in File B.
+    """
+        Tests failing that each USSGL account balance or subtotal, when totaled by combination of
+        TAS/program activity name/program activity code provided in File C, should be a subset of, or equal to, the same
+        combinations in File B.
     """
     af1 = AwardFinancialFactory(**af_dict)
 
