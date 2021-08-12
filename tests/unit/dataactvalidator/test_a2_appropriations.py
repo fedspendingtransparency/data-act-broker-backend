@@ -1,3 +1,4 @@
+from tests.unit.dataactcore.factories.domain import SF133Factory
 from tests.unit.dataactcore.factories.staging import AppropriationFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
@@ -13,27 +14,46 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test that TAS values can be found, and null matches work correctly """
-    approp = AppropriationFactory(total_budgetary_resources_cpe=1000, budget_authority_appropria_cpe=100,
+    """ Test TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +
+        BudgetAuthorityUnobligatedBalanceBroughtForward_FYB + AdjustmentsToUnobligatedBalanceBroughtForward_CPE +
+        OtherBudgetaryResourcesAmount_CPE + SF 133 Line 1902
+    """
+    approp = AppropriationFactory(total_budgetary_resources_cpe=1100, budget_authority_appropria_cpe=100,
                                   budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
-                                  other_budgetary_resources_cpe=400)
-    approp_null = AppropriationFactory(total_budgetary_resources_cpe=600, budget_authority_appropria_cpe=100,
+                                  other_budgetary_resources_cpe=400, tas='abcd')
+    approp_null = AppropriationFactory(total_budgetary_resources_cpe=700, budget_authority_appropria_cpe=100,
                                        budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
-                                       other_budgetary_resources_cpe=None)
+                                       other_budgetary_resources_cpe=None, tas='abcd')
+    sf_1 = SF133Factory(line=1902, tas='abcd', period=1, fiscal_year=2016, amount=100)
 
-    errors = number_of_errors(_FILE, database, models=[approp, approp_null])
+    # unrelated tas doesn't affect it
+    sf_2 = SF133Factory(line=1902, tas='bcda', period=1, fiscal_year=2016, amount=200)
+
+    # Different line in same TAS doesn't affect it
+    sf_3 = SF133Factory(line=1900, tas='abcd', period=1, fiscal_year=2016, amount=200)
+
+    errors = number_of_errors(_FILE, database, models=[approp, approp_null, sf_1, sf_2, sf_3])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test that tas that does not match is an error """
+    """ Test failure TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +
+        BudgetAuthorityUnobligatedBalanceBroughtForward_FYB + AdjustmentsToUnobligatedBalanceBroughtForward_CPE +
+        OtherBudgetaryResourcesAmount_CPE + SF 133 Line 1902
+    """
 
     approp = AppropriationFactory(total_budgetary_resources_cpe=1200, budget_authority_appropria_cpe=100,
                                   budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
-                                  other_budgetary_resources_cpe=400)
+                                  other_budgetary_resources_cpe=400, tas='abcd')
     approp_null = AppropriationFactory(total_budgetary_resources_cpe=800, budget_authority_appropria_cpe=100,
                                        budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
-                                       other_budgetary_resources_cpe=None)
+                                       other_budgetary_resources_cpe=None, tas='abcd')
+    approp_wrong_tas = AppropriationFactory(total_budgetary_resources_cpe=1000, budget_authority_appropria_cpe=100,
+                                            budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
+                                            other_budgetary_resources_cpe=400, tas='bcda')
 
-    errors = number_of_errors(_FILE, database, models=[approp, approp_null])
-    assert errors == 2
+    # approp_wrong
+    sf_1 = SF133Factory(line=1902, tas='bcda', period=1, fiscal_year=2016, amount=100)
+
+    errors = number_of_errors(_FILE, database, models=[approp, approp_null, approp_wrong_tas, sf_1])
+    assert errors == 3
