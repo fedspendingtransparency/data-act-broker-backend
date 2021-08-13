@@ -150,6 +150,8 @@ Index("ix_oc_pa_account_num_submission_id",
       unique=False)
 
 Index("ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name))
+Index("ix_oc_atc_upper", func.upper(ObjectClassProgramActivity.availability_type_code))
+Index("ix_oc_dr_upper", func.upper(ObjectClassProgramActivity.by_direct_reimbursable_fun))
 Index("ix_oc_pa_defc_upper", func.upper(ObjectClassProgramActivity.disaster_emergency_fund_code))
 
 
@@ -236,6 +238,8 @@ Index("ix_af_parent_award_id_upper", func.upper(AwardFinancial.parent_award_id))
 Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
 Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
 Index("ix_af_pan_upper", func.upper(AwardFinancial.program_activity_name))
+Index("ix_af_atc_upper", func.upper(AwardFinancial.availability_type_code))
+Index("ix_af_dr_upper", func.upper(AwardFinancial.by_direct_reimbursable_fun))
 Index("ix_af_defc_upper", func.upper(AwardFinancial.disaster_emergency_fund_code))
 
 
