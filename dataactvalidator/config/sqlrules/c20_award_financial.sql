@@ -273,7 +273,7 @@ FROM (
         af.tas,
         af.object_class,
         af.by_direct_reimbursable_fun,
-        af.display_tas,
+        af.display_tas
     FROM award_financial AS af
     WHERE af.submission_id = {0}
     GROUP BY af.tas,
