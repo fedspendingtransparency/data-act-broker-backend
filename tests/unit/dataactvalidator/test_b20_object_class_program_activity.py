@@ -10,18 +10,17 @@ _FILE = 'b20_object_class_program_activity'
 
 def test_column_headers(database):
     expected_subset = {'source_row_number', 'source_value_program_activity_code', 'source_value_program_activity_name',
-                       'source_value_object_class', 'source_value_disaster_emergency_fund_code', 'uniqueid_TAS',
-                       'uniqueid_ProgramActivityCode', 'uniqueid_ProgramActivityName', 'uniqueid_ObjectClass',
-                       'uniqueid_DisasterEmergencyFundCode'}
+                       'source_value_object_class', 'uniqueid_TAS', 'uniqueid_ProgramActivityCode',
+                       'uniqueid_ProgramActivityName', 'uniqueid_ObjectClass'}
     actual = set(query_columns(_FILE, database))
     assert actual == expected_subset
 
 
 def test_success(database):
-    """ Test All combinations of TAS/program activity code+name/object class/DEFC in File C (award financial) should
-        exist in File B (object class program activity). Since not all object classes will have award activity, it is
-        acceptable for combinations of TAS/program activity code+name/object class/DEFC in File C to be a subset of
-        those provided in File B.
+    """ Test All combinations of TAS/program activity code+name/object class in File C (award financial) should exist
+        in File B (object class program activity). Since not all object classes will have award activity, it is
+        acceptable for combinations of TAS/program activity code+name/object class in File C to be a subset of those
+        provided in File B.
     """
     tas = TASFactory()
     tas2 = TASFactory()
@@ -29,30 +28,28 @@ def test_success(database):
     database.session.flush()
 
     op = ObjectClassProgramActivityFactory(account_num=tas.account_num, program_activity_code='1',
-                                           program_activity_name='PA1', object_class='1',
-                                           disaster_emergency_fund_code='S')
+                                           program_activity_name='PA1', object_class='1')
     op2 = ObjectClassProgramActivityFactory(account_num=tas2.account_num, program_activity_code='2',
-                                            program_activity_name='PA2', object_class='0',
-                                            disaster_emergency_fund_code='s')
+                                            program_activity_name='PA2', object_class='0')
 
     af = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='1', program_activity_name='PA1',
-                               object_class='1', disaster_emergency_fund_code='s')
+                               object_class='1')
     # Allow program activity code to be null, empty, or zero
     af2 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='', program_activity_name='Pa1',
-                                object_class='1', disaster_emergency_fund_code='S')
+                                object_class='1')
     af3 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='0000', program_activity_name='pA1',
-                                object_class='1', disaster_emergency_fund_code='s')
+                                object_class='1')
     af4 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code=None, program_activity_name='pa1',
-                                object_class='1', disaster_emergency_fund_code='s')
+                                object_class='1')
     # Allow program activity name to be null or empty
     af5 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='', program_activity_name='',
-                                object_class='1', disaster_emergency_fund_code='S')
+                                object_class='1')
     af6 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='0000', program_activity_name=None,
-                                object_class='1', disaster_emergency_fund_code='s')
+                                object_class='1')
     # Allow different object classes if pacs are the same and tas IDs are the same and object classes are just
     # different numbers of zeroes
     af7 = AwardFinancialFactory(account_num=tas2.account_num, program_activity_code='2', program_activity_name='pa2',
-                                object_class='00', disaster_emergency_fund_code='s')
+                                object_class='00')
 
     assert number_of_errors(_FILE, database, models=[op, op2, af, af2, af3, af4, af5, af6, af7]) == 0
 
@@ -64,14 +61,12 @@ def test_success_ignore_optional_before_2021(database):
     database.session.flush()
 
     op = ObjectClassProgramActivityFactory(account_num=tas.account_num, program_activity_code='1',
-                                           program_activity_name='PA1', object_class='1',
-                                           disaster_emergency_fund_code='s')
+                                           program_activity_name='PA1', object_class='1')
 
     af = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='1', program_activity_name='PA1',
-                               object_class='1', disaster_emergency_fund_code='s')
+                               object_class='1')
     af2 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='OPTN',
-                                program_activity_name='FIELD IS optional PRIOR TO FY21', object_class='1',
-                                disaster_emergency_fund_code='s')
+                                program_activity_name='FIELD IS optional PRIOR TO FY21', object_class='1')
 
     sub = SubmissionFactory(reporting_fiscal_year=2020)
 
@@ -79,10 +74,10 @@ def test_success_ignore_optional_before_2021(database):
 
 
 def test_failure(database):
-    """ All combinations of TAS/program activity code+name/object class/DEFC in File C (award financial) should
-        exist in File B (object class program activity). Since not all object classes will have award activity, it is
-        acceptable for combinations of TAS/program activity code+name/object class/DEFC in File C to be a subset of
-        those provided in File B.
+    """ All combinations of TAS/program activity code+name/object class in File C (award financial) should exist in
+        File B (object class program activity). Since not all object classes will have award activity, it is acceptable
+        for combinations of TAS/program activity code+name/object class in File C to be a subset of those provided in
+        File B.
     """
     tas1 = TASFactory()
     tas2 = TASFactory()
@@ -91,31 +86,22 @@ def test_failure(database):
     database.session.flush()
 
     op = ObjectClassProgramActivityFactory(account_num=tas1.account_num, program_activity_code='1',
-                                           program_activity_name='PA1', object_class='1',
-                                           disaster_emergency_fund_code='s')
+                                           program_activity_name='PA1', object_class='1')
     op2 = ObjectClassProgramActivityFactory(account_num=tas2.account_num, program_activity_code='1',
-                                            program_activity_name='PA2', object_class='2',
-                                            disaster_emergency_fund_code='s')
+                                            program_activity_name='PA2', object_class='2')
 
-    # Different account num
     af1 = AwardFinancialFactory(account_num=tas3.account_num, program_activity_code='1', program_activity_name='PA1',
-                                object_class='1', disaster_emergency_fund_code='s')
-    # Different PAC
+                                object_class='1')
     af2 = AwardFinancialFactory(account_num=tas1.account_num, program_activity_code='2', program_activity_name='PA1',
-                                object_class='1', disaster_emergency_fund_code='s')
-    # Different PA Name
+                                object_class='1')
     af3 = AwardFinancialFactory(account_num=tas1.account_num, program_activity_code='1', program_activity_name='PA2',
-                                object_class='1', disaster_emergency_fund_code='S')
-    # Different Object Class
+                                object_class='1')
     af4 = AwardFinancialFactory(account_num=tas1.account_num, program_activity_code='1', program_activity_name='PA1',
-                                object_class='2', disaster_emergency_fund_code='s')
-    # Different DEFC
-    af5 = AwardFinancialFactory(account_num=tas1.account_num, program_activity_code='1', program_activity_name='PA1',
-                                object_class='1', disaster_emergency_fund_code='t')
+                                object_class='2')
     # Should error even if object class is 0 because it doesn't match the object class of the op
-    af6 = AwardFinancialFactory(account_num=tas2.account_num, program_activity_code='1', object_class='0')
+    af5 = AwardFinancialFactory(account_num=tas2.account_num, program_activity_code='1', object_class='0')
 
-    assert number_of_errors(_FILE, database, models=[op, op2, af1, af2, af3, af4, af5, af6]) == 6
+    assert number_of_errors(_FILE, database, models=[op, op2, af1, af2, af3, af4, af5]) == 5
 
 
 def test_fail_ignore_optional_2021(database):
