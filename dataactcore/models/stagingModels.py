@@ -485,7 +485,8 @@ class AwardFinancialAssistance(Base):
     assistance_type_desc = Column(Text)
     award_description = Column(Text)
     awardee_or_recipient_legal = Column(Text)
-    awardee_or_recipient_uniqu = Column(Text, index=True)
+    awardee_or_recipient_duns = Column(Text, index=True)
+    awardee_or_recipient_uei = Column(Text, index=True)
     awarding_agency_code = Column(Text, index=True)
     awarding_agency_name = Column(Text)
     awarding_office_code = Column(Text)
@@ -544,12 +545,16 @@ class AwardFinancialAssistance(Base):
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
-    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_duns = Column(Text)
+    ultimate_parent_uei = Column(Text)
     uri = Column(Text, index=True)
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
     place_of_performance_scope = Column(Text)
+    funding_opportunity_goals = Column(Text)
+    funding_opportunity_number = Column(Text)
+    indirect_federal_sharing = Column(Numeric)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
