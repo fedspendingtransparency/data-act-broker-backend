@@ -273,13 +273,13 @@ FROM (
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
         af.program_activity_code,
-        af.program_activity_name,
+        UPPER(af.program_activity_name) AS program_activity_name,
         af.display_tas
     FROM award_financial AS af
     WHERE af.submission_id = {0}
     GROUP BY af.tas,
         af.program_activity_code,
-        af.program_activity_name,
+        UPPER(af.program_activity_name),
         af.display_tas,
         af.submission_id
 ) AS award_financial_records
@@ -321,18 +321,18 @@ FULL OUTER JOIN (
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
         op.program_activity_code,
-        op.program_activity_name
+        UPPER(op.program_activity_name) AS program_activity_name
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
     GROUP BY op.tas,
         op.program_activity_code,
-        op.program_activity_name,
+        UPPER(op.program_activity_name),
         op.submission_id
 ) AS object_class_records
     -- We join these two subqueries based on the same TAS, PAC, and PAN combination
     ON object_class_records.tas = award_financial_records.tas
     AND object_class_records.program_activity_code = award_financial_records.program_activity_code
-    AND object_class_records.program_activity_name = award_financial_records.program_activity_name
+    AND UPPER(object_class_records.program_activity_name) = UPPER(award_financial_records.program_activity_name)
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value

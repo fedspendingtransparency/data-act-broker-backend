@@ -272,13 +272,13 @@ FROM (
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
         af.object_class,
-        af.by_direct_reimbursable_fun,
+        UPPER(af.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun,
         af.display_tas
     FROM award_financial AS af
     WHERE af.submission_id = {0}
     GROUP BY af.tas,
         af.object_class,
-        af.by_direct_reimbursable_fun,
+        UPPER(af.by_direct_reimbursable_fun),
         af.display_tas,
         af.submission_id
 ) AS award_financial_records
@@ -320,18 +320,18 @@ FULL OUTER JOIN (
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
         op.object_class,
-        op.by_direct_reimbursable_fun
+        UPPER(op.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
     GROUP BY op.tas,
         op.object_class,
-        op.by_direct_reimbursable_fun,
+        UPPER(op.by_direct_reimbursable_fun),
         op.submission_id
 ) AS object_class_records
     -- We join these two subqueries based on the same TAS, OC, and DR combination
     ON object_class_records.tas = award_financial_records.tas
     AND object_class_records.object_class = award_financial_records.object_class
-    AND object_class_records.by_direct_reimbursable_fun = award_financial_records.by_direct_reimbursable_fun
+    AND UPPER(object_class_records.by_direct_reimbursable_fun) = UPPER(award_financial_records.by_direct_reimbursable_fun)
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value
