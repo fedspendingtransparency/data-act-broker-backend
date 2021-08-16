@@ -1,4 +1,4 @@
--- The combination of TAS/object class/program activity code/reimbursable flag/DEFC in File B (object class program
+-- The combination of TAS/object class/program activity code+name/reimbursable flag/DEFC in File B (object class program
 -- activity) should be unique
 SELECT
     row_number,
@@ -15,6 +15,7 @@ SELECT
     disaster_emergency_fund_code,
     display_tas AS "uniqueid_TAS",
     program_activity_code AS "uniqueid_ProgramActivityCode",
+    program_activity_name AS "uniqueid_ProgramActivityName",
     object_class AS "uniqueid_ObjectClass",
     by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
@@ -24,12 +25,13 @@ FROM (
         op.ending_period_of_availabil,
         op.agency_identifier,
         op.allocation_transfer_agency,
-        op.availability_type_code,
+        UPPER(op.availability_type_code) AS availability_type_code,
         op.main_account_code,
         op.sub_account_code,
         op.object_class,
         op.program_activity_code,
-        op.by_direct_reimbursable_fun,
+        UPPER(op.program_activity_name) AS program_activity_name,
+        UPPER(op.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun,
         op.submission_id,
         op.tas,
         op.display_tas,
@@ -40,12 +42,13 @@ FROM (
             op.ending_period_of_availabil,
             op.agency_identifier,
             op.allocation_transfer_agency,
-            op.availability_type_code,
+            UPPER(op.availability_type_code),
             op.main_account_code,
             op.sub_account_code,
             op.object_class,
             op.program_activity_code,
-            op.by_direct_reimbursable_fun,
+            UPPER(op.program_activity_name),
+            UPPER(op.by_direct_reimbursable_fun),
             UPPER(op.disaster_emergency_fund_code)
         ) AS row
     FROM object_class_program_activity AS op
