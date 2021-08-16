@@ -331,7 +331,7 @@ FULL OUTER JOIN (
     -- We join these two subqueries based on the same TAS, OC, and DR combination
     ON object_class_records.tas = award_financial_records.tas
     AND object_class_records.object_class = award_financial_records.object_class
-    AND UPPER(object_class_records.by_direct_reimbursable_fun) = UPPER(award_financial_records.by_direct_reimbursable_fun)
+    AND UPPER(COALESCE(object_class_records.by_direct_reimbursable_fun, '')) = UPPER(COALESCE(award_financial_records.by_direct_reimbursable_fun, ''))
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value

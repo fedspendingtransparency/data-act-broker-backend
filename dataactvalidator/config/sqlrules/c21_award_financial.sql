@@ -332,7 +332,7 @@ FULL OUTER JOIN (
     -- We join these two subqueries based on the same TAS, PAC, and PAN combination
     ON object_class_records.tas = award_financial_records.tas
     AND object_class_records.program_activity_code = award_financial_records.program_activity_code
-    AND UPPER(object_class_records.program_activity_name) = UPPER(award_financial_records.program_activity_name)
+    AND UPPER(COALESCE(object_class_records.program_activity_name, '')) = UPPER(COALESCE(award_financial_records.program_activity_name, ''))
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value
