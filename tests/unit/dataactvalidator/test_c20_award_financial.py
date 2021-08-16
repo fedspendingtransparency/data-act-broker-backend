@@ -50,6 +50,7 @@ af_dict = dict(
 def test_column_headers(database):
     expected_subset = {
         'source_row_number', 'source_value_tas', 'source_value_object_class',
+        'source_value_by_direct_reimbursable_fun',
         'source_value_ussgl480100_undelivered_or_fyb_sum_c', 'source_value_ussgl480100_undelivered_or_cpe_sum_c',
         'source_value_ussgl483100_undelivered_or_cpe_sum_c', 'source_value_ussgl488100_upward_adjustm_cpe_sum_c',
         'source_value_obligations_undelivered_or_fyb_sum_c', 'source_value_obligations_undelivered_or_cpe_sum_c',
@@ -82,7 +83,7 @@ def test_column_headers(database):
         'target_value_obligations_incurred_by_pr_cpe_sum_b', 'target_value_ussgl487100_downward_adjus_cpe_sum_b',
         'target_value_ussgl497100_downward_adjus_cpe_sum_b', 'target_value_ussgl487200_downward_adjus_cpe_sum_b',
         'target_value_ussgl497200_downward_adjus_cpe_sum_b', 'target_value_deobligations_recov_by_pro_cpe_sum_b',
-        'difference', 'uniqueid_TAS', 'uniqueid_ObjectClass'
+        'difference', 'uniqueid_TAS', 'uniqueid_ObjectClass', 'uniqueid_ByDirectReimbursableFundingSource'
     }
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
@@ -208,7 +209,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
         tas=af_dict['tas'],
-        object_class=af_dict['object_class'],
+        object_class='some-other-class',
         by_direct_reimbursable_fun=af_dict['by_direct_reimbursable_fun'],
         submission_id=af_dict['submission_id']
     )
@@ -247,7 +248,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
         tas=af_dict['tas'],
-        object_class='some-other-class',
+        object_class=af_dict['object_class'],
         by_direct_reimbursable_fun='some-other-dr',
         submission_id=af_dict['submission_id']
     )
@@ -415,7 +416,7 @@ def test_failure(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 1,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas=af_dict['tas'],
-        object_class=af_dict['other-class'],
+        object_class=af_dict['object_class'],
         by_direct_reimbursable_fun='some-other-dr',
         submission_id=af_dict['submission_id']
     )
