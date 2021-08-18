@@ -1,6 +1,8 @@
--- Must be a valid program activity name and code for the corresponding TAS/TAFS as defined in Section 82 of OMB
--- Circular A-11. If the program activity is unknown, enter "0000" and "Unknown/Other" as the code and name,
--- respectively. The rule should not trigger at all for re-certifications of FY17Q2 and FY17Q3.
+-- Must be a valid program activity name/program activity code combination for the corresponding funding TAS/TAFS,
+-- as defined in the OMB Program Activity MAX Collect Exercise. However, if every balance on this row is $0 there are
+-- no obligations or outlays on the TAS, a program activity name of "Unknown/Other" combined with a program activity
+-- code of 0000 should be used. Note: A program activity code of "0000" or a program activity name of "Unknown/Other"
+-- should not be provided for File C.
 WITH award_financial_b9_{0} AS
     (SELECT submission_id,
         row_number,
@@ -22,16 +24,18 @@ SELECT
 FROM award_financial_b9_{0} AS af
      INNER JOIN submission AS sub
         ON af.submission_id = sub.submission_id
-WHERE (af.program_activity_code <> '0000'
-        OR UPPER(af.program_activity_name) <> 'UNKNOWN/OTHER')
-    AND (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 6), ('2017', 9))
-    AND NOT EXISTS (
-        SELECT 1
-        FROM program_activity AS pa
-        WHERE af.agency_identifier = pa.agency_id
-            AND af.main_account_code = pa.account_number
-            AND UPPER(COALESCE(af.program_activity_name, '')) = UPPER(pa.program_activity_name)
-            AND UPPER(COALESCE(af.program_activity_code, '')) = UPPER(pa.program_activity_code)
-            AND pa.fiscal_year_period = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'P' || LPAD(sub.reporting_fiscal_period::text, 2, '0')
-
+WHERE
+    (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 6), ('2017', 9))
+    AND (af.program_activity_code IS NOT NULL OR af.program_activity_name IS NOT NULL)
+    AND (
+        (af.program_activity_code = '0000' AND UPPER(af.program_activity_name) = 'UNKNOWN/OTHER')
+        OR NOT EXISTS (
+            SELECT 1
+            FROM program_activity AS pa
+            WHERE af.agency_identifier = pa.agency_id
+                AND af.main_account_code = pa.account_number
+                AND UPPER(COALESCE(af.program_activity_name, '')) = UPPER(pa.program_activity_name)
+                AND UPPER(COALESCE(af.program_activity_code, '')) = UPPER(pa.program_activity_code)
+                AND pa.fiscal_year_period = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'P' || LPAD(sub.reporting_fiscal_period::text, 2, '0')
+        )
     );

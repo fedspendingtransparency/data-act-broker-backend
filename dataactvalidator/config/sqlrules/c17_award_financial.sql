@@ -1,4 +1,5 @@
 -- TransactionObligatedAmount and USSGL related balances and subtotals cannot be provided on the same row.
+-- Please note that this rule will apply for any non-null (non-blank) value provided, including zero (0).
 SELECT
     row_number,
     transaction_obligated_amou,
