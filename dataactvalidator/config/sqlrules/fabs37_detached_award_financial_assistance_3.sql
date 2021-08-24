@@ -1,4 +1,5 @@
--- The CFDA_Number must exist
+-- CFDA_Number must have been registered with CFDA.gov or registered as an Assistance Listing
+-- on SAM.gov (post-May 2018) at some point in time.
 WITH detached_award_financial_assistance_fabs37_1_{0} AS
     (SELECT submission_id,
         row_number,

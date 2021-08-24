@@ -879,7 +879,7 @@ def derive_duns_uei(sess, submission_id):
             UPDATE tmp_fabs_{submission_id} AS pafa
             SET awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
             FROM duns
-            WHERE pafa.uei = duns.uei
+            WHERE UPPER(pafa.uei) = UPPER(duns.uei)
                 AND pafa.awardee_or_recipient_uniqu IS NULL
                 AND pafa.uei IS NOT NULL;
         """

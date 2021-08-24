@@ -1,5 +1,5 @@
 -- When provided, AwardingOfficeCode must be a valid value from the Federal Hierarchy, including being designated
--- specifically as an Assistance/Grant Office in the hierarchy.
+-- specifically as an Assistance Awarding Office in the hierarchy.
 SELECT
     row_number,
     awarding_office_code,

@@ -798,6 +798,8 @@ class FileHandler:
                     tmp_fabs_{submission_id} (upper(assistance_type));
                 CREATE INDEX ix_tmp_fabs_{submission_id}_action_type_upper ON
                     tmp_fabs_{submission_id} (upper(action_type));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_uei_upper ON
+                    tmp_fabs_{submission_id} (upper(uei));
             """.format(submission_id=submission_id)
             sess.execute(create_indexes_sql)
 
