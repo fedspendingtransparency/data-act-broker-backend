@@ -66,7 +66,7 @@ GROUP BY op.tas,
     UPPER(op.disaster_emergency_fund_code),
     sf.amount,
     op.display_tas
-HAVING (UPPER(op.disaster_emergency_fund_code) = 'Q'
+HAVING (UPPER(op.disaster_emergency_fund_code) IN ('Q', 'QQQ')
         AND (
             SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
             SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
@@ -78,7 +78,7 @@ HAVING (UPPER(op.disaster_emergency_fund_code) = 'Q'
             SUM(ussgl498100_upward_adjustm_cpe) +
             SUM(ussgl498200_upward_adjustm_cpe)
         ) <> (-1 * sf.amount))
-    OR (UPPER(op.disaster_emergency_fund_code) <> 'Q'
+    OR (UPPER(op.disaster_emergency_fund_code) NOT IN ('Q', 'QQQ')
         AND (SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
             SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
             SUM(ussgl488100_upward_adjustm_cpe) +
