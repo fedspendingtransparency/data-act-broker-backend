@@ -27,8 +27,8 @@ def reference_data(sess):
     parent_duns = DunsFactory(awardee_or_recipient_uniqu='987654321', legal_business_name='TEST PARENT DUNS')
     duns = DunsFactory(awardee_or_recipient_uniqu='123456789', legal_business_name='TEST DUNS',
                        business_types=['TYPE 1', 'TYPE 2', 'TYPE 3'])
-    dom_country = CountryCodeFactory(country_code='USA', country_name='UNITED STATES')
-    int_country = CountryCodeFactory(country_code='INT', country_name='INTERNATIONAL')
+    dom_country = CountryCodeFactory(country_code='USA', country_code_2_char='US', country_name='UNITED STATES')
+    int_country = CountryCodeFactory(country_code='INT', country_code_2_char='IT', country_name='INTERNATIONAL')
     sess.add_all([parent_duns, duns, dom_country, int_country])
     return parent_duns, duns, dom_country, int_country
 
@@ -474,7 +474,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     grant_non_pop_subtier = FSRSGrantFactory(
         fain=d2_non_pop_subtier.fain.replace('-', ''),
         federal_agency_id='1234',
-        awardee_address_country=int_country.country_code,
+        awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
@@ -484,7 +484,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sub_grant_non_pop_subtier = FSRSSubgrantFactory(
         parent=grant_non_pop_subtier,
         awardee_address_country=dom_country.country_code,
-        principle_place_country=int_country.country_code,
+        principle_place_country=int_country.country_code_2_char,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
@@ -511,7 +511,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     grant_non_null_sub = FSRSGrantFactory(
         fain=d2_non_null_sub.fain.replace('-', ''),
         federal_agency_id=None,
-        awardee_address_country=int_country.country_code,
+        awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
@@ -521,7 +521,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sub_grant_non_null_sub = FSRSSubgrantFactory(
         parent=grant_non_null_sub,
         awardee_address_country=dom_country.country_code,
-        principle_place_country=int_country.country_code,
+        principle_place_country=int_country.country_code_2_char,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
@@ -548,7 +548,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     grant_agg = FSRSGrantFactory(
         fain=d2_agg.fain.replace('-', ''),
         federal_agency_id='1234',
-        awardee_address_country=int_country.country_code,
+        awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         cfda_numbers='00.003 CFDA 3',
@@ -638,7 +638,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub_grant_non_pop_subtier = FSRSSubgrantFactory(
         parent=grant_non_pop_subtier,
         awardee_address_country=dom_country.country_code,
-        principle_place_country=int_country.country_code,
+        principle_place_country=int_country.country_code_2_char,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
@@ -667,7 +667,7 @@ def test_fix_broken_links(database, monkeypatch):
     grant_non_null_subtier = FSRSGrantFactory(
         fain=d2_non_null_subtier.fain.replace('-', ''),
         federal_agency_id=None,
-        awardee_address_country=int_country.country_code,
+        awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
@@ -677,7 +677,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub_grant_non_null_subtier = FSRSSubgrantFactory(
         parent=grant_non_null_subtier,
         awardee_address_country=dom_country.country_code,
-        principle_place_country=int_country.country_code,
+        principle_place_country=int_country.country_code_2_char,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
@@ -736,7 +736,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub_grant_non_other = FSRSSubgrantFactory(
         parent=grant_non_other,
         awardee_address_country=dom_country.country_code,
-        principle_place_country=int_country.country_code,
+        principle_place_country=int_country.country_code_2_char,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
@@ -764,7 +764,7 @@ def test_fix_broken_links(database, monkeypatch):
     grant_agg = FSRSGrantFactory(
         fain=d2_agg.fain.replace('-', ''),
         federal_agency_id='1234',
-        awardee_address_country=int_country.country_code,
+        awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         cfda_numbers='00.003 CFDA 3',
@@ -774,7 +774,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub_grant_agg = FSRSSubgrantFactory(
         parent=grant_agg,
         awardee_address_country=dom_country.country_code,
-        principle_place_country=int_country.country_code,
+        principle_place_country=int_country.country_code_2_char,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
@@ -804,14 +804,14 @@ def test_fix_broken_links(database, monkeypatch):
         idv_reference_number=d1_awd.parent_award_id.replace('-', ''),
         contracting_office_aid=d1_awd.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
-        principle_place_country=int_country.country_code,
+        principle_place_country=int_country.country_code_2_char,
         duns=duns.awardee_or_recipient_uniqu,
         date_signed=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
     sub_contract_awd = FSRSSubcontractFactory(
         parent=contract_awd,
-        company_address_country=int_country.country_code,
+        company_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
         subcontract_date=datetime.now()
     )
@@ -845,7 +845,7 @@ def test_fix_broken_links(database, monkeypatch):
     )
     sub_contract_idv = FSRSSubcontractFactory(
         parent=contract_idv,
-        company_address_country=int_country.country_code,
+        company_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
         subcontract_date=datetime.now()
     )
