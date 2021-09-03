@@ -4,7 +4,7 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns, p
 
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 
-_FILE = 'c27_award_financial' 
+_FILE = 'c27_award_financial'
 
 
 def test_column_headers(database):
