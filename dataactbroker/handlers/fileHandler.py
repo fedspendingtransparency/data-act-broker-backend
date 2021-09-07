@@ -1907,7 +1907,7 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
 
-def list_published_files(type, agency=None, year=None, period=None):
+def list_published_files(sub_type, agency=None, year=None, period=None):
     """ List all the latest published files if all filters provided. Otherwise, provide the next filter options to be
         used for the Raw Files page.
 
@@ -1926,12 +1926,12 @@ def list_published_files(type, agency=None, year=None, period=None):
     sess = GlobalDB.db().session
 
     # determine type of request
-    if type not in ['dabs', 'fabs']:
+    if sub_type not in ['dabs', 'fabs']:
         raise ResponseException('Type must be either \'dabs\' or \'fabs\'')
 
     # figure out what to return based on the request
     filters_provided = []
-    for filter_provided, level in [(type, 'type'), (agency, 'agency'), (year, 'year'), (period, 'period')]:
+    for filter_provided, level in [(sub_type, 'type'), (agency, 'agency'), (year, 'year'), (period, 'period')]:
         if filter_provided is not None:
             filters_provided.append(level)
         else:
@@ -1950,7 +1950,7 @@ def list_published_files(type, agency=None, year=None, period=None):
                 (FREC.agency_name.isnot(None), FREC.agency_name),
                 (CGAC.agency_name.isnot(None), CGAC.agency_name)
             ]).label('agency_name')]
-        filters = [Submission.d2_submission == (type == 'fabs')]
+        filters += [Submission.d2_submission == (sub_type == 'fabs')]
     if 'agency' in filters_provided:
         selects = [Submission.reporting_fiscal_year]
         # filters added after initial query construction
