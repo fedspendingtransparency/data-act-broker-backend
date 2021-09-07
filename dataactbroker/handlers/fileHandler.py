@@ -32,7 +32,8 @@ from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSu
                                           CertifiedComment, generate_fiscal_year, generate_fiscal_period)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
+    JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME,
+    FILE_TYPE_DICT_ID)
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
@@ -1940,6 +1941,8 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
     # figure out the selects/filters based on the request
     selects = []
     filters = []
+    order_by = []
+    distinct = True
     if 'type' in filters_provided:
         selects = [
             case([
@@ -1951,23 +1954,42 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 (CGAC.agency_name.isnot(None), CGAC.agency_name)
             ]).label('agency_name')]
         filters += [Submission.d2_submission == (sub_type == 'fabs')]
+        order_by = [selects[1]]
     if 'agency' in filters_provided:
         selects = [Submission.reporting_fiscal_year]
         # filters added after initial query construction
+        order_by = [selects[0]]
     if 'year' in filters_provided:
         selects = [Submission.reporting_fiscal_period]
         filters += [Submission.reporting_fiscal_year == str(year)]
+        order_by = [selects[0]]
     if 'period' in filters_provided:
-        selects = [PublishedFilesHistory.published_files_history_id, PublishedFilesHistory.filename]
+        distinct = False
+        selects = [
+            PublishedFilesHistory.published_files_history_id,
+            PublishedFilesHistory.file_type_id,
+            PublishedFilesHistory.filename,
+            Submission.submission_id]
         filters += [Submission.reporting_fiscal_period == period, PublishedFilesHistory.filename.isnot(None)]
+        order_by = [Submission.submission_id, PublishedFilesHistory.file_type_id]
+
+    # making sure we're only pulling the latest published per submission
+    published_ids = sess. \
+        query(func.max(PublishedFilesHistory.publish_history_id).label('max_pub_id')). \
+        group_by(PublishedFilesHistory.submission_id).cte('published_ids')
 
     # put it all together
     query = sess.query(*selects). \
         select_from(PublishedFilesHistory). \
         join(Submission, PublishedFilesHistory.submission_id == Submission.submission_id). \
+        join(published_ids, published_ids.c.max_pub_id == PublishedFilesHistory.publish_history_id).\
         outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code). \
         outerjoin(FREC, FREC.frec_code == Submission.frec_code). \
-        filter(*filters).distinct()
+        filter(*filters). \
+        order_by(*order_by)
+
+    if distinct:
+        query = query.distinct()
 
     # agency filter can only be provided after the base query's been built
     if 'agency' in filters_provided:
@@ -2004,11 +2026,12 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
         for result in query:
             results.append({
                 'id': result.published_files_history_id,
-                'label': result.filename,
+                'label': os.path.basename(result.filename),
+                'filetype': FILE_TYPE_DICT_ID[result.file_type_id] if result.file_type_id else 'comments',
+                'submission_id': result.submission_id
             })
 
     return JsonResponse.create(StatusCode.OK, results)
-
 
 
 def serialize_submission(submission):

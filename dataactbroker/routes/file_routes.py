@@ -103,8 +103,7 @@ def add_file_routes(app, is_local, server_path):
             validate=webargs_validate.OneOf(('fabs', 'dabs'))),
         'agency': webargs_fields.String(),
         'year': webargs_fields.Int(),
-        'period': webargs_fields.Int(),
-        
+        'period': webargs_fields.Int()
     })
     def list_latest_published_files(**kwargs):
         """ List submission IDs associated with the current user """
