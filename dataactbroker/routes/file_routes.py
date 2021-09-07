@@ -95,7 +95,7 @@ def add_file_routes(app, is_local, server_path):
         filters = kwargs.get('filters')
         return list_submissions_handler(page, limit, published, sort, order, fabs, filters)
 
-    @app.route("/v1/list_latest_published_files/", methods=["POST"])
+    @app.route("/v1/list_latest_published_files/", methods=["GET"])
     @requires_login
     @use_kwargs({
         'type': webargs_fields.String(
