@@ -1907,6 +1907,110 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
 
+def list_published_files(type, agency=None, year=None, period=None):
+    """ List all the latest published files if all filters provided. Otherwise, provide the next filter options to be
+        used for the Raw Files page.
+
+        Args:
+            type: must be dabs/fabs
+            agency: the relevant agency code (cgac or frec)
+            year: the relevant year
+            period: the relevant period/month
+
+        Returns:
+            If all filters provided, list of names and published file ids
+                {[name: 'file name', publish_files_history_id: 231}, ...]
+            Otherwise, return the next available options for the next filter level
+                Order: type -> agency -> year -> period
+    """
+    sess = GlobalDB.db().session
+
+    # determine type of request
+    if type not in ['dabs', 'fabs']:
+        raise ResponseException('Type must be either \'dabs\' or \'fabs\'')
+
+    # figure out what to return based on the request
+    filters_provided = []
+    for filter_provided, level in [(type, 'type'), (agency, 'agency'), (year, 'year'), (period, 'period')]:
+        if filter_provided is not None:
+            filters_provided.append(level)
+        else:
+            break
+
+    # figure out the selects/filters based on the request
+    selects = []
+    filters = []
+    if 'type' in filters_provided:
+        selects = [
+            case([
+                (FREC.frec_code.isnot(None), FREC.frec_code),
+                (CGAC.cgac_code.isnot(None), CGAC.cgac_code)
+            ]).label('agency_code'),
+            case([
+                (FREC.agency_name.isnot(None), FREC.agency_name),
+                (CGAC.agency_name.isnot(None), CGAC.agency_name)
+            ]).label('agency_name')]
+        filters = [Submission.d2_submission == (type == 'fabs')]
+    if 'agency' in filters_provided:
+        selects = [Submission.reporting_fiscal_year]
+        # filters added after initial query construction
+    if 'year' in filters_provided:
+        selects = [Submission.reporting_fiscal_period]
+        filters += [Submission.reporting_fiscal_year == str(year)]
+    if 'period' in filters_provided:
+        selects = [PublishedFilesHistory.published_files_history_id, PublishedFilesHistory.filename]
+        filters += [Submission.reporting_fiscal_period == period, PublishedFilesHistory.filename.isnot(None)]
+
+    # put it all together
+    query = sess.query(*selects). \
+        select_from(PublishedFilesHistory). \
+        join(Submission, PublishedFilesHistory.submission_id == Submission.submission_id). \
+        outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code). \
+        outerjoin(FREC, FREC.frec_code == Submission.frec_code). \
+        filter(*filters).distinct()
+
+    # agency filter can only be provided after the base query's been built
+    if 'agency' in filters_provided:
+        query = agency_filter(sess, query, Submission, Submission, [agency])
+
+    # present the results
+    results = []
+    if filters_provided[-1] == 'type':
+        for result in query:
+            results.append({
+                'id': result.agency_code,
+                'label': '{} - {}'.format(result.agency_code, result.agency_name)
+            })
+    elif filters_provided[-1] == 'agency':
+        for result in query:
+            results.append({
+                'id': result.reporting_fiscal_year,
+                'label': result.reporting_fiscal_year
+            })
+    elif filters_provided[-1] == 'year':
+        for result in query:
+            if result.reporting_fiscal_period == 2:
+                period = 'P01-P02'
+            elif result.reporting_fiscal_period % 3 == 0:
+                period = 'P{}/Q{}'.format(str(result.reporting_fiscal_period).zfill(2),
+                                          int(result.reporting_fiscal_period / 3))
+            else:
+                period = 'P{}'.format(str(result.reporting_fiscal_period).zfill(2))
+            results.append({
+                'id': result.reporting_fiscal_period,
+                'label': period
+            })
+    else:
+        for result in query:
+            results.append({
+                'id': result.published_files_history_id,
+                'label': result.filename,
+            })
+
+    return JsonResponse.create(StatusCode.OK, results)
+
+
+
 def serialize_submission(submission):
     """ Convert the provided submission into a dictionary in a schema the frontend expects.
 

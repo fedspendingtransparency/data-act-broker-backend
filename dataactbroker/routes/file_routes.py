@@ -3,9 +3,10 @@ from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
-    FileHandler, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
-    get_detached_upload_file_url, get_submission_comments, submission_report_url, update_submission_comments,
-    list_history, file_history_url, get_comments_file)
+    FileHandler, get_status, list_submissions as list_submissions_handler,
+    list_published_files as list_published_files_handler, get_upload_file_url, get_detached_upload_file_url,
+    get_submission_comments, submission_report_url, update_submission_comments, list_history, file_history_url,
+    get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_banners, check_current_submission_page,
     publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, get_published_submission_ids,
@@ -93,6 +94,25 @@ def add_file_routes(app, is_local, server_path):
         fabs = kwargs.get('fabs')
         filters = kwargs.get('filters')
         return list_submissions_handler(page, limit, published, sort, order, fabs, filters)
+
+    @app.route("/v1/list_latest_published_files/", methods=["POST"])
+    @requires_login
+    @use_kwargs({
+        'type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(('fabs', 'dabs'))),
+        'agency': webargs_fields.String(),
+        'year': webargs_fields.Int(),
+        'period': webargs_fields.Int(),
+        
+    })
+    def list_latest_published_files(**kwargs):
+        """ List submission IDs associated with the current user """
+        sub_type = kwargs.get('type')
+        agency = kwargs.get('agency')
+        year = kwargs.get('year')
+        period = kwargs.get('period')
+        return list_published_files_handler(sub_type, agency, year, period)
 
     @app.route("/v1/list_history/", methods=['GET'])
     @convert_to_submission_id
