@@ -1985,7 +1985,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
         for result in query:
             results.append({
                 'id': result.reporting_fiscal_year,
-                'label': result.reporting_fiscal_year
+                'label': str(result.reporting_fiscal_year)
             })
     elif filters_provided[-1] == 'year':
         for result in query:
