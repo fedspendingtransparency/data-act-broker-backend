@@ -130,7 +130,16 @@ def add_file_routes(app, is_local, server_path):
     def get_certified_file(submission, published_files_history_id, **kwargs):
         """ Get the signed URL for the specified file history """
         is_warning = kwargs.get('is_warning')
-        return file_history_url(submission, published_files_history_id, is_warning, is_local)
+        return file_history_url(published_files_history_id, is_warning, is_local, submission)
+
+    @app.route("/v1/get_submitted_published_file/", methods=["GET"])
+    @use_kwargs({
+        'published_files_history_id': webargs_fields.Int(required=True)
+    })
+    @requires_login
+    def get_submitted_published_file(published_files_history_id):
+        """ Get the signed URL for the specified submitted and published file """
+        return file_history_url(published_files_history_id, False, is_local)
 
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
