@@ -1859,7 +1859,7 @@ def file_history_url(file_history_id, is_warning, is_local, submission=None):
 
         Args:
             file_history_id: the PublishedFilesHistory ID to get the file from
-            is_warning: a boolean indicating if the file being retrieved is a warning or error file (True for warning)
+            is_warning: a boolean indicating if the file being retrieved is a warning or base file (True for warning)
             is_local: a boolean indicating if the application is being run locally (True for local)
             submission: submission to get the file history for
 
