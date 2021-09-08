@@ -32,8 +32,7 @@ from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSu
                                           CertifiedComment, generate_fiscal_year, generate_fiscal_period)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME,
-    FILE_TYPE_DICT_ID)
+    JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
@@ -2027,7 +2026,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
             results.append({
                 'id': result.published_files_history_id,
                 'label': os.path.basename(result.filename),
-                'filetype': FILE_TYPE_DICT_ID[result.file_type_id] if result.file_type_id else 'comments',
+                'filetype': FILE_TYPE_DICT_LETTER[result.file_type_id] if result.file_type_id else 'comments',
                 'submission_id': result.submission_id
             })
 
