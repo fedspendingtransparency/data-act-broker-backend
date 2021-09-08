@@ -10,9 +10,10 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import g, current_app
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, Integer
 from sqlalchemy.orm import aliased
-from sqlalchemy.sql.expression import case
+from sqlalchemy.sql.expression import case, cast
+from sqlalchemy.sql import extract
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        get_submissions_in_period)
@@ -1956,12 +1957,30 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
         filters += [Submission.d2_submission == (sub_type == 'fabs')]
         order_by = [selects[1]]
     if 'agency' in filters_provided:
-        selects = [Submission.reporting_fiscal_year]
+        selects = [Submission.reporting_fiscal_year if sub_type == 'dabs'
+                   else case([
+                       (extract('month', PublishedFilesHistory.created_at) >= 10,
+                        cast(extract('year', PublishedFilesHistory.created_at) - 1, Integer)),
+                       (extract('month', PublishedFilesHistory.created_at) < 10,
+                        cast(extract('year', PublishedFilesHistory.created_at), Integer))
+                   ]).label('reporting_fiscal_year')]
         # filters added after initial query construction
         order_by = [selects[0]]
     if 'year' in filters_provided:
-        selects = [Submission.reporting_fiscal_period]
-        filters += [Submission.reporting_fiscal_year == str(year)]
+        selects = [Submission.reporting_fiscal_period if sub_type == 'dabs'
+                   else case([
+                       (extract('month', PublishedFilesHistory.created_at) >= 10,
+                        cast(extract('month', PublishedFilesHistory.created_at) - 9, Integer)),
+                       (extract('month', PublishedFilesHistory.created_at) < 10,
+                        cast(extract('month', PublishedFilesHistory.created_at) + 3, Integer)),
+                   ]).label('reporting_fiscal_period')]
+        filters += [Submission.reporting_fiscal_year == str(year) if sub_type == 'dabs'
+                    else case([
+                        (extract('month', PublishedFilesHistory.created_at) >= 10,
+                         extract('year', PublishedFilesHistory.created_at) == str(year - 1)),
+                        (extract('month', PublishedFilesHistory.created_at) < 10,
+                         extract('year', PublishedFilesHistory.created_at) == str(year))
+                    ])]
         order_by = [selects[0]]
     if 'period' in filters_provided:
         distinct = False
@@ -1970,7 +1989,15 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
             PublishedFilesHistory.file_type_id,
             PublishedFilesHistory.filename,
             Submission.submission_id]
-        filters += [Submission.reporting_fiscal_period == period, PublishedFilesHistory.filename.isnot(None)]
+
+        filters += [Submission.reporting_fiscal_period == str(period) if sub_type == 'dabs'
+                    else case([
+                        (extract('month', PublishedFilesHistory.created_at) >= 10,
+                         extract('month', PublishedFilesHistory.created_at) - 9 == str(period)),
+                        (extract('month', PublishedFilesHistory.created_at) < 10,
+                         extract('month', PublishedFilesHistory.created_at) + 3 == str(period))
+                    ]),
+                    PublishedFilesHistory.filename.isnot(None)]
         order_by = [Submission.submission_id, PublishedFilesHistory.file_type_id]
 
     # making sure we're only pulling the latest published per submission
