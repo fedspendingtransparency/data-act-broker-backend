@@ -1944,6 +1944,8 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
     filters = []
     order_by = []
     distinct = True
+    published_files_month = extract('month', PublishedFilesHistory.created_at)
+    published_files_year = extract('year', PublishedFilesHistory.created_at)
     if 'type' in filters_provided:
         selects = [
             case([
@@ -1959,27 +1961,21 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
     if 'agency' in filters_provided:
         selects = [Submission.reporting_fiscal_year if sub_type == 'dabs'
                    else case([
-                       (extract('month', PublishedFilesHistory.created_at) >= 10,
-                        cast(extract('year', PublishedFilesHistory.created_at) - 1, Integer)),
-                       (extract('month', PublishedFilesHistory.created_at) < 10,
-                        cast(extract('year', PublishedFilesHistory.created_at), Integer))
+                       (published_files_month >= 10, cast(published_files_year - 1, Integer)),
+                       (published_files_month < 10, cast(published_files_year, Integer))
                    ]).label('reporting_fiscal_year')]
         # filters added after initial query construction
         order_by = [selects[0]]
     if 'year' in filters_provided:
         selects = [Submission.reporting_fiscal_period if sub_type == 'dabs'
                    else case([
-                       (extract('month', PublishedFilesHistory.created_at) >= 10,
-                        cast(extract('month', PublishedFilesHistory.created_at) - 9, Integer)),
-                       (extract('month', PublishedFilesHistory.created_at) < 10,
-                        cast(extract('month', PublishedFilesHistory.created_at) + 3, Integer)),
+                       (published_files_month >= 10, cast(published_files_month - 9, Integer)),
+                       (published_files_month < 10, cast(published_files_month + 3, Integer)),
                    ]).label('reporting_fiscal_period')]
         filters += [Submission.reporting_fiscal_year == str(year) if sub_type == 'dabs'
                     else case([
-                        (extract('month', PublishedFilesHistory.created_at) >= 10,
-                         extract('year', PublishedFilesHistory.created_at) == str(year - 1)),
-                        (extract('month', PublishedFilesHistory.created_at) < 10,
-                         extract('year', PublishedFilesHistory.created_at) == str(year))
+                        (published_files_month >= 10, published_files_year == str(year - 1)),
+                        (published_files_month < 10, published_files_year == str(year))
                     ])]
         order_by = [selects[0]]
     if 'period' in filters_provided:
@@ -1989,13 +1985,10 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
             PublishedFilesHistory.file_type_id,
             PublishedFilesHistory.filename,
             Submission.submission_id]
-
         filters += [Submission.reporting_fiscal_period == str(period) if sub_type == 'dabs'
                     else case([
-                        (extract('month', PublishedFilesHistory.created_at) >= 10,
-                         extract('month', PublishedFilesHistory.created_at) - 9 == str(period)),
-                        (extract('month', PublishedFilesHistory.created_at) < 10,
-                         extract('month', PublishedFilesHistory.created_at) + 3 == str(period))
+                        (published_files_month >= 10, published_files_month - 9 == str(period)),
+                        (published_files_month < 10, published_files_month + 3 == str(period))
                     ]),
                     PublishedFilesHistory.filename.isnot(None)]
         order_by = [Submission.submission_id, PublishedFilesHistory.file_type_id]
@@ -2026,16 +2019,11 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
     results = []
     if filters_provided[-1] == 'type':
         for result in query:
-            results.append({
-                'id': result.agency_code,
-                'label': '{} - {}'.format(result.agency_code, result.agency_name)
-            })
+            results.append({'id': result.agency_code,
+                            'label': '{} - {}'.format(result.agency_code, result.agency_name)})
     elif filters_provided[-1] == 'agency':
         for result in query:
-            results.append({
-                'id': result.reporting_fiscal_year,
-                'label': str(result.reporting_fiscal_year)
-            })
+            results.append({'id': result.reporting_fiscal_year, 'label': str(result.reporting_fiscal_year)})
     elif filters_provided[-1] == 'year':
         for result in query:
             if result.reporting_fiscal_period == 2:
@@ -2045,10 +2033,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                                           int(result.reporting_fiscal_period / 3))
             else:
                 period = 'P{}'.format(str(result.reporting_fiscal_period).zfill(2))
-            results.append({
-                'id': result.reporting_fiscal_period,
-                'label': period
-            })
+            results.append({'id': result.reporting_fiscal_period, 'label': period})
     else:
         for result in query:
             results.append({
