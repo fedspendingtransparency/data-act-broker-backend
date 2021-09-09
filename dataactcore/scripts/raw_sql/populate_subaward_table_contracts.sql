@@ -318,11 +318,15 @@ FROM fsrs_procurement
         AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(aw_dap.parent_award_id, '-', ''))
         AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(aw_dap.awarding_sub_tier_agency_c)
     LEFT OUTER JOIN country_code AS le_country
-        ON UPPER(fsrs_procurement.company_address_country) = UPPER(le_country.country_code)
+        ON (UPPER(fsrs_procurement.company_address_country) = UPPER(le_country.country_code)
+            OR UPPER(fsrs_procurement.company_address_country) = UPPER(le_country.country_code_2_char))
     LEFT OUTER JOIN country_code AS ppop_country
-        ON UPPER(fsrs_procurement.principle_place_country) = UPPER(ppop_country.country_code)
+        ON (UPPER(fsrs_procurement.principle_place_country) = UPPER(ppop_country.country_code)
+            OR UPPER(fsrs_procurement.principle_place_country) = UPPER(ppop_country.country_code_2_char))
     LEFT OUTER JOIN country_code AS sub_le_country
-        ON UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code)
+        ON (UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code)
+            OR UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code_2_char))
     LEFT OUTER JOIN country_code AS sub_ppop_country
-        ON UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
+        ON (UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
+            OR UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
 WHERE fsrs_procurement.id {0} {1}

@@ -57,8 +57,9 @@ def load_country_codes(base_path, force_reload=False):
         data = clean_data(
             data,
             CountryCode,
-            {"country_code": 'country_code',
+            {'country_code': 'country_code',
              'country_name': 'country_name',
+             '2_char_country_code': 'country_code_2_char',
              'territory_or_freely_associated_state': 'territory_free_state'},
             {}
         )
@@ -91,4 +92,4 @@ def load_country_codes(base_path, force_reload=False):
 
     with open('load_country_codes_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
-    logger.info("Script complete")
+    logger.info('Script complete')
