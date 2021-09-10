@@ -4,25 +4,31 @@ from datetime import datetime
 from dataactcore.models.jobModels import Submission, Job
 
 
-def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
+def insert_submission(sess, submission_user_id, cgac_code=None, frec_code=None, start_date=None, end_date=None,
                       is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False,
                       updated_at=datetime.utcnow(), test_submission=False, published_submission_ids=[],
-                      certified=False):
+                      certified=False, reporting_fiscal_year=None, reporting_fisacal_period=None):
     """Insert one submission into job tracker and get submission ID back."""
     publishable = True if number_of_errors == 0 else False
-    end_date = datetime.strptime(end_date, '%m/%Y')
-    end_date = datetime.strptime(
-        str(end_date.year) + '/'
-        + str(end_date.month) + '/'
-        + str(calendar.monthrange(end_date.year, end_date.month)[1]),
-        '%Y/%m/%d'
-    ).date()
+    if start_date is not None:
+        start_date = datetime.strptime(start_date, '%m/%Y')
+    if end_date is not None:
+        end_date = datetime.strptime(end_date, '%m/%Y')
+        end_date = datetime.strptime(
+            str(end_date.year) + '/'
+            + str(end_date.month) + '/'
+            + str(calendar.monthrange(end_date.year, end_date.month)[1]),
+            '%Y/%m/%d'
+        ).date()
     sub = Submission(created_at=datetime.utcnow(),
                      updated_at=updated_at,
                      user_id=submission_user_id,
                      cgac_code=cgac_code,
-                     reporting_start_date=datetime.strptime(start_date, '%m/%Y'),
+                     frec_code=frec_code,
+                     reporting_start_date=start_date,
                      reporting_end_date=end_date,
+                     reporting_fiscal_year=reporting_fiscal_year,
+                     reporting_fiscal_period=reporting_fisacal_period,
                      is_quarter_format=is_quarter,
                      number_of_errors=number_of_errors,
                      publish_status_id=publish_status_id,

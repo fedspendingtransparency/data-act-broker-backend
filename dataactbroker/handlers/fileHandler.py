@@ -1961,7 +1961,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
     if 'agency' in filters_provided:
         selects = [Submission.reporting_fiscal_year if sub_type == 'dabs'
                    else case([
-                       (published_files_month >= 10, cast(published_files_year - 1, Integer)),
+                       (published_files_month >= 10, cast(published_files_year + 1, Integer)),
                        (published_files_month < 10, cast(published_files_year, Integer))
                    ]).label('reporting_fiscal_year')]
         # filters added after initial query construction
@@ -1974,7 +1974,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                    ]).label('reporting_fiscal_period')]
         filters += [Submission.reporting_fiscal_year == str(year) if sub_type == 'dabs'
                     else case([
-                        (published_files_month >= 10, published_files_year == str(year - 1)),
+                        (published_files_month >= 10, published_files_year + 1 == str(year)),
                         (published_files_month < 10, published_files_year == str(year))
                     ])]
         order_by = [selects[0]]
@@ -1997,7 +1997,6 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
     published_ids = sess. \
         query(func.max(PublishedFilesHistory.publish_history_id).label('max_pub_id')). \
         group_by(PublishedFilesHistory.submission_id).cte('published_ids')
-
     # put it all together
     query = sess.query(*selects). \
         select_from(PublishedFilesHistory). \
@@ -2007,10 +2006,8 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
         outerjoin(FREC, FREC.frec_code == Submission.frec_code). \
         filter(*filters). \
         order_by(*order_by)
-
     if distinct:
         query = query.distinct()
-
     # agency filter can only be provided after the base query's been built
     if 'agency' in filters_provided:
         query = agency_filter(sess, query, Submission, Submission, [agency])
@@ -2026,9 +2023,9 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
             results.append({'id': result.reporting_fiscal_year, 'label': str(result.reporting_fiscal_year)})
     elif filters_provided[-1] == 'year':
         for result in query:
-            if result.reporting_fiscal_period == 2:
+            if result.reporting_fiscal_period == 2 and sub_type == 'dabs':
                 period = 'P01-P02'
-            elif result.reporting_fiscal_period % 3 == 0:
+            elif result.reporting_fiscal_period % 3 == 0 and sub_type == 'dabs':
                 period = 'P{}/Q{}'.format(str(result.reporting_fiscal_period).zfill(2),
                                           int(result.reporting_fiscal_period / 3))
             else:
