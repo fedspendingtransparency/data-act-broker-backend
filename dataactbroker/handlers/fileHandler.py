@@ -10,9 +10,10 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import g, current_app
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, Integer
 from sqlalchemy.orm import aliased
-from sqlalchemy.sql.expression import case
+from sqlalchemy.sql.expression import case, cast
+from sqlalchemy.sql import extract
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        get_submissions_in_period)
@@ -1854,20 +1855,19 @@ def list_history(submission):
                                                'certifications': certifications})
 
 
-def file_history_url(submission, file_history_id, is_warning, is_local):
+def file_history_url(file_history_id, is_warning, is_local, submission=None):
     """ Get the signed URL for the specified historical file
 
         Args:
-            submission: submission to get the file history for
             file_history_id: the PublishedFilesHistory ID to get the file from
-            is_warning: a boolean indicating if the file being retrieved is a warning or error file (True for warning)
+            is_warning: a boolean indicating if the file being retrieved is a warning or base file (True for warning)
             is_local: a boolean indicating if the application is being run locally (True for local)
+            submission: submission to get the file history for
 
         Returns:
             A JsonResponse containing a dictionary with the url to the file or a JsonResponse error containing details
             of what went wrong.
     """
-    # TODO: Reassess if we really need to include the submission ID for this, is there a better way to check perms?
     sess = GlobalDB.db().session
 
     file_history = sess.query(PublishedFilesHistory).filter_by(published_files_history_id=file_history_id).one_or_none()
@@ -1875,9 +1875,11 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
     if not file_history:
         return JsonResponse.error(ValueError('Invalid published_files_history_id'), StatusCode.CLIENT_ERROR)
 
-    if file_history.submission_id != submission.submission_id:
-        return JsonResponse.error(ValueError('Requested published_files_history_id does not '
-                                             'match submission_id provided'), StatusCode.CLIENT_ERROR)
+    # TODO: Reassess if we really need to include the submission ID for this, is there a better way to check perms?
+    if submission:
+        if file_history.submission_id != submission.submission_id:
+            return JsonResponse.error(ValueError('Requested published_files_history_id does not '
+                                                 'match submission_id provided'), StatusCode.CLIENT_ERROR)
 
     if is_warning and not file_history.warning_filename:
         return JsonResponse.error(ValueError('History entry has no warning file'), StatusCode.CLIENT_ERROR)
@@ -1905,6 +1907,140 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
                                          method='get_object')
 
     return JsonResponse.create(StatusCode.OK, {'url': url})
+
+
+def list_published_files(sub_type, agency=None, year=None, period=None):
+    """ List all the latest published files if all filters provided. Otherwise, provide the next filter options to be
+        used for the Raw Files page.
+
+        Args:
+            type: must be dabs/fabs
+            agency: the relevant agency code (cgac or frec)
+            year: the relevant year
+            period: the relevant period/month
+
+        Returns:
+            If all filters provided, list of names and published file ids
+                {[name: 'file name', publish_files_history_id: 231}, ...]
+            Otherwise, return the next available options for the next filter level
+                Order: type -> agency -> year -> period
+    """
+    sess = GlobalDB.db().session
+
+    # determine type of request
+    if sub_type not in ['dabs', 'fabs']:
+        raise ResponseException('Type must be either \'dabs\' or \'fabs\'')
+
+    # figure out what to return based on the request
+    filters_provided = []
+    for filter_provided, level in [(sub_type, 'type'), (agency, 'agency'), (year, 'year'), (period, 'period')]:
+        if filter_provided is not None:
+            filters_provided.append(level)
+        else:
+            break
+
+    # figure out the selects/filters based on the request
+    selects = []
+    filters = []
+    order_by = []
+    distinct = True
+    published_files_month = extract('month', PublishedFilesHistory.created_at)
+    published_files_year = extract('year', PublishedFilesHistory.created_at)
+    if 'type' in filters_provided:
+        selects = [
+            case([
+                (FREC.frec_code.isnot(None), FREC.frec_code),
+                (CGAC.cgac_code.isnot(None), CGAC.cgac_code)
+            ]).label('agency_code'),
+            case([
+                (FREC.agency_name.isnot(None), FREC.agency_name),
+                (CGAC.agency_name.isnot(None), CGAC.agency_name)
+            ]).label('agency_name')]
+        filters += [Submission.d2_submission == (sub_type == 'fabs')]
+        order_by = [selects[1]]
+    if 'agency' in filters_provided:
+        selects = [Submission.reporting_fiscal_year if sub_type == 'dabs'
+                   else case([
+                       (published_files_month >= 10, cast(published_files_year + 1, Integer)),
+                       (published_files_month < 10, cast(published_files_year, Integer))
+                   ]).label('reporting_fiscal_year')]
+        # filters added after initial query construction
+        order_by = [selects[0]]
+    if 'year' in filters_provided:
+        selects = [Submission.reporting_fiscal_period if sub_type == 'dabs'
+                   else case([
+                       (published_files_month >= 10, cast(published_files_month - 9, Integer)),
+                       (published_files_month < 10, cast(published_files_month + 3, Integer)),
+                   ]).label('reporting_fiscal_period')]
+        filters += [Submission.reporting_fiscal_year == str(year) if sub_type == 'dabs'
+                    else case([
+                        (published_files_month >= 10, published_files_year + 1 == str(year)),
+                        (published_files_month < 10, published_files_year == str(year))
+                    ])]
+        order_by = [selects[0]]
+    if 'period' in filters_provided:
+        distinct = False
+        selects = [
+            PublishedFilesHistory.published_files_history_id,
+            PublishedFilesHistory.file_type_id,
+            PublishedFilesHistory.filename,
+            Submission.submission_id]
+        filters += [Submission.reporting_fiscal_period == str(period) if sub_type == 'dabs'
+                    else case([
+                        (published_files_month >= 10, published_files_month - 9 == str(period)),
+                        (published_files_month < 10, published_files_month + 3 == str(period))
+                    ]),
+                    PublishedFilesHistory.filename.isnot(None)]
+        order_by = [Submission.submission_id, PublishedFilesHistory.file_type_id]
+
+    # making sure we're only pulling the latest published per submission
+    published_ids = sess. \
+        query(func.max(PublishedFilesHistory.publish_history_id).label('max_pub_id')). \
+        group_by(PublishedFilesHistory.submission_id).cte('published_ids')
+    # put it all together
+    query = sess.query(*selects). \
+        select_from(PublishedFilesHistory). \
+        join(Submission, PublishedFilesHistory.submission_id == Submission.submission_id). \
+        join(published_ids, published_ids.c.max_pub_id == PublishedFilesHistory.publish_history_id).\
+        outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code). \
+        outerjoin(FREC, FREC.frec_code == Submission.frec_code). \
+        filter(*filters). \
+        order_by(*order_by)
+    if distinct:
+        query = query.distinct()
+    # agency filter can only be provided after the base query's been built
+    if 'agency' in filters_provided:
+        query = agency_filter(sess, query, Submission, Submission, [agency])
+
+    # present the results
+    results = []
+    if filters_provided[-1] == 'type':
+        for result in query:
+            results.append({'id': result.agency_code,
+                            'label': '{} - {}'.format(result.agency_code, result.agency_name)})
+    elif filters_provided[-1] == 'agency':
+        for result in query:
+            results.append({'id': result.reporting_fiscal_year, 'label': str(result.reporting_fiscal_year)})
+    elif filters_provided[-1] == 'year':
+        for result in query:
+            if result.reporting_fiscal_period == 2 and sub_type == 'dabs':
+                period = 'P01-P02'
+            elif result.reporting_fiscal_period % 3 == 0 and sub_type == 'dabs':
+                period = 'P{}/Q{}'.format(str(result.reporting_fiscal_period).zfill(2),
+                                          int(result.reporting_fiscal_period / 3))
+            else:
+                period = 'P{}'.format(str(result.reporting_fiscal_period).zfill(2))
+            results.append({'id': result.reporting_fiscal_period, 'label': period})
+    else:
+        for result in query:
+            results.append({
+                'id': result.published_files_history_id,
+                'label': os.path.basename(result.filename),
+                'filetype': FILE_TYPE_DICT_LETTER[result.file_type_id] if result.file_type_id else 'comments',
+                'submission_id': result.submission_id
+            })
+
+    return JsonResponse.create(StatusCode.OK, results)
 
 
 def serialize_submission(submission):
