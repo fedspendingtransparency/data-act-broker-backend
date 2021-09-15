@@ -133,6 +133,14 @@ class ValidationManager:
                 self.short_to_daims_dict[col.file_id] = {}
             self.short_to_daims_dict[col.file_id][col.name_short] = col.daims_name
 
+        # accounting for the column duns/uei <-> mismatch
+        if self.short_to_long_dict:
+            self.short_to_long_dict[FILE_TYPE_DICT['fabs']]['awardee_or_recipient_uniqu'] = 'awardeeorrecipientduns'
+            self.short_to_long_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'awardeeorrecipientuei'
+        if self.short_to_daims_dict:
+            self.short_to_daims_dict[FILE_TYPE_DICT['fabs']]['awardee_or_recipient_uniqu'] = 'AwardeeOrRecipientDUNS'
+            self.short_to_daims_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'AwardeeOrRecipientUEI'
+
     def get_file_name(self, path):
         """ Return full path of error report based on provided name
 
@@ -770,6 +778,10 @@ class ValidationManager:
         chunk_df['updated_at'] = now
         chunk_df['job_id'] = self.job_id
         chunk_df['submission_id'] = self.submission_id
+        if self.is_fabs:
+            chunk_df['awardee_or_recipient_uniqu'] = chunk_df['awardee_or_recipient_duns']
+            chunk_df['uei'] = chunk_df['awardee_or_recipient_uei']
+            chunk_df.drop(columns=['awardee_or_recipient_duns', 'awardee_or_recipient_uei'], axis=1, inplace=True)
 
         insert_dataframe(chunk_df, self.model.__table__.name, sess.connection(), method='copy')
 
