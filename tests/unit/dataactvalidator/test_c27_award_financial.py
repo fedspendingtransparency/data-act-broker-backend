@@ -65,6 +65,11 @@ def test_success(database):
                                              disaster_emergency_fund_code='n', program_activity_code=None,
                                              program_activity_name=None, object_class=None,
                                              by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+    caf_all_9 = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='aBcD',
+                                               uri='eFgH', piid='mNoP', parent_award_id='qRsT',
+                                               disaster_emergency_fund_code='9', program_activity_code='c',
+                                               program_activity_name=None, object_class=None,
+                                               by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     caf_pac = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='hiJK',
                                              uri=None, piid=None, parent_award_id=None,
                                              disaster_emergency_fund_code='n', program_activity_code='c',
@@ -85,7 +90,7 @@ def test_success(database):
                                             disaster_emergency_fund_code='n', program_activity_code=None,
                                             program_activity_name=None, object_class=None,
                                             by_direct_reimbursable_fun='r', gross_outlay_amount_by_awa_cpe=5)
-    database.session.add_all([sub_1, caf_fain, caf_uri, caf_piid, caf_paid, caf_zero, caf_null, caf_tas, caf_pac,
+    database.session.add_all([sub_1, caf_fain, caf_uri, caf_piid, caf_paid, caf_zero, caf_null, caf_tas, caf_all_9,
                               caf_pac, caf_pan, caf_obj, caf_dr])
     database.session.commit()
 
@@ -120,6 +125,10 @@ def test_success(database):
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                    program_activity_code=None, program_activity_name=None, object_class=None,
                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+    af_9_match = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
+                                       piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
+                                       program_activity_code=None, program_activity_name=None, object_class=None,
+                                       by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     af_pac = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='hiJK',
                                    uri=None, piid=None, parent_award_id=None,
                                    disaster_emergency_fund_code='n', program_activity_code='c',
@@ -144,7 +153,7 @@ def test_success(database):
     af_bonus = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='something_different')
 
     errors = number_of_errors(_FILE, database, models=[af_fain, af_uri, af_piid, af_paid, af_zero, af_null, af_tas,
-                                                       af_pac, af_pan, af_obj, af_dr, af_bonus],
+                                                       af_9_match, af_pac, af_pan, af_obj, af_dr, af_bonus],
                               submission=sub_q)
     assert errors == 0
 
@@ -179,6 +188,11 @@ def test_success(database):
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                    program_activity_code=None, program_activity_name=None, object_class=None,
                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+    # matches the DEFC of 9 with a different DEFC
+    af_9_match = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
+                                       piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
+                                       program_activity_code=None, program_activity_name=None, object_class=None,
+                                       by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     af_pac = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='hiJK',
                                    uri=None, piid=None, parent_award_id=None,
                                    disaster_emergency_fund_code='n', program_activity_code='c',
@@ -203,7 +217,7 @@ def test_success(database):
     af_bonus = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='something_different')
 
     errors = number_of_errors(_FILE, database, models=[af_fain, af_uri, af_piid, af_paid, af_zero, af_null, af_tas,
-                                                       af_pac, af_pan, af_obj, af_dr, af_bonus],
+                                                       af_9_match, af_pac, af_pan, af_obj, af_dr, af_bonus],
                               submission=sub_p)
     assert errors == 0
 
@@ -230,6 +244,10 @@ def test_success(database):
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                    program_activity_code=None, program_activity_name=None, object_class=None,
                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+    af_9_match = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
+                                       piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
+                                       program_activity_code=None, program_activity_name=None, object_class=None,
+                                       by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     af_pac = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='hiJK',
                                    uri=None, piid=None, parent_award_id=None,
                                    disaster_emergency_fund_code='n', program_activity_code='c',
@@ -252,7 +270,7 @@ def test_success(database):
                                   by_direct_reimbursable_fun='r', gross_outlay_amount_by_awa_cpe=4)
 
     errors = number_of_errors(_FILE, database, models=[af_fain, af_uri, af_piid, af_paid, af_tas, af_pac, af_pan,
-                                                       af_obj, af_dr],
+                                                       af_obj, af_dr, af_9_match],
                               submission=sub_4)
     assert errors == 0
 
@@ -285,15 +303,20 @@ def test_failure(database):
                                               disaster_emergency_fund_code='O', program_activity_code=None,
                                               program_activity_name=None, object_class=None,
                                               by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
-    database.session.add_all([sub_1, caf_fain, caf_defc])
+    caf_defc_9 = CertifiedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd',
+                                                uri=None, piid=None, parent_award_id='testingHere',
+                                                disaster_emergency_fund_code='9', program_activity_code=None,
+                                                program_activity_name=None, object_class=None,
+                                                gross_outlay_amount_by_awa_cpe=5)
+    database.session.add_all([sub_1, caf_fain, caf_defc, caf_defc_9])
     database.session.commit()
 
-    # submission missing previous period value
+    # submission missing previous period value, missing value of 9 still registers an error
     sub_2 = SubmissionFactory(submission_id=2, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
                               frec_code=None, is_quarter_format=False, d2_submission=False)
 
     errors = number_of_errors(_FILE, database, models=[], submission=sub_2)
-    assert errors == 2
+    assert errors == 3
 
     # submission with a row that has similar but not exact values (has a uri when the original didn't)
     sub_3 = SubmissionFactory(submission_id=3, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
@@ -306,9 +329,13 @@ def test_failure(database):
                                     piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='O',
                                     program_activity_code=None, program_activity_name=None, object_class=None,
                                     by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+    af_defc_9 = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri=None,
+                                      piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='9',
+                                      program_activity_code=None, program_activity_name=None, object_class=None,
+                                      by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
 
-    errors = number_of_errors(_FILE, database, models=[af_other, af_defc], submission=sub_3)
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[af_other, af_defc, af_defc_9], submission=sub_3)
+    assert errors == 2
 
     # submission with a row that matches but has gross outlay of NULL
     sub_4 = SubmissionFactory(submission_id=4, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
@@ -317,10 +344,14 @@ def test_failure(database):
                                     piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                     program_activity_code=None, program_activity_name=None, object_class=None,
                                     by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=None)
+    af_defc_9 = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
+                                      piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='n',
+                                      program_activity_code=None, program_activity_name=None, object_class=None,
+                                      by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     af_defc = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
                                     piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='o',
                                     program_activity_code=None, program_activity_name=None, object_class=None,
                                     by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
 
-    errors = number_of_errors(_FILE, database, models=[af_null, af_defc], submission=sub_4)
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[af_null, af_defc, af_defc_9], submission=sub_4)
+    assert errors == 2

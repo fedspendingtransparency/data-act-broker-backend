@@ -1093,17 +1093,17 @@ def test_file_history_url(database, monkeypatch):
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
 
     # checking for local response to non-warning file
-    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, False, True)
+    json_response = fileHandler.file_history_url(file_hist.published_files_history_id, False, True, sub)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == '/path/to/file_d2.csv'
 
     # local response to warning file
-    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, True, True)
+    json_response = fileHandler.file_history_url(file_hist.published_files_history_id, True, True, sub)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == '/path/to/warning_file_cross.csv'
 
     # generic test to make sure it's reaching the s3 handler properly
-    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, False, False)
+    json_response = fileHandler.file_history_url(file_hist.published_files_history_id, False, False, sub)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
 
