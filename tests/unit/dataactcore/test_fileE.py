@@ -9,8 +9,10 @@ from tests.unit.dataactcore.factories.domain import DunsFactory
 def replicate_file_e_results(duns):
     """ Helper function for subaward results """
     return OrderedDict([
+        ('AwardeeOrRecipientUEI', duns.uei),
         ('AwardeeOrRecipientUniqueIdentifier', duns.awardee_or_recipient_uniqu),
         ('AwardeeOrRecipientLegalEntityName', duns.legal_business_name),
+        ('UltimateParentUEI', duns.ultimate_parent_uei),
         ('UltimateParentUniqueIdentifier', duns.ultimate_parent_unique_ide),
         ('UltimateParentLegalEntityName', duns.ultimate_parent_legal_enti),
         ('HighCompOfficer1FullName', duns.high_comp_officer1_full_na),

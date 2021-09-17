@@ -848,6 +848,8 @@ class AwardProcurement(Base):
     total_obligated_amount = Column(Text)
     last_modified = Column(Text)
     additional_reporting = Column(Text)
+    awardee_or_recipient_uei = Column(Text, index=True)
+    ultimate_parent_uei = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1239,6 +1241,8 @@ class CertifiedAwardProcurement(Base):
     total_obligated_amount = Column(Text)
     last_modified = Column(Text)
     additional_reporting = Column(Text)
+    awardee_or_recipient_uei = Column(Text)
+    ultimate_parent_uei = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
