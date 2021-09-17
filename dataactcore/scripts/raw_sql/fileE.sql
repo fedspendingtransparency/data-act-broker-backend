@@ -10,8 +10,10 @@ WITH submission_duns_{0} AS
         WHERE submission_id = {0}) AS temp)
 SELECT
     DISTINCT ON (awardee_or_recipient_uniqu)
+    uei AS "AwardeeOrRecipientUEI",
     awardee_or_recipient_uniqu AS "AwardeeOrRecipientUniqueIdentifier",
     legal_business_name AS "AwardeeOrRecipientLegalEntityName",
+    ultimate_parent_uei AS "UltimateParentUEI",
     ultimate_parent_unique_ide AS "UltimateParentUniqueIdentifier",
     ultimate_parent_legal_enti AS "UltimateParentLegalEntityName",
     high_comp_officer1_full_na AS "HighCompOfficer1FullName",
