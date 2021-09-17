@@ -29,6 +29,8 @@ class _FSRSAttributes:
     top_paid_amount_4 = Column(String, nullable=True)
     top_paid_fullname_5 = Column(String, nullable=True)
     top_paid_amount_5 = Column(String, nullable=True)
+    uei = Column(String)
+    ultimate_parent_uei = Column(String)
 
 
 class _ContractAttributes(_FSRSAttributes):
@@ -165,9 +167,11 @@ class Subaward(Base):
     funding_office_code = Column(Text)
     funding_office_name = Column(Text)
     awardee_or_recipient_uniqu = Column(Text, index=True)
+    awardee_or_recipient_uei = Column(Text, index=True)
     awardee_or_recipient_legal = Column(Text)
     dba_name = Column(Text)
     ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_uei = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
     legal_entity_country_code = Column(Text)
     legal_entity_country_name = Column(Text)
@@ -199,9 +203,11 @@ class Subaward(Base):
     subaward_amount = Column(Text)
     sub_action_date = Column(Text, index=True)
     sub_awardee_or_recipient_uniqu = Column(Text, index=True)
+    sub_awardee_or_recipient_uei = Column(Text, index=True)
     sub_awardee_or_recipient_legal = Column(Text)
     sub_dba_name = Column(Text)
     sub_ultimate_parent_unique_ide = Column(Text)
+    sub_ultimate_parent_uei = Column(Text)
     sub_ultimate_parent_legal_enti = Column(Text)
     sub_legal_entity_country_code = Column(Text)
     sub_legal_entity_country_name = Column(Text)
