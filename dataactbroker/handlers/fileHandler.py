@@ -2059,14 +2059,17 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 filename = '{}-{}-{}-Agency_Comments.txt'.format(year, period, agency_name)
                 agency_comments_url = os.path.join(CONFIG_BROKER['usas_public_submissions_url'], filename)
 
-                r = requests.head(agency_comments_url)
-                if r.status_code == requests.codes.ok:
-                    results.append({
-                        'id': None,
-                        'label': filename,
-                        'filetype': 'comments',
-                        'submission_id': result.submission_id
-                    })
+                try:
+                    r = requests.head(agency_comments_url)
+                    if r.status_code == requests.codes.ok:
+                        results.append({
+                            'id': None,
+                            'label': filename,
+                            'filetype': 'comments',
+                            'submission_id': result.submission_id
+                        })
+                except Exception as e:
+                    logger.exception(e)
                 comments_file_check = True
 
     return JsonResponse.create(StatusCode.OK, results)
