@@ -89,8 +89,9 @@ broker:
     sf_133_folder: config
     sf_133_file: sf_133.csv
 
-    # Link to public reference data provided by USAspending.gov
+    # Links to public files provided by USAspending.gov
     usas_public_reference_url: new-url.com
+    usas_public_submissions_url: new-url.com
 
     # link to help for failed MAX login
     max_help_url: https://max_help_url.gov
