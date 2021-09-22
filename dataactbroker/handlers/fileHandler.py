@@ -2050,7 +2050,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 'filetype': FILE_TYPE_DICT_LETTER[result.file_type_id],
                 'submission_id': result.submission_id
             })
-            if not comments_file_check:
+            if sub_type == 'dabs' and not comments_file_check:
                 agency_name = '{}_{}'.format(result.agency_code, result.agency_name)
                 if result.is_quarter_format:
                     period = 'Q{}'.format(int(period / 3))
