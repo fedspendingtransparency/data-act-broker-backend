@@ -2043,7 +2043,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
             results.append({'id': result.reporting_fiscal_period, 'label': period})
     else:
         agency_name = None
-        period = None
+        display_period = None
         submission_id = None
         for result in query:
             results.append({
@@ -2054,12 +2054,12 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
             })
             agency_name = '{}_{}'.format(result.agency_code, result.agency_name)
             if result.is_quarter_format:
-                period = 'Q{}'.format(int(period / 3))
+                display_period = 'Q{}'.format(int(period / 3))
             else:
-                period = 'P{}'.format(str(period).zfill(2))
+                display_period = 'P{}'.format(str(period).zfill(2))
             submission_id = result.submission_id
         if sub_type == 'dabs':
-            comments_filename = '{}-{}-{}-Agency_Comments.txt'.format(year, period, agency_name)
+            comments_filename = '{}-{}-{}-Agency_Comments.txt'.format(year, display_period, agency_name)
             agency_comments_url = os.path.join(CONFIG_BROKER['usas_public_submissions_url'], comments_filename)
 
             try:
