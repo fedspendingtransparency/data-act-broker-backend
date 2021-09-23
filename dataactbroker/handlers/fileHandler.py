@@ -2042,7 +2042,9 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 period = 'P{}'.format(str(result.reporting_fiscal_period).zfill(2))
             results.append({'id': result.reporting_fiscal_period, 'label': period})
     else:
-        comments_file_check = False
+        agency_name = None
+        period = None
+        submission_id = None
         for result in query:
             results.append({
                 'id': result.published_files_history_id,
@@ -2050,27 +2052,27 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 'filetype': FILE_TYPE_DICT_LETTER[result.file_type_id],
                 'submission_id': result.submission_id
             })
-            if sub_type == 'dabs' and not comments_file_check:
-                agency_name = '{}_{}'.format(result.agency_code, result.agency_name)
-                if result.is_quarter_format:
-                    period = 'Q{}'.format(int(period / 3))
-                else:
-                    period = 'P{}'.format(str(period).zfill(2))
-                filename = '{}-{}-{}-Agency_Comments.txt'.format(year, period, agency_name)
-                agency_comments_url = os.path.join(CONFIG_BROKER['usas_public_submissions_url'], filename)
+            agency_name = '{}_{}'.format(result.agency_code, result.agency_name)
+            if result.is_quarter_format:
+                period = 'Q{}'.format(int(period / 3))
+            else:
+                period = 'P{}'.format(str(period).zfill(2))
+            submission_id = result.submission_id
+        if sub_type == 'dabs':
+            comments_filename = '{}-{}-{}-Agency_Comments.txt'.format(year, period, agency_name)
+            agency_comments_url = os.path.join(CONFIG_BROKER['usas_public_submissions_url'], comments_filename)
 
-                try:
-                    r = requests.head(agency_comments_url)
-                    if r.status_code == requests.codes.ok:
-                        results.append({
-                            'id': None,
-                            'label': filename,
-                            'filetype': 'comments',
-                            'submission_id': result.submission_id
-                        })
-                except Exception as e:
-                    logger.exception(e)
-                comments_file_check = True
+            try:
+                r = requests.head(agency_comments_url)
+                if r.status_code == requests.codes.ok:
+                    results.append({
+                        'id': None,
+                        'label': comments_filename,
+                        'filetype': 'comments',
+                        'submission_id': submission_id
+                    })
+            except Exception as e:
+                logger.exception(e)
 
     return JsonResponse.create(StatusCode.OK, results)
 
