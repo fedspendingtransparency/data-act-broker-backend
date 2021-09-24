@@ -74,6 +74,7 @@ If all are provided, results will be the files:
         - year for years
         - fiscal year period for periods
         - `published_files_history_id` for files
+        - `null` for agency comments files
     - `label`: (string) the proper display name for the result
     - `filetype`: (string) the file type letter/name the file represents (only for the deepest level)
     - `submission_id`: (int) the submission_id of the file's submission (only for the deepest level)
