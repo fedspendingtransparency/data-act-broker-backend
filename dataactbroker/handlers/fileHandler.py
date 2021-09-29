@@ -1984,13 +1984,23 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
             PublishedFilesHistory.published_files_history_id,
             PublishedFilesHistory.file_type_id,
             PublishedFilesHistory.filename,
-            Submission.submission_id]
+            Submission.submission_id,
+            case([
+                (FREC.frec_code.isnot(None), FREC.frec_code),
+                (CGAC.cgac_code.isnot(None), CGAC.cgac_code)
+            ]).label('agency_code'),
+            case([
+                (FREC.agency_name.isnot(None), FREC.agency_name),
+                (CGAC.agency_name.isnot(None), CGAC.agency_name)
+            ]).label('agency_name'),
+            Submission.is_quarter_format]
         filters += [Submission.reporting_fiscal_period == str(period) if sub_type == 'dabs'
                     else case([
                         (published_files_month >= 10, published_files_month - 9 == str(period)),
                         (published_files_month < 10, published_files_month + 3 == str(period))
                     ]),
-                    PublishedFilesHistory.filename.isnot(None)]
+                    PublishedFilesHistory.filename.isnot(None),
+                    PublishedFilesHistory.file_type_id.isnot(None)]
         order_by = [Submission.submission_id, PublishedFilesHistory.file_type_id]
 
     # making sure we're only pulling the latest published per submission
@@ -2032,13 +2042,37 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 period = 'P{}'.format(str(result.reporting_fiscal_period).zfill(2))
             results.append({'id': result.reporting_fiscal_period, 'label': period})
     else:
+        agency_name = None
+        display_period = None
+        submission_id = None
         for result in query:
             results.append({
                 'id': result.published_files_history_id,
                 'label': os.path.basename(result.filename),
-                'filetype': FILE_TYPE_DICT_LETTER[result.file_type_id] if result.file_type_id else 'comments',
+                'filetype': FILE_TYPE_DICT_LETTER[result.file_type_id],
                 'submission_id': result.submission_id
             })
+            agency_name = '{}_{}'.format(result.agency_code, result.agency_name)
+            if result.is_quarter_format:
+                display_period = 'Q{}'.format(int(period / 3))
+            else:
+                display_period = 'P{}'.format(str(period).zfill(2))
+            submission_id = result.submission_id
+        if sub_type == 'dabs':
+            comments_filename = '{}-{}-{}-Agency_Comments.txt'.format(year, display_period, agency_name)
+            agency_comments_url = os.path.join(CONFIG_BROKER['usas_public_submissions_url'], comments_filename)
+
+            try:
+                r = requests.head(agency_comments_url)
+                if r.status_code == requests.codes.ok:
+                    results.append({
+                        'id': None,
+                        'label': comments_filename,
+                        'filetype': 'comments',
+                        'submission_id': submission_id
+                    })
+            except Exception as e:
+                logger.exception(e)
 
     return JsonResponse.create(StatusCode.OK, results)
 
