@@ -3,8 +3,9 @@ ActionDate,action_date,ASP: Conditional per Validation Rule,string,8
 ActionType,action_type,ASP: Conditional per Validation Rule,string,1
 AssistanceType,assistance_type,ASP: Conditional per Validation Rule,string,2
 AwardDescription,award_description,ASP: Conditional per Validation Rule,string,18000
+AwardeeOrRecipientDUNS,awardee_or_recipient_duns,ASP: Conditional per Validation Rule,string,9
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Conditional per Validation Rule,string,120
-AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,ASP: Conditional per Validation Rule,string,9
+AwardeeOrRecipientUEI,awardee_or_recipient_uei,ASP: Conditional per Validation Rule,string,12
 AwardingOfficeCode,awarding_office_code,ASP: Optional,string,6
 AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Conditional per Validation Rule,string,4
 AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25
@@ -16,7 +17,10 @@ FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional 
 FAIN,fain,ASP: Conditional per Validation Rule,string,30
 FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20
 FundingOfficeCode,funding_office_code,ASP: Optional,string,6
+FundingOpportunityGoalsText,funding_opportunity_goals,ASP: Optional,string,18000
+FundingOpportunityNumber,funding_opportunity_number,ASP: Optional,string,40
 FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,4
+IndirectCostFederalShareAmount,indirect_federal_sharing,ASP: Optional,numeric,20
 LegalEntityAddressLine1,legal_entity_address_line1,ASP: Conditional per Validation Rule,string,150
 LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,150
 LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Conditional per Validation Rule,string,2
