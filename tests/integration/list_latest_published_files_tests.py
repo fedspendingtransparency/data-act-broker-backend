@@ -270,12 +270,6 @@ class ListLatestPublishedFileTests(BaseTestAPI):
                 'filetype': 'F',
                 'submission_id': self.dabs_sub_pub_twice
             },
-            {
-                'id': 16,
-                'label': 'comments.csv',
-                'filetype': 'comments',
-                'submission_id': self.dabs_sub_pub_twice
-            }
         ]
         response = self.get_response(type='dabs', agency='111', year='2020', period=6)
         self.assertEqual(response.status_code, 200)
