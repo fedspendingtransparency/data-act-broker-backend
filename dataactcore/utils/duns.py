@@ -605,8 +605,14 @@ def is_nonexistent_file_error(e):
             bool whether the error is a nonexistent file http error
     """
     no_file_msg = 'The File does not exist with the provided parameters.'
-    return (e.response is not None and e.response.content is not None
-            and json.loads(e.response.content).get('detail') == no_file_msg)
+    nonexistent_file_error = False
+    if e.response is not None and e.response.content is not None:
+        logger.info(e.response.content)
+        try:
+            nonexistent_file_error = (json.loads(e.response.content).get('detail') == no_file_msg)
+        except json.decoder.JSONDecodeError:
+            pass
+    return nonexistent_file_error
 
 
 def give_up(e):
