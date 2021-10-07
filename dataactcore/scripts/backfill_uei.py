@@ -20,6 +20,6 @@ if __name__ == '__main__':
 
         logger.info('Backfilling empty uei and ultimate_parent_uei in the DUNS table using the API.')
         backfill_uei(sess, DUNS)
-        logger.info('Backfill completed'.format(affected))
+        logger.info('Backfill completed')
 
         sess.close()
