@@ -719,6 +719,9 @@ def get_duns_props_from_sam(duns_list):
                                 exec_comp['compensationAmount']
                 continue
             duns_props_dict[duns_props_name] = value
+        for k, v in duns_props_dict.items():
+            if isinstance(v, str) and v.lower() == 'currently not available':
+                duns_props_dict[k] = None
         duns_props.append(duns_props_dict)
     return pd.DataFrame(duns_props)
 
