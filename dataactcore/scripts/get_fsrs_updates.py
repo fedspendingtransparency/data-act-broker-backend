@@ -109,6 +109,7 @@ def main():
         ob.awarding_sub_tier_agency_c AS agency_code,
         ob.awardee_or_recipient_uniqu AS duns_no,
         NULL AS dunsplus4,
+        ob.uei AS uei,
         ob.place_of_performance_city AS principal_place_cc,
         CASE WHEN UPPER(LEFT(ob.place_of_performance_code, 2)) ~ '[A-Z]{2}'
             THEN UPPER(LEFT(ob.place_of_performance_code, 2))
@@ -132,7 +133,7 @@ def main():
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
         headers = ['federal_award_id', 'status', 'eligibility', 'sai_number', 'agency_code', 'duns_no', 'dunsplus4',
-                   'principal_place_cc', 'principal_place_state_code', 'principal_place_country_code',
+                   'uei', 'principal_place_cc', 'principal_place_state_code', 'principal_place_country_code',
                    'principal_place_zip', 'cfda_program_num', 'starting_date', 'ending_date',
                    'total_fed_funding_amount', 'base_obligation_date', 'project_description', 'last_modified_date']
         out_csv.writerow(headers)
