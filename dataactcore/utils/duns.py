@@ -607,7 +607,6 @@ def is_nonexistent_file_error(e):
     no_file_msg = 'The File does not exist with the provided parameters.'
     nonexistent_file_error = False
     if e.response is not None and e.response.content is not None:
-        logger.info(e.response.content)
         try:
             nonexistent_file_error = (json.loads(e.response.content).get('detail') == no_file_msg)
         except json.decoder.JSONDecodeError:
@@ -791,5 +790,3 @@ def backfill_uei(sess, table):
         df = update_duns_props(df)
         df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
         update_duns(sess, df, table_name=table.__table__.name)
-        # TODO: REMOVE AFTER TESTING
-        break
