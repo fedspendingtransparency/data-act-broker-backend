@@ -8,7 +8,7 @@ import requests
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from ratelimit import limits, sleep_and_retry
 from backoff import on_exception, expo
 
@@ -28,8 +28,8 @@ EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date',
                     'last_exec_comp_mod_date']
 LOAD_BATCH_SIZE = 10000
 
-# SAM's Rate Limit is 10k requests/day
-RATE_LIMIT_CALLS = 10000
+# SAM's Rate Limit is 259,200 requests/day
+RATE_LIMIT_CALLS = 259000
 RATE_LIMIT_PERIOD = 24 * 60 * 60  # seconds
 
 
@@ -770,7 +770,7 @@ def backfill_uei(sess, table):
             sess: database connection
             table: table to backfill
     """
-    duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter_by(uei=None, ultimate_parent_uei=None).all()
+    duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter_by(or_(uei=None, ultimate_parent_uei=None)).all()
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
         df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
         df = df.append(duns_batch)
