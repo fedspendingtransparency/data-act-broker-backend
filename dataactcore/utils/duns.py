@@ -572,7 +572,10 @@ def request_sam_entity_api(duns_list):
     }
     content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], request_type='post', accept_type='json',
                                params=params)
-    return json.loads(content)['entityData']
+    entity_data = []
+    if content is not None:
+        entity_data = json.loads(content)['entityData']
+    return entity_data
 
 
 def request_sam_csv_api(root_dir, file_name):
