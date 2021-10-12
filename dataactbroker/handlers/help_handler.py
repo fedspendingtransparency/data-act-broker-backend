@@ -9,7 +9,7 @@ def get_data_sources():
             An object containing the names of the data sources as keys and the dates they were last loaded as values
     """
     sess = GlobalDB.db().session
-    load_dates = sess.query(ExternalDataLoadDate.last_load_date.label('load_date'),
+    load_dates = sess.query(ExternalDataLoadDate.last_load_date_end.label('load_date'),
                             ExternalDataType.name.label('name')).\
         join(ExternalDataType, ExternalDataLoadDate.external_data_type_id == ExternalDataType.external_data_type_id).\
         all()
