@@ -293,7 +293,8 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
                        if col not in ['created_at', 'updated_at', 'deactivation_date', 'awardee_or_recipient_uniqu']]
         if table_name == 'duns':
             update_cols.append('historic = FALSE')
-    update_cols.append('updated_at = NOW()')
+    if table_name in ['duns', 'historic_duns']:
+        update_cols.append('updated_at = NOW()')
     update_cols = ', '.join(update_cols)
     update_sql = """
         UPDATE {table_name}
