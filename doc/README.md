@@ -84,6 +84,7 @@ Domain routes are primarily used to provide domain information, such as lists of
 
 - [list\_agencies](./api_docs/domain/list_agencies.md)
 - [list\_all\_agencies](./api_docs/domain/list_all_agencies.md)
+- [list\_data\_sources](./api_docs/domain/list_data_sources.md)
 - [list\_sub\_tier\_agencies](./api_docs/domain/list_sub_tier_agencies.md)
 
 ### File Routes

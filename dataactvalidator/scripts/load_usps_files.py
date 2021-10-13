@@ -56,7 +56,7 @@ def get_file_info(sess, download_list_response_body):
 
     fulfilled_date = datetime.strptime(latest_file['fulfilled'], '%Y-%m-%d')
 
-    if last_load_date_obj and last_load_date_obj.last_load_date >= fulfilled_date:
+    if last_load_date_obj and last_load_date_obj.last_load_date_start >= fulfilled_date:
         # if there is a last load date, check it against the latest file's fulfilled date
         # if newer file not found, exit immediately with the status code of 3 which means nothing was executed
         logger.info('Latest file already loaded. No further action will be taken. Exiting...')
@@ -373,7 +373,8 @@ def main(sess):
             )
             sess.add(new_external_data_load_date)
         else:
-            last_load_date_obj.last_load_date = file_fulfilled_date
+            last_load_date_obj.last_load_date_start = file_fulfilled_date
+            last_load_date_obj.last_load_date_end = file_fulfilled_date
 
 
 if __name__ == '__main__':

@@ -79,7 +79,7 @@ def get_stored_pa_last_upload():
         # and ideally any time the data might have been wiped
         last_stored = datetime.datetime.utcfromtimestamp(0)
     else:
-        last_stored = last_stored_obj.last_load_date
+        last_stored = last_stored_obj.last_load_date_start
     return last_stored
 
 
@@ -94,10 +94,11 @@ def set_stored_pa_last_upload(load_datetime):
         external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload']).one_or_none()
     if not last_stored_obj:
         last_stored_obj = ExternalDataLoadDate(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload'],
-                                               last_load_date=load_datetime)
+                                               last_load_date_start=load_datetime, last_load_date_end=load_datetime)
         sess.add(last_stored_obj)
     else:
-        last_stored_obj.last_load_date = load_datetime
+        last_stored_obj.last_load_date_start = load_datetime
+        last_stored_obj.last_load_date_end = load_datetime
     sess.commit()
 
 
