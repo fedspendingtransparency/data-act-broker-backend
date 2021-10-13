@@ -8,7 +8,7 @@ import requests
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from ratelimit import limits, sleep_and_retry
 from backoff import on_exception, expo
 
@@ -28,8 +28,8 @@ EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date',
                     'last_exec_comp_mod_date']
 LOAD_BATCH_SIZE = 10000
 
-# SAM's Rate Limit is 10k requests/day
-RATE_LIMIT_CALLS = 10000
+# SAM's Rate Limit is 259,200 requests/day
+RATE_LIMIT_CALLS = 259000
 RATE_LIMIT_PERIOD = 24 * 60 * 60  # seconds
 
 
@@ -572,7 +572,10 @@ def request_sam_entity_api(duns_list):
     }
     content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], request_type='post', accept_type='json',
                                params=params)
-    return json.loads(content)['entityData']
+    entity_data = []
+    if content is not None:
+        entity_data = json.loads(content)['entityData']
+    return entity_data
 
 
 def request_sam_csv_api(root_dir, file_name):
@@ -602,7 +605,13 @@ def is_nonexistent_file_error(e):
             bool whether the error is a nonexistent file http error
     """
     no_file_msg = 'The File does not exist with the provided parameters.'
-    return e.response is not None and (json.loads(e.response.content).get('detail') == no_file_msg)
+    nonexistent_file_error = False
+    if e.response is not None and e.response.content is not None:
+        try:
+            nonexistent_file_error = (json.loads(e.response.content).get('detail') == no_file_msg)
+        except json.decoder.JSONDecodeError:
+            pass
+    return nonexistent_file_error
 
 
 def give_up(e):
@@ -719,6 +728,9 @@ def get_duns_props_from_sam(duns_list):
                                 exec_comp['compensationAmount']
                 continue
             duns_props_dict[duns_props_name] = value
+        for k, v in duns_props_dict.items():
+            if isinstance(v, str) and v.lower() == 'currently not available':
+                duns_props_dict[k] = None
         duns_props.append(duns_props_dict)
     return pd.DataFrame(duns_props)
 
@@ -770,7 +782,8 @@ def backfill_uei(sess, table):
             sess: database connection
             table: table to backfill
     """
-    duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter_by(uei=None, ultimate_parent_uei=None).all()
+    duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter(
+        or_(DUNS.uei.is_(None), DUNS.ultimate_parent_uei.is_(None))).all()
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
         df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
         df = df.append(duns_batch)
