@@ -23,4 +23,5 @@ Each key is the name of an external data source. The value associated with the k
 - `program_activity_upload`
 
 ## Errors
-N/A
+
+- 401: Login required
