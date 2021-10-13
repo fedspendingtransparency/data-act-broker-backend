@@ -46,7 +46,7 @@ def backfill_uei_crosswalk(sess, table_name):
         FROM {table_name}
         WHERE uei IS NULL;
     """.format(table_name=table_name)
-    duns_to_update = sess.execute(blank_uei_query).fetchall()
+    duns_to_update = [row['awardee_or_recipient_uniqu'] for row in sess.execute(blank_uei_query).fetchall()]
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
         df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
         df = df.append(duns_batch)
