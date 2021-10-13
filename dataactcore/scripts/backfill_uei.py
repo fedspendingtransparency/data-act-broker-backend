@@ -48,8 +48,8 @@ def backfill_uei_crosswalk(sess, table_name):
     """.format(table_name=table_name)
     duns_to_update = [row['awardee_or_recipient_uniqu'] for row in sess.execute(blank_uei_query).fetchall()]
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
-        df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
-        df = df.append(duns_batch)
+        df = pd.DataFrame()
+        df['awardee_or_recipient_uniqu'] = duns_batch
         df = update_duns_props(df, api='iqaas')
         df = df[['awardee_or_recipient_uniqu', 'uei']]
         update_duns(sess, df, table_name=table_name)
