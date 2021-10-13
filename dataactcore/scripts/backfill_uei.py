@@ -66,7 +66,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description='Get data from SAM and backfill uei')
     parser.add_argument("-m", "--method", choices=['duns', 'crosswalk'], default='crosswalk',
                         help='Select method of backfilling (duns table, uei crosswalk table)')
-    parser.add_argument("-ct", "--crosswalk-table", default='uei-crosswalk',
+    parser.add_argument("-ct", "--crosswalk_table", default='uei-crosswalk',
                         help='Name of the crosswalk table to backfill')
     return parser
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     method = args.method
-    crosswalk_table = args.method
+    crosswalk_table = args.crosswalk_table
 
     with create_app().app_context():
         sess = GlobalDB.db().session
