@@ -252,23 +252,21 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
         Args:
             sess: database connection
             duns_data: pandas dataframe representing duns data
-            table_name: the table to update ('duns', 'historic_duns')
+            table_name: the table to update (ex. 'duns', 'historic_duns')
             metrics: dictionary representing metrics of the script
             deletes: whether the data provided contains only delete records
 
         Returns:
             list of DUNS updated
     """
-    if table_name not in ('duns', 'historic_duns'):
-        raise ValueError('table argument must be \'duns\' or \'historic_duns\'')
     if not metrics:
         metrics = {
             'added_duns': [],
             'updated_duns': []
         }
 
-    tmp_name = 'temp_duns_update' if table_name == 'duns' else 'temp_historic_duns_update'
-    tmp_abbr = 'tdu' if table_name == 'duns' else 'thdu'
+    tmp_name = 'temp_{}_update'.format(table_name)
+    tmp_abbr = 'tu'
     create_temp_duns_table(sess, tmp_name, duns_data)
 
     logger.info('Getting list of DUNS that will be added/updated for metrics')
