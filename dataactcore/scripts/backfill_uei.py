@@ -53,6 +53,8 @@ def backfill_uei_crosswalk(sess, table_name):
         df = update_duns_props(df, api='iqaas')
         df = df[['awardee_or_recipient_uniqu', 'uei']]
         update_duns(sess, df, table_name=table_name)
+        # TODO: REMOVE TEST BREAK
+        break
 
 
 def get_parser():
