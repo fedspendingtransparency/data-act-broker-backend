@@ -42,7 +42,7 @@ def backfill_uei_crosswalk(sess, table_name):
             table_name: table to backfill
     """
     blank_uei_query = """
-        SELECT duns
+        SELECT awardee_or_recipient_uniqu
         FROM {table_name}
         WHERE uei IS NULL;
     """.format(table_name=table_name)
