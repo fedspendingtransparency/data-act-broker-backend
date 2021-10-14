@@ -235,12 +235,11 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
         os.remove(file_path)
 
 
-def get_parser():
-    """ Generates list of command-line arguments
+if __name__ == '__main__':
+    now = datetime.datetime.now()
 
-        Returns:
-            argument parser to be used for commandline
-    """
+    configure_logging()
+
     parser = argparse.ArgumentParser(description='Get data from SAM and update duns/exec comp tables')
     parser.add_argument("-t", "--data_type", choices=['duns', 'exec_comp', 'both'], default='both',
                         help='Select data type to load')
@@ -252,14 +251,6 @@ def get_parser():
     environ.add_argument("-r", "--remote", action="store_true", help='Work from a remote directory (SAM)')
     parser.add_argument("-f", "--reload_date", type=str, default=None, help='Force update from a specific date'
                                                                             ' (YYYY-MM-DD)')
-    return parser
-
-
-if __name__ == '__main__':
-    now = datetime.datetime.now()
-
-    configure_logging()
-    parser = get_parser()
     args = parser.parse_args()
 
     data_type = args.data_type

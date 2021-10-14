@@ -55,23 +55,14 @@ def backfill_uei_crosswalk(sess, table_name):
         update_duns(sess, df, table_name=table_name)
 
 
-def get_parser():
-    """ Generates list of command-line arguments
+if __name__ == '__main__':
+    configure_logging()
 
-        Returns:
-            argument parser to be used for commandline
-    """
     parser = argparse.ArgumentParser(description='Get data from SAM and backfill uei')
     parser.add_argument("-m", "--method", choices=['duns', 'crosswalk'], default='crosswalk',
                         help='Select method of backfilling (duns table, uei crosswalk table)')
     parser.add_argument("-ct", "--crosswalk_table", default='uei-crosswalk',
                         help='Name of the crosswalk table to backfill')
-    return parser
-
-
-if __name__ == '__main__':
-    configure_logging()
-    parser = get_parser()
     args = parser.parse_args()
 
     method = args.method
