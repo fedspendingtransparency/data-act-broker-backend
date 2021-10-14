@@ -1,91 +1,13 @@
 import os
 import datetime
-import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.scripts import load_duns_exec_comp
 from dataactcore.models.domainModels import DUNS
-from dataactcore.utils.duns import DUNS_COLUMNS, EXCLUDE_FROM_API
 
 
-def mock_get_duns_props_from_sam(duns_list):
-    """ Mock function for get_duns_props as we can't connect to the SAM service """
-    request_cols = [col for col in DUNS_COLUMNS if col not in EXCLUDE_FROM_API]
-    columns = request_cols
-    results = pd.DataFrame(columns=columns)
-
-    duns_mappings = {
-        '000000001': {
-            'awardee_or_recipient_uniqu': '000000001',
-            'uei': 'A1',
-            'legal_business_name': 'Legal Name 1',
-            'dba_name': 'Name 1',
-            'entity_structure': '1A',
-            'ultimate_parent_unique_ide': '000000004',
-            'ultimate_parent_uei': 'D4',
-            'ultimate_parent_legal_enti': 'Parent Legal Name 1',
-            'address_line_1': 'Test address 1',
-            'address_line_2': 'Test address 2',
-            'city': 'Test city',
-            'state': 'Test state',
-            'zip': 'Test zip',
-            'zip4': 'Test zip4',
-            'country_code': 'Test country',
-            'congressional_district': 'Test congressional district',
-            'business_types_codes': [['A', 'B', 'C']],
-            'business_types': [['Name A', 'Name B', 'Name C']],
-            'high_comp_officer1_full_na': 'Test Exec 1',
-            'high_comp_officer1_amount': '1',
-            'high_comp_officer2_full_na': 'Test Exec 2',
-            'high_comp_officer2_amount': '2',
-            'high_comp_officer3_full_na': 'Test Exec 3',
-            'high_comp_officer3_amount': '3',
-            'high_comp_officer4_full_na': 'Test Exec 4',
-            'high_comp_officer4_amount': '4',
-            'high_comp_officer5_full_na': 'Test Exec 5',
-            'high_comp_officer5_amount': '5'
-        },
-        '000000005': {
-            'awardee_or_recipient_uniqu': '000000005',
-            'uei': 'E5',
-            'legal_business_name': 'Legal Name 2',
-            'dba_name': 'Name 2',
-            'entity_structure': '2B',
-            'ultimate_parent_unique_ide': None,
-            'ultimate_parent_uei': None,
-            'ultimate_parent_legal_enti': None,
-            'address_line_1': 'Other Test address 1',
-            'address_line_2': 'Other Test address 2',
-            'city': 'Other Test city',
-            'state': 'Other Test state',
-            'zip': 'Other Test zip',
-            'zip4': 'Other Test zip4',
-            'country_code': 'Other Test country',
-            'congressional_district': 'Other Test congressional district',
-            'business_types_codes': [['D', 'E', 'F']],
-            'business_types': [['Name D', 'Name E', 'Name F']],
-            'high_comp_officer1_full_na': 'Test Other Exec 6',
-            'high_comp_officer1_amount': '6',
-            'high_comp_officer2_full_na': 'Test Other Exec 7',
-            'high_comp_officer2_amount': '7',
-            'high_comp_officer3_full_na': 'Test Other Exec 8',
-            'high_comp_officer3_amount': '8',
-            'high_comp_officer4_full_na': 'Test Other Exec 9',
-            'high_comp_officer4_amount': '9',
-            'high_comp_officer5_full_na': 'Test Other Exec 10',
-            'high_comp_officer5_amount': '10'
-        }
-    }
-    for duns in duns_list:
-        if duns in duns_mappings:
-            results = results.append(pd.DataFrame(dict([(k, pd.Series(v)) for k, v in duns_mappings[duns].items()])),
-                                     sort=True)
-    return results
-
-
-def test_load_duns(database, monkeypatch):
+def test_load_duns(database):
     """ Test a local run load duns with the test files """
-    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
     sess = database.session
     duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
 
@@ -97,7 +19,7 @@ def test_load_duns(database, monkeypatch):
     expected_results = {
         # Pulled active monthly record, slightly updated with deactivation date as sam_extract = 1
         '000000001': {
-            'uei': 'A1',
+            'uei': None,
             'awardee_or_recipient_uniqu': '000000001',
             'registration_date': '1999-01-01',
             'activation_date': '1999-01-02',
@@ -116,7 +38,7 @@ def test_load_duns(database, monkeypatch):
             'business_types_codes': ['2X', 'MF'],
             'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
             'dba_name': 'DBA NAME 000000001 V1 MONTHLY',
-            'ultimate_parent_uei': 'D4',
+            'ultimate_parent_uei': None,
             'ultimate_parent_unique_ide': '000000004',
             'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME 000000004 V1 MONTHLY',
             'historic': False
@@ -201,7 +123,7 @@ def test_load_duns(database, monkeypatch):
         },
         # Pulled active daily V1 record, not updated in V2
         '000000005': {
-            'uei': 'E5',
+            'uei': None,
             'awardee_or_recipient_uniqu': '000000005',
             'registration_date': '2000-02-01',
             'activation_date': '2000-02-02',
@@ -262,9 +184,8 @@ def test_load_duns(database, monkeypatch):
     assert results == expected_results
 
 
-def test_load_exec_comp(database, monkeypatch):
+def test_load_exec_comp(database):
     """ Test a local run load exec_comp with the test files """
-    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
     sess = database.session
     duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
     exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp')

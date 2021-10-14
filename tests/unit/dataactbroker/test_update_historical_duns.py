@@ -24,7 +24,7 @@ def test_remove_existing_duns(database):
     assert sorted(expected_duns) == sorted(new_df['awardee_or_recipient_uniqu'].tolist())
 
 
-def mock_get_duns_props_from_sam(duns_list):
+def mock_get_duns_props_from_sam(duns_list, api='entity'):
     """ Mock function for get_duns_props as we can't connect to the SAM service """
     request_cols = [col for col in DUNS_COLUMNS if col not in EXCLUDE_FROM_API]
     columns = request_cols
