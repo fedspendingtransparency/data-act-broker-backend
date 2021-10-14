@@ -26,6 +26,7 @@ DUNS_COLUMNS = [col.key for col in DUNS.__table__.columns]
 EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date', 'activation_date',
                     'legal_business_name', 'historic', 'created_at', 'updated_at', 'duns_id', 'deactivation_date',
                     'last_exec_comp_mod_date']
+LOAD_BATCH_SIZE = 10000
 
 # SAM's Rate Limit is 259,200 requests/day
 RATE_LIMIT_CALLS = 259000

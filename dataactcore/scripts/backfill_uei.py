@@ -8,12 +8,10 @@ from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 
 from dataactbroker.helpers.generic_helper import batch
-from dataactcore.utils.duns import update_duns_props, update_duns
+from dataactcore.utils.duns import update_duns_props, update_duns, LOAD_BATCH_SIZE
 from dataactcore.models.domainModels import DUNS
 
 logger = logging.getLogger(__name__)
-
-LOAD_BATCH_SIZE = 10000
 
 
 def backfill_uei_via_entity_api(sess, table):
