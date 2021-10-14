@@ -11,6 +11,7 @@ import json
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CFDAProgram
@@ -118,6 +119,9 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
             sess.query(model).delete()
             num = insert_dataframe(import_data, table_name, sess.connection())
             sess.commit()
+
+            # If we've updated the data at all, update the external data load date
+            update_external_data_load_date(sess, local_now, 'cfda')
     if not load_local:
         os.remove(filename)
     if new_data:
