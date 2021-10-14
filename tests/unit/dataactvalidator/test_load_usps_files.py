@@ -58,7 +58,9 @@ def test_get_file_info():
 
     # Create test external data load date
     last_load_date = datetime.strptime('1700-01-01', '%Y-%m-%d')
-    test_external_data_load_date = ExternalDataLoadDate(external_data_load_date_id=-1, last_load_date=last_load_date,
+    test_external_data_load_date = ExternalDataLoadDate(external_data_load_date_id=-1,
+                                                        last_load_date_start=last_load_date,
+                                                        last_load_date_end=last_load_date,
                                                         external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download'])
 
     mock_session = MockSession()
@@ -87,7 +89,9 @@ def _assert_system_exit(expected_code, f, *args):
 def test_exit_code_3():
     # Create test external data load date
     last_load_date = datetime.strptime('2013-01-01', '%Y-%m-%d')
-    test_external_data_load_date = ExternalDataLoadDate(external_data_load_date_id=-1, last_load_date=last_load_date,
+    test_external_data_load_date = ExternalDataLoadDate(external_data_load_date_id=-1,
+                                                        last_load_date_start=last_load_date,
+                                                        last_load_date_end=last_load_date,
                                                         external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download'])
 
     mock_session = MockSession()
