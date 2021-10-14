@@ -696,14 +696,14 @@ def get_last_modified(submission_id):
     return last_modified.updated_at if last_modified else None
 
 
-def update_external_data_load_date(sess, start_time, data_type):
+def update_external_data_load_date(start_time, data_type):
     """ Update the external_data_load_date table with the start and end times for the given data type
 
         Args:
-            sess: the database connection
             start_time: a datetime object indicating the start time of the external data load
             data_type: a string indicating the data type of the external data load
     """
+    sess = GlobalDB.db().session
     end_time = datetime.now()
     last_stored_obj = sess.query(ExternalDataLoadDate).\
         filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT[data_type]).one_or_none()

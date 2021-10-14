@@ -121,7 +121,7 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
             sess.commit()
 
             # If we've updated the data at all, update the external data load date
-            update_external_data_load_date(sess, local_now, 'cfda')
+            update_external_data_load_date(local_now, 'cfda')
     if not load_local:
         os.remove(filename)
     if new_data:
