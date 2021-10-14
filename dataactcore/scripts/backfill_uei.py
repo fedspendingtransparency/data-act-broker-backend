@@ -30,6 +30,8 @@ def backfill_uei_via_entity_api(sess, table):
         df = update_duns_props(df)
         df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
         update_duns(sess, df, table_name=table.__table__.name)
+        # TODO: Remove test break!
+        break
 
 
 def backfill_uei_crosswalk(sess, table_name):
