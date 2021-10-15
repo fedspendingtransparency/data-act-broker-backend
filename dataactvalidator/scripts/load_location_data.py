@@ -297,19 +297,23 @@ def load_location_data(force_reload=False):
     """
     if CONFIG_BROKER["use_aws"]:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        city_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                    'Key': "NationalFedCodes.txt"}, ExpiresIn=600)
-        county_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                      'Key': "GOVT_UNITS.txt"}, ExpiresIn=600)
-        state_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                     'Key': "state_list.txt"}, ExpiresIn=600)
+        city_file = s3_client.generate_presigned_url('get_object',
+                                                     {'Bucket': CONFIG_BROKER['public_files_bucket'],
+                                                      'Key': "broker_reference_data/NationalFedCodes.txt"},
+                                                     ExpiresIn=600)
+        county_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['public_files_bucket'],
+                                                                      'Key': "broker_reference_data/GOVT_UNITS.txt"},
+                                                       ExpiresIn=600)
+        state_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['public_files_bucket'],
+                                                                     'Key': "broker_reference_data/state_list.csv"},
+                                                      ExpiresIn=600)
         citystate_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
                                                                          'Key': "ctystate.txt"}, ExpiresIn=600)
         zip_city_file = urllib.request.urlopen(citystate_file)
     else:
         city_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "NationalFedCodes.txt")
         county_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "GOVT_UNITS.txt")
-        state_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "state_list.txt")
+        state_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "state_list.csv")
         citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
         zip_city_file = open(citystate_file)
 
