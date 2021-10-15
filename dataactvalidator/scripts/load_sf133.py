@@ -13,6 +13,7 @@ import pandas as pd
 from dataactbroker.helpers.generic_helper import format_internal_tas
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import (matching_cars_subquery, SF133, TASLookup, TAS_COMPONENTS,
                                              concat_display_tas_dict)
@@ -60,6 +61,8 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133',
             rederive_tas_fields(sess, metrics=metrics_json)
         if fix_links:
             fix_broken_links(sess, metrics=metrics_json)
+
+    update_external_data_load_date(now, 'gtas')
 
     metrics_json['duration'] = str(datetime.now() - now)
 

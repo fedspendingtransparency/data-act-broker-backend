@@ -8,11 +8,13 @@ import boto3
 import urllib.request
 import pandas as pd
 
+from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.models.domainModels import Zips, ZipsGrouped, StateCongressional
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
@@ -369,6 +371,7 @@ def parse_citystate_file(f, sess):
 def read_zips():
     """ Update zip codes in the zips table. """
     with create_app().app_context():
+        start_time = datetime.now()
         sess = GlobalDB.db().session
 
         # Create temporary table to do work in so we don't disrupt the site for too long by altering the actual table
@@ -418,6 +421,8 @@ def read_zips():
         hot_swap_zip_tables(sess)
         update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)
+
+        update_external_data_load_date(start_time, 'zip_code')
 
         logger.info("Zipcode script complete")
 

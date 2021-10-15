@@ -9,6 +9,7 @@ import json
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CountryCode
 
@@ -80,6 +81,9 @@ def load_country_codes(base_path, force_reload=False):
             num = insert_dataframe(data, CountryCode.__table__.name, sess.connection())
             metrics_json['records_inserted'] = num
             sess.commit()
+
+            # Updating data load dates if the load successfully added new country codes
+            update_external_data_load_date(now, 'country_code')
 
             logger.info('{} records inserted to country_code table'.format(num))
         else:

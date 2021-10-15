@@ -6,6 +6,7 @@ import json
 from sqlalchemy import func
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL, \
     config_state_mappings
@@ -147,6 +148,9 @@ if __name__ == '__main__':
         # Deletes state mapping variable
         config_state_mappings()
 
+        # Only change the last run date if we aren't doing specific ids to backfill
+        if not args.ids:
+            update_external_data_load_date(now, 'subaward')
         metrics_json['duration'] = str(datetime.datetime.now() - now)
 
         with open('load_fsrs_metrics.json', 'w+') as metrics_file:
