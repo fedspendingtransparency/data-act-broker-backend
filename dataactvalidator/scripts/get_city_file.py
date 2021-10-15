@@ -89,6 +89,8 @@ def main():
         logger.info('Uploading NationalFedCodes.txt to S3.')
         s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         s3_resource.Object(CONFIG_BROKER['sf_133_bucket'], 'NationalFedCodes.txt').put(Body=open(city_file_path, 'rb'))
+        s3_resource.Object(CONFIG_BROKER['public_files_bucket'], 'broker_reference_data/NationalFedCodes.txt').\
+            put(Body=open(city_file_path, 'rb'))
         # Still need to remove the file so when we get a new one we know which one to use
         os.remove(city_file_path)
 
