@@ -83,7 +83,7 @@ def load_country_codes(base_path, force_reload=False):
             sess.commit()
 
             # Updating data load dates if the load successfully added new country codes
-            update_external_data_load_date(now, 'country_code')
+            update_external_data_load_date(now, datetime.datetime.now(), 'country_code')
 
             logger.info('{} records inserted to country_code table'.format(num))
         else:

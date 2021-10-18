@@ -422,7 +422,7 @@ def read_zips():
         update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)
 
-        update_external_data_load_date(start_time, 'zip_code')
+        update_external_data_load_date(start_time, datetime.now(), 'zip_code')
 
         logger.info("Zipcode script complete")
 

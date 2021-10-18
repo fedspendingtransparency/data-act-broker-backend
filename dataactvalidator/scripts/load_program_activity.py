@@ -174,11 +174,13 @@ def load_program_activity_data(base_path):
             num = insert_dataframe(data, table_name, sess.connection())
             sess.commit()
 
-        update_external_data_load_date(last_upload, 'program_activity_upload')
+        end_time = datetime.datetime.now()
+        update_external_data_load_date(now, end_time, 'program_activity')
+        update_external_data_load_date(last_upload, end_time, 'program_activity_upload')
         logger.info('{} records inserted to {}'.format(num, table_name))
         metrics_json['records_inserted'] = num
 
-        metrics_json['duration'] = str(datetime.datetime.now() - now)
+        metrics_json['duration'] = str(end_time - now)
 
     with open('load_program_activity_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)

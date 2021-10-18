@@ -66,7 +66,7 @@ def load_object_class(base_path):
     logger.info('{} records inserted to {}'.format(num, table_name))
     metrics_json['records_inserted'] = num
 
-    update_external_data_load_date(now, 'object_class')
+    update_external_data_load_date(now, datetime.datetime.now(), 'object_class')
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 

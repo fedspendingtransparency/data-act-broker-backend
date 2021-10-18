@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
         # Only change the last run date if we aren't doing specific ids to backfill
         if not args.ids:
-            update_external_data_load_date(now, 'subaward')
+            update_external_data_load_date(now, datetime.datetime.now(), 'subaward')
         metrics_json['duration'] = str(datetime.datetime.now() - now)
 
         with open('load_fsrs_metrics.json', 'w+') as metrics_file:

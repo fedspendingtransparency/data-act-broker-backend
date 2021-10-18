@@ -62,7 +62,7 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133',
         if fix_links:
             fix_broken_links(sess, metrics=metrics_json)
 
-    update_external_data_load_date(now, 'gtas')
+    update_external_data_load_date(now, datetime.now(), 'gtas')
 
     metrics_json['duration'] = str(datetime.now() - now)
 

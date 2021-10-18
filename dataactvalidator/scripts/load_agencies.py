@@ -355,7 +355,7 @@ def load_agency_data(base_path, force_reload=False):
 
         # If we've updated the data at all, update the external data load date
         if new_cgac or new_frec or new_sub_tier:
-            update_external_data_load_date(start_time, 'agency')
+            update_external_data_load_date(start_time, datetime.now(), 'agency')
 
     # Delete file once we're done
     os.remove(agency_codes_file)
