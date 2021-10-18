@@ -11,12 +11,13 @@ import time
 from datetime import datetime, timedelta
 from pandas.io.json import json_normalize
 from requests.packages.urllib3.exceptions import ReadTimeoutError
-from sqlalchemy import func
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import Office, SubTierAgency, CGAC, FREC
+from dataactcore.models.domainModels import Office, SubTierAgency, CGAC, FREC, ExternalDataLoadDate
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
@@ -363,9 +364,10 @@ def main():
     # Get or create the start date
     sess = GlobalDB.db().session
     if not args.all and not updated_date_from:
-        last_pull_date = sess.query(func.max(Office.updated_at)).one_or_none()
+        last_pull_date = sess.query(ExternalDataLoadDate.last_load_date_start).\
+            filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['office']).one_or_none()
         if not last_pull_date:
-            logger.error('The -a or -d flag must be set when there are no Offices present in the database.')
+            logger.error('The -a or -d flag must be set when there is no latest run in the database.')
             sys.exit(1)
         # We want to make the date one day earlier to account for any timing weirdness between the two systems
         updated_date_from = last_pull_date[0].date() - timedelta(days=1)
@@ -393,6 +395,8 @@ def main():
     all_subtiers = [subtier.sub_tier_agency_code for subtier in sess.query(SubTierAgency.sub_tier_agency_code)]
     metrics_json['missing_cgacs'] = list(set(metrics_json['missing_cgacs']) - set(all_cgacs + all_frecs))
     metrics_json['missing_subtier_codes'] = list(set(metrics_json['missing_subtier_codes']) - set(all_subtiers))
+
+    update_external_data_load_date(now, datetime.now(), 'office')
 
     metrics_json['duration'] = str(datetime.now() - now)
 
