@@ -10,6 +10,7 @@ import requests
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_missing_parent_names,
@@ -237,6 +238,8 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
 
 if __name__ == '__main__':
     now = datetime.datetime.now()
+    uei_loaded = False
+    exec_comp_loaded = False
 
     configure_logging()
 
@@ -280,14 +283,21 @@ if __name__ == '__main__':
         sess = GlobalDB.db().session
         if data_type in ('duns', 'both'):
             load_from_sam('DUNS', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            uei_loaded = True
         if data_type in ('exec_comp', 'both'):
             load_from_sam('Executive Compensation', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            exec_comp_loaded = True
         sess.close()
 
     metrics['records_added'] = len(set(metrics['added_duns']))
     metrics['records_updated'] = len(set(metrics['updated_duns']) - set(metrics['added_duns']))
     del metrics['added_duns']
     del metrics['updated_duns']
+
+    if uei_loaded:
+        update_external_data_load_date(now, datetime.datetime.now(), 'recipient')
+    if exec_comp_loaded:
+        update_external_data_load_date(now, datetime.datetime.now(), 'executive_compensation')
 
     logger.info('Added {} records and updated {} records'.format(metrics['records_added'], metrics['records_updated']))
 
