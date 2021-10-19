@@ -439,7 +439,8 @@ def read_zips():
         hot_swap_zip_tables(sess)
         update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)
-        export_state_congr_table(sess)
+        if not CONFIG_BROKER['local']:
+            export_state_congr_table(sess)
 
         logger.info("Zipcode script complete")
 
