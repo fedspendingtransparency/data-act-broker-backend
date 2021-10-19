@@ -11,6 +11,7 @@ from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CityCode, CountyCode, States, ZipCity
 
@@ -195,6 +196,7 @@ def load_city_data(force_reload):
         Args:
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
+    start_time = datetime.now()
     # parse the new city code data
     city_file_url = '{}/NationalFedCodes.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     with RetrieveFileFromUri(city_file_url, 'r').get_file_object() as city_file:
@@ -212,6 +214,7 @@ def load_city_data(force_reload):
         num = insert_dataframe(new_data, CityCode.__table__.name, sess.connection())
         logger.info('{} records inserted to city_code'.format(num))
         sess.commit()
+        update_external_data_load_date(start_time, datetime.now(), 'city')
     else:
         logger.info('No differences found, skipping city_code table reload.')
 
@@ -222,6 +225,7 @@ def load_county_data(force_reload):
         Args:
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
+    start_time = datetime.now()
     county_file_url = '{}/GOVT_UNITS.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     with RetrieveFileFromUri(county_file_url, 'r').get_file_object() as county_file:
         new_data = parse_county_file(county_file)
@@ -238,6 +242,7 @@ def load_county_data(force_reload):
         num = insert_dataframe(new_data, CountyCode.__table__.name, sess.connection())
         logger.info('{} records inserted to county_code'.format(num))
         sess.commit()
+        update_external_data_load_date(start_time, datetime.now(), 'county_code')
     else:
         logger.info('No differences found, skipping county_code table reload.')
 
@@ -248,6 +253,7 @@ def load_state_data(force_reload):
         Args:
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
+    start_time = datetime.now()
     state_file_url = '{}/state_list.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
     with RetrieveFileFromUri(state_file_url, 'r').get_file_object() as state_file:
         new_data = parse_state_file(state_file)
@@ -264,6 +270,7 @@ def load_state_data(force_reload):
         num = insert_dataframe(new_data, States.__table__.name, sess.connection())
         logger.info('{} records inserted to states'.format(num))
         sess.commit()
+        update_external_data_load_date(start_time, datetime.now(), 'state_code')
     else:
         logger.info('No differences found, skipping states table reload.')
 

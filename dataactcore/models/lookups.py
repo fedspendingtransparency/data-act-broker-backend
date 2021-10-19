@@ -328,6 +328,23 @@ BUSINESS_CATEGORY_FIELDS = ['airport_authority', 'alaskan_native_owned_corpo', '
 
 EXTERNAL_DATA_TYPE = [
     LookupType(1, 'usps_download', 'external data load type for downloading zip files'),
-    LookupType(2, 'program_activity_upload', 'program activity file loaded into S3')
+    LookupType(2, 'program_activity_upload', 'program activity file loaded into S3'),
+    LookupType(3, 'cfda', 'GSA CFDA loaded'),
+    LookupType(4, 'agency', 'IAE agency data loaded'),
+    LookupType(5, 'tas', 'FRB CARS/TAS data loaded'),
+    LookupType(6, 'city', 'USGS city data loaded'),
+    LookupType(7, 'congressional_district', 'USPS congressional district data loaded'),
+    LookupType(8, 'country_code', 'country code data loaded'),
+    LookupType(9, 'county_code', 'USGS county code data loaded'),
+    LookupType(10, 'recipient', 'SAM DUNS/UEI data loaded'),
+    LookupType(11, 'executive_compensation', 'SAM executive compensation data loaded'),
+    LookupType(12, 'fpds', 'FPDS data loaded'),
+    LookupType(13, 'gtas', 'FRB gtas/sf-133 data loaded'),
+    LookupType(14, 'object_class', 'OMB object class data loaded'),
+    LookupType(15, 'office', 'GSA office data loaded'),
+    LookupType(16, 'program_activity', 'OMB program activity data loaded'),
+    LookupType(17, 'state_code', 'state code data loaded'),
+    LookupType(18, 'subaward', 'FSRS subaward data loaded'),
+    LookupType(19, 'zip_code', 'USPS zip code data loaded')
 ]
 EXTERNAL_DATA_TYPE_DICT = {item.name: item.id for item in EXTERNAL_DATA_TYPE}
