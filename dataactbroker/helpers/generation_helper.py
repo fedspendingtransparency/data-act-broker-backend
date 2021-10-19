@@ -221,7 +221,7 @@ def retrieve_cached_file_generation(job, agency_type, agency_code, file_format, 
     current_date = datetime.now().date()
     last_update = sess.query(ExternalDataLoadDate).\
         filter_by(external_data_type_id=lookups.EXTERNAL_DATA_TYPE_DICT['fpds']).one_or_none()
-    fpds_date = last_update.update_date if last_update else current_date
+    fpds_date = last_update.last_load_date_start.date() if last_update else current_date
 
     # check if a cached FileGeneration already exists using these criteria
     file_generation = None
