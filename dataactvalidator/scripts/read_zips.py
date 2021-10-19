@@ -440,12 +440,13 @@ def read_zips():
 
         group_zips(sess)
         hot_swap_zip_tables(sess)
+        update_external_data_load_date(start_time, datetime.now(), 'zip_code')
+
         update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)
         if CONFIG_BROKER['use_aws']:
             export_state_congr_table(sess)
-
-        update_external_data_load_date(start_time, datetime.now(), 'zip_code')
+        update_external_data_load_date(start_time, datetime.now(), 'congressional_district')
 
         logger.info("Zipcode script complete")
 
