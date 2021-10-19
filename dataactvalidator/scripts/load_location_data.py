@@ -7,6 +7,7 @@ from datetime import datetime
 import urllib.request
 
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
+from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
@@ -188,15 +189,16 @@ def parse_zip_city_file(f):
     return data
 
 
-def load_city_data(city_file, force_reload):
+def load_city_data(force_reload):
     """ Load data into the CityCode table
 
         Args:
-            city_file: path/url to file to gather City data from
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
     # parse the new city code data
-    new_data = parse_city_file(city_file)
+    city_file_url = '{}/NationalFedCodes.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
+    with RetrieveFileFromUri(city_file_url, 'r').get_file_object() as city_file:
+        new_data = parse_city_file(city_file)
 
     diff_found = check_dataframe_diff(new_data, CityCode, ['city_code_id'], ['state_code', 'city_code'])
 
@@ -214,14 +216,15 @@ def load_city_data(city_file, force_reload):
         logger.info('No differences found, skipping city_code table reload.')
 
 
-def load_county_data(county_file, force_reload):
+def load_county_data(force_reload):
     """ Load data into the CountyCode table
 
         Args:
-            county_file: path/url to file to gather County data from
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
-    new_data = parse_county_file(county_file)
+    county_file_url = '{}/GOVT_UNITS.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
+    with RetrieveFileFromUri(county_file_url, 'r').get_file_object() as county_file:
+        new_data = parse_county_file(county_file)
 
     diff_found = check_dataframe_diff(new_data, CountyCode, ['county_code_id'], ['county_number', 'state_code'])
 
@@ -239,14 +242,15 @@ def load_county_data(county_file, force_reload):
         logger.info('No differences found, skipping county_code table reload.')
 
 
-def load_state_data(state_file, force_reload):
+def load_state_data(force_reload):
     """ Load data into the States table
 
         Args:
-            state_file: path/url to file to gather State data from
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
-    new_data = parse_state_file(state_file)
+    state_file_url = '{}/state_list.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
+    with RetrieveFileFromUri(state_file_url, 'r').get_file_object() as state_file:
+        new_data = parse_state_file(state_file)
 
     diff_found = check_dataframe_diff(new_data, States, ['states_id'], ['state_code'])
 
@@ -264,13 +268,21 @@ def load_state_data(state_file, force_reload):
         logger.info('No differences found, skipping states table reload.')
 
 
-def load_zip_city_data(zip_city_file, force_reload):
+def load_zip_city_data(force_reload):
     """ Load data into the ZipCity table
 
         Args:
-            zip_city_file: path/url to file to gather ZipCity data from
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
+    if CONFIG_BROKER["use_aws"]:
+        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        citystate_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                         'Key': "ctystate.txt"}, ExpiresIn=600)
+        zip_city_file = urllib.request.urlopen(citystate_file)
+    else:
+        citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
+        zip_city_file = open(citystate_file)
+
     new_data = parse_zip_city_file(zip_city_file)
 
     diff_found = check_dataframe_diff(new_data, ZipCity, ['zip_city_id'], ['zip_code'])
@@ -295,37 +307,15 @@ def load_location_data(force_reload=False):
         Args:
             force_reload: reloads the tables even if there are no differences found in data
     """
-    if CONFIG_BROKER["use_aws"]:
-        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        city_file = s3_client.generate_presigned_url('get_object',
-                                                     {'Bucket': CONFIG_BROKER['public_files_bucket'],
-                                                      'Key': "broker_reference_data/NationalFedCodes.txt"},
-                                                     ExpiresIn=600)
-        county_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['public_files_bucket'],
-                                                                      'Key': "broker_reference_data/GOVT_UNITS.txt"},
-                                                       ExpiresIn=600)
-        state_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['public_files_bucket'],
-                                                                     'Key': "broker_reference_data/state_list.csv"},
-                                                      ExpiresIn=600)
-        citystate_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                         'Key': "ctystate.txt"}, ExpiresIn=600)
-        zip_city_file = urllib.request.urlopen(citystate_file)
-    else:
-        city_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "NationalFedCodes.txt")
-        county_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "GOVT_UNITS.txt")
-        state_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "state_list.csv")
-        citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
-        zip_city_file = open(citystate_file)
-
     with create_app().app_context():
         logger.info('Loading city data')
-        load_city_data(city_file, force_reload)
+        load_city_data(force_reload)
         logger.info('Loading county data')
-        load_county_data(county_file, force_reload)
+        load_county_data(force_reload)
         logger.info('Loading state data')
-        load_state_data(state_file, force_reload)
+        load_state_data(force_reload)
         logger.info('Loading zip city data')
-        load_zip_city_data(zip_city_file, force_reload)
+        load_zip_city_data(force_reload)
 
 
 if __name__ == '__main__':
