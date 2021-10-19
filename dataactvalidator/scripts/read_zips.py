@@ -14,6 +14,7 @@ from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import Zips, ZipsGrouped, StateCongressional
+from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 from dataactvalidator.health_check import create_app
@@ -158,6 +159,26 @@ def update_state_congr_table_census(census_file, sess):
     table_name = model.__table__.name
     insert_dataframe(data, table_name, sess.connection())
     sess.commit()
+
+
+def export_state_congr_table(sess):
+    """ Export the current state of the state congressional table to a file and upload to the public S3 bucket
+
+        Args:
+            sess: the database connection
+    """
+    state_congr_filaname = 'state_congressional.csv'
+
+    logger.info("Exporting state_congressional table to {}".format(state_congr_filaname))
+    query = sess.query(StateCongressional.state_code, StateCongressional.congressional_district_no,
+                       StateCongressional.census_year).filter(StateCongressional.congressional_district_no.isnot(None))
+    write_query_to_file(sess, query, state_congr_filaname)
+
+    logger.info("Uploading {} to {}".format(state_congr_filaname, CONFIG_BROKER["public_files_bucket"]))
+    s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+    s3.upload_file('state_congressional.csv', CONFIG_BROKER["public_files_bucket"],
+                   'broker_reference_data/state_congressional.csv')
+    os.remove(state_congr_filaname)
 
 
 def add_to_table(data, sess):
@@ -418,6 +439,8 @@ def read_zips():
         hot_swap_zip_tables(sess)
         update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)
+        if CONFIG_BROKER['use_aws']:
+            export_state_congr_table(sess)
 
         logger.info("Zipcode script complete")
 

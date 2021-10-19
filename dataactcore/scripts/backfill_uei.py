@@ -22,7 +22,7 @@ def backfill_uei_via_entity_api(sess, table):
             table: table to backfill
     """
     duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter(
-        or_(DUNS.uei.is_(None), and_(DUNS.ultimate_parent_unique_ide.isnot_(None),
+        or_(DUNS.uei.is_(None), and_(DUNS.ultimate_parent_unique_ide.isnot(None),
                                      DUNS.ultimate_parent_uei.is_(None)))).all()
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
         df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
