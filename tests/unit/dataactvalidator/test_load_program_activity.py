@@ -5,12 +5,22 @@ import pytest
 import os
 
 from dataactvalidator.scripts import load_program_activity
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataType
 
 
 def remove_metrics_file():
     if os.path.isfile('load_program_activity_metrics.json'):
         os.remove('load_program_activity_metrics.json')
+
+
+def add_relevant_data_types(sess):
+    data_types = sess.query(ExternalDataType).all()
+    if len(data_types) == 0:
+        pa_upload = ExternalDataType(external_data_type_id=2, name="program_activity_upload", description="lorem ipsum")
+        pa = ExternalDataType(external_data_type_id=16, name="program_activity", description="lorem ipsum")
+        sess.add_all([pa, pa_upload])
+        sess.commit()
 
 
 @patch('dataactvalidator.scripts.load_program_activity.io.BytesIO')
@@ -47,24 +57,23 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
     """ Test the last upload date/time retrieval """
 
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
-    sess = database.session
-    pa_data_type = ExternalDataType(external_data_type_id=2, name="program_activity_upload", description="lorem ipsum")
-    sess.add(pa_data_type)
-    sess.commit()
+    add_relevant_data_types(database.session)
 
     # test epoch timing
     stored_date = load_program_activity.get_stored_pa_last_upload()
     expected_date = datetime.datetime(1970, 1, 1, 0, 0, 0)
     assert stored_date == expected_date
 
-    load_program_activity.set_stored_pa_last_upload(datetime.datetime(2017, 12, 31, 0, 0, 0))
+    update_external_data_load_date(datetime.datetime(2017, 12, 31, 0, 0, 0), datetime.datetime(2017, 12, 31, 0, 0, 0),
+                                   'program_activity_upload')
 
     stored_date = load_program_activity.get_stored_pa_last_upload()
     expected_date = datetime.datetime(2017, 12, 31, 0, 0, 0)
     assert stored_date == expected_date
 
     # repeat this, because the first time, there is no stored object, but now test with one that already exists.
-    load_program_activity.set_stored_pa_last_upload(datetime.datetime(2016, 12, 31, 0, 0, 0))
+    update_external_data_load_date(datetime.datetime(2016, 12, 31, 0, 0, 0), datetime.datetime(2016, 12, 31, 0, 0, 0),
+                                   'program_activity_upload')
 
     stored_date = load_program_activity.get_stored_pa_last_upload()
     expected_date = datetime.datetime(2016, 12, 31, 0, 0, 0)
@@ -73,7 +82,7 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
     remove_metrics_file()
 
 
-@patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
+@patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
 @patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')
@@ -92,6 +101,7 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
     mocked_set_stored_date.return_value = None
 
     sess = database.session
+    add_relevant_data_types(sess)
 
     load_program_activity.load_program_activity_data('some_path')
 
@@ -111,7 +121,7 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
     remove_metrics_file()
 
 
-@patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
+@patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
 @patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')
@@ -136,7 +146,7 @@ def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_c
     remove_metrics_file()
 
 
-@patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
+@patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
 @patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')
@@ -161,7 +171,7 @@ def test_load_program_activity_data_no_header(mocked_get_pa_file, mocked_get_cur
     remove_metrics_file()
 
 
-@patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
+@patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
 @patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')

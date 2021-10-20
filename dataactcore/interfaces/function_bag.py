@@ -9,6 +9,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import (Job, Submission, JobDependency, PublishHistory, PublishedFilesHistory,
                                           SubmissionWindowSchedule)
@@ -17,7 +18,8 @@ from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.views import SubmissionUpdatedView
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
-                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
+                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT,
+                                        EXTERNAL_DATA_TYPE_DICT)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.aws.sqsHandler import sqs_queue
@@ -691,3 +693,25 @@ def get_last_modified(submission_id):
     last_modified = sess.query(submission_updated_view.updated_at).\
         filter(submission_updated_view.submission_id == submission_id).first()
     return last_modified.updated_at if last_modified else None
+
+
+def update_external_data_load_date(start_time, end_time, data_type):
+    """ Update the external_data_load_date table with the start and end times for the given data type
+
+        Args:
+            start_time: a datetime object indicating the start time of the external data load
+            end_time: a datetime object indicating the end time of the external data load
+            data_type: a string indicating the data type of the external data load
+    """
+    sess = GlobalDB.db().session
+    last_stored_obj = sess.query(ExternalDataLoadDate).\
+        filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT[data_type]).one_or_none()
+    if not last_stored_obj:
+        last_stored_obj = ExternalDataLoadDate(
+            external_data_type_id=EXTERNAL_DATA_TYPE_DICT[data_type],
+            last_load_date_start=start_time, last_load_date_end=end_time)
+        sess.add(last_stored_obj)
+    else:
+        last_stored_obj.last_load_date_start = start_time
+        last_stored_obj.last_load_date_end = end_time
+    sess.commit()

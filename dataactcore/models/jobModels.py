@@ -256,13 +256,6 @@ class SubmissionWindowSchedule(Base):
     certification_deadline = Column(DateTime)
 
 
-class FPDSUpdate(Base):
-    __tablename__ = "fpds_update"
-
-    fpds_update_id = Column(Integer, server_default='1', default=1, primary_key=True)
-    update_date = Column(Date)
-
-
 class CertifyHistory(Base):
     __tablename__ = "certify_history"
 
