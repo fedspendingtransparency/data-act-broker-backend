@@ -1,14 +1,14 @@
 """DAIMS 2.1 D2 Updates
 
 Revision ID: 1ddbc8a39215
-Revises: 4263cb11c7ac
+Revises: b135db94bb15
 Create Date: 2021-08-13 12:29:21.955658
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '1ddbc8a39215'
-down_revision = '4263cb11c7ac'
+down_revision = 'b135db94bb15'
 branch_labels = None
 depends_on = None
 
