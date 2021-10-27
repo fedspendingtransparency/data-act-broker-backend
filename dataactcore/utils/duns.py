@@ -28,8 +28,8 @@ EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date',
                     'last_exec_comp_mod_date']
 LOAD_BATCH_SIZE = 10000
 
-# SAM's Rate Limit is 10k requests/day
-RATE_LIMIT_CALLS = 10000
+# SAM's Rate Limit is 259,200 requests/day
+RATE_LIMIT_CALLS = 259000
 RATE_LIMIT_PERIOD = 24 * 60 * 60  # seconds
 
 
@@ -253,23 +253,21 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
         Args:
             sess: database connection
             duns_data: pandas dataframe representing duns data
-            table_name: the table to update ('duns', 'historic_duns')
+            table_name: the table to update (ex. 'duns', 'historic_duns')
             metrics: dictionary representing metrics of the script
             deletes: whether the data provided contains only delete records
 
         Returns:
             list of DUNS updated
     """
-    if table_name not in ('duns', 'historic_duns'):
-        raise ValueError('table argument must be \'duns\' or \'historic_duns\'')
     if not metrics:
         metrics = {
             'added_duns': [],
             'updated_duns': []
         }
 
-    tmp_name = 'temp_duns_update' if table_name == 'duns' else 'temp_historic_duns_update'
-    tmp_abbr = 'tdu' if table_name == 'duns' else 'thdu'
+    tmp_name = 'temp_{}_update'.format(table_name)
+    tmp_abbr = 'tu'
     create_temp_duns_table(sess, tmp_name, duns_data)
 
     logger.info('Getting list of DUNS that will be added/updated for metrics')
@@ -296,7 +294,8 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
                        if col not in ['created_at', 'updated_at', 'deactivation_date', 'awardee_or_recipient_uniqu']]
         if table_name == 'duns':
             update_cols.append('historic = FALSE')
-    update_cols.append('updated_at = NOW()')
+    if table_name in ['duns', 'historic_duns']:
+        update_cols.append('updated_at = NOW()')
     update_cols = ', '.join(update_cols)
     update_sql = """
         UPDATE {table_name}
@@ -570,9 +569,37 @@ def request_sam_entity_api(duns_list):
         'sensitivity': 'fouo',
         'ueiDUNS': '[{}]'.format('~'.join(duns_list))
     }
-    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], request_type='post', accept_type='json',
+    headers = {
+        'x-api-key': CONFIG_BROKER['sam']['api_key'],
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], request_type='post', headers=headers,
                                params=params)
-    return json.loads(content)['entityData']
+    entity_data = []
+    if content is not None:
+        entity_data = json.loads(content)['entityData']
+    return entity_data
+
+
+def request_sam_iqaas_uei_api(duns_list):
+    """ Calls the SAM IQaaS API to retrieve SAM UEI data by the DUNS numbers provided.
+
+        Args:
+            duns_list: list of DUNS to search
+
+        Returns:
+            json list of SAM objects representing entities
+    """
+    params = {
+        'ueiDUNS': '{}'.format(','.join(duns_list)),
+        'api_key': CONFIG_BROKER['sam']['api_key']
+    }
+    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['uei_iqaas_api_url'], request_type='get', params=params)
+    entity_data = []
+    if content is not None:
+        entity_data = json.loads(content)['entityData']
+    return entity_data
 
 
 def request_sam_csv_api(root_dir, file_name):
@@ -587,7 +614,12 @@ def request_sam_csv_api(root_dir, file_name):
     params = {
         'fileName': file_name
     }
-    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], request_type='get', accept_type='zip',
+    headers = {
+        'x-api-key': CONFIG_BROKER['sam']['api_key'],
+        'Accept': 'application/zip',
+        'Content-Type': 'application/json'
+    }
+    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], request_type='get', headers=headers,
                                     params=params)
     open(local_sam_file, 'wb').write(file_content)
 
@@ -602,7 +634,13 @@ def is_nonexistent_file_error(e):
             bool whether the error is a nonexistent file http error
     """
     no_file_msg = 'The File does not exist with the provided parameters.'
-    return e.response is not None and (json.loads(e.response.content).get('detail') == no_file_msg)
+    nonexistent_file_error = False
+    if e.response is not None and e.response.content is not None:
+        try:
+            nonexistent_file_error = (json.loads(e.response.content).get('detail') == no_file_msg)
+        except json.decoder.JSONDecodeError:
+            pass
+    return nonexistent_file_error
 
 
 def give_up(e):
@@ -629,13 +667,13 @@ def give_up(e):
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
 @sleep_and_retry
 @on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=10, logger=logger, giveup=give_up)
-def _request_sam_api(url, request_type, accept_type, params=None, body=None):
+def _request_sam_api(url, request_type, headers=None, params=None, body=None):
     """ Calls one of the SAM APIs and returns its content
 
         Args:
             url: the url to request
             request_type: the REST type, get or post
-            accept_type: what type of data to accept (either zip or json)
+            headers: headers to use for the API
             params: query filters to use for the API
             body: json filters to use for the API
 
@@ -647,14 +685,7 @@ def _request_sam_api(url, request_type, accept_type, params=None, body=None):
     """
     if request_type not in ['get', 'post']:
         return ValueError('request_type must be \'get\' or \'post\'')
-    if accept_type not in ['zip', 'json']:
-        return ValueError('accept_type must be \'zip\' or \'json\'')
     auth = (CONFIG_BROKER['sam']['account_user_id'], CONFIG_BROKER['sam']['account_password'])
-    headers = {
-        'x-api-key': CONFIG_BROKER['sam']['api_key'],
-        'Accept': 'application/{}'.format(accept_type),
-        'Content-Type': 'application/json'
-    }
     r = requests.request(request_type.upper(), url, headers=headers, params=params, json=json.dumps(body), auth=auth,
                          timeout=60)
     # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
@@ -662,7 +693,7 @@ def _request_sam_api(url, request_type, accept_type, params=None, body=None):
     return r.content
 
 
-def get_duns_props_from_sam(duns_list):
+def get_duns_props_from_sam(duns_list, api='entity'):
     """ Calls SAM API to retrieve DUNS data by DUNS number. Returns relevant DUNS info as Data Frame
 
         Args:
@@ -671,28 +702,39 @@ def get_duns_props_from_sam(duns_list):
         Returns:
             dataframe representing the DUNS props
     """
-    duns_props_mappings = {
-        'awardee_or_recipient_uniqu': 'entityRegistration.ueiDUNS',
-        'uei': 'entityRegistration.ueiSAM',
-        'legal_business_name': 'entityRegistration.legalBusinessName',
-        'dba_name': 'entityRegistration.dbaName',
-        'entity_structure': 'coreData.generalInformation.entityStructureCode',
-        'ultimate_parent_unique_ide': 'coreData.entityHierarchyInformation.ultimateParentEntity.ueiDUNS',
-        'ultimate_parent_uei': 'coreData.entityHierarchyInformation.ultimateParentEntity.ueiSAM',
-        'ultimate_parent_legal_enti': 'coreData.entityHierarchyInformation.ultimateParentEntity.legalBusinessName',
-        'address_line_1': 'coreData.physicalAddress.addressLine1',
-        'address_line_2': 'coreData.physicalAddress.addressLine2',
-        'city': 'coreData.physicalAddress.city',
-        'state': 'coreData.physicalAddress.stateOrProvince',
-        'zip': 'coreData.physicalAddress.zipCode',
-        'zip4': 'coreData.physicalAddress.zipCodePlus4',
-        'country_code': 'coreData.physicalAddress.countryCode',
-        'congressional_district': 'coreData.congressionalDistrict',
-        'business_types_codes': 'coreData.businessTypes',
-        'executive_comp_data': 'coreData.executiveCompensationInformation'
-    }
+    if api == 'entity':
+        request_api_method = request_sam_entity_api
+        duns_props_mappings = {
+            'awardee_or_recipient_uniqu': 'entityRegistration.ueiDUNS',
+            'uei': 'entityRegistration.ueiSAM',
+            'legal_business_name': 'entityRegistration.legalBusinessName',
+            'dba_name': 'entityRegistration.dbaName',
+            'entity_structure': 'coreData.generalInformation.entityStructureCode',
+            'ultimate_parent_unique_ide': 'coreData.entityHierarchyInformation.ultimateParentEntity.ueiDUNS',
+            'ultimate_parent_uei': 'coreData.entityHierarchyInformation.ultimateParentEntity.ueiSAM',
+            'ultimate_parent_legal_enti': 'coreData.entityHierarchyInformation.ultimateParentEntity.legalBusinessName',
+            'address_line_1': 'coreData.physicalAddress.addressLine1',
+            'address_line_2': 'coreData.physicalAddress.addressLine2',
+            'city': 'coreData.physicalAddress.city',
+            'state': 'coreData.physicalAddress.stateOrProvince',
+            'zip': 'coreData.physicalAddress.zipCode',
+            'zip4': 'coreData.physicalAddress.zipCodePlus4',
+            'country_code': 'coreData.physicalAddress.countryCode',
+            'congressional_district': 'coreData.congressionalDistrict',
+            'business_types_codes': 'coreData.businessTypes',
+            'executive_comp_data': 'coreData.executiveCompensationInformation'
+        }
+    elif api == 'iqaas':
+        request_api_method = request_sam_iqaas_uei_api
+        duns_props_mappings = {
+            'awardee_or_recipient_uniqu': 'ueiDUNS',
+            'uei': 'ueiSAM',
+        }
+    else:
+        raise ValueError('APIs available are \'entity\' or \'iqaas\'')
+
     duns_props = []
-    for duns_obj in request_sam_entity_api(duns_list):
+    for duns_obj in request_api_method(duns_list):
         duns_props_dict = {}
         for duns_props_name, duns_prop_path in duns_props_mappings.items():
             nested_obj = duns_obj
@@ -719,15 +761,19 @@ def get_duns_props_from_sam(duns_list):
                                 exec_comp['compensationAmount']
                 continue
             duns_props_dict[duns_props_name] = value
+        for k, v in duns_props_dict.items():
+            if isinstance(v, str) and v.lower() == 'currently not available':
+                duns_props_dict[k] = None
         duns_props.append(duns_props_dict)
     return pd.DataFrame(duns_props)
 
 
-def update_duns_props(df):
+def update_duns_props(df, api='entity'):
     """ Returns same dataframe with extraneous data updated
 
         Args:
             df: the dataframe containing the duns data
+            api: which api to extract the duns data
 
         Returns:
             a merged dataframe with the duns updated with extraneous info from SAM's individual DUNS API
@@ -745,7 +791,7 @@ def update_duns_props(df):
     batch_size = 100
     for duns_list in batch(all_duns, batch_size):
         logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
-        duns_props_batch = get_duns_props_from_sam(duns_list)
+        duns_props_batch = get_duns_props_from_sam(duns_list, api=api)
         duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
@@ -761,19 +807,3 @@ def update_duns_props(df):
         duns_props_df = duns_props_df.append(duns_props_batch, sort=True)
         index += batch_size
     return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
-
-
-def backfill_uei(sess, table):
-    """ Backfill any extraneous data (ex. uei) missing from V1 data that wasnt updated by V2
-
-        Args:
-            sess: database connection
-            table: table to backfill
-    """
-    duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter_by(uei=None, ultimate_parent_uei=None).all()
-    for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
-        df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
-        df = df.append(duns_batch)
-        df = update_duns_props(df)
-        df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
-        update_duns(sess, df, table_name=table.__table__.name)

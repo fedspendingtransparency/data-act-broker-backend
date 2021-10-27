@@ -10,10 +10,11 @@ import requests
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_missing_parent_names,
-                                    backfill_uei, request_sam_csv_api, is_nonexistent_file_error)
+                                    request_sam_csv_api, is_nonexistent_file_error)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -135,7 +136,8 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
         metrics['parent_update_date'] = str(updated_date)
 
         if historic:
-            backfill_uei(sess, DUNS)
+            logger.info('Despite the historical load being done, the UEI will most likely be out of date. '
+                        'Please manually update using the UEI crosswalk file and SQL.')
 
 
 def extract_dates_from_list(sam_files, data_type, period, version):
@@ -234,12 +236,11 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
         os.remove(file_path)
 
 
-def get_parser():
-    """ Generates list of command-line arguments
+if __name__ == '__main__':
+    now = datetime.datetime.now()
 
-        Returns:
-            argument parser to be used for commandline
-    """
+    configure_logging()
+
     parser = argparse.ArgumentParser(description='Get data from SAM and update duns/exec comp tables')
     parser.add_argument("-t", "--data_type", choices=['duns', 'exec_comp', 'both'], default='both',
                         help='Select data type to load')
@@ -251,14 +252,6 @@ def get_parser():
     environ.add_argument("-r", "--remote", action="store_true", help='Work from a remote directory (SAM)')
     parser.add_argument("-f", "--reload_date", type=str, default=None, help='Force update from a specific date'
                                                                             ' (YYYY-MM-DD)')
-    return parser
-
-
-if __name__ == '__main__':
-    now = datetime.datetime.now()
-
-    configure_logging()
-    parser = get_parser()
     args = parser.parse_args()
 
     data_type = args.data_type
@@ -287,9 +280,13 @@ if __name__ == '__main__':
     with create_app().app_context():
         sess = GlobalDB.db().session
         if data_type in ('duns', 'both'):
+            start_time = datetime.datetime.now()
             load_from_sam('DUNS', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            update_external_data_load_date(start_time, datetime.datetime.now(), 'recipient')
         if data_type in ('exec_comp', 'both'):
+            start_time = datetime.datetime.now()
             load_from_sam('Executive Compensation', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         sess.close()
 
     metrics['records_added'] = len(set(metrics['added_duns']))

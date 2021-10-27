@@ -11,6 +11,7 @@ import re
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
@@ -79,26 +80,8 @@ def get_stored_pa_last_upload():
         # and ideally any time the data might have been wiped
         last_stored = datetime.datetime.utcfromtimestamp(0)
     else:
-        last_stored = last_stored_obj.last_load_date
+        last_stored = last_stored_obj.last_load_date_start
     return last_stored
-
-
-def set_stored_pa_last_upload(load_datetime):
-    """ Set upload date of most recent file we have recorded (Datetime object)
-
-        Args:
-            Datetime object representing the timestamp associated with the current file
-    """
-    sess = GlobalDB.db().session
-    last_stored_obj = sess.query(ExternalDataLoadDate).filter_by(
-        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload']).one_or_none()
-    if not last_stored_obj:
-        last_stored_obj = ExternalDataLoadDate(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload'],
-                                               last_load_date=load_datetime)
-        sess.add(last_stored_obj)
-    else:
-        last_stored_obj.last_load_date = load_datetime
-    sess.commit()
 
 
 def load_program_activity_data(base_path):
@@ -191,11 +174,13 @@ def load_program_activity_data(base_path):
             num = insert_dataframe(data, table_name, sess.connection())
             sess.commit()
 
-        set_stored_pa_last_upload(last_upload)
+        end_time = datetime.datetime.now()
+        update_external_data_load_date(now, end_time, 'program_activity')
+        update_external_data_load_date(last_upload, end_time, 'program_activity_upload')
         logger.info('{} records inserted to {}'.format(num, table_name))
         metrics_json['records_inserted'] = num
 
-        metrics_json['duration'] = str(datetime.datetime.now() - now)
+        metrics_json['duration'] = str(end_time - now)
 
     with open('load_program_activity_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)

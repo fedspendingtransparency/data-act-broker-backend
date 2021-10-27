@@ -32,14 +32,38 @@ SELECT
 FROM detached_award_financial_assistance_fabs31_7_{0} AS dafa
 WHERE NOT (dafa.federal_action_obligation <= 0
         AND UPPER(dafa.action_type) = 'D')
+    AND COALESCE(dafa.awardee_or_recipient_uniqu, '') = ''
     AND NOT EXISTS (
         SELECT 1
         FROM duns
         WHERE (
-            CASE WHEN COALESCE(dafa.awardee_or_recipient_uniqu, '') <> ''
-                THEN dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-                ELSE dafa.uei = duns.uei
-            END
+            dafa.uei = duns.uei
+            AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
+                  THEN CAST(dafa.action_date AS DATE)
+                  END) >= CAST(duns.registration_date AS DATE)
+            AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
+                 THEN CAST(dafa.action_date AS DATE)
+                 END) < CAST(duns.expiration_date AS DATE)
+        )
+   )
+UNION
+SELECT
+    dafa.row_number,
+    dafa.action_date,
+    dafa.action_type,
+    dafa.awardee_or_recipient_uniqu,
+    dafa.uei,
+    dafa.federal_action_obligation,
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
+FROM detached_award_financial_assistance_fabs31_7_{0} AS dafa
+WHERE NOT (dafa.federal_action_obligation <= 0
+        AND UPPER(dafa.action_type) = 'D')
+    AND COALESCE(dafa.awardee_or_recipient_uniqu, '') <> ''
+    AND NOT EXISTS (
+        SELECT 1
+        FROM duns
+        WHERE (
+            dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
             AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
                   THEN CAST(dafa.action_date AS DATE)
                   END) >= CAST(duns.registration_date AS DATE)

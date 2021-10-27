@@ -132,7 +132,8 @@ broker:
         duns:
             csv_api_url: https://api.sam.gov/data-services/v1/extracts
             csv_archive_bucket: example
-            entity_api_url: https://api-alpha.sam.gov/entity-information/v2/entities
+            entity_api_url: https://api.sam.gov/entity-information/v2/entities
+            uei_iqaas_api_url: https://api.sam.gov/prod/IQaaS/v1/api/uei-info
 
 services:
     debug: true

@@ -4,9 +4,11 @@ import requests
 import re
 import numpy as np
 import pandas as pd
+from datetime import datetime
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CGAC, SubTierAgency, FREC
 from dataactvalidator.health_check import create_app
@@ -84,6 +86,9 @@ def load_cgac(file_name, force_reload=False):
         Args:
             file_name: path/url to the file to be read
             force_reload: whether to reload regardless
+
+        Returns:
+            True if new data was loaded, False if the load was skipped
     """
     sess = GlobalDB.db().session
     models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
@@ -114,8 +119,10 @@ def load_cgac(file_name, force_reload=False):
         sess.commit()
 
         logger.info('%s CGAC records inserted', len(models))
+        return True
     else:
         logger.info('No differences found, skipping cgac table reload.')
+        return False
 
 
 def delete_missing_frecs(models, new_data):
@@ -162,6 +169,9 @@ def load_frec(file_name, force_reload=False):
         Args:
             file_name: path/url to the file to be read
             force_reload: whether to reload regardless
+
+        Returns:
+            True if new data was loaded, False if the load was skipped
     """
     sess = GlobalDB.db().session
     models = {frec.frec_code: frec for frec in sess.query(FREC)}
@@ -206,8 +216,10 @@ def load_frec(file_name, force_reload=False):
         sess.commit()
 
         logger.info('%s FREC records inserted', len(models))
+        return True
     else:
         logger.info('No differences found, skipping frec table reload.')
+        return False
 
 
 def delete_missing_sub_tier_agencies(models, new_data):
@@ -254,6 +266,9 @@ def load_sub_tier_agencies(file_name, force_reload=False):
         Args:
             file_name: path/url to the file to be read
             force_reload: whether to reload regardless
+
+        Returns:
+            True if new data was loaded, False if the load was skipped
     """
     sess = GlobalDB.db().session
     models = {sub_tier_agency.sub_tier_agency_code: sub_tier_agency for
@@ -307,8 +322,10 @@ def load_sub_tier_agencies(file_name, force_reload=False):
         sess.commit()
 
         logger.info('%s Sub Tier Agency records inserted', len(models))
+        return True
     else:
         logger.info('No differences found, skipping subtier table reload.')
+        return False
 
 
 def load_agency_data(base_path, force_reload=False):
@@ -318,6 +335,7 @@ def load_agency_data(base_path, force_reload=False):
             base_path: directory that contains the agency files
             force_reload: whether to reload regardless
     """
+    start_time = datetime.now()
     agency_codes_url = '{}/agency_codes.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
     logger.info('Loading agency codes file from {}'.format(agency_codes_url))
 
@@ -329,11 +347,15 @@ def load_agency_data(base_path, force_reload=False):
     # Parse data
     with create_app().app_context():
         logger.info('Loading CGAC')
-        load_cgac(agency_codes_file, force_reload=force_reload)
+        new_cgac = load_cgac(agency_codes_file, force_reload=force_reload)
         logger.info('Loading FREC')
-        load_frec(agency_codes_file, force_reload=force_reload)
+        new_frec = load_frec(agency_codes_file, force_reload=force_reload)
         logger.info('Loading Sub Tier Agencies')
-        load_sub_tier_agencies(agency_codes_file, force_reload=force_reload)
+        new_sub_tier = load_sub_tier_agencies(agency_codes_file, force_reload=force_reload)
+
+        # If we've updated the data at all, update the external data load date
+        if new_cgac or new_frec or new_sub_tier:
+            update_external_data_load_date(start_time, datetime.now(), 'agency')
 
     # Delete file once we're done
     os.remove(agency_codes_file)

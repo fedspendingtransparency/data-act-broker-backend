@@ -12,7 +12,8 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models import lookups
-from dataactcore.models.jobModels import FileGeneration, FPDSUpdate, Job, Submission
+from dataactcore.models.domainModels import ExternalDataLoadDate
+from dataactcore.models.jobModels import FileGeneration, Job, Submission
 from dataactcore.utils import fileA
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -218,8 +219,9 @@ def retrieve_cached_file_generation(job, agency_type, agency_code, file_format, 
 
     # find current date and date of last FPDS pull
     current_date = datetime.now().date()
-    last_update = sess.query(FPDSUpdate).one_or_none()
-    fpds_date = last_update.update_date if last_update else current_date
+    last_update = sess.query(ExternalDataLoadDate).\
+        filter_by(external_data_type_id=lookups.EXTERNAL_DATA_TYPE_DICT['fpds']).one_or_none()
+    fpds_date = last_update.last_load_date_start.date() if last_update else current_date
 
     # check if a cached FileGeneration already exists using these criteria
     file_generation = None

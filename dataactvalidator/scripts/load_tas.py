@@ -10,6 +10,7 @@ import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.health_check import create_app
@@ -168,6 +169,7 @@ def load_tas(backfill_historic=False):
     """
     # read TAS file to dataframe, to make sure all is well with the file before firing up a db transaction
     tas_files = []
+    file_loaded = False
     now = datetime.now()
     metrics_json = {
         'script_name': 'load_tas.py',
@@ -227,8 +229,11 @@ def load_tas(backfill_historic=False):
         else:
             logger.info('Working with local cars_tas.csv')
         update_tas_lookups(sess, tas_file, update_missing=update_missing, metrics=metrics_json)
+        file_loaded = True
 
     metrics_json['duration'] = str(datetime.now() - now)
+    if file_loaded:
+        update_external_data_load_date(now, datetime.now(), 'tas')
 
     with open('load_tas_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
