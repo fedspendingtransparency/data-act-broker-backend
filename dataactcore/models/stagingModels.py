@@ -150,6 +150,8 @@ Index("ix_oc_pa_account_num_submission_id",
       unique=False)
 
 Index("ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name))
+Index("ix_oc_atc_upper", func.upper(ObjectClassProgramActivity.availability_type_code))
+Index("ix_oc_dr_upper", func.upper(ObjectClassProgramActivity.by_direct_reimbursable_fun))
 Index("ix_oc_pa_defc_upper", func.upper(ObjectClassProgramActivity.disaster_emergency_fund_code))
 
 
@@ -236,6 +238,8 @@ Index("ix_af_parent_award_id_upper", func.upper(AwardFinancial.parent_award_id))
 Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
 Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
 Index("ix_af_pan_upper", func.upper(AwardFinancial.program_activity_name))
+Index("ix_af_atc_upper", func.upper(AwardFinancial.availability_type_code))
+Index("ix_af_dr_upper", func.upper(AwardFinancial.by_direct_reimbursable_fun))
 Index("ix_af_defc_upper", func.upper(AwardFinancial.disaster_emergency_fund_code))
 
 
@@ -485,7 +489,8 @@ class AwardFinancialAssistance(Base):
     assistance_type_desc = Column(Text)
     award_description = Column(Text)
     awardee_or_recipient_legal = Column(Text)
-    awardee_or_recipient_uniqu = Column(Text, index=True)
+    awardee_or_recipient_duns = Column(Text, index=True)
+    awardee_or_recipient_uei = Column(Text, index=True)
     awarding_agency_code = Column(Text, index=True)
     awarding_agency_name = Column(Text)
     awarding_office_code = Column(Text)
@@ -544,12 +549,16 @@ class AwardFinancialAssistance(Base):
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
-    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_duns = Column(Text)
+    ultimate_parent_uei = Column(Text)
     uri = Column(Text, index=True)
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
     place_of_performance_scope = Column(Text)
+    funding_opportunity_goals = Column(Text)
+    funding_opportunity_number = Column(Text)
+    indirect_federal_sharing = Column(Numeric)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -839,6 +848,8 @@ class AwardProcurement(Base):
     total_obligated_amount = Column(Text)
     last_modified = Column(Text)
     additional_reporting = Column(Text)
+    awardee_or_recipient_uei = Column(Text, index=True)
+    ultimate_parent_uei = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -873,7 +884,8 @@ class CertifiedAwardFinancialAssistance(Base):
     assistance_type_desc = Column(Text)
     award_description = Column(Text)
     awardee_or_recipient_legal = Column(Text)
-    awardee_or_recipient_uniqu = Column(Text)
+    awardee_or_recipient_duns = Column(Text)
+    awardee_or_recipient_uei = Column(Text)
     awarding_agency_code = Column(Text)
     awarding_agency_name = Column(Text)
     awarding_office_code = Column(Text)
@@ -932,12 +944,16 @@ class CertifiedAwardFinancialAssistance(Base):
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
-    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_duns = Column(Text)
+    ultimate_parent_uei = Column(Text)
     uri = Column(Text)
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
     place_of_performance_scope = Column(Text)
+    funding_opportunity_goals = Column(Text)
+    funding_opportunity_number = Column(Text)
+    indirect_federal_sharing = Column(Numeric)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1225,6 +1241,8 @@ class CertifiedAwardProcurement(Base):
     total_obligated_amount = Column(Text)
     last_modified = Column(Text)
     additional_reporting = Column(Text)
+    awardee_or_recipient_uei = Column(Text)
+    ultimate_parent_uei = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
