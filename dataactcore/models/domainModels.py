@@ -557,7 +557,8 @@ class ExternalDataLoadDate(Base):
     __tablename__ = "external_data_load_date"
 
     external_data_load_date_id = Column(Integer, primary_key=True)
-    last_load_date = Column(DateTime)
+    last_load_date_start = Column(DateTime)
+    last_load_date_end = Column(DateTime)
     external_data_type_id = Column(Integer, ForeignKey("external_data_type.external_data_type_id",
                                                        name="fk_external_data_type_id"), unique=True)
     external_data_type = relationship("ExternalDataType", uselist=False)

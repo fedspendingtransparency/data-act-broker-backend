@@ -10,6 +10,7 @@ import requests
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_missing_parent_names,
@@ -279,9 +280,13 @@ if __name__ == '__main__':
     with create_app().app_context():
         sess = GlobalDB.db().session
         if data_type in ('duns', 'both'):
+            start_time = datetime.datetime.now()
             load_from_sam('DUNS', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            update_external_data_load_date(start_time, datetime.datetime.now(), 'recipient')
         if data_type in ('exec_comp', 'both'):
+            start_time = datetime.datetime.now()
             load_from_sam('Executive Compensation', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         sess.close()
 
     metrics['records_added'] = len(set(metrics['added_duns']))

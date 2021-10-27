@@ -2,9 +2,11 @@ import json
 
 from flask import g
 import pytest
+import datetime
 
 from dataactbroker.routes import domain_routes
-from dataactcore.models.lookups import PERMISSION_SHORT_DICT
+from dataactcore.models.domainModels import ExternalDataLoadDate
+from dataactcore.models.lookups import PERMISSION_SHORT_DICT, EXTERNAL_DATA_TYPE_DICT
 from dataactcore.models.userModel import UserAffiliation
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, SubTierAgencyFactory
 from tests.unit.dataactcore.factories.user import UserFactory
@@ -194,3 +196,28 @@ def test_list_sub_tier_agencies_admin(domain_app, database):
     result = {el['agency_code'] for el in response['sub_tier_agency_list']}
     assert len(response["sub_tier_agency_list"]) == 6  # All of them, ignores affiliations
     assert result == {'0', '1', '2', '3', '4', '5'}  # All of them, ignores affiliations
+
+
+@pytest.mark.usefixtures("user_constants")
+@pytest.mark.usefixtures("static_constants")
+def test_list_data_sources(domain_app, database):
+    """ List all data sources that have a load date """
+    user = UserFactory()
+    now = datetime.datetime.now()
+    external_loads = [ExternalDataLoadDate(external_data_load_date_id=-1,
+                                           last_load_date_start=now - datetime.timedelta(days=1),
+                                           last_load_date_end=now,
+                                           external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download']),
+                      ExternalDataLoadDate(external_data_load_date_id=-2,
+                                           last_load_date_start=now - datetime.timedelta(weeks=4),
+                                           last_load_date_end=now - datetime.timedelta(weeks=3),
+                                           external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload'])]
+    database.session.add_all(external_loads + [user])
+    database.session.commit()
+
+    g.user = user
+    result = domain_app.get('/v1/list_data_sources/').data.decode('UTF-8')
+    response = json.loads(result)
+    assert len(response.keys()) == 2
+    assert response['usps_download'] == now.strftime("%m/%d/%Y %H:%M:%S")
+    assert response['program_activity_upload'] == (now - datetime.timedelta(weeks=3)).strftime("%m/%d/%Y %H:%M:%S")

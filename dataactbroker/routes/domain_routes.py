@@ -3,6 +3,7 @@ from webargs.flaskparser import use_kwargs
 
 from dataactbroker.decorators import get_fabs_sub_tier_agencies, requires_login
 from dataactbroker.handlers.agency_handler import get_accessible_agencies, get_all_agencies, organize_sub_tier_agencies
+from dataactbroker.handlers.help_handler import get_data_sources
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -40,3 +41,9 @@ def add_domain_routes(app):
                 required to list only sub_tier_agencies that user has FABS permissions for
         """
         return JsonResponse.create(StatusCode.OK, organize_sub_tier_agencies(sub_tier_agencies))
+
+    @app.route("/v1/list_data_sources/", methods=["GET"])
+    @requires_login
+    def list_data_sources():
+        """ Get data sources and the dates they were last updated. """
+        return JsonResponse.create(StatusCode.OK, get_data_sources())

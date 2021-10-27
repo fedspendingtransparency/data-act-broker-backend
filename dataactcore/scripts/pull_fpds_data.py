@@ -25,9 +25,11 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import SubTierAgency, CountryCode, States, CountyCode, Zips, DUNS
+from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.models.domainModels import (SubTierAgency, CountryCode, States, CountyCode, Zips, DUNS,
+                                             ExternalDataLoadDate)
 from dataactcore.models.stagingModels import DetachedAwardProcurement
-from dataactcore.models.jobModels import FPDSUpdate
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 
 from dataactcore.utils.business_categories import get_business_categories
 from dataactcore.models.jobModels import Submission  # noqa
@@ -1838,12 +1840,7 @@ def main():
             get_data("award", "Delivery Order", now, sess, sub_tier_list, county_by_name, county_by_code,
                      state_code_list, country_list, exec_comp_dict, metrics=metrics_json)
 
-        last_update = sess.query(FPDSUpdate).one_or_none()
-
-        if last_update:
-            sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
-        else:
-            sess.add(FPDSUpdate(update_date=now))
+        update_external_data_load_date(now, datetime.datetime.now(), 'fpds')
 
         sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
@@ -1851,7 +1848,8 @@ def main():
     elif args.latest:
         logger.info("Starting at: %s", str(datetime.datetime.now()))
 
-        last_update_obj = sess.query(FPDSUpdate).one_or_none()
+        last_update_obj = sess.query(ExternalDataLoadDate).\
+            filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['fpds']).one_or_none()
 
         # update_date can't be null because it's being used as the PK for the table, so it can only exist or
         # there are no rows in the table. If there are no rows, act like it's an "add all"
@@ -1860,7 +1858,7 @@ def main():
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
             raise ValueError(
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
-        last_update = last_update_obj.update_date
+        last_update = last_update_obj.last_load_date_start
         start_date = None
         end_date = None
 
@@ -1882,7 +1880,7 @@ def main():
         get_delete_data("IDV", now, sess, last_update, start_date, end_date, metrics=metrics_json)
         get_delete_data("award", now, sess, last_update, start_date, end_date, metrics=metrics_json)
         if not start_date and not end_date:
-            sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
+            update_external_data_load_date(now, datetime.datetime.now(), 'fpds')
 
         sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
@@ -1906,6 +1904,7 @@ def main():
         if del_awards:
             get_delete_data("award", now, sess, now, args.delete[1], args.delete[2], metrics=metrics_json)
         sess.commit()
+
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 
     with open('pull_fpds_data_metrics.json', 'w+') as metrics_file:

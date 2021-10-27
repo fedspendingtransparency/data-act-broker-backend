@@ -7,6 +7,7 @@ import datetime
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import ObjectClass
 from dataactvalidator.health_check import create_app
@@ -64,6 +65,8 @@ def load_object_class(base_path):
 
     logger.info('{} records inserted to {}'.format(num, table_name))
     metrics_json['records_inserted'] = num
+
+    update_external_data_load_date(now, datetime.datetime.now(), 'object_class')
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 
