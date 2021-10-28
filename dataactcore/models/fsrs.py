@@ -29,8 +29,8 @@ class _FSRSAttributes:
     top_paid_amount_4 = Column(String, nullable=True)
     top_paid_fullname_5 = Column(String, nullable=True)
     top_paid_amount_5 = Column(String, nullable=True)
-    uei = Column(String)
-    ultimate_parent_uei = Column(String)
+    uei_number = Column(String)
+    parent_uei = Column(String)
 
 
 class _ContractAttributes(_FSRSAttributes):
