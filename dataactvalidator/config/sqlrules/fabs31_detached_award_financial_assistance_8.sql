@@ -13,6 +13,6 @@ WHERE submission_id = {0}
         SELECT 1
         FROM duns
         WHERE dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-            AND dafa.uei = duns.uei
+            AND UPPER(dafa.uei) = UPPER(duns.uei)
     )
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
