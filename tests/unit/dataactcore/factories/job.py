@@ -75,6 +75,7 @@ class JobFactory(factory.Factory):
     error_message = fuzzy.FuzzyText()
     start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    progress = 0
 
 
 class CertifyHistoryFactory(factory.Factory):

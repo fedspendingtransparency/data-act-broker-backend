@@ -24,7 +24,8 @@ This endpoint returns the status of each file type, including whether each has e
         "status": "finished",
         "message": "",
         "has_errors": false,
-        "has_warnings": true
+        "has_warnings": true,
+        "progress": 78.4
     }
 }
 ```
@@ -43,6 +44,7 @@ The contents of each attribute are an dictionary containing the following keys:
 - `message`: (string) the message associated with a job if there is one
 - `has_errors`: (boolean) indicates if the file type has any errors in validation
 - `has_warnings`: (boolean) indicates if the file type has any warnings in validation
+- `progress`: (float) indicates the percent progress of the jobs of that type
 
 ## Errors
 Possible HTTP Status Codes:

@@ -1439,6 +1439,12 @@ class FileTests(BaseTestAPI):
                                JOB_TYPE_DICT['csv_record_validation'], 'approp.csv', 2345, 567],
             'program_activity': [FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['ready'],
                                  JOB_TYPE_DICT['csv_record_validation'], 'programActivity.csv', None, None],
+            'award_proc_upl': [FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
+                               JOB_TYPE_DICT['file_upload'], None, None, None],
+            'sub_award': [FILE_TYPE_DICT['sub_award'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['file_upload'], None,
+                          None, None],
+            'exec_comp': [FILE_TYPE_DICT['executive_compensation'], JOB_STATUS_DICT['ready'],
+                          JOB_TYPE_DICT['file_upload'], None, None, None],
             'cross_file': [None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'], 2, None, None, None]
         }
         job_id_dict = {}
