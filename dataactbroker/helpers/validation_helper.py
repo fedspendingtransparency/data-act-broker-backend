@@ -6,7 +6,7 @@ from decimal import Decimal, DecimalException
 from datetime import datetime
 from pandas import isnull
 
-from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT
+from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT, FILE_TYPE_DICT_ID
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -822,3 +822,23 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
         # File does not exist, and so does not need to be closed
         pass
     return file_row_count, short_pop_rows, long_pop_rows, short_null_rows, long_null_rows
+
+
+def update_val_progress(sess, job, validation_progress, tas_progress, sql_progress):
+    """ Updates the progress value of the job based on the type of validation it is.
+
+        Args:
+            sess: the database connection
+            job: the job being updated
+            validation_progress: how much of the file has finished its initial validation steps
+            tas_progress: whether the file has completed tas linking or not (realistically always 0 or 100)
+            sql_progress: how far through the SQL validations the job has progressed
+    """
+
+    VAL_MULT = .25 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else .5
+    TAS_MULT = .25 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else 0
+    SQL_MULT = .5
+
+    current_progress = validation_progress * VAL_MULT + tas_progress * TAS_MULT + sql_progress * SQL_MULT
+    job.progress = current_progress
+    sess.commit()

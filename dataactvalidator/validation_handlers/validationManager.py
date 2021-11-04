@@ -18,7 +18,7 @@ from dataactbroker.helpers.validation_helper import (
     derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key,
     check_required, check_type, check_length, concat_flex, process_formatting_errors,
     parse_fields, simple_file_scan, check_field_format, clean_numbers_vectorized, clean_frame_vectorized,
-    derive_unique_id_vectorized)
+    derive_unique_id_vectorized, update_val_progress)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -188,6 +188,9 @@ class ValidationManager:
         self.total_proc_obligations = 0
         self.total_asst_obligations = 0
         self.total_obligations = 0
+        self.basic_val_progress = 0
+        self.tas_progress = 0
+        self.sql_val_progress = 0
 
         validation_start = datetime.now()
         bucket_name = CONFIG_BROKER['aws_bucket']
@@ -248,6 +251,10 @@ class ValidationManager:
                     update_total_obligations(self.submission_id, total_obligations=self.total_obligations,
                                              total_proc_obligations=self.total_proc_obligations,
                                              total_asst_obligations=self.total_asst_obligations)
+                # TAS links are now done, unfortunately there's no way to do this incrementally because it's one
+                # SQL query
+                self.tas_progress = 100
+                update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress)
 
             # SQL Validations
             with open(self.error_file_path, 'a', newline='') as error_file, \

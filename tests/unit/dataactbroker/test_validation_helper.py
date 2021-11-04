@@ -3,11 +3,15 @@ from pandas.util.testing import assert_frame_equal
 import numpy as np
 import os
 
+import pytest
+
 from dataactbroker.helpers import validation_helper
 from dataactvalidator.app import ValidationManager, ValidationError
 from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.models.lookups import FIELD_TYPE_DICT
+from dataactcore.models.lookups import FIELD_TYPE_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
+
+from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 
 FILES_DIR = os.path.join('tests', 'integration', 'data')
 READ_ERROR = os.path.join(FILES_DIR, 'appropReadError.csv')
@@ -518,3 +522,24 @@ def test_simple_file_scan():
     # Note: only testing locally
     assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (11, [5], [2, 3, 7], [], [])
     assert validation_helper.simple_file_scan(CsvReader(), None, None, BLANK_C) == (5, [], [], [3], [4])
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_update_val_progress(database):
+    sess = database.session
+    sub = SubmissionFactory(submission_id=1)
+    fabs_sub = SubmissionFactory(submission_id=2, d2_submission=True)
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
+                     progress=32.4)
+    fabs_job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                          job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['fabs'],
+                          progress=0)
+    sess.add_all([sub, fabs_sub, job, fabs_job])
+    sess.commit()
+
+    validation_helper.update_val_progress(sess, job, 100, 100, 25)
+    assert job.progress == 62.5
+
+    validation_helper.update_val_progress(sess, fabs_job, 100, 0, 4.5)
+    assert fabs_job.progress == 52.25
