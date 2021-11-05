@@ -7,7 +7,7 @@ from dataactcore.models.baseModel import Base
 class _FSRSAttributes:
     """Attributes shared by all FSRS models"""
     id = Column(Integer, primary_key=True)
-    duns = Column(String)
+    duns = Column(String, index=True)
     dba_name = Column(String)
     principle_place_city = Column(String)
     principle_place_street = Column(String, nullable=True)
@@ -16,7 +16,7 @@ class _FSRSAttributes:
     principle_place_country = Column(String)
     principle_place_zip = Column(String)
     principle_place_district = Column(String, nullable=True)
-    parent_duns = Column(String)
+    parent_duns = Column(String, index=True)
     funding_agency_id = Column(String)
     funding_agency_name = Column(String)
     top_paid_fullname_1 = Column(String, nullable=True)
@@ -29,8 +29,8 @@ class _FSRSAttributes:
     top_paid_amount_4 = Column(String, nullable=True)
     top_paid_fullname_5 = Column(String, nullable=True)
     top_paid_amount_5 = Column(String, nullable=True)
-    uei_number = Column(String)
-    parent_uei = Column(String)
+    uei_number = Column(String, index=True)
+    parent_uei = Column(String, index=True)
 
 
 class _ContractAttributes(_FSRSAttributes):
