@@ -14,7 +14,7 @@ SELECT
     dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
-    AND COALESCE(UPPER(dafa.correction_delete_indicatr), '') <> 'D'
+    AND COALESCE(UPPER(dafa.correction_delete_indicatr), '') NOT IN ('C', 'D')
     AND COALESCE(UPPER(dafa.action_type), '') NOT IN ('B', 'C', 'D')
     AND EXISTS (
         SELECT 1

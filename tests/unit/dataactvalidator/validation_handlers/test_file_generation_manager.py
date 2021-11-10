@@ -566,8 +566,8 @@ def test_generate_awarding_d2(database):
             expected1.append(re.sub(r"[-]", r"", str(pafa1.__dict__[value]))[0:8])
             expected2.append(re.sub(r"[-]", r"", str(pafa2.__dict__[value]))[0:8])
         else:
-            expected1.append(str(pafa1.__dict__[value]))
-            expected2.append(str(pafa2.__dict__[value]))
+            expected1.append(str(pafa1.__dict__[value] or ''))
+            expected2.append(str(pafa2.__dict__[value] or ''))
 
     assert expected1 in file_rows
     assert expected2 in file_rows
@@ -608,9 +608,11 @@ def test_generate_funding_d2(database):
             expected1.append(re.sub(r"[-]", r"", str(pafa1.__dict__[value]))[0:8])
             expected2.append(re.sub(r"[-]", r"", str(pafa2.__dict__[value]))[0:8])
         else:
-            expected1.append(str(pafa1.__dict__[value]))
-            expected2.append(str(pafa2.__dict__[value]))
+            expected1.append(str(pafa1.__dict__[value] or ''))
+            expected2.append(str(pafa2.__dict__[value] or ''))
 
+    print(expected1)
+    print(file_rows)
     assert expected1 in file_rows
     assert expected2 in file_rows
 
@@ -731,7 +733,7 @@ def test_generate_e_file(mock_broker_config_paths, database):
     unrelated = AwardProcurementFactory(submission_id=sub_2.submission_id)
     duns_list = [DunsFactory(awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)]
     duns_list.extend([DunsFactory(awardee_or_recipient_uniqu=ap.awardee_or_recipient_uniqu) for ap in aps])
-    duns_list.extend([DunsFactory(awardee_or_recipient_uniqu=afa.awardee_or_recipient_uniqu) for afa in afas])
+    duns_list.extend([DunsFactory(awardee_or_recipient_uniqu=afa.awardee_or_recipient_duns) for afa in afas])
     sess.add_all(aps + afas + duns_list + [model, same_duns, unrelated])
     sess.commit()
 
@@ -740,7 +742,8 @@ def test_generate_e_file(mock_broker_config_paths, database):
 
     # check headers
     file_rows = read_file_rows(file_path)
-    assert file_rows[0] == ['AwardeeOrRecipientUniqueIdentifier', 'AwardeeOrRecipientLegalEntityName',
+    assert file_rows[0] == ['AwardeeOrRecipientUEI', 'AwardeeOrRecipientUniqueIdentifier',
+                            'AwardeeOrRecipientLegalEntityName', 'UltimateParentUEI',
                             'UltimateParentUniqueIdentifier', 'UltimateParentLegalEntityName',
                             'HighCompOfficer1FullName', 'HighCompOfficer1Amount', 'HighCompOfficer2FullName',
                             'HighCompOfficer2Amount', 'HighCompOfficer3FullName', 'HighCompOfficer3Amount',
@@ -748,11 +751,11 @@ def test_generate_e_file(mock_broker_config_paths, database):
                             'HighCompOfficer5Amount']
 
     # Check listed DUNS
-    expected = [[duns.awardee_or_recipient_uniqu, duns.legal_business_name, duns.ultimate_parent_unique_ide,
-                 duns.ultimate_parent_legal_enti, duns.high_comp_officer1_full_na, duns.high_comp_officer1_amount,
-                 duns.high_comp_officer2_full_na, duns.high_comp_officer2_amount, duns.high_comp_officer3_full_na,
-                 duns.high_comp_officer3_amount, duns.high_comp_officer4_full_na, duns.high_comp_officer4_amount,
-                 duns.high_comp_officer5_full_na, duns.high_comp_officer5_amount]
+    expected = [[duns.uei, duns.awardee_or_recipient_uniqu, duns.legal_business_name, duns.ultimate_parent_uei,
+                 duns.ultimate_parent_unique_ide, duns.ultimate_parent_legal_enti, duns.high_comp_officer1_full_na,
+                 duns.high_comp_officer1_amount, duns.high_comp_officer2_full_na, duns.high_comp_officer2_amount,
+                 duns.high_comp_officer3_full_na, duns.high_comp_officer3_amount, duns.high_comp_officer4_full_na,
+                 duns.high_comp_officer4_amount, duns.high_comp_officer5_full_na, duns.high_comp_officer5_amount]
                 for duns in duns_list]
     received = [file_row for file_row in file_rows[1:]]
     assert sorted(received) == list(sorted(expected))

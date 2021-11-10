@@ -25,7 +25,7 @@ WITH detached_award_financial_assistance_31_4_1_{0} AS
                 AND NOT EXISTS (
                     SELECT 1
                     FROM duns
-                    WHERE dafa.uei = duns.uei
+                    WHERE UPPER(dafa.uei) = UPPER(duns.uei)
                 )
             )
         )

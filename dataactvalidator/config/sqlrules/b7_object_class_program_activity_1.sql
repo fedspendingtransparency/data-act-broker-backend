@@ -8,7 +8,9 @@ SELECT
     display_tas AS "uniqueid_TAS",
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
     program_activity_code AS "uniqueid_ProgramActivityCode",
-    object_class AS "uniqueid_ObjectClass"
+    program_activity_name AS "uniqueid_ProgramActivityName",
+    object_class AS "uniqueid_ObjectClass",
+    by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource"
 FROM object_class_program_activity
 WHERE submission_id = {0}
     AND COALESCE(gross_outlays_delivered_or_fyb, 0) <> COALESCE(ussgl490800_authority_outl_fyb, 0);

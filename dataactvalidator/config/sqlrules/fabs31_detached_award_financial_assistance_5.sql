@@ -31,7 +31,7 @@ WHERE COALESCE(dafa.awardee_or_recipient_uniqu, '') = ''
         SELECT 1
         FROM duns
         WHERE (
-            dafa.uei = duns.uei
+            UPPER(dafa.uei) = UPPER(duns.uei)
             AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
                  THEN CAST(dafa.action_date AS DATE)
                  END) >= CAST(duns.registration_date AS DATE)
