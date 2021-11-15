@@ -244,6 +244,10 @@ class ValidationManager:
             # Loading data and initial validations
             self.load_file_data(sess, bucket_name, region_name)
 
+            # When we finish the initial data loading we want to set the progress of the basic validations to 100
+            self.basic_val_progress = 100
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress)
+
             if self.file_type.name in ('appropriations', 'program_activity', 'award_financial'):
                 update_account_nums(self.model, self.submission_id)
 
@@ -440,9 +444,9 @@ class ValidationManager:
         self.job_id = self.job.job_id
 
         if PARALLEL:
-            self.parallel_data_loading(sess, reader_obj)
+            self.parallel_data_loading(sess, reader_obj, file_row_count)
         else:
-            self.iterative_data_loading(reader_obj)
+            self.iterative_data_loading(reader_obj, file_row_count)
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
@@ -490,11 +494,13 @@ class ValidationManager:
 
         return file_row_count
 
-    def parallel_data_loading(self, sess, reader_obj):
+    def parallel_data_loading(self, sess, reader_obj, file_row_count):
         """ The parallelized version of data loading that processes multiple chunks simultaneously
 
             Args:
+                sess: the database connection
                 reader_obj: the iterator reader object to iterate over all the chunks
+                file_row_count: the total number of rows in the file
         """
         with Manager() as server_manager:
             # These variables will need to be shared among the processes and used later overall
@@ -517,7 +523,8 @@ class ValidationManager:
             pool = Pool(MULTIPROCESSING_POOLS)
             results = []
             for chunk_df in reader_obj:
-                result = pool.apply_async(func=self.parallel_process_data_chunk, args=(chunk_df, shared_data, m_lock))
+                result = pool.apply_async(func=self.parallel_process_data_chunk,
+                                          args=(chunk_df, shared_data, file_row_count, m_lock))
                 results.append(result)
             pool.close()
             pool.join()
@@ -537,11 +544,12 @@ class ValidationManager:
             self.error_list = shared_data['error_list']
             self.reader = temp_reader
 
-    def iterative_data_loading(self, reader_obj):
+    def iterative_data_loading(self, reader_obj, file_row_count):
         """ The normal version of data loading that iterates over each chunk
 
             Args:
                 reader_obj: the iterator reader object to iterate over all the chunks
+                file_row_count: the total number of rows in the file
         """
         shared_data = dict(
             total_rows=self.total_rows,
@@ -554,7 +562,7 @@ class ValidationManager:
             total_obligations=self.total_obligations
         )
         for chunk_df in reader_obj:
-            self.process_data_chunk(chunk_df, shared_data)
+            self.process_data_chunk(chunk_df, shared_data, file_row_count)
 
         # Resetting these out here as they are used later in the process
         self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
@@ -566,12 +574,13 @@ class ValidationManager:
         self.error_rows = shared_data['error_rows']
         self.error_list = shared_data['error_list']
 
-    def parallel_process_data_chunk(self, chunk_df, shared_data, m_lock=None):
+    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
         """ Wrapper around process_data_chunk for parallelization and error catching
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
+                file_row_count: the total number of rows in the file
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
         # If one of the processes has errored, we don't want to run any more chunks
@@ -581,18 +590,19 @@ class ValidationManager:
                 return
 
         try:
-            self.process_data_chunk(chunk_df, shared_data, m_lock=m_lock)
+            self.process_data_chunk(chunk_df, shared_data, file_row_count, m_lock=m_lock)
         except Exception as e:
             with lockable:
                 shared_data['errored'] = True
             raise e
 
-    def process_data_chunk(self, chunk_df, shared_data, m_lock=None):
+    def process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
         """ Loads in a chunk of the file and performs initial validations
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
+                file_row_count: the total number of rows in the file
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
         if m_lock:
@@ -832,6 +842,10 @@ class ValidationManager:
                 'status': 'end'
             })
         sess.commit()
+        with lockable:
+            # Seeing how far into the file we currently are
+            self.basic_val_progress = shared_data['total_data_rows'] / file_row_count * 100
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress)
         if m_lock:
             conn.close()
 

@@ -835,10 +835,10 @@ def update_val_progress(sess, job, validation_progress, tas_progress, sql_progre
             sql_progress: how far through the SQL validations the job has progressed
     """
 
-    VAL_MULT = .25 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else .5
-    TAS_MULT = .25 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else 0
-    SQL_MULT = .5
+    val_mult = .25 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else .5
+    tas_mult = .25 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else 0
+    sql_mult = .5
 
-    current_progress = validation_progress * VAL_MULT + tas_progress * TAS_MULT + sql_progress * SQL_MULT
+    current_progress = validation_progress * val_mult + tas_progress * tas_mult + sql_progress * sql_mult
     job.progress = current_progress
     sess.commit()
