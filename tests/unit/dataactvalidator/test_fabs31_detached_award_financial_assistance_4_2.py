@@ -34,17 +34,17 @@ def test_pubished_date_success(database):
 
     # new records that may or may not be related to older awards
     duns_1 = DUNS(awardee_or_recipient_uniqu='111111111', uei=None)
-    duns_2 = DUNS(awardee_or_recipient_uniqu=None, uei='222222222222')
-    duns_3 = DUNS(awardee_or_recipient_uniqu='333333333', uei='333333333333')
+    duns_2 = DUNS(awardee_or_recipient_uniqu=None, uei='22222222222E')
+    duns_3 = DUNS(awardee_or_recipient_uniqu='333333333', uei='33333333333f')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei=None,
                                                           assistance_type='06', action_date='10/02/2010',
                                                           correction_delete_indicatr='',
                                                           unique_award_key='before_key')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu=None, uei='222222222222',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu=None, uei='22222222222e',
                                                           assistance_type='07', action_date='10/02/2010',
                                                           correction_delete_indicatr='c',
                                                           unique_award_key='before_key')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='333333333', uei='333333333333',
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='333333333', uei='33333333333F',
                                                           assistance_type='08', action_date='10/02/2010',
                                                           correction_delete_indicatr='c',
                                                           unique_award_key='before_key')

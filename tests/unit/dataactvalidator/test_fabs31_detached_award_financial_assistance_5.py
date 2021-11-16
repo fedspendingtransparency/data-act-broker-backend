@@ -19,17 +19,17 @@ def test_pubished_date_success(database):
     """
     duns_1 = DUNS(awardee_or_recipient_uniqu='111111111', uei='111111111111', registration_date='01/01/2017',
                   expiration_date='01/01/2018')
-    duns_2 = DUNS(awardee_or_recipient_uniqu='222222222', uei='222222222222', registration_date='01/01/2018',
+    duns_2 = DUNS(awardee_or_recipient_uniqu='222222222', uei='22222222222e', registration_date='01/01/2018',
                   expiration_date='01/01/2019')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei=None,
                                                           action_type='a', action_date='06/22/2017',
                                                           correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='222222222222',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='22222222222E',
                                                           action_type='a', action_date='06/22/2018',
                                                           correction_delete_indicatr='')
     # Note: if both duns and uei are both provided, it will check against duns only
     #       they _should_ both point to the same recipient and FABS 31.8 will enforce this
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei='222222222222',
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei='22222222222e',
                                                           action_type='a', action_date='06/22/2017',
                                                           correction_delete_indicatr='')
     # Ignore different action type

@@ -168,7 +168,7 @@ def soap_to_dict(soap_obj):
 
 
 # Fields lists to copy
-_common = ('duns', 'dba_name', 'parent_duns', 'funding_agency_id', 'funding_agency_name')
+_common = ('duns', 'dba_name', 'parent_duns', 'funding_agency_id', 'funding_agency_name', 'uei_number', 'parent_uei')
 _contract = ('company_name', 'parent_company_name', 'naics', 'funding_office_id', 'funding_office_name',
              'recovery_model_q1', 'recovery_model_q2')
 _grant = ('dunsplus4', 'awardee_name', 'project_description', 'compensation_q1', 'compensation_q2', 'federal_agency_id',

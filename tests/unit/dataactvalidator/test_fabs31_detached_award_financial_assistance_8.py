@@ -17,17 +17,17 @@ def test_pubished_date_success(database):
         the combination shown in SAM for the same awardee or recipient. In this instance, they do not.
     """
     duns_1 = DUNS(awardee_or_recipient_uniqu='111111111', uei='111111111111')
-    duns_2 = DUNS(awardee_or_recipient_uniqu='222222222', uei='222222222222')
+    duns_2 = DUNS(awardee_or_recipient_uniqu='222222222', uei='22222222222e')
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei='111111111111',
                                                           correction_delete_indicatr='')
     # Ignore if delete
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei='222222222222',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei='22222222222E',
                                                           correction_delete_indicatr='d')
     # Ignore if one is just provided
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', uei=None,
                                                           correction_delete_indicatr='')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='222222222222',
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='', uei='22222222222e',
                                                           correction_delete_indicatr='')
 
     errors = number_of_errors(_FILE, database, models=[duns_1, duns_2, det_award_1, det_award_2, det_award_3,
