@@ -1436,7 +1436,8 @@ def get_status(submission, file_type=''):
 
     # Set up a dictionary to store the jobs we want to look at and limit it to only the file types we care about. Also
     # setting up the response dict here because we need the same keys.
-    response_template = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '', 'progress': 0}
+    response_template = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
+                         'upload_progress': None, 'validation_progress': None}
     job_dict = {}
     response_dict = {}
 
@@ -1497,19 +1498,16 @@ def process_job_status(jobs, response_content):
     upload_em = ''
     validation_em = ''
     ready_statuses = ['ready', 'waiting']
-    progress = 0
     for job in jobs:
         if job['job_type'] == JOB_TYPE_DICT['file_upload']:
             upload_status = JOB_STATUS_DICT_ID[job['job_status']]
             upload_em = job['error_message']
+            response_content['upload_progress'] = job['progress']
         else:
             validation = job
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
             validation_em = job['error_message']
-        progress += job['progress']
-
-    # We want the progress shown to be the average of upload/validate to display the actual progress in the process
-    response_content['progress'] = progress / len(jobs)
+            response_content['validation_progress'] = job['progress']
 
     # checking for failures
     if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
