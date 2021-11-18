@@ -824,7 +824,7 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
     return file_row_count, short_pop_rows, long_pop_rows, short_null_rows, long_null_rows
 
 
-def update_val_progress(sess, job, validation_progress, tas_progress, sql_progress):
+def update_val_progress(sess, job, validation_progress, tas_progress, sql_progress, final_progress):
     """ Updates the progress value of the job based on the type of validation it is.
 
         Args:
@@ -833,12 +833,15 @@ def update_val_progress(sess, job, validation_progress, tas_progress, sql_progre
             validation_progress: how much of the file has finished its initial validation steps
             tas_progress: whether the file has completed tas linking or not (realistically always 0 or 100)
             sql_progress: how far through the SQL validations the job has progressed
+            final_progress: how far through the post-SQL cleanup the job has progressed
     """
 
-    val_mult = .25 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else .5
+    val_mult = .2 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else .4
     tas_mult = .25 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else 0
     sql_mult = .5
+    final_mult = .05 if FILE_TYPE_DICT_ID[job.file_type_id] != 'fabs' else .1
 
-    current_progress = validation_progress * val_mult + tas_progress * tas_mult + sql_progress * sql_mult
+    current_progress = validation_progress * val_mult + tas_progress * tas_mult + sql_progress * sql_mult + \
+        final_progress * final_mult
     job.progress = current_progress
     sess.commit()

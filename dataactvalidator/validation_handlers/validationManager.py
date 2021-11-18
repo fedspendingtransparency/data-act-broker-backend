@@ -191,6 +191,7 @@ class ValidationManager:
         self.basic_val_progress = 0
         self.tas_progress = 0
         self.sql_val_progress = 0
+        self.final_progress = 0
 
         validation_start = datetime.now()
         bucket_name = CONFIG_BROKER['aws_bucket']
@@ -246,7 +247,8 @@ class ValidationManager:
 
             # When we finish the initial data loading we want to set the progress of the basic validations to 100
             self.basic_val_progress = 100
-            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress)
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                self.final_progress)
 
             if self.file_type.name in ('appropriations', 'program_activity', 'award_financial'):
                 update_account_nums(self.model, self.submission_id)
@@ -258,7 +260,8 @@ class ValidationManager:
                 # TAS links are now done, unfortunately there's no way to do this incrementally because it's one
                 # SQL query
                 self.tas_progress = 100
-                update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress)
+                update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                    self.final_progress)
 
             # SQL Validations
             with open(self.error_file_path, 'a', newline='') as error_file, \
@@ -269,6 +272,9 @@ class ValidationManager:
                 # third phase of validations: run validation rules as specified in the schema guidance. These
                 # validations are sql-based.
                 self.run_sql_validations(self.short_to_long_dict[self.file_type.file_type_id], error_csv, warning_csv)
+                self.sql_val_progress = 100
+                update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                    self.final_progress)
             error_file.close()
             warning_file.close()
 
@@ -313,6 +319,10 @@ class ValidationManager:
             if self.is_fabs:
                 # set number of errors and warnings for detached submission
                 populate_submission_error_info(self.submission_id)
+
+            self.final_progress = 100
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                self.final_progress)
 
             # Mark validation as finished in job tracker
             mark_job_status(self.job.job_id, 'finished')
@@ -845,7 +855,8 @@ class ValidationManager:
         with lockable:
             # Seeing how far into the file we currently are
             self.basic_val_progress = shared_data['total_data_rows'] / file_row_count * 100
-            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress)
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                self.final_progress)
         if m_lock:
             conn.close()
 

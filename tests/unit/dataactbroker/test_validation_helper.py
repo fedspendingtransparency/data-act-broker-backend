@@ -538,8 +538,8 @@ def test_update_val_progress(database):
     sess.add_all([sub, fabs_sub, job, fabs_job])
     sess.commit()
 
-    validation_helper.update_val_progress(sess, job, 100, 100, 25)
-    assert job.progress == 62.5
+    validation_helper.update_val_progress(sess, job, 100, 100, 25, 0)
+    assert job.progress == 57.5
 
-    validation_helper.update_val_progress(sess, fabs_job, 100, 0, 4.5)
-    assert fabs_job.progress == 52.25
+    validation_helper.update_val_progress(sess, fabs_job, 100, 0, 4.5, 0)
+    assert fabs_job.progress == 42.25

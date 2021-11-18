@@ -7,6 +7,7 @@ from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.interfaces.db import GlobalDB
 from dataactbroker.helpers.generic_helper import batch as batcher
+from dataactbroker.helpers.validation_helper import update_val_progress
 from dataactvalidator.validation_handlers.errorInterface import record_row_error
 
 logger = logging.getLogger(__name__)
@@ -210,6 +211,9 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
     file_id = FILE_TYPE_DICT[file_type]
     rules = sess.query(RuleSql).filter_by(file_id=file_id, rule_cross_file_flag=False)
     errors = []
+    rules_run = 0
+    progress_check = 2 if file_type != 'fabs' else 5
+    num_rules = rules.count()
 
     # For each rule, execute sql for rule
     for rule in rules:
@@ -277,6 +281,11 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
             'duration': rule_duration,
             'batch_results': batch_results
         })
+        rules_run += 1
+        if rules_run % progress_check == 0:
+            # If we're here we can assume the previous parts are done so we can just set those to 100 and the next step
+            # to 0
+            update_val_progress(sess, job, 100, 100, rules_run / num_rules, 0)
 
     sql_val_duration = (datetime.now() - sql_val_start).total_seconds()
     logger.info({
