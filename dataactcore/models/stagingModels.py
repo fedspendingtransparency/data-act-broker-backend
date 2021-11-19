@@ -1272,7 +1272,7 @@ class DetachedAwardProcurement(Base):
     naics_description = Column(Text)
     awardee_or_recipient_uniqu = Column(Text, index=True)
     ultimate_parent_legal_enti = Column(Text)
-    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_unique_ide = Column(Text, index=True)
     award_description = Column(Text)
     place_of_performance_zip4a = Column(Text)
     place_of_performance_zip5 = Column(Text)
@@ -1556,7 +1556,7 @@ class DetachedAwardProcurement(Base):
     high_comp_officer5_amount = Column(Text)
     additional_reporting = Column(Text)
     awardee_or_recipient_uei = Column(Text, index=True)
-    ultimate_parent_uei = Column(Text)
+    ultimate_parent_uei = Column(Text, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1726,7 +1726,7 @@ class PublishedAwardFinancialAssistance(Base):
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
-    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_unique_ide = Column(Text, index=True)
     uri = Column(Text, index=True)
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
@@ -1745,7 +1745,7 @@ class PublishedAwardFinancialAssistance(Base):
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
     uei = Column(Text, index=True)
-    ultimate_parent_uei = Column(Text)
+    ultimate_parent_uei = Column(Text, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
