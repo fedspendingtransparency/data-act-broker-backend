@@ -828,7 +828,7 @@ def update_val_progress(sess, job, validation_progress, tas_progress, sql_progre
     """ Updates the progress value of the job based on the type of validation it is.
 
         Args:
-            sess: the database connection
+            sess: the database session
             job: the job being updated
             validation_progress: how much of the file has finished its initial validation steps
             tas_progress: whether the file has completed tas linking or not (realistically always 0 or 100)
@@ -844,4 +844,20 @@ def update_val_progress(sess, job, validation_progress, tas_progress, sql_progre
     current_progress = validation_progress * val_mult + tas_progress * tas_mult + sql_progress * sql_mult + \
         final_progress * final_mult
     job.progress = current_progress
+    sess.commit()
+
+
+def update_cross_val_progress(sess, job, pairs_finished, set_length, completed_in_set):
+    """ Updates the progress value of the cross-file job based on how many rules have been completed
+
+        Args:
+            sess: the database session
+            job: the job being updated
+            pairs_finished: how many of the 4 pairs have been completed before starting this update
+            set_length: how many rules are in this set of rules
+            completed_in_set: how many of the rules in this set have been completed
+    """
+
+    # Multiplying by 25 because there are 4 total sets of cross-file so we want each to count as 25%
+    job.progress = pairs_finished * 25 + (completed_in_set / set_length) * 25
     sess.commit()

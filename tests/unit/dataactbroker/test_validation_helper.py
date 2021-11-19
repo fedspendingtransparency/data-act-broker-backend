@@ -543,3 +543,17 @@ def test_update_val_progress(database):
 
     validation_helper.update_val_progress(sess, fabs_job, 100, 0, 4.5, 0)
     assert fabs_job.progress == 42.25
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_update_cross_val_progress(database):
+    sess = database.session
+    sub = SubmissionFactory(submission_id=1)
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['running'],
+                     job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
+                     progress=32.4)
+    sess.add_all([sub, job])
+    sess.commit()
+
+    validation_helper.update_cross_val_progress(sess, job, 2, 4, 1)
+    assert job.progress == 56.25

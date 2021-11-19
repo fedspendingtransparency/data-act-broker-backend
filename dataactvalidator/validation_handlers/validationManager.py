@@ -257,11 +257,13 @@ class ValidationManager:
                     update_total_obligations(self.submission_id, total_obligations=self.total_obligations,
                                              total_proc_obligations=self.total_proc_obligations,
                                              total_asst_obligations=self.total_asst_obligations)
-                # TAS links are now done, unfortunately there's no way to do this incrementally because it's one
-                # SQL query
-                self.tas_progress = 100
-                update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
-                                    self.final_progress)
+
+            # TAS links are now done, unfortunately there's no way to do this incrementally because it's one
+            # SQL query. We update outside of the "if" statement to account for D1/D2 generation. It will not affect
+            # FABS as the multiplier is 0
+            self.tas_progress = 100
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                self.final_progress)
 
             # SQL Validations
             with open(self.error_file_path, 'a', newline='') as error_file, \
@@ -947,6 +949,7 @@ class ValidationManager:
 
         # get all cross file rules from db
         cross_file_rules = sess.query(RuleSql).filter_by(rule_cross_file_flag=True)
+        pairs_finished = 0
 
         # for each cross-file combo, run associated rules and create error report
         cross_list = {
@@ -984,7 +987,7 @@ class ValidationManager:
                 current_cols_short_to_long = self.short_to_long_dict[first_file_id].copy()
                 current_cols_short_to_long.update(self.short_to_long_dict[second_file_id].copy())
                 cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, job_id, error_csv,
-                                   warning_csv, error_list, batch_results=BATCH_SQL_VAL_RESULTS)
+                                   warning_csv, error_list, pairs_finished, job, batch_results=BATCH_SQL_VAL_RESULTS)
             # close files
             error_file.close()
             warning_file.close()
@@ -1000,6 +1003,8 @@ class ValidationManager:
 
                 s3.upload_file(warning_file_path, bucket_name, self.get_file_name(warning_file_name))
                 os.remove(warning_file_path)
+
+            pairs_finished += 1
 
         # write all recorded errors to database
         write_all_row_errors(error_list, job_id)
@@ -1027,6 +1032,7 @@ class ValidationManager:
         # Publish only if no errors are present
         if submission.number_of_errors == 0:
             submission.publishable = True
+        job.progress = 100
         sess.commit()
 
         # Mark validation complete
