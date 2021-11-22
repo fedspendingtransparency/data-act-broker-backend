@@ -1,5 +1,6 @@
 alembic==1.4.3
 amqp==1.4.9
+anyjson==0.3.3
 awscli==1.19.55
 backoff==1.10.0
 bcrypt==3.1.3
