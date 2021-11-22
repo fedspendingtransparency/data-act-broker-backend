@@ -28,7 +28,7 @@ before_script:
   - 'sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml'
   - 'sed -i.bak -E "s/error_report_path:.*$/error_report_path: ${ERROR_REPORT_PATH_ESCAPED}/" dataactcore/local_config.yml'
   # Start a containerized database to use for tests, which also pulls pip packages required for build as the image is built
-  - docker-compose up -d dataact-broker-db dataact-broker-init-db
+  - docker-compose up -d dataact-broker-backend dataact-broker-validator
 
 script:
   - docker exec -it dataact-broker-backend /bin/bash
