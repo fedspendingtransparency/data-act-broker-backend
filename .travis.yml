@@ -11,7 +11,7 @@ env:
   - ERROR_REPORT_PATH_ESCAPED="dataactcore\/tmp\/"
 
 before_install:
-  - pip install -upgrade setuptools
+  - pip install --upgrade setuptools
 
 install:
   # NOTE: no pip install needed as long as the one of the docker containers started below builds the
