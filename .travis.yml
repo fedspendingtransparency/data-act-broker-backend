@@ -10,10 +10,13 @@ env:
   - ERROR_REPORT_PATH="dataactcore/tmp/"
   - ERROR_REPORT_PATH_ESCAPED="dataactcore\/tmp\/"
 
+beofre_install:
+  - pip install -upgrade setuptools
+
 install:
   # NOTE: no pip install needed as long as the one of the docker containers started below builds the
   # `dataact-broker-backend` image, which has a volume bound to the source dir, and runs pip install to pull down deps
-  - pip --version
+  #  - pip --version
 
 before_script:
   # Get dependencies to report code coverage to code climate
@@ -28,12 +31,15 @@ before_script:
   - 'sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml'
   - 'sed -i.bak -E "s/error_report_path:.*$/error_report_path: ${ERROR_REPORT_PATH_ESCAPED}/" dataactcore/local_config.yml'
   # Start a containerized database to use for tests, which also pulls pip packages required for build as the image is built
-  - docker-compose up -d dataact-broker-db dataact-broker-init-db dataact-broker-backend dataact-broker-validator
+  - docker-compose up -d dataact-broker-db dataact-broker-init-db
 
 script:
-  - docker exec -it dataact-broker-backend /bin/bash -c 'flake8'
-  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
-  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
+  #  - docker exec -it dataact-broker-backend /bin/bash -c 'flake8'
+  #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
+  #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
+  - flake8'
+  - pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  - pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
 
 after_script:
   - docker-compose down
