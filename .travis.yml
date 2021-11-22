@@ -10,9 +10,9 @@ env:
   - ERROR_REPORT_PATH="dataactcore/tmp/"
   - ERROR_REPORT_PATH_ESCAPED="dataactcore\/tmp\/"
 
-install:
-  # NOTE: no pip install needed as long as the one of the docker containers started below builds the
-  # `dataact-broker-backend` image, which has a volume bound to the source dir, and runs pip install to pull down deps
+#install:
+#  # NOTE: no pip install needed as long as the one of the docker containers started below builds the
+#  # `dataact-broker-backend` image, which has a volume bound to the source dir, and runs pip install to pull down deps
 
 before_script:
   # Get dependencies to report code coverage to code climate
