@@ -31,9 +31,11 @@ before_script:
   - docker-compose up -d dataact-broker-db dataact-broker-init-db
 
 script:
+  - docker exec -it dataact-broker-backend /bin/bash
   - flake8
   - pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
   - pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  - exit
 
 after_script:
   - docker-compose down
