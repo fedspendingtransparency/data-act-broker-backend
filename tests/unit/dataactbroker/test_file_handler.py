@@ -1155,7 +1155,7 @@ def test_get_status_fabs(database):
     assert json_response.status_code == 200
     json_content = json.loads(json_response.get_data().decode('UTF-8'))
     assert json_content['fabs'] == {'status': 'finished', 'has_errors': False, 'has_warnings': True, 'message': '',
-                                    'progress': 0}
+                                    'upload_progress': 0, 'validation_progress': 0}
 
 
 @pytest.mark.usefixtures('job_constants')
@@ -1215,7 +1215,7 @@ def test_get_status_dabs(database):
     # Waiting
     job_8_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
                            job_status_id=JOB_STATUS_DICT['waiting'], number_of_errors=0, number_of_warnings=5,
-                           error_message=None)
+                           error_message=None, progress=15.9)
 
     sess.add_all([sub, job_1_up, job_1_val, job_2_up, job_2_val, job_3_up, job_3_val, job_4_up, job_4_val, job_5_up,
                   job_5_val, job_6_up, job_7_up, job_8_val])
@@ -1227,21 +1227,22 @@ def test_get_status_dabs(database):
     json_content = json.loads(json_response.get_data().decode('UTF-8'))
     assert len(json_content) == 8
     assert json_content['appropriations'] == {'status': 'finished', 'has_errors': True, 'has_warnings': True,
-                                              'message': '', 'progress': 12}
+                                              'message': '', 'upload_progress': 24, 'validation_progress': 0}
     assert json_content['program_activity'] == {'status': 'failed', 'has_errors': True, 'has_warnings': False,
-                                                'message': '', 'progress': 0}
+                                                'message': '', 'upload_progress': 0, 'validation_progress': 0}
     assert json_content['award_financial'] == {'status': 'running', 'has_errors': False, 'has_warnings': False,
-                                               'message': '', 'progress': 0}
+                                               'message': '', 'upload_progress': 0, 'validation_progress': 0}
     assert json_content['award'] == {'status': 'uploading', 'has_errors': False, 'has_warnings': False, 'message': '',
-                                     'progress': 0}
+                                     'upload_progress': 0, 'validation_progress': 0}
     assert json_content['award_procurement'] == {'status': 'finished', 'has_errors': True, 'has_warnings': False,
-                                                 'message': '', 'progress': 0}
+                                                 'message': '', 'upload_progress': 0, 'validation_progress': 0}
     assert json_content['executive_compensation'] == {'status': 'failed', 'has_errors': True, 'has_warnings': False,
-                                                      'message': 'test message', 'progress': 0}
+                                                      'message': 'test message', 'upload_progress': 0,
+                                                      'validation_progress': None}
     assert json_content['sub_award'] == {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                                         'progress': 0}
+                                         'upload_progress': 0, 'validation_progress': None}
     assert json_content['cross'] == {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                                     'progress': 0}
+                                     'upload_progress': None, 'validation_progress': 15.9}
 
     # Get just one status (ignore case)
     json_response = fileHandler.get_status(sub, 'awArd')
@@ -1249,17 +1250,18 @@ def test_get_status_dabs(database):
     json_content = json.loads(json_response.get_data().decode('UTF-8'))
     assert len(json_content) == 1
     assert json_content['award'] == {'status': 'uploading', 'has_errors': False, 'has_warnings': False, 'message': '',
-                                     'progress': 0}
+                                     'upload_progress': 0, 'validation_progress': 0}
 
 
 def test_process_job_status():
     """ Tests the helper function that parses the job status of the current job for check_status """
 
-    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '', 'progress': 0}
+    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
+                        'upload_progress': None, 'validation_progress': None}
     job_1 = {'job_type': JOB_TYPE_DICT['file_upload'], 'job_status': JOB_STATUS_DICT['waiting'], 'error_message': '',
-             'progress': 0}
+             'progress': 23}
     job_2 = {'job_type': JOB_TYPE_DICT['csv_record_validation'], 'job_status': JOB_STATUS_DICT['ready'],
-             'error_message': '', 'progress': 0}
+             'error_message': '', 'progress': 42.5}
 
     # both jobs waiting or ready
     resp = fileHandler.process_job_status([job_1, job_2], response_content)
@@ -1267,9 +1269,11 @@ def test_process_job_status():
     assert resp['has_errors'] is False
     assert resp['has_warnings'] is False
     assert resp['message'] == ''
-    assert resp['progress'] == 0
+    assert resp['upload_progress'] == 23
+    assert resp['validation_progress'] == 42.5
 
-    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '', 'progress': 0}
+    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
+                        'upload_progress': None, 'validation_progress': None}
     # no upload job because it's cross-file
     resp = fileHandler.process_job_status([job_2], response_content)
     assert resp['status'] == 'ready'
@@ -1277,7 +1281,8 @@ def test_process_job_status():
     assert resp['has_warnings'] is False
     assert resp['message'] == ''
 
-    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '', 'progress': 0}
+    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
+                        'upload_progress': None, 'validation_progress': None}
     job_1['job_status'] = JOB_STATUS_DICT['invalid']
     job_1['error_message'] = 'I broke'
     # one job failed
@@ -1287,7 +1292,8 @@ def test_process_job_status():
     assert resp['has_warnings'] is False
     assert resp['message'] == 'I broke'
 
-    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '', 'progress': 0}
+    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
+                        'upload_progress': None, 'validation_progress': None}
     job_1['error_message'] = ''
     job_1['job_status'] = JOB_STATUS_DICT['finished']
     job_2['job_status'] = JOB_STATUS_DICT['invalid']
@@ -1298,7 +1304,8 @@ def test_process_job_status():
     assert resp['has_warnings'] is False
     assert resp['message'] == ''
 
-    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '', 'progress': 0}
+    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
+                        'upload_progress': None, 'validation_progress': None}
     job_1['job_status'] = JOB_STATUS_DICT['running']
     job_2['job_status'] = JOB_STATUS_DICT['ready']
     # uploading
@@ -1308,7 +1315,8 @@ def test_process_job_status():
     assert resp['has_warnings'] is False
     assert resp['message'] == ''
 
-    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '', 'progress': 0}
+    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
+                        'upload_progress': None, 'validation_progress': None}
     job_1['job_status'] = JOB_STATUS_DICT['finished']
     job_2['job_status'] = JOB_STATUS_DICT['running']
     # validating
@@ -1318,7 +1326,8 @@ def test_process_job_status():
     assert resp['has_warnings'] is False
     assert resp['message'] == ''
 
-    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '', 'progress': 0}
+    response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
+                        'upload_progress': None, 'validation_progress': None}
     job_2['job_status'] = JOB_STATUS_DICT['finished']
     job_2['errors'] = 0
     job_2['warnings'] = 4
@@ -1329,4 +1338,5 @@ def test_process_job_status():
     assert resp['has_errors'] is False
     assert resp['has_warnings'] is True
     assert resp['message'] == ''
-    assert resp['progress'] == 39
+    assert resp['upload_progress'] == 23
+    assert resp['validation_progress'] == 78
