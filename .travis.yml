@@ -10,9 +10,14 @@ env:
   - ERROR_REPORT_PATH="dataactcore/tmp/"
   - ERROR_REPORT_PATH_ESCAPED="dataactcore\/tmp\/"
 
+before_install:
+  - pip install setuptools==57.5.0
+
 install:
   # NOTE: no pip install needed as long as the one of the docker containers started below builds the
   # `dataact-broker-backend` image, which has a volume bound to the source dir, and runs pip install to pull down deps
+  # Use the comment below to skip the travis automatic pip install -r requirements.txt
+  #  - pip --version
 
 before_script:
   # Get dependencies to report code coverage to code climate
@@ -30,6 +35,10 @@ before_script:
   - docker-compose up -d dataact-broker-db dataact-broker-init-db
 
 script:
+  # Comment these out if we need to run in the Docker image
+  #  - docker exec -it dataact-broker-backend /bin/bash -c 'flake8'
+  #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
+  #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
   - flake8
   - pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
   - pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
