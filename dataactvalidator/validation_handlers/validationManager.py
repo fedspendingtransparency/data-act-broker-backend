@@ -221,6 +221,9 @@ class ValidationManager:
         # Clear existing flex fields for this job
         sess.query(FlexField).filter_by(job_id=self.job.job_id).delete()
         sess.commit()
+        # Reset progress for this job
+        self.job.progress = 0
+        sess.commit()
 
         # If local, make the error report directory
         if self.is_local and not os.path.exists(self.directory):

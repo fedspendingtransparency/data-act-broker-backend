@@ -1045,6 +1045,9 @@ class FileHandler:
             else:
                 # these are dependent on file D2 validation
                 job.job_status_id = JOB_STATUS_DICT['waiting']
+
+            if job.job_type_id != JOB_TYPE_DICT['file_upload']:
+                job.progress = 0
             job.error_message = None
 
         # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
@@ -1437,7 +1440,7 @@ def get_status(submission, file_type=''):
     # Set up a dictionary to store the jobs we want to look at and limit it to only the file types we care about. Also
     # setting up the response dict here because we need the same keys.
     response_template = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                         'upload_progress': None, 'validation_progress': None}
+                         'upload_progress': None, 'validation_progress': None, 'file_name': None}
     job_dict = {}
     response_dict = {}
 
@@ -1471,7 +1474,8 @@ def get_status(submission, file_type=''):
                 'error_message': job.error_message,
                 'errors': job.number_of_errors,
                 'warnings': job.number_of_warnings,
-                'progress': job.progress
+                'progress': job.progress,
+                'file_name': job.original_filename
             })
 
     for job_file_type, job_data in job_dict.items():
@@ -1508,6 +1512,7 @@ def process_job_status(jobs, response_content):
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
             validation_em = job['error_message']
             response_content['validation_progress'] = job['progress']
+        response_content['file_name'] = job['file_name']
 
     # checking for failures
     if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
