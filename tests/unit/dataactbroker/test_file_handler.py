@@ -1143,10 +1143,10 @@ def test_get_status_fabs(database):
     sub = SubmissionFactory(submission_id=1, d2_submission=True)
     job_up = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
                         file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
-                        number_of_errors=0, number_of_warnings=0)
+                        number_of_errors=0, number_of_warnings=0, original_filename='test_file.csv')
     job_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                          file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
-                         number_of_errors=0, number_of_warnings=4)
+                         number_of_errors=0, number_of_warnings=4, original_filename='test_file.csv')
 
     sess.add_all([sub, job_up, job_val])
     sess.commit()
@@ -1155,7 +1155,7 @@ def test_get_status_fabs(database):
     assert json_response.status_code == 200
     json_content = json.loads(json_response.get_data().decode('UTF-8'))
     assert json_content['fabs'] == {'status': 'finished', 'has_errors': False, 'has_warnings': True, 'message': '',
-                                    'upload_progress': 0, 'validation_progress': 0}
+                                    'upload_progress': 0, 'validation_progress': 0, 'file_name': 'test_file.csv'}
 
 
 @pytest.mark.usefixtures('job_constants')
@@ -1171,51 +1171,62 @@ def test_get_status_dabs(database):
     # Completed, warnings, errors
     job_1_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=finished_status,
-                          number_of_errors=0, number_of_warnings=0, error_message=None, progress=24)
+                          number_of_errors=0, number_of_warnings=0, error_message=None, progress=24,
+                          original_filename='test_file_a.csv')
     job_1_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=finished_status,
-                           number_of_errors=10, number_of_warnings=4, error_message=None)
+                           number_of_errors=10, number_of_warnings=4, error_message=None,
+                           original_filename='test_file_a.csv')
     # Invalid upload
     job_2_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['invalid'],
-                          number_of_errors=0, number_of_warnings=0, error_message=None)
+                          number_of_errors=0, number_of_warnings=0, error_message=None,
+                          original_filename='test_file_b.csv')
     job_2_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['waiting'],
-                           number_of_errors=0, number_of_warnings=0, error_message=None)
+                           number_of_errors=0, number_of_warnings=0, error_message=None,
+                           original_filename='test_file_b.csv')
     # Validating
     job_3_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=finished_status,
-                          number_of_errors=0, number_of_warnings=0, error_message=None)
+                          number_of_errors=0, number_of_warnings=0, error_message=None,
+                          original_filename='test_file_c.csv')
     job_3_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['running'],
-                           number_of_errors=0, number_of_warnings=0, error_message=None)
+                           number_of_errors=0, number_of_warnings=0, error_message=None,
+                           original_filename='test_file_c.csv')
     # Uploading
     job_4_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['award'], job_status_id=JOB_STATUS_DICT['running'],
-                          number_of_errors=0, number_of_warnings=0, error_message=None)
+                          number_of_errors=0, number_of_warnings=0, error_message=None,
+                          original_filename='test_file_d2.csv')
     job_4_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['award'], job_status_id=JOB_STATUS_DICT['ready'],
-                           number_of_errors=0, number_of_warnings=0, error_message=None)
+                           number_of_errors=0, number_of_warnings=0, error_message=None,
+                           original_filename='test_file_d2.csv')
     # Invalid on validation
     job_5_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['award_procurement'], job_status_id=finished_status,
-                          number_of_errors=0, number_of_warnings=0, error_message=None)
+                          number_of_errors=0, number_of_warnings=0, error_message=None,
+                          original_filename='test_file_d1.csv')
     job_5_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['award_procurement'], job_status_id=JOB_STATUS_DICT['invalid'],
-                           number_of_errors=0, number_of_warnings=0, error_message=None)
+                           number_of_errors=0, number_of_warnings=0, error_message=None,
+                           original_filename='test_file_d1.csv')
     # Failed
     job_6_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['executive_compensation'],
                           job_status_id=JOB_STATUS_DICT['failed'], number_of_errors=0, number_of_warnings=0,
-                          error_message='test message')
+                          error_message='test message', original_filename='test_file_e.csv')
     # Ready
     job_7_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['sub_award'], job_status_id=JOB_STATUS_DICT['ready'],
-                          number_of_errors=0, number_of_warnings=0, error_message=None)
+                          number_of_errors=0, number_of_warnings=0, error_message=None,
+                          original_filename='test_file_f.csv')
     # Waiting
     job_8_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
                            job_status_id=JOB_STATUS_DICT['waiting'], number_of_errors=0, number_of_warnings=5,
-                           error_message=None, progress=15.9)
+                           error_message=None, progress=15.9, original_filename=None)
 
     sess.add_all([sub, job_1_up, job_1_val, job_2_up, job_2_val, job_3_up, job_3_val, job_4_up, job_4_val, job_5_up,
                   job_5_val, job_6_up, job_7_up, job_8_val])
@@ -1227,22 +1238,27 @@ def test_get_status_dabs(database):
     json_content = json.loads(json_response.get_data().decode('UTF-8'))
     assert len(json_content) == 8
     assert json_content['appropriations'] == {'status': 'finished', 'has_errors': True, 'has_warnings': True,
-                                              'message': '', 'upload_progress': 24, 'validation_progress': 0}
+                                              'message': '', 'upload_progress': 24, 'validation_progress': 0,
+                                              'file_name': 'test_file_a.csv'}
     assert json_content['program_activity'] == {'status': 'failed', 'has_errors': True, 'has_warnings': False,
-                                                'message': '', 'upload_progress': 0, 'validation_progress': 0}
+                                                'message': '', 'upload_progress': 0, 'validation_progress': 0,
+                                                'file_name': 'test_file_b.csv'}
     assert json_content['award_financial'] == {'status': 'running', 'has_errors': False, 'has_warnings': False,
-                                               'message': '', 'upload_progress': 0, 'validation_progress': 0}
+                                               'message': '', 'upload_progress': 0, 'validation_progress': 0,
+                                               'file_name': 'test_file_c.csv'}
     assert json_content['award'] == {'status': 'uploading', 'has_errors': False, 'has_warnings': False, 'message': '',
-                                     'upload_progress': 0, 'validation_progress': 0}
+                                     'upload_progress': 0, 'validation_progress': 0, 'file_name': 'test_file_d2.csv'}
     assert json_content['award_procurement'] == {'status': 'finished', 'has_errors': True, 'has_warnings': False,
-                                                 'message': '', 'upload_progress': 0, 'validation_progress': 0}
+                                                 'message': '', 'upload_progress': 0, 'validation_progress': 0,
+                                                 'file_name': 'test_file_d1.csv'}
     assert json_content['executive_compensation'] == {'status': 'failed', 'has_errors': True, 'has_warnings': False,
                                                       'message': 'test message', 'upload_progress': 0,
-                                                      'validation_progress': None}
+                                                      'validation_progress': None, 'file_name': 'test_file_e.csv'}
     assert json_content['sub_award'] == {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                                         'upload_progress': 0, 'validation_progress': None}
+                                         'upload_progress': 0, 'validation_progress': None,
+                                         'file_name': 'test_file_f.csv'}
     assert json_content['cross'] == {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                                     'upload_progress': None, 'validation_progress': 15.9}
+                                     'upload_progress': None, 'validation_progress': 15.9, 'file_name': None}
 
     # Get just one status (ignore case)
     json_response = fileHandler.get_status(sub, 'awArd')
@@ -1250,18 +1266,18 @@ def test_get_status_dabs(database):
     json_content = json.loads(json_response.get_data().decode('UTF-8'))
     assert len(json_content) == 1
     assert json_content['award'] == {'status': 'uploading', 'has_errors': False, 'has_warnings': False, 'message': '',
-                                     'upload_progress': 0, 'validation_progress': 0}
+                                     'upload_progress': 0, 'validation_progress': 0, 'file_name': 'test_file_d2.csv'}
 
 
 def test_process_job_status():
     """ Tests the helper function that parses the job status of the current job for check_status """
 
     response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                        'upload_progress': None, 'validation_progress': None}
+                        'upload_progress': None, 'validation_progress': None, 'file_name': None}
     job_1 = {'job_type': JOB_TYPE_DICT['file_upload'], 'job_status': JOB_STATUS_DICT['waiting'], 'error_message': '',
-             'progress': 23}
+             'progress': 23, 'file_name': 'test_file.csv'}
     job_2 = {'job_type': JOB_TYPE_DICT['csv_record_validation'], 'job_status': JOB_STATUS_DICT['ready'],
-             'error_message': '', 'progress': 42.5}
+             'error_message': '', 'progress': 42.5, 'file_name': 'test_file.csv'}
 
     # both jobs waiting or ready
     resp = fileHandler.process_job_status([job_1, job_2], response_content)
@@ -1271,9 +1287,10 @@ def test_process_job_status():
     assert resp['message'] == ''
     assert resp['upload_progress'] == 23
     assert resp['validation_progress'] == 42.5
+    assert resp['file_name'] == 'test_file.csv'
 
     response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                        'upload_progress': None, 'validation_progress': None}
+                        'upload_progress': None, 'validation_progress': None, 'file_name': None}
     # no upload job because it's cross-file
     resp = fileHandler.process_job_status([job_2], response_content)
     assert resp['status'] == 'ready'
@@ -1282,7 +1299,7 @@ def test_process_job_status():
     assert resp['message'] == ''
 
     response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                        'upload_progress': None, 'validation_progress': None}
+                        'upload_progress': None, 'validation_progress': None, 'file_name': None}
     job_1['job_status'] = JOB_STATUS_DICT['invalid']
     job_1['error_message'] = 'I broke'
     # one job failed
@@ -1293,7 +1310,7 @@ def test_process_job_status():
     assert resp['message'] == 'I broke'
 
     response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                        'upload_progress': None, 'validation_progress': None}
+                        'upload_progress': None, 'validation_progress': None, 'file_name': None}
     job_1['error_message'] = ''
     job_1['job_status'] = JOB_STATUS_DICT['finished']
     job_2['job_status'] = JOB_STATUS_DICT['invalid']
@@ -1305,7 +1322,7 @@ def test_process_job_status():
     assert resp['message'] == ''
 
     response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                        'upload_progress': None, 'validation_progress': None}
+                        'upload_progress': None, 'validation_progress': None, 'file_name': None}
     job_1['job_status'] = JOB_STATUS_DICT['running']
     job_2['job_status'] = JOB_STATUS_DICT['ready']
     # uploading
@@ -1316,7 +1333,7 @@ def test_process_job_status():
     assert resp['message'] == ''
 
     response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                        'upload_progress': None, 'validation_progress': None}
+                        'upload_progress': None, 'validation_progress': None, 'file_name': None}
     job_1['job_status'] = JOB_STATUS_DICT['finished']
     job_2['job_status'] = JOB_STATUS_DICT['running']
     # validating
@@ -1327,7 +1344,7 @@ def test_process_job_status():
     assert resp['message'] == ''
 
     response_content = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                        'upload_progress': None, 'validation_progress': None}
+                        'upload_progress': None, 'validation_progress': None, 'file_name': None}
     job_2['job_status'] = JOB_STATUS_DICT['finished']
     job_2['errors'] = 0
     job_2['warnings'] = 4
