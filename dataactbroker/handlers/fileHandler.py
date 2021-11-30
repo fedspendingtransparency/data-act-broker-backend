@@ -463,6 +463,8 @@ class FileHandler:
             # Change job status to finished
             if job.job_type_id == JOB_TYPE_DICT['file_upload']:
                 mark_job_status(job_id, 'finished')
+                job.progress = 100
+                sess.commit()
                 response_dict['success'] = True
                 response_dict['submission_id'] = job.submission_id
                 return JsonResponse.create(StatusCode.OK, response_dict)
