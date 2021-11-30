@@ -220,6 +220,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
     rules = sess.query(RuleSql).filter_by(file_id=file_id, rule_cross_file_flag=False)
     errors = []
     rules_run = 0
+    # Checking every 2 rules for DABS and every 5 for FABS because FABS has so many more rules per job
     progress_check = 2 if file_type != 'fabs' else 5
     num_rules = rules.count()
 
