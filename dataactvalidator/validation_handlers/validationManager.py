@@ -18,7 +18,7 @@ from dataactbroker.helpers.validation_helper import (
     derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key,
     check_required, check_type, check_length, concat_flex, process_formatting_errors,
     parse_fields, simple_file_scan, check_field_format, clean_numbers_vectorized, clean_frame_vectorized,
-    derive_unique_id_vectorized)
+    derive_unique_id_vectorized, update_val_progress)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -188,6 +188,10 @@ class ValidationManager:
         self.total_proc_obligations = 0
         self.total_asst_obligations = 0
         self.total_obligations = 0
+        self.basic_val_progress = 0
+        self.tas_progress = 0
+        self.sql_val_progress = 0
+        self.final_progress = 0
 
         validation_start = datetime.now()
         bucket_name = CONFIG_BROKER['aws_bucket']
@@ -217,6 +221,9 @@ class ValidationManager:
         # Clear existing flex fields for this job
         sess.query(FlexField).filter_by(job_id=self.job.job_id).delete()
         sess.commit()
+        # Reset progress for this job
+        self.job.progress = 0
+        sess.commit()
 
         # If local, make the error report directory
         if self.is_local and not os.path.exists(self.directory):
@@ -241,6 +248,11 @@ class ValidationManager:
             # Loading data and initial validations
             self.load_file_data(sess, bucket_name, region_name)
 
+            # When we finish the initial data loading we want to set the progress of the basic validations to 100
+            self.basic_val_progress = 100
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                self.final_progress)
+
             if self.file_type.name in ('appropriations', 'program_activity', 'award_financial'):
                 update_account_nums(self.model, self.submission_id)
 
@@ -248,6 +260,13 @@ class ValidationManager:
                     update_total_obligations(self.submission_id, total_obligations=self.total_obligations,
                                              total_proc_obligations=self.total_proc_obligations,
                                              total_asst_obligations=self.total_asst_obligations)
+
+            # TAS links are now done, unfortunately there's no way to do this incrementally because it's one
+            # SQL query. We update outside of the "if" statement to account for D1/D2 generation. It will not affect
+            # FABS as the multiplier is 0
+            self.tas_progress = 100
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                self.final_progress)
 
             # SQL Validations
             with open(self.error_file_path, 'a', newline='') as error_file, \
@@ -258,6 +277,9 @@ class ValidationManager:
                 # third phase of validations: run validation rules as specified in the schema guidance. These
                 # validations are sql-based.
                 self.run_sql_validations(self.short_to_long_dict[self.file_type.file_type_id], error_csv, warning_csv)
+                self.sql_val_progress = 100
+                update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                    self.final_progress)
             error_file.close()
             warning_file.close()
 
@@ -302,6 +324,10 @@ class ValidationManager:
             if self.is_fabs:
                 # set number of errors and warnings for detached submission
                 populate_submission_error_info(self.submission_id)
+
+            self.final_progress = 100
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                self.final_progress)
 
             # Mark validation as finished in job tracker
             mark_job_status(self.job.job_id, 'finished')
@@ -433,9 +459,9 @@ class ValidationManager:
         self.job_id = self.job.job_id
 
         if PARALLEL:
-            self.parallel_data_loading(sess, reader_obj)
+            self.parallel_data_loading(sess, reader_obj, file_row_count)
         else:
-            self.iterative_data_loading(reader_obj)
+            self.iterative_data_loading(reader_obj, file_row_count)
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
@@ -483,11 +509,13 @@ class ValidationManager:
 
         return file_row_count
 
-    def parallel_data_loading(self, sess, reader_obj):
+    def parallel_data_loading(self, sess, reader_obj, file_row_count):
         """ The parallelized version of data loading that processes multiple chunks simultaneously
 
             Args:
+                sess: the database connection
                 reader_obj: the iterator reader object to iterate over all the chunks
+                file_row_count: the total number of rows in the file
         """
         with Manager() as server_manager:
             # These variables will need to be shared among the processes and used later overall
@@ -510,7 +538,8 @@ class ValidationManager:
             pool = Pool(MULTIPROCESSING_POOLS)
             results = []
             for chunk_df in reader_obj:
-                result = pool.apply_async(func=self.parallel_process_data_chunk, args=(chunk_df, shared_data, m_lock))
+                result = pool.apply_async(func=self.parallel_process_data_chunk,
+                                          args=(chunk_df, shared_data, file_row_count, m_lock))
                 results.append(result)
             pool.close()
             pool.join()
@@ -530,11 +559,12 @@ class ValidationManager:
             self.error_list = shared_data['error_list']
             self.reader = temp_reader
 
-    def iterative_data_loading(self, reader_obj):
+    def iterative_data_loading(self, reader_obj, file_row_count):
         """ The normal version of data loading that iterates over each chunk
 
             Args:
                 reader_obj: the iterator reader object to iterate over all the chunks
+                file_row_count: the total number of rows in the file
         """
         shared_data = dict(
             total_rows=self.total_rows,
@@ -547,7 +577,7 @@ class ValidationManager:
             total_obligations=self.total_obligations
         )
         for chunk_df in reader_obj:
-            self.process_data_chunk(chunk_df, shared_data)
+            self.process_data_chunk(chunk_df, shared_data, file_row_count)
 
         # Resetting these out here as they are used later in the process
         self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
@@ -559,12 +589,13 @@ class ValidationManager:
         self.error_rows = shared_data['error_rows']
         self.error_list = shared_data['error_list']
 
-    def parallel_process_data_chunk(self, chunk_df, shared_data, m_lock=None):
+    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
         """ Wrapper around process_data_chunk for parallelization and error catching
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
+                file_row_count: the total number of rows in the file
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
         # If one of the processes has errored, we don't want to run any more chunks
@@ -574,18 +605,19 @@ class ValidationManager:
                 return
 
         try:
-            self.process_data_chunk(chunk_df, shared_data, m_lock=m_lock)
+            self.process_data_chunk(chunk_df, shared_data, file_row_count, m_lock=m_lock)
         except Exception as e:
             with lockable:
                 shared_data['errored'] = True
             raise e
 
-    def process_data_chunk(self, chunk_df, shared_data, m_lock=None):
+    def process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
         """ Loads in a chunk of the file and performs initial validations
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
+                file_row_count: the total number of rows in the file
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
         if m_lock:
@@ -825,6 +857,11 @@ class ValidationManager:
                 'status': 'end'
             })
         sess.commit()
+        with lockable:
+            # Seeing how far into the file we currently are
+            self.basic_val_progress = shared_data['total_data_rows'] / file_row_count * 100
+            update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
+                                self.final_progress)
         if m_lock:
             conn.close()
 
@@ -915,6 +952,7 @@ class ValidationManager:
 
         # get all cross file rules from db
         cross_file_rules = sess.query(RuleSql).filter_by(rule_cross_file_flag=True)
+        pairs_finished = 0
 
         # for each cross-file combo, run associated rules and create error report
         cross_list = {
@@ -952,7 +990,7 @@ class ValidationManager:
                 current_cols_short_to_long = self.short_to_long_dict[first_file_id].copy()
                 current_cols_short_to_long.update(self.short_to_long_dict[second_file_id].copy())
                 cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, job_id, error_csv,
-                                   warning_csv, error_list, batch_results=BATCH_SQL_VAL_RESULTS)
+                                   warning_csv, error_list, pairs_finished, job, batch_results=BATCH_SQL_VAL_RESULTS)
             # close files
             error_file.close()
             warning_file.close()
@@ -968,6 +1006,8 @@ class ValidationManager:
 
                 s3.upload_file(warning_file_path, bucket_name, self.get_file_name(warning_file_name))
                 os.remove(warning_file_path)
+
+            pairs_finished += 1
 
         # write all recorded errors to database
         write_all_row_errors(error_list, job_id)
@@ -995,6 +1035,7 @@ class ValidationManager:
         # Publish only if no errors are present
         if submission.number_of_errors == 0:
             submission.publishable = True
+        job.progress = 100
         sess.commit()
 
         # Mark validation complete
