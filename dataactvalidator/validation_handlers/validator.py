@@ -7,6 +7,7 @@ from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.interfaces.db import GlobalDB
 from dataactbroker.helpers.generic_helper import batch as batcher
+from dataactbroker.helpers.validation_helper import update_val_progress, update_cross_val_progress
 from dataactvalidator.validation_handlers.errorInterface import record_row_error
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ SQL_VALIDATION_BATCH_SIZE = CONFIG_BROKER['validator_batch_size']
 
 
 def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_csv, warning_csv, error_list,
-                       batch_results=False):
+                       pairs_finished, job, batch_results=False):
     """ Evaluate all sql-based rules for cross file validation
 
         Args:
@@ -31,10 +32,15 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
             error_csv: the csv to write errors to
             warning_csv: the csv to write warnings to
             error_list: dict to keep track of errors
+            pairs_finished: the number of pairs finished, used for the progress update
+            job: the job being processed, used for the progress update
             batch_results: instead of storing the results in memory, batch the results (for memory)
     """
     conn = GlobalDB.db().connection
+    sess = GlobalDB.db().session
     rules_start = datetime.now()
+    num_rules = len(rules)
+    rules_finished = 0
 
     # Put each rule through evaluate, appending all failures into list
     for rule in rules:
@@ -152,6 +158,9 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                 for failure_batch in batcher(list(failures), n=SQL_VALIDATION_BATCH_SIZE):
                     process_failures(failure_batch, failures.keys())
 
+        rules_finished += 1
+        update_cross_val_progress(sess, job, pairs_finished, num_rules, rules_finished)
+
         rule_duration = (datetime.now() - rule_start).total_seconds()
         logger.info({
             'message': 'Finished processing cross-file rule {} on submission_id: {}.'.format(rule.query_name,
@@ -210,6 +219,10 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
     file_id = FILE_TYPE_DICT[file_type]
     rules = sess.query(RuleSql).filter_by(file_id=file_id, rule_cross_file_flag=False)
     errors = []
+    rules_run = 0
+    # Checking every 2 rules for DABS and every 5 for FABS because FABS has so many more rules per job
+    progress_check = 2 if file_type != 'fabs' else 5
+    num_rules = rules.count()
 
     # For each rule, execute sql for rule
     for rule in rules:
@@ -277,6 +290,11 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
             'duration': rule_duration,
             'batch_results': batch_results
         })
+        rules_run += 1
+        if rules_run % progress_check == 0:
+            # If we're here we can assume the previous parts are done so we can just set those to 100 and the next step
+            # to 0
+            update_val_progress(sess, job, 100, 100, rules_run / num_rules, 0)
 
     sql_val_duration = (datetime.now() - sql_val_start).total_seconds()
     logger.info({

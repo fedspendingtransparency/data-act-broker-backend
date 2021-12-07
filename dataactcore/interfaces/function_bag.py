@@ -438,6 +438,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
         # mark as running and set new file name and path
         upload_job.job_status_id = JOB_STATUS_DICT['running']
         upload_job.original_filename = upload_file.file_name
+        upload_job.progress = 0
         upload_job.filename = upload_file.upload_name
         upload_job.error_message = None
 
@@ -474,6 +475,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
         val_job.job_status_id = JOB_STATUS_DICT['waiting']
         val_job.original_filename = upload_file.file_name
         val_job.filename = upload_file.upload_name
+        val_job.progress = 0
         # reset file size and number of rows to be set during validation of new file
         val_job.file_size = None
         val_job.number_of_rows = None

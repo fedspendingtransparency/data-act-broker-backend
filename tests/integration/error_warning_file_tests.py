@@ -1016,10 +1016,11 @@ class ErrorWarningTests(BaseTestValidator):
         # This way we can tell that the latter chunks processed later are ignored due to the error
         normal_chunks = list(reader_obj)
         broken_chunks = [normal_chunks[0], 'BREAK', normal_chunks[1], normal_chunks[2]]
+        file_row_count = 100
 
         with self.assertRaises(Exception) as val_except:
             # making the reader object a list of strings instead, causing the inner function to break
-            self.validator.parallel_data_loading(self.session, broken_chunks)
+            self.validator.parallel_data_loading(self.session, broken_chunks, file_row_count)
         self.assertTrue(type(val_except.exception) == AttributeError)
         self.assertTrue(str(val_except.exception) == "'str' object has no attribute 'empty'")
 

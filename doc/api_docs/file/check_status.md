@@ -25,7 +25,9 @@ This endpoint returns the status of each file type, including whether each has e
         "message": "",
         "has_errors": false,
         "has_warnings": true,
-        "progress": 78.4
+        "upload_progress": 78.4,
+        "validation_progress": null,
+        "file_name": "File A.csv"
     }
 }
 ```
@@ -44,7 +46,9 @@ The contents of each attribute are an dictionary containing the following keys:
 - `message`: (string) the message associated with a job if there is one
 - `has_errors`: (boolean) indicates if the file type has any errors in validation
 - `has_warnings`: (boolean) indicates if the file type has any warnings in validation
-- `progress`: (float) indicates the percent progress of the jobs of that type
+- `upload_progress`: (float) indicates the percent progress of the upload jobs of that type. If there are no upload jobs associated with the job type it will display `null`
+- `validation_progress`: (float) indicates the percent progress of the validation jobs of that type. If there are no validation jobs associated with the job type it will display `null`
+- `file_name`: (string) the name of the file associated with the job. If there is no name it will display `null`
 
 ## Errors
 Possible HTTP Status Codes:
