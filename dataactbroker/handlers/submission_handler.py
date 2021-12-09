@@ -17,7 +17,7 @@ from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_li
                                                  get_certification_deadline, get_last_modified)
 
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
-                                        FILE_TYPE_DICT)
+                                        FILE_TYPE_DICT, SUBMISSION_TYPE_DICT)
 from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, Banner, CertifyHistory,
@@ -442,14 +442,17 @@ def delete_all_submission_data(submission):
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
-def list_banners():
+def list_banners(login=False):
     """ List all the banners that are open at the time this is called.
+
+        Args:
+            login: surfaces only login banners if True, else filters out login banners
 
         Returns:
             A JsonResponse containing data for each currently open banner including start_date, end_date,
             notice_block, message, and type
     """
-    current_banners = get_banners()
+    current_banners = get_banners(login)
 
     data = []
 
@@ -470,8 +473,11 @@ def list_banners():
     return JsonResponse.create(StatusCode.OK, {'data': data})
 
 
-def get_banners():
+def get_banners(login=False):
     """ Get all banners that start before and end after the current date
+
+        Args:
+            login: surfaces only login banners if True, else filters out login banners
 
         Returns:
             A query to get all the banners surrounding the current date
@@ -480,7 +486,12 @@ def get_banners():
 
     curr_date = datetime.now().date()
 
-    return sess.query(Banner).filter(Banner.start_date <= curr_date, Banner.end_date >= curr_date)
+    if login:
+        login_filter = (Banner.application_type_id == SUBMISSION_TYPE_DICT['login'])
+    else:
+        login_filter = (Banner.application_type_id != SUBMISSION_TYPE_DICT['login'])
+
+    return sess.query(Banner).filter(Banner.start_date <= curr_date, Banner.end_date >= curr_date, login_filter)
 
 
 def check_current_submission_page(submission):

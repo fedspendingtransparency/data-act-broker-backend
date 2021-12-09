@@ -69,8 +69,9 @@ def add_file_routes(app, is_local, server_path):
         return JsonResponse.create(StatusCode.OK, get_latest_publication_period())
 
     @app.route("/v1/list_banners/", methods=["GET"])
-    def get_banner_list():
-        return list_banners()
+    @use_kwargs({'login': webargs_fields.Boolean(missing=False)})
+    def get_banner_list(login):
+        return list_banners(login)
 
     @app.route("/v1/list_submissions/", methods=["POST"])
     @requires_login
