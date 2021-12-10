@@ -27,7 +27,8 @@ def test_success(database):
                                       ussgl487200_downward_adjus_cpe=value_two,
                                       ussgl497100_downward_adjus_cpe=value_three,
                                       ussgl497200_downward_adjus_cpe=value_four)
-    award_fin_null = AwardFinancialFactory(deobligations_recov_by_awa_cpe=value_one + value_two + value_three,
+    # Ignore if something is null
+    award_fin_null = AwardFinancialFactory(deobligations_recov_by_awa_cpe=value_one + value_two + value_three + 1,
                                            ussgl487100_downward_adjus_cpe=None,
                                            ussgl487200_downward_adjus_cpe=value_one,
                                            ussgl497100_downward_adjus_cpe=value_two,
