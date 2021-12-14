@@ -83,13 +83,13 @@ def test_update_tas_lookups(database, monkeypatch):
     sess = database.session
     existing_tas_entries = [
         # TAS present in both csv and db
-        TASFactory(account_num=222, **{field: 'still-active' for field in TAS_COMPONENTS}),
+        TASFactory(account_num=222, **{field: '222' for field in TAS_COMPONENTS}),
         # Example of TAS being modified
-        TASFactory(account_num=333, agency_identifier='to-close-1'),
+        TASFactory(account_num=333, **{field: '333' for field in TAS_COMPONENTS}),
         # Example unrelated to anything of these entries
-        TASFactory(account_num=444, agency_identifier='to-close-2'),
+        TASFactory(account_num=444, **{field: '444' for field in TAS_COMPONENTS}),
         # Example of an existing, closed TAS
-        TASFactory(account_num=555, agency_identifier='already-closed', internal_end_date=date(2015, 2, 2))
+        TASFactory(account_num=555, **{field: '555' for field in TAS_COMPONENTS}, internal_end_date=date(2015, 2, 2))
     ]
     sess.add_all(existing_tas_entries)
     sess.commit()
@@ -97,9 +97,9 @@ def test_update_tas_lookups(database, monkeypatch):
     incoming_tas_data = pd.DataFrame(
         columns=('account_num',) + TAS_COMPONENTS + ('internal_start_date', 'internal_end_date'),
         data=[
-            [111] + ['new-entry-1'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), None],
-            [222] + ['still-active'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), date(2016, 5, 2)],
-            [333] + ['new-entry-2'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), None],
+            [111] + ['666'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), None],
+            [222] + ['777'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), date(2016, 5, 2)],
+            [333] + ['888'] * len(TAS_COMPONENTS) + [date(2015, 2, 2), None],
         ]
     )
     monkeypatch.setattr(load_tas, 'clean_tas', Mock(return_value=incoming_tas_data))
@@ -116,23 +116,33 @@ def test_update_tas_lookups(database, monkeypatch):
 
     assert t111.account_num == 111
     assert t111.internal_end_date is None               # active, new entry
-    assert t111.agency_identifier == 'new-entry-1'
+    assert t111.agency_identifier == '666'
+    assert t111.tas == '666666666666666666666'
+    assert t111.display_tas == '666-666-666-666-666'
 
     assert t222.account_num == 222
     assert t222.internal_end_date == date(2016, 5, 2)     # newly closed based on new data
-    assert t222.agency_identifier == 'still-active'
+    assert t222.agency_identifier == '777'
+    assert t222.tas == '777777777777777777777'
+    assert t222.display_tas == '777-777-777-777-777'
 
     assert t333.account_num == 333
     assert t333.internal_end_date is None           # active, continuing
-    assert t333.agency_identifier == 'new-entry-2'
+    assert t333.agency_identifier == '888'
+    assert t333.tas == '888888888888888888888'
+    assert t333.display_tas == '888-888-888-888-888'
 
     assert t444.account_num == 444
     assert t444.internal_end_date is None            # active, continuing
-    assert t444.agency_identifier == 'to-close-2'
+    assert t444.agency_identifier == '444'
+    assert t444.tas == '444444444444444444444'
+    assert t444.display_tas == '444-444-444-444-444'
 
     assert t555.account_num == 555
     assert t555.internal_end_date == date(2015, 2, 2)   # closed previously
-    assert t555.agency_identifier == 'already-closed'
+    assert t555.agency_identifier == '555'
+    assert t555.tas == '555555555555555555555'
+    assert t555.display_tas == '555-555-555-555-555'
 
 
 def test_only_fill_missing(database, monkeypatch):
@@ -146,21 +156,21 @@ def test_only_fill_missing(database, monkeypatch):
 
     existing_tas_entries = [
         # TAS to be filled in
-        TASFactory(account_num=222, agency_identifier='to-close-2', **{field: None for field in blank_tas_fields}),
+        TASFactory(account_num=222, **{field: '222' for field in TAS_COMPONENTS},
+                   **{field: None for field in blank_tas_fields}),
         # TAS to be untouched
-        TASFactory(account_num=333, agency_identifier='to-close-3',
+        TASFactory(account_num=333, **{field: '333' for field in TAS_COMPONENTS},
                    **{field: 'populated-333' for field in blank_tas_fields}),
     ]
     sess.add_all(existing_tas_entries)
     sess.commit()
 
     incoming_tas_data = pd.DataFrame(
-        columns=('account_num',) + tuple(blank_tas_fields) + ('agency_identifier',),
+        columns=('account_num',) + TAS_COMPONENTS + tuple(blank_tas_fields),
         data=[
-            [111] + ['populated-111'] * len(blank_tas_fields) + ['to-close-4'],
-            [222] + ['populated-222'] * len(blank_tas_fields) + ['to-close-5'],
-
-            [333] + ['populated-333'] * len(blank_tas_fields) + ['to-close-6'],
+            [111] + ['444'] * len(TAS_COMPONENTS) + ['populated-111'] * len(blank_tas_fields),
+            [222] + ['555'] * len(TAS_COMPONENTS) + ['populated-222'] * len(blank_tas_fields),
+            [333] + ['666'] * len(TAS_COMPONENTS) + ['populated-333'] * len(blank_tas_fields),
         ]
     )
     monkeypatch.setattr(load_tas, 'clean_tas', Mock(return_value=incoming_tas_data))
@@ -176,11 +186,15 @@ def test_only_fill_missing(database, monkeypatch):
     t222, t333 = results
 
     assert t222.account_num == 222
-    assert t222.agency_identifier == 'to-close-2'
+    assert t222.agency_identifier == '222'
+    assert t222.tas == '555555555555555555555'
+    assert t222.display_tas == '555-555-555-555-555'
     for tas_field in blank_tas_fields:
         assert getattr(t222, tas_field) == 'populated-222'
 
     assert t333.account_num == 333
-    assert t333.agency_identifier == 'to-close-3'
+    assert t333.agency_identifier == '333'
+    assert t333.tas == '333333333333333333333'
+    assert t333.display_tas == '333-333-333-333-333'
     for tas_field in blank_tas_fields:
         assert getattr(t333, tas_field) == 'populated-333'
