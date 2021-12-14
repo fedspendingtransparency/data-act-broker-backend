@@ -2,10 +2,10 @@
 This endpoint returns a list of temporary messages to display on the Broker frontend as a banner.
 
 ## Sample Request
-`/v1/list_banners/`
+`/v1/list_banners/login=false`
 
 ## Request Params
-N/A
+- `login`: (boolean) surfaces only login banners if true; otherwise excludes login banners. Defaults to false.
 
 ## Response (JSON)
 ```

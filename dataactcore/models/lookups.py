@@ -135,7 +135,8 @@ RULE_IMPACT_DICT_ID = {item.id: item.name for item in RULE_IMPACT}
 SUBMISSION_TYPE = [
     LookupType(1, 'all', 'Warning for all pages'),
     LookupType(2, 'dabs', 'Warning for DABS pages'),
-    LookupType(3, 'fabs', 'Warning for FABS pages')
+    LookupType(3, 'fabs', 'Warning for FABS pages'),
+    LookupType(4, 'login', 'Warning for the login page')
 ]
 SUBMISSION_TYPE_DICT = {item.name: item.id for item in SUBMISSION_TYPE}
 
