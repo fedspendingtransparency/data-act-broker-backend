@@ -93,15 +93,15 @@ def export_public_pa(raw_data):
             raw_data: the raw csv data analyzed from the latest program activity file
     """
     updated_cols = {
-        'FYQ': 'REPORTING_PERIOD',
-        'AGENCY': 'AGENCY_IDENTIFIER_NAME',
-        'ALLOCATION_ID': 'ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE',
-        'AGENCY_CODE': 'AGENCY_IDENTIFIER_CODE',
-        'ACCOUNT_CODE': 'MAIN_ACCOUNT_CODE',
-        'PA_TITLE': 'PROGRAM_ACTIVITY_NAME',
-        'PA_CODE': 'PROGRAM_ACTIVITY_CODE',
-        'OMB_BUREAU_TITLE_OPTNL': 'OMB_BUREAU_TITLE_OPTNL',
-        'OMB_ACCOUNT_TITLE_OPTNL': 'OMB_ACCOUNT_TITLE_OPTNL'
+        'fyq': 'REPORTING_PERIOD',
+        'agency': 'AGENCY_IDENTIFIER_NAME',
+        'allocation_id': 'ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE',
+        'agency_code': 'AGENCY_IDENTIFIER_CODE',
+        'account_code': 'MAIN_ACCOUNT_CODE',
+        'pa_title': 'PROGRAM_ACTIVITY_NAME',
+        'pa_code': 'PROGRAM_ACTIVITY_CODE',
+        'omb_bureau_title_optnl': 'OMB_BUREAU_TITLE_OPTNL',
+        'omb_account_title_optnl': 'OMB_ACCOUNT_TITLE_OPTNL'
     }
     raw_data = raw_data[list(updated_cols.keys())]
     raw_data.columns = [list(updated_cols.values())]
