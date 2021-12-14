@@ -29,7 +29,7 @@ def test_list_banners(file_app, database):
 
     # This first one should be hidden due to old dates
     first_old = BannerFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=False,
-                         message='first', application_type=fabs_app)
+                              message='first', application_type=fabs_app)
     database.session.add(first_old)
 
     response = file_app.get("/v1/list_banners/")
@@ -40,7 +40,7 @@ def test_list_banners(file_app, database):
     curr_date = datetime.now()
     diff = timedelta(days=1)
     second_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=False,
-                                  message='second', application_type=fabs_app, banner_type="info")
+                                   message='second', application_type=fabs_app, banner_type="info")
     database.session.add(second_current)
 
     response = file_app.get("/v1/list_banners/")
@@ -61,9 +61,9 @@ def test_list_banners(file_app, database):
     curr_date = datetime.now()
     diff = timedelta(days=1)
     third_curent = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=True,
-                                   message='third', application_type=dabs_app, banner_type="warning")
+                                 message='third', application_type=dabs_app, banner_type="warning")
     fourth_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=True,
-                                  message='fourth', application_type=login_app, banner_type="info", header='FOURTH')
+                                   message='fourth', application_type=login_app, banner_type="info", header='FOURTH')
     database.session.add_all([third_curent, fourth_current])
 
     response = file_app.get("/v1/list_banners/")
