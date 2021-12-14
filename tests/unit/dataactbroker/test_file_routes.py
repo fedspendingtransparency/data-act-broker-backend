@@ -20,37 +20,51 @@ def file_app(test_app):
 
 
 def test_list_banners(file_app, database):
-    """
-        Test listing user's submissions. The expected values here correspond to the number of submissions within the
-        agency of the user that is logged in
-    """
+    """ Test listing the public broker banners (which to show/hide based on the banner) """
     fabs_app = ApplicationTypeFactory(application_name='fabs', application_type_id='1')
     dabs_app = ApplicationTypeFactory(application_name='dabs', application_type_id='2')
     all_app = ApplicationTypeFactory(application_name='all', application_type_id='3')
     login_app = ApplicationTypeFactory(application_name='login', application_type_id='4')
     database.session.add_all([fabs_app, dabs_app, all_app, login_app])
 
-    gtas = BannerFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=False,
+    # This first one should be hidden due to old dates
+    first_old = BannerFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=False,
                          message='first', application_type=fabs_app)
-    database.session.add(gtas)
+    database.session.add(first_old)
 
     response = file_app.get("/v1/list_banners/")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['data'] is None
 
-    gtas = BannerFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=True,
-                         message='second', application_type=fabs_app)
-    database.session.add(gtas)
-
-    response = file_app.get("/v1/list_banners/")
-    response_json = json.loads(response.data.decode('UTF-8'))
-    assert response_json['data'] is None
-
+    # This one should appear with the appropriate dates
     curr_date = datetime.now()
     diff = timedelta(days=1)
-    third_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=False,
-                                  message='third', application_type=fabs_app, banner_type="info")
-    database.session.add(third_current)
+    second_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=False,
+                                  message='second', application_type=fabs_app, banner_type="info")
+    database.session.add(second_current)
+
+    response = file_app.get("/v1/list_banners/")
+    response_json = json.loads(response.data.decode('UTF-8'))
+    second_response = {
+        "start_date": str(curr_date - diff),
+        "end_date": str(curr_date + diff),
+        "header": None,
+        "message": "second",
+        "type": fabs_app.application_name,
+        "banner_type": "info",
+        "notice_block": False
+    }
+    assert response_json['data'][0] == second_response
+
+    # Another example with different values that should be appear.
+    # The fourth login banner shouldn't appear since the endpoint defauts to ignoring login banners
+    curr_date = datetime.now()
+    diff = timedelta(days=1)
+    third_curent = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=True,
+                                   message='third', application_type=dabs_app, banner_type="warning")
+    fourth_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=True,
+                                  message='fourth', application_type=login_app, banner_type="info", header='FOURTH')
+    database.session.add_all([third_curent, fourth_current])
 
     response = file_app.get("/v1/list_banners/")
     response_json = json.loads(response.data.decode('UTF-8'))
@@ -59,47 +73,26 @@ def test_list_banners(file_app, database):
         "end_date": str(curr_date + diff),
         "header": None,
         "message": "third",
-        "type": fabs_app.application_name,
-        "banner_type": "info",
-        "notice_block": False
-    }
-    assert response_json['data'][0] == third_response
-
-    curr_date = datetime.now()
-    diff = timedelta(days=1)
-    fourth_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=True,
-                                   message='fourth', application_type=dabs_app, banner_type="warning")
-    fifth_current = BannerFactory(start_date=curr_date - diff, end_date=curr_date + diff, block_certification=True,
-                                  message='fifth', application_type=login_app, banner_type="info", header='FIFTH')
-    database.session.add_all([fourth_current, fifth_current])
-
-    response = file_app.get("/v1/list_banners/")
-    response_json = json.loads(response.data.decode('UTF-8'))
-    fourth_response = {
-        "start_date": str(curr_date - diff),
-        "end_date": str(curr_date + diff),
-        "header": None,
-        "message": "fourth",
         "type": dabs_app.application_name,
         "banner_type": "warning",
         "notice_block": True
     }
     sort_key = (lambda k: k['message'])
-    assert sorted(response_json['data'], key=sort_key) == sorted([third_response, fourth_response], key=sort_key)
+    assert sorted(response_json['data'], key=sort_key) == sorted([second_response, third_response], key=sort_key)
 
-    # Adding another check for just the login banner, which was ignored in the last call
+    # Double checking the login banner only gets shown when the login param is true
     response = file_app.get("/v1/list_banners/?login=true")
     response_json = json.loads(response.data.decode('UTF-8'))
-    fifth_response = {
+    fourth_response = {
         "start_date": str(curr_date - diff),
         "end_date": str(curr_date + diff),
-        "header": 'FIFTH',
-        "message": "fifth",
+        "header": 'FOURTH',
+        "message": "fourth",
         "type": login_app.application_name,
         "banner_type": "info",
         "notice_block": True
     }
-    assert response_json['data'][0] == fifth_response
+    assert response_json['data'][0] == fourth_response
 
 
 @pytest.mark.usefixtures("user_constants")
