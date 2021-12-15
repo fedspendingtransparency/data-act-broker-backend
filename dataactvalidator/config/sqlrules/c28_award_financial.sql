@@ -66,11 +66,11 @@ FROM (
             UPPER(af.piid),
             UPPER(af.parent_award_id),
             UPPER(af.disaster_emergency_fund_code)
+            ORDER BY af.row_number
         ) AS row
     FROM award_financial AS af
     WHERE af.submission_id = {0}
         AND af.transaction_obligated_amou IS NULL
-    ORDER BY af.row_number
     ) duplicates
 -- if there is any row numbered over 1, that means there's more than one instance of that unique combination
 WHERE duplicates.row > 1;
