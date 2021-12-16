@@ -18,9 +18,9 @@ FROM (
         dafa.afa_generated_unique,
         ROW_NUMBER() OVER (PARTITION BY
             UPPER(dafa.afa_generated_unique)
+            ORDER BY dafa.row_number
         ) AS row
     FROM detached_award_financial_assistance AS dafa
     WHERE dafa.submission_id = {0}
-    ORDER BY dafa.row_number
     ) duplicates
 WHERE duplicates.row > 1

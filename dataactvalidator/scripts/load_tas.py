@@ -12,7 +12,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import TASLookup
+from dataactcore.models.domainModels import TASLookup, concat_tas_dict_vectorized, concat_display_tas_dict
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data
 
@@ -128,6 +128,10 @@ def update_tas_lookups(sess, csv_path, update_missing=[], metrics=None):
     old_data = data[data['existing_id'].notnull()]
     del old_data['existing_id']
 
+    # Update TAS/Display TAS values for old data to update
+    old_data['tas'] = concat_tas_dict_vectorized(old_data)
+    old_data['display_tas'] = old_data.apply(lambda x: concat_display_tas_dict(x), axis=1)
+
     new_data = data[data['existing_id'].isnull()]
     del new_data['existing_id']
 
@@ -137,7 +141,7 @@ def update_tas_lookups(sess, csv_path, update_missing=[], metrics=None):
         # Fill them in. If budget_function_code is empty, the following columns have also been empty.
         fill_in_cols = ['account_title', 'budget_bureau_code', 'budget_bureau_name', 'budget_function_code',
                         'budget_function_title', 'budget_subfunction_code', 'budget_subfunction_title',
-                        'reporting_agency_aid', 'reporting_agency_name']
+                        'reporting_agency_aid', 'reporting_agency_name', 'tas', 'display_tas']
         for _, row in relevant_old_data.iterrows():
             fill_in_updates = {fill_in_col: row[fill_in_col] for fill_in_col in fill_in_cols}
             fill_in_updates['updated_at'] = datetime.now(timezone.utc)
