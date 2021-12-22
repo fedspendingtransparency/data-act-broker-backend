@@ -557,7 +557,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert self.validator.job.number_of_rows_valid == 9
         error_count = self.session.query(ErrorMetadata).filter_by(job_id=self.val_job.job_id,
                                                                   severity_id=RULE_SEVERITY_DICT['fatal']).count()
-        assert error_count == 3
+        assert error_count == 2
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -588,20 +588,6 @@ class ErrorWarningTests(BaseTestValidator):
                 'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': 'A4'
-            },
-            {
-                'Unique ID': 'TAS: 019-2016/2016-0113-000',
-                'Field Name': 'statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe',
-                'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
-                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: , totalbudgetaryresources_cpe: 10.1',
-                'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal TotalBudgetaryResources_CPE. The'
-                                  ' Broker cannot distinguish which side of the equation is correct for this rule.'
-                                  ' Refer to related rule errors and warnings in this report (rules A6, A23) to'
-                                  ' distinguish which elements may be incorrect.',
-                'Difference': '-10.1',
-                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
-                'Row Number': '3',
-                'Rule Label': 'A24'
             }
         ]
         assert report_content == expected_values
