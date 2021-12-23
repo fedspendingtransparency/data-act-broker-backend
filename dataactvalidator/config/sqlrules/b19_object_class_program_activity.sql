@@ -50,10 +50,10 @@ FROM (
             UPPER(op.program_activity_name),
             UPPER(op.by_direct_reimbursable_fun),
             UPPER(op.disaster_emergency_fund_code)
+            ORDER BY op.row_number
         ) AS row
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
-    ORDER BY op.row_number
     ) duplicates
 -- if there is any row numbered over 1, that means there's more than one instance of that unique combination
 WHERE duplicates.row > 1;

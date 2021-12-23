@@ -26,7 +26,7 @@ def record_row_error(error_list, job_id, filename, field_name, error_type, row, 
     Returns:
         updated error_list with new/updated record rows
     """
-    key = "".join([str(job_id), field_name, str(error_type)])
+    key = "".join([str(job_id), str(original_label), field_name, str(error_type)])
     if key in error_list:
         error_list[key]["numErrors"] += 1
     else:

@@ -8,10 +8,12 @@ import datetime
 import sys
 import json
 import re
+import argparse
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
@@ -84,11 +86,38 @@ def get_stored_pa_last_upload():
     return last_stored
 
 
-def load_program_activity_data(base_path):
+def export_public_pa(raw_data):
+    """ Exports a public copy of the raw file (modified columns)
+
+        Args:
+            raw_data: the raw csv data analyzed from the latest program activity file
+    """
+    updated_cols = {
+        'fyq': 'REPORTING_PERIOD',
+        'agency': 'AGENCY_IDENTIFIER_NAME',
+        'allocation_id': 'ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE',
+        'agency_code': 'AGENCY_IDENTIFIER_CODE',
+        'account_code': 'MAIN_ACCOUNT_CODE',
+        'pa_title': 'PROGRAM_ACTIVITY_NAME',
+        'pa_code': 'PROGRAM_ACTIVITY_CODE',
+        'omb_bureau_title_optnl': 'OMB_BUREAU_TITLE_OPTNL',
+        'omb_account_title_optnl': 'OMB_ACCOUNT_TITLE_OPTNL'
+    }
+    raw_data = raw_data[list(updated_cols.keys())]
+    raw_data.columns = [list(updated_cols.values())]
+
+    export_name = 'program_activity.csv'
+    logger.info('Exporting loaded PA file to {}'.format(export_name))
+    raw_data.to_csv(export_name, index=0)
+
+
+def load_program_activity_data(base_path, force_reload=False, export=False):
     """ Load program activity lookup table.
 
         Args:
             base_path: directory of domain config files
+            force_reload: whether or not to force a reload
+            export: whether or not to export a public copy of the file
     """
     now = datetime.datetime.now()
     metrics_json = {
@@ -104,7 +133,7 @@ def load_program_activity_data(base_path):
 
     logger.info('Checking PA upload dates to see if we can skip.')
     last_upload = get_date_of_current_pa_upload(base_path)
-    if not (last_upload > get_stored_pa_last_upload()):
+    if not (last_upload > get_stored_pa_last_upload()) and not force_reload:
         logger.info('Skipping load as it\'s already been done')
     else:
         logger.info('Getting the progrma activity file')
@@ -115,12 +144,12 @@ def load_program_activity_data(base_path):
         with create_app().app_context():
             sess = GlobalDB.db().session
             try:
-                data = pd.read_csv(program_activity_file, dtype=str)
+                raw_data = pd.read_csv(program_activity_file, dtype=str)
             except pd.io.common.EmptyDataError:
                 log_blank_file()
                 exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
                 return
-            headers = set([header.upper() for header in list(data)])
+            headers = set([header.upper() for header in list(raw_data)])
 
             if not VALID_HEADERS.issubset(headers):
                 logger.error('Missing required headers. Required headers include: %s' % str(VALID_HEADERS))
@@ -129,7 +158,7 @@ def load_program_activity_data(base_path):
 
             try:
                 dropped_count, data = clean_data(
-                    data,
+                    raw_data,
                     ProgramActivity,
                     {'fyq': 'fiscal_year_period', 'agency_code': 'agency_id', 'allocation_id': 'allocation_transfer_id',
                      'account_code': 'account_number', 'pa_code': 'program_activity_code',
@@ -173,6 +202,9 @@ def load_program_activity_data(base_path):
             table_name = ProgramActivity.__table__.name
             num = insert_dataframe(data, table_name, sess.connection())
             sess.commit()
+
+            if export:
+                export_public_pa(raw_data)
 
         end_time = datetime.datetime.now()
         update_external_data_load_date(now, end_time, 'program_activity')
@@ -239,3 +271,17 @@ def log_blank_file():
 def exit_if_nonlocal(exit_code):
     if not CONFIG_BROKER['local']:
         sys.exit(exit_code)
+
+
+if __name__ == '__main__':
+    configure_logging()
+    parser = argparse.ArgumentParser(description='Loads in Program Activit data')
+    parser.add_argument('-e', '--export', help='If provided, exports a public version of the file locally',
+                        action='store_true')
+    parser.add_argument('-f', '--force', help='If provided, forces a reload',
+                        action='store_true')
+    args = parser.parse_args()
+
+    config_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
+
+    load_program_activity_data(config_path, force_reload=args.force, export=args.export)
