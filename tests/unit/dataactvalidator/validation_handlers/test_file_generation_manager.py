@@ -4,7 +4,6 @@ import re
 import pytest
 
 from datetime import datetime
-from distutils.util import strtobool
 from unittest.mock import Mock
 
 from dataactbroker.helpers import generation_helper
