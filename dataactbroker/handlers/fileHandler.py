@@ -928,10 +928,8 @@ class FileHandler:
                     'updated_at': datetime.utcnow()}, synchronize_session=False)
 
         # create the publish_history and certify_history entries
-        publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
-                                         submission_id=submission_id)
-        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
-                                         submission_id=submission_id)
+        publish_history = PublishHistory(user_id=g.user.user_id, submission_id=submission_id)
+        certify_history = CertifyHistory(user_id=g.user.user_id, submission_id=submission_id)
         sess.add_all([publish_history, certify_history])
         sess.commit()
 
@@ -943,6 +941,9 @@ class FileHandler:
         # (locally we don't move but we still need to populate the published_files_history table)
         FileHandler.move_published_files(FileHandler, submission, publish_history, certify_history.certify_history_id,
                                          g.is_local)
+
+        publish_history.updated_at = datetime.utcnow()
+        sess.commit()
 
         response_dict = {'submission_id': submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
