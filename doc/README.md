@@ -102,6 +102,7 @@ File routes are primarily routes that are directly related to portions of submis
 - [get\_file\_url](./api_docs/file/get_file_url.md)
 - [get\_obligations](./api_docs/file/get_obligations.md)
 - [get\_submission\_comments](./api_docs/file/get_submission_comments.md)
+- [get\_submission\_zip](./api_docs/file/get_submission_zip.md)
 - [latest\_publication\_period](./api_docs/file/latest_publication_period.md)
 - [list\_banners](./api_docs/file/list_banners.md)
 - [list\_history](./api_docs/file/list_history.md)
