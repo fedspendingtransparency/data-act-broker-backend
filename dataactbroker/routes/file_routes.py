@@ -6,7 +6,7 @@ from dataactbroker.handlers.fileHandler import (
     FileHandler, get_status, list_submissions as list_submissions_handler,
     list_published_files as list_published_files_handler, get_upload_file_url, get_detached_upload_file_url,
     get_submission_comments, submission_report_url, update_submission_comments, list_history, file_history_url,
-    get_comments_file)
+    get_comments_file, get_submission_zip)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_banners, check_current_submission_page,
     publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, get_published_submission_ids,
@@ -195,6 +195,15 @@ def add_file_routes(app, is_local, server_path):
     @requires_submission_perms('reader')
     def get_submission_comments_file(submission):
         return get_comments_file(submission, is_local)
+
+    @app.route("/v1/get_submission_zip/", methods=['GET'])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    @use_kwargs({
+        'publish_history_id': webargs_fields.Int(required=True)
+    })
+    def get_sub_zip(submission, publish_history_id):
+        return get_submission_zip(submission, publish_history_id, is_local)
 
     @app.route("/v1/report_url/", methods=['GET'])
     @convert_to_submission_id

@@ -5,6 +5,8 @@ import os
 import requests
 import threading
 import csv
+import tempfile
+import shutil
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -19,6 +21,7 @@ from dataactbroker.handlers.submission_handler import (create_submission, get_su
                                                        get_submissions_in_period)
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
+from dataactbroker.helpers.generic_helper import zip_dir
 from dataactbroker.permissions import current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -1375,6 +1378,95 @@ def get_comments_file(submission, is_local):
         return JsonResponse.create(StatusCode.OK, {'url': url})
     return JsonResponse.error(ValueError('This submission does not have any comments associated with it'),
                               StatusCode.CLIENT_ERROR)
+
+
+def get_submission_zip(submission, publish_history_id, is_local):
+    """ Retrieve/generate the zip file for a specific submission.
+
+        Args:
+            submission: the submission to get the comments file for
+            publish_history_id: the ID of the PublishHistory object that represents the published submission to download
+            is_local: a boolean indicating whether the application is running locally or not
+
+        Returns:
+            A JsonResponse containing the url to the file if one exists, JsonResponse error containing the details of
+            the error if something went wrong
+    """
+    zip_filename = 'Broker-Submission-{}-Pub-{}'.format(submission.submission_id, publish_history_id)
+
+    # Determine if we need to generate the zip or reuse an older one
+    if is_local:
+        cached = os.path.exists(os.path.join(CONFIG_BROKER["broker_files"], zip_filename))
+    else:
+        s3 = boto3.resource('s3')
+        zip_bucket = s3.Bucket(CONFIG_BROKER['sub_zips_bucket'])
+        objs = list(zip_bucket.objects.filter(Prefix=zip_filename))
+        cached = any([w.key == zip_filename for w in objs])
+
+    # Make the zip if not cached
+    if not cached:
+        try:
+            local_zip = zip_published_submission(submission, publish_history_id, zip_filename, is_local)
+        except (ValueError, OSError) as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+        if not is_local:
+            s3 = boto3.client('s3', region_name='us-gov-west-1')
+            s3.upload_file(local_zip, CONFIG_BROKER['sub_zips_bucket'], os.path.basename(local_zip))
+        else:
+            shutil.copy(local_zip, os.path.join(CONFIG_BROKER["broker_files"], os.path.basename(local_zip)))
+        os.remove(local_zip)
+
+    if is_local:
+        url = os.path.join(CONFIG_BROKER['broker_files'], os.path.basename(local_zip))
+    else:
+        url = S3Handler().get_signed_url('', os.path.basename(local_zip), bucket_route=CONFIG_BROKER['sub_zips_bucket'],
+                                         method='get_object')
+    return JsonResponse.create(StatusCode.OK, {'url': url})
+
+
+def zip_published_submission(submission, publish_history_id, zip_filename, is_local):
+    """ Retrieve/generate the zip file for a specific submission. Currently only for published DABS submissions.
+
+        Args:
+            submission: the submission to get the comments file for
+            publish_history_id: the ID of the PublishHistory object that represents the published submission to download
+            zip_filename: the name of the zip to be created
+            is_local: a boolean indicating whether the application is running locally or not
+
+        Returns:
+            Path to zip containing the published submission files
+    """
+    sess = GlobalDB.db().session
+
+    # Ensure we're just zipping up DABS submissions
+    if submission.d2_submission or submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished']:
+        raise ValueError('Only published DABS submissions can be zipped.')
+
+    # Get a list of the files to zip
+    sub_file_paths = sess.query(PublishedFilesHistory.filename).\
+        filter(PublishedFilesHistory.submission_id == submission.submission_id,
+               PublishedFilesHistory.publish_history_id == publish_history_id,
+               PublishedFilesHistory.filename.isnot(None)).all()
+    if not sub_file_paths:
+        raise ValueError('Invalid submission or publish history id.')
+
+    # Note: not using tempfile.TemporaryDirectory as we need to name the directory
+    tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
+    os.mkdir(tmp_dir_path)
+    for sub_file_path in sub_file_paths:
+        sub_filename = os.path.join(tmp_dir_path, os.path.basename(sub_file_path.filename))
+        if is_local:
+            if not os.path.exists(sub_file_path.filename):
+                shutil.rmtree(tmp_dir_path)
+                raise OSError('{} has been removed since it\'s been published'.format(sub_file_path.filename))
+            shutil.copy(sub_file_path.filename, sub_filename)
+        else:
+            s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            s3.download_file(CONFIG_BROKER['certified_bucket'], sub_file_path.filename, sub_filename)
+    sub_zip = zip_dir(tmp_dir_path, zip_filename)
+    shutil.rmtree(tmp_dir_path)
+
+    return sub_zip
 
 
 def create_fabs_published_file(sess, submission_id, new_route):

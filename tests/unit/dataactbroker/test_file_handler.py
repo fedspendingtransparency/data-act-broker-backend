@@ -1,22 +1,23 @@
-from datetime import date, datetime, timedelta
+import calendar
+import csv
 import io
 import json
 import os.path
-from unittest.mock import Mock
-from flask import Flask
-from collections import namedtuple
-import csv
-
 import pytest
-
-import calendar
+import shutil
+from collections import namedtuple
+from datetime import date, datetime, timedelta
+from flask import Flask
+from unittest.mock import Mock
+from zipfile import ZipFile
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
 from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.jobModels import PublishedFilesHistory, Submission
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT
+from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT,
+                                        FILE_TYPE_DICT_LETTER_ID)
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
@@ -595,6 +596,58 @@ def test_get_comments_file(database):
     # If it's a submission with no comments, it should return an error
     result = fileHandler.get_comments_file(sub2, CONFIG_BROKER['local'])
     assert result.status_code == 400
+
+
+@pytest.mark.usefixtures('job_constants', 'broker_files_tmp_dir')
+def test_get_submission_zip(database):
+    """ Test that the submission's zip is successfully generated """
+    pub_dabs_sub = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
+    pub_1, pub_2 = PublishHistoryFactory(submission=pub_dabs_sub), PublishHistoryFactory(submission=pub_dabs_sub)
+    models = [pub_dabs_sub, pub_1, pub_2]
+
+    # make some test files and assign them
+    test_files = {
+        'file_a.txt': 'A',
+        'file_c.txt': 'C',
+        'file_f.txt': 'F'
+    }
+    for file_name, file_content in test_files.items():
+        with open(file_name, 'w') as test_file:
+            test_file.write(file_content)
+        file_type_id = FILE_TYPE_DICT_LETTER_ID[file_content]
+        # we're "publishing files" twice but only extracting the second publish
+        models.append(PublishedFilesHistoryFactory(publish_history=pub_1, submission=pub_dabs_sub,
+                                                   file_type_id=file_type_id, certify_history_id=None))
+        models.append(PublishedFilesHistoryFactory(publish_history=pub_2, submission=pub_dabs_sub,
+                                                   file_type_id=file_type_id, filename=file_name,
+                                                   certify_history_id=None))
+    database.session.add_all(models)
+    database.session.commit()
+
+    # zip the second published files
+    resp = fileHandler.get_submission_zip(pub_dabs_sub, pub_2.publish_history_id, True)
+    assert resp.status_code == 200
+    resp = json.loads(resp.get_data().decode('UTF-8'))
+    expected_zip_name = 'Broker-Submission-{}-Pub-{}'.format(pub_dabs_sub.submission_id, pub_2.publish_history_id)
+    assert expected_zip_name in resp['url']
+
+    generated_zip = resp['url']
+    # confirm zip inside has the files
+    ZipFile(generated_zip).extractall()
+    assert os.path.exists(expected_zip_name)
+
+    # assert the files inside match the ones we made
+    zipped_files = {}
+    for zip_sub_file in os.listdir(expected_zip_name):
+        with open(zip_sub_file, 'r') as zipped_file:
+            zipped_files[zip_sub_file] = zipped_file.read()
+    assert test_files == zipped_files
+
+    # cleanup
+    shutil.rmtree(expected_zip_name)
+    os.remove(generated_zip)
+    for file_name, file_content in test_files.items():
+        os.remove(file_name)
 
 
 good_dates = [
