@@ -1,3 +1,5 @@
+import os
+from zipfile import ZipFile, ZIP_DEFLATED
 import re
 import calendar
 import logging
@@ -200,3 +202,23 @@ def batch(iterable, n=1):
     length = len(iterable)
     for ndx in range(0, length, n):
         yield iterable[ndx:min(ndx + n, length)]
+
+
+def zip_dir(dir_path, name):
+    """ Simply zips the contents of a directory (currently only supports zip)
+
+        Args:
+            dir_path: the path of the directory to be zipped
+            name: name of the zip
+
+        Returns:
+            path to zip generated
+    """
+    zip_path = os.path.join(os.path.abspath(os.path.join(dir_path, os.pardir)), '{}.zip'.format(name))
+    zip_h = ZipFile(zip_path, 'w', ZIP_DEFLATED)
+    for root, dirs, files in os.walk(dir_path):
+        for file in files:
+            zip_h.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file),
+                                                                  os.path.join(dir_path, '..')))
+    zip_h.close()
+    return zip_path
