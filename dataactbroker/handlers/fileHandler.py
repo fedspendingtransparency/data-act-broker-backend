@@ -1393,7 +1393,13 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
             A JsonResponse containing the url to the zip, JsonResponse error containing the details of the error if
             something went wrong
     """
-    zip_filename = 'Broker-Submission-{}-Pub-{}'.format(submission.submission_id, publish_history_id)
+    if publish_history_id:
+        zip_filename = 'Broker-Submission-{}-Pub-{}'.format(submission.submission_id, publish_history_id)
+    elif certify_history_id:
+        zip_filename = 'Broker-Submission-{}-Cert-{}'.format(submission.submission_id, certify_history_id)
+    else:
+        return JsonResponse.error(ValueError('A publish_history_id or certify_history_id is required.'),
+                                  StatusCode.CLIENT_ERROR)
 
     # Determine if we need to generate the zip or reuse an older one
     if is_local:
@@ -1454,16 +1460,21 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
     elif certify_history_id:
         history_id_check = (PublishedFilesHistory.certify_history_id == certify_history_id)
     else:
-        raise ValueError('A publish_history_id or certify_history_id is required')
+        raise ValueError('A publish_history_id or certify_history_id is required.')
 
     # Ensure we're just zipping up DABS submissions
     if submission.d2_submission or submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished']:
         raise ValueError('Only published DABS submissions can be zipped.')
 
     # Get a list of the files to zip
-    sub_file_paths = sess.query(PublishedFilesHistory.filename).\
-        filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check,
-               PublishedFilesHistory.filename.isnot(None)).all()
+    published_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.warning_filename).\
+        filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check).all()
+    sub_file_paths = []
+    for published_file in published_files:
+        if published_file.filename:
+            sub_file_paths.append(published_file.filename)
+        if published_file.warning_filename:
+            sub_file_paths.append(published_file.warning_filename)
     if not sub_file_paths:
         raise ValueError('No submission files found.')
 
@@ -1471,15 +1482,15 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
     tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
     os.mkdir(tmp_dir_path)
     for sub_file_path in sub_file_paths:
-        sub_filename = os.path.join(tmp_dir_path, os.path.basename(sub_file_path.filename))
+        sub_filename = os.path.join(tmp_dir_path, os.path.basename(sub_file_path))
         if is_local:
-            if not os.path.exists(sub_file_path.filename):
+            if not os.path.exists(sub_file_path):
                 shutil.rmtree(tmp_dir_path)
-                raise OSError('{} has been removed since it\'s been published/certified'.format(sub_file_path.filename))
-            shutil.copy(sub_file_path.filename, sub_filename)
+                raise OSError('{} has been removed since it\'s been published/certified'.format(sub_file_path))
+            shutil.copy(sub_file_path, sub_filename)
         else:
             s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-            s3.download_file(CONFIG_BROKER['certified_bucket'], sub_file_path.filename, sub_filename)
+            s3.download_file(CONFIG_BROKER['certified_bucket'], sub_file_path, sub_filename)
     sub_zip = zip_dir(tmp_dir_path, zip_filename)
     shutil.rmtree(tmp_dir_path)
 

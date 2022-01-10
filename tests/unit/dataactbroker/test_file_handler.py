@@ -603,7 +603,8 @@ def test_get_submission_zip(database):
     """ Test that the submission's zip is successfully generated """
     pub_dabs_sub = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
     pub_1, pub_2 = PublishHistoryFactory(submission=pub_dabs_sub), PublishHistoryFactory(submission=pub_dabs_sub)
-    models = [pub_dabs_sub, pub_1, pub_2]
+    cert = CertifyHistoryFactory(submission=pub_dabs_sub)
+    models = [pub_dabs_sub, pub_1, pub_2, cert]
 
     # make some test files and assign them
     test_files = {
@@ -611,24 +612,41 @@ def test_get_submission_zip(database):
         'file_c.txt': 'C',
         'file_f.txt': 'F'
     }
+    test_warning_files = {
+        'A': 'test_warning_a.txt',
+        'C': 'test_warning_c.txt'
+    }
     for file_name, file_content in test_files.items():
         with open(file_name, 'w') as test_file:
             test_file.write(file_content)
+        if file_content in test_warning_files:
+            with open(test_warning_files[file_content], 'w') as test_warning_file:
+                test_warning_file.write(file_content)
+            warning_filename = test_warning_files[file_content]
+        else:
+            warning_filename = None
         file_type_id = FILE_TYPE_DICT_LETTER_ID[file_content]
         # we're "publishing files" twice but only extracting the second publish
         models.append(PublishedFilesHistoryFactory(publish_history=pub_1, submission=pub_dabs_sub,
                                                    file_type_id=file_type_id, certify_history_id=None))
         models.append(PublishedFilesHistoryFactory(publish_history=pub_2, submission=pub_dabs_sub,
                                                    file_type_id=file_type_id, filename=file_name,
-                                                   certify_history_id=None))
+                                                   warning_filename=warning_filename, certify_history=cert))
     database.session.add_all(models)
     database.session.commit()
 
-    # zip the second published files
-    resp = fileHandler.get_submission_zip(pub_dabs_sub, pub_2.publish_history_id, True)
+    # zip the published version
+    resp = fileHandler.get_submission_zip(pub_dabs_sub, pub_2.publish_history_id, None, True)
     assert resp.status_code == 200
     resp = json.loads(resp.get_data().decode('UTF-8'))
     expected_zip_name = 'Broker-Submission-{}-Pub-{}'.format(pub_dabs_sub.submission_id, pub_2.publish_history_id)
+    assert expected_zip_name in resp['url']
+
+    # zip the certified version
+    resp = fileHandler.get_submission_zip(pub_dabs_sub, None, cert.certify_history_id, True)
+    assert resp.status_code == 200
+    resp = json.loads(resp.get_data().decode('UTF-8'))
+    expected_zip_name = 'Broker-Submission-{}-Cert-{}'.format(pub_dabs_sub.submission_id, cert.certify_history_id)
     assert expected_zip_name in resp['url']
 
     generated_zip = resp['url']
@@ -637,16 +655,24 @@ def test_get_submission_zip(database):
     assert os.path.exists(expected_zip_name)
 
     # assert the files inside match the ones we made
-    zipped_files = {}
+    main_files = {}
+    warning_files = {}
     for zip_sub_file in os.listdir(expected_zip_name):
         with open(zip_sub_file, 'r') as zipped_file:
-            zipped_files[zip_sub_file] = zipped_file.read()
-    assert test_files == zipped_files
+            file_content = zipped_file.read()
+        if 'warning' in zip_sub_file:
+            warning_files[file_content] = zip_sub_file
+        else:
+            main_files[zip_sub_file] = file_content
+    assert test_files == main_files
+    assert test_warning_files == warning_files
 
     # cleanup
     shutil.rmtree(expected_zip_name)
     os.remove(generated_zip)
     for file_name, file_content in test_files.items():
+        os.remove(file_name)
+    for file_content, file_name in test_warning_files.items():
         os.remove(file_name)
 
 
