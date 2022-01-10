@@ -7,7 +7,8 @@ Note only DABS submissions can be zipped.
 
 ## Request Params
 - `submission_id`: (required, integer) the ID of the submission to get the zip for. 
-- `publish_history_id`: (required, integer) the ID of the publish history to zip
+- `publish_history_id`: (integer) the ID of the publish history to zip (required for published zips)
+- `certify_history_id`: (integer) the ID of the certify history to zip (required for certified zips)
 
 ## Response (JSON)
 ```
@@ -24,7 +25,7 @@ Possible HTTP Status Codes:
 
 - 400:
     - Missing `submission_id` parameter
-    - Missing/invalid `publish_history_id` parameter
+    - Neither `publish_history_id` or `certify_history_id` parameter is provided
     - Submission does not exist
     - Submission is a FABS submission
     - A submission file has been removed since publishing 

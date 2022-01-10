@@ -200,10 +200,11 @@ def add_file_routes(app, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('reader')
     @use_kwargs({
-        'publish_history_id': webargs_fields.Int(required=True)
+        'publish_history_id': webargs_fields.Int(),
+        'certify_history_id': webargs_fields.Int()
     })
-    def get_sub_zip(submission, publish_history_id):
-        return get_submission_zip(submission, publish_history_id, is_local)
+    def get_sub_zip(submission, publish_history_id, certify_history_id):
+        return get_submission_zip(submission, publish_history_id, certify_history_id, is_local)
 
     @app.route("/v1/report_url/", methods=['GET'])
     @convert_to_submission_id

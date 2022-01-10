@@ -1380,17 +1380,18 @@ def get_comments_file(submission, is_local):
                               StatusCode.CLIENT_ERROR)
 
 
-def get_submission_zip(submission, publish_history_id, is_local):
+def get_submission_zip(submission, publish_history_id, certify_history_id, is_local):
     """ Retrieve/generate the zip file for a specific submission.
 
         Args:
             submission: the submission to get the comments file for
             publish_history_id: the ID of the PublishHistory object that represents the published submission to download
+            certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
             is_local: a boolean indicating whether the application is running locally or not
 
         Returns:
-            A JsonResponse containing the url to the file if one exists, JsonResponse error containing the details of
-            the error if something went wrong
+            A JsonResponse containing the url to the zip, JsonResponse error containing the details of the error if
+            something went wrong
     """
     zip_filename = 'Broker-Submission-{}-Pub-{}'.format(submission.submission_id, publish_history_id)
 
@@ -1406,7 +1407,8 @@ def get_submission_zip(submission, publish_history_id, is_local):
     # Make the zip if not cached
     if not cached:
         try:
-            local_zip = zip_published_submission(submission, publish_history_id, zip_filename, is_local)
+            local_zip = zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename,
+                                                 is_local)
         except (ValueError, OSError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         if not is_local:
@@ -1424,19 +1426,35 @@ def get_submission_zip(submission, publish_history_id, is_local):
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
 
-def zip_published_submission(submission, publish_history_id, zip_filename, is_local):
+def zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename, is_local):
     """ Retrieve/generate the zip file for a specific submission. Currently only for published DABS submissions.
 
         Args:
             submission: the submission to get the comments file for
             publish_history_id: the ID of the PublishHistory object that represents the published submission to download
+            certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
             zip_filename: the name of the zip to be created
             is_local: a boolean indicating whether the application is running locally or not
 
         Returns:
             Path to zip containing the published submission files
+
+        Raises:
+            ValueError if
+                - neither publish_history_id or certify_history_id is provided
+                - the submission is not a published DABS submission
+                - no submission files are found
+            OSError if the file has been removed since it's been published/certified
+
     """
     sess = GlobalDB.db().session
+
+    if publish_history_id:
+        history_id_check = (PublishedFilesHistory.publish_history_id == publish_history_id)
+    elif certify_history_id:
+        history_id_check = (PublishedFilesHistory.certify_history_id == certify_history_id)
+    else:
+        raise ValueError('A publish_history_id or certify_history_id is required')
 
     # Ensure we're just zipping up DABS submissions
     if submission.d2_submission or submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished']:
@@ -1444,11 +1462,10 @@ def zip_published_submission(submission, publish_history_id, zip_filename, is_lo
 
     # Get a list of the files to zip
     sub_file_paths = sess.query(PublishedFilesHistory.filename).\
-        filter(PublishedFilesHistory.submission_id == submission.submission_id,
-               PublishedFilesHistory.publish_history_id == publish_history_id,
+        filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check,
                PublishedFilesHistory.filename.isnot(None)).all()
     if not sub_file_paths:
-        raise ValueError('Invalid submission or publish history id.')
+        raise ValueError('No submission files found.')
 
     # Note: not using tempfile.TemporaryDirectory as we need to name the directory
     tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
@@ -1458,7 +1475,7 @@ def zip_published_submission(submission, publish_history_id, zip_filename, is_lo
         if is_local:
             if not os.path.exists(sub_file_path.filename):
                 shutil.rmtree(tmp_dir_path)
-                raise OSError('{} has been removed since it\'s been published'.format(sub_file_path.filename))
+                raise OSError('{} has been removed since it\'s been published/certified'.format(sub_file_path.filename))
             shutil.copy(sub_file_path.filename, sub_filename)
         else:
             s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
