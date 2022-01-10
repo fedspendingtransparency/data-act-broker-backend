@@ -1886,12 +1886,13 @@ def process_history_list(history_list, list_type):
 
     for history in history_list:
         user = sess.query(User).filter_by(user_id=history.user_id).one()
+        history_id = history.publish_history_id if list_type == 'publish' else history.certify_history_id
 
         file_history_query = sess.query(PublishedFilesHistory)
         if list_type == 'certify':
-            file_history_query = file_history_query.filter_by(certify_history_id=history.certify_history_id)
+            file_history_query = file_history_query.filter_by(certify_history_id=history_id)
         else:
-            file_history_query = file_history_query.filter_by(publish_history_id=history.publish_history_id)
+            file_history_query = file_history_query.filter_by(publish_history_id=history_id)
         file_history = file_history_query.all()
         history_files = []
 
@@ -1917,6 +1918,7 @@ def process_history_list(history_list, list_type):
         processed_list.append({
             '{}_date'.format(list_type): history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             '{}ing_user'.format(list_type): {'name': user.name, 'user_id': history.user_id},
+            '{}_history_id'.format(list_type): history_id,
             '{}ed_files'.format(list_type if list_type == 'publish' else 'certifi'): history_files
         })
 
