@@ -1145,9 +1145,10 @@ def test_get_status_fabs(database):
     job_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
                         file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
                         number_of_errors=0, number_of_warnings=0, original_filename='test_file.csv')
-    job_val = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                         file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
-                         number_of_errors=0, number_of_warnings=4, original_filename='test_file.csv')
+    job_val = JobFactory(updated_at=now, submission_id=sub.submission_id,
+                         job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['fabs'],
+                         job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=0, number_of_warnings=4,
+                         original_filename='test_file.csv')
 
     sess.add_all([sub, job_up, job_val])
     sess.commit()
