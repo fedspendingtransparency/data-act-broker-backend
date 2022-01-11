@@ -1403,34 +1403,34 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
 
     # Determine if we need to generate the zip or reuse an older one
     if is_local:
-        cached = os.path.exists(os.path.join(CONFIG_BROKER["broker_files"], zip_filename))
+        zips = [path for path in os.listdir(CONFIG_BROKER["broker_files"]) if path.startswith(zip_filename)]
+        sub_zip = zips[0] if len(zips) == 1 else None
     else:
         s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         zip_bucket = s3.Bucket(CONFIG_BROKER['sub_zips_bucket'])
-        logger.info('checking for file: {}'.format(zip_filename))
-        objs = list(zip_bucket.objects.filter(Prefix=zip_filename).all())
-        logger.info('objs: {}'.format(objs))
-        cached = any([w.key == zip_filename for w in objs])
+        zips = [obj.key for obj in zip_bucket.objects.filter(Prefix=zip_filename).all()
+                if obj.key.startswith(zip_filename)]
+        sub_zip = zips[0] if len(zips) == 1 else None
 
     # Make the zip if not cached
-    logger.info('CACHED: {}'.format(cached))
-    if not cached:
+    if not sub_zip:
         try:
-            local_zip = zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename,
-                                                 is_local)
+            generated_zip = zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename,
+                                                     is_local)
         except (ValueError, OSError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+        sub_zip = os.path.basename(generated_zip)
         if is_local:
-            shutil.copy(local_zip, os.path.join(CONFIG_BROKER["broker_files"], os.path.basename(local_zip)))
+            shutil.copy(generated_zip, os.path.join(CONFIG_BROKER["broker_files"], sub_zip))
         else:
             s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-            s3.upload_file(local_zip, CONFIG_BROKER['sub_zips_bucket'], os.path.basename(local_zip))
-        os.remove(local_zip)
+            s3.upload_file(generated_zip, CONFIG_BROKER['sub_zips_bucket'], sub_zip)
+        os.remove(generated_zip)
 
     if is_local:
-        url = os.path.join(CONFIG_BROKER['broker_files'], os.path.basename(local_zip))
+        url = os.path.join(CONFIG_BROKER['broker_files'], sub_zip)
     else:
-        url = S3Handler().get_signed_url('', os.path.basename(local_zip), bucket_route=CONFIG_BROKER['sub_zips_bucket'],
+        url = S3Handler().get_signed_url('', sub_zip, bucket_route=CONFIG_BROKER['sub_zips_bucket'],
                                          method='get_object')
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
