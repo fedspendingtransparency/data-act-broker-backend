@@ -1407,7 +1407,7 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
     else:
         s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         zip_bucket = s3.Bucket(CONFIG_BROKER['sub_zips_bucket'])
-        objs = list(zip_bucket.objects.filter(Prefix=zip_filename))
+        objs = list(zip_bucket.objects.filter(Prefix=zip_filename).all())
         cached = any([w.key == zip_filename for w in objs])
 
     # Make the zip if not cached
