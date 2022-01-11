@@ -1405,7 +1405,7 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
     if is_local:
         cached = os.path.exists(os.path.join(CONFIG_BROKER["broker_files"], zip_filename))
     else:
-        s3 = boto3.resource('s3')
+        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         zip_bucket = s3.Bucket(CONFIG_BROKER['sub_zips_bucket'])
         objs = list(zip_bucket.objects.filter(Prefix=zip_filename))
         cached = any([w.key == zip_filename for w in objs])
@@ -1420,7 +1420,7 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
         if is_local:
             shutil.copy(local_zip, os.path.join(CONFIG_BROKER["broker_files"], os.path.basename(local_zip)))
         else:
-            s3 = boto3.client('s3', region_name='us-gov-west-1')
+            s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
             s3.upload_file(local_zip, CONFIG_BROKER['sub_zips_bucket'], os.path.basename(local_zip))
         os.remove(local_zip)
 
