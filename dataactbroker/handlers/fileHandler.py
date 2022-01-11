@@ -1417,11 +1417,11 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
                                                  is_local)
         except (ValueError, OSError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        if not is_local:
+        if is_local:
+            shutil.copy(local_zip, os.path.join(CONFIG_BROKER["broker_files"], os.path.basename(local_zip)))
+        else:
             s3 = boto3.client('s3', region_name='us-gov-west-1')
             s3.upload_file(local_zip, CONFIG_BROKER['sub_zips_bucket'], os.path.basename(local_zip))
-        else:
-            shutil.copy(local_zip, os.path.join(CONFIG_BROKER["broker_files"], os.path.basename(local_zip)))
         os.remove(local_zip)
 
     if is_local:
