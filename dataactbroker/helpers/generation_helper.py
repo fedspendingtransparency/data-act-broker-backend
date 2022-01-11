@@ -169,7 +169,8 @@ def check_file_generation(job_id):
     # We want to use one_or_none() here so we can see if the job is None so we can mark the status as invalid to
     # indicate that a status request is invoked for a job that isn't created yet
     upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
-    response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '#', 'size': None}
+    response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '#', 'size': None,
+                     'generated_at': None}
 
     if upload_job is None:
         response_dict['start'] = ''
@@ -182,6 +183,7 @@ def check_file_generation(job_id):
     response_dict['size'] = upload_job.file_size
     response_dict['status'] = map_generate_status(sess, upload_job)
     response_dict['message'] = upload_job.error_message or ''
+    response_dict['generated_at'] = upload_job.updated_at.strftime("%m/%d/%Y %H:%M:%S")
 
     # Generate the URL (or path) to the file
     if CONFIG_BROKER['use_aws'] and response_dict['status'] == 'finished' and upload_job.filename:

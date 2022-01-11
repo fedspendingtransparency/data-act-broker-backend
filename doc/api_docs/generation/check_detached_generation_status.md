@@ -19,7 +19,8 @@ This route returns either a signed S3 URL to the generated file or, if the file 
     "size": null,
     "start": "01/01/2016",
     "end": "03/31/2016",
-    "message": ""
+    "message": "",
+    "generated_at": "01/15/2020 14:25:40"
 }
 ```
 
@@ -38,7 +39,8 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 - `size`: (integer) the size of the generated file in bytes
 - `start`: (string) the file start date, in `MM/DD/YYYY` format. If not a D1/D2 file, this key will not be returned.
 - `end`: (string) the file end date, in `MM/DD/YYYY` format. If not a D1/D2 file, this key will not be returned.
-- `message`: (string) a user-readable error message when the file is `failed`, otherwise returns a blank string
+- `message`: (string) a user-readable error message when the file is `failed`, otherwise returns a blank string,
+- `generated_at`: (string) the last time (in the `MM/DD/YYYY HH:mm:ss` format) this file was generated in this submission. This does not reflect the time the file itself was generated if it was cached but rather the last time this submission's generation was updated.
 
 #### Errors
 Possible HTTP Status Codes:
