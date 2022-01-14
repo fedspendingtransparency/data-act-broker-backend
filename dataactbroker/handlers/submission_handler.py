@@ -865,8 +865,7 @@ def process_dabs_publish(submission, file_manager):
     submission.publish_status_id = PUBLISH_STATUS_DICT['publishing']
 
     # create the publish_history entry
-    publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=current_user_id,
-                                     submission_id=submission.submission_id)
+    publish_history = PublishHistory(user_id=current_user_id, submission_id=submission.submission_id)
     sess.add(publish_history)
     sess.commit()
 
@@ -883,6 +882,7 @@ def process_dabs_publish(submission, file_manager):
     # set submission contents
     submission.publishing_user_id = current_user_id
     submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+    publish_history.updated_at = datetime.utcnow()
     sess.commit()
 
     if first_publish:
@@ -923,8 +923,7 @@ def process_dabs_certify(submission):
         if pub_file.certify_history_id is not None:
             raise ValueError('This submission already has a certification associated with the most recent publication.')
 
-    certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=current_user_id,
-                                     submission_id=submission.submission_id)
+    certify_history = CertifyHistory(user_id=current_user_id, submission_id=submission.submission_id)
     sess.add(certify_history)
     sess.commit()
 

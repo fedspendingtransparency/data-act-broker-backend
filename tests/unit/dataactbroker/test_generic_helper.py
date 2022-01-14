@@ -1,8 +1,13 @@
 import pytest
 import datetime as dt
+import os
+import shutil
+from filecmp import dircmp
+from zipfile import ZipFile
 from sqlalchemy import func, or_
 
-from dataactbroker.helpers.generic_helper import year_period_to_dates, generate_raw_quoted_query, fy, batch as batcher
+from dataactbroker.helpers.generic_helper import (year_period_to_dates, generate_raw_quoted_query, fy, batch as batcher,
+                                                  zip_dir)
 from dataactcore.models.jobModels import FileGeneration
 
 from dataactcore.utils.responseException import ResponseException
@@ -138,3 +143,39 @@ def test_batch():
         assert expected_batch == batch
         iteration += 1
     assert iteration == 10
+
+
+def test_zip_dir():
+    """ Testing creating a zip with the zip_dir function """
+    # make a directory with a couple files
+    test_dir_path = 'test directory'
+    os.mkdir(test_dir_path)
+    test_files = {
+        'test file a.txt': 'TEST',
+        'test file b.txt': 'FILES',
+        'test file c.txt': 'abcd',
+    }
+    for test_file_path, test_file_content in test_files.items():
+        with open(os.path.join(test_dir_path, test_file_path), 'w') as test_file:
+            test_file.write(test_file_content)
+
+    # zip it
+    test_zip_path = zip_dir(test_dir_path, 'test zip')
+
+    # keep the original directory and files to compare
+    os.rename(test_dir_path, '{} original'.format(test_dir_path))
+
+    assert test_zip_path == os.path.abspath('test zip.zip')
+
+    # confirm zip inside has the files
+    ZipFile(test_zip_path).extractall()
+    assert os.path.exists(test_dir_path)
+    dir_comp = dircmp('{} original'.format(test_dir_path), test_dir_path)
+    assert dir_comp.left_only == []
+    assert dir_comp.right_only == []
+    assert dir_comp.diff_files == []
+
+    # cleanup
+    os.remove(test_zip_path)
+    shutil.rmtree(test_dir_path)
+    shutil.rmtree('{} original'.format(test_dir_path))

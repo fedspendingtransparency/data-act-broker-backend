@@ -5,6 +5,8 @@ import os
 import requests
 import threading
 import csv
+import tempfile
+import shutil
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -19,6 +21,7 @@ from dataactbroker.handlers.submission_handler import (create_submission, get_su
                                                        get_submissions_in_period)
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
+from dataactbroker.helpers.generic_helper import zip_dir
 from dataactbroker.permissions import current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -928,10 +931,8 @@ class FileHandler:
                     'updated_at': datetime.utcnow()}, synchronize_session=False)
 
         # create the publish_history and certify_history entries
-        publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
-                                         submission_id=submission_id)
-        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
-                                         submission_id=submission_id)
+        publish_history = PublishHistory(user_id=g.user.user_id, submission_id=submission_id)
+        certify_history = CertifyHistory(user_id=g.user.user_id, submission_id=submission_id)
         sess.add_all([publish_history, certify_history])
         sess.commit()
 
@@ -943,6 +944,9 @@ class FileHandler:
         # (locally we don't move but we still need to populate the published_files_history table)
         FileHandler.move_published_files(FileHandler, submission, publish_history, certify_history.certify_history_id,
                                          g.is_local)
+
+        publish_history.updated_at = datetime.utcnow()
+        sess.commit()
 
         response_dict = {'submission_id': submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
@@ -1377,6 +1381,126 @@ def get_comments_file(submission, is_local):
                               StatusCode.CLIENT_ERROR)
 
 
+def get_submission_zip(submission, publish_history_id, certify_history_id, is_local):
+    """ Retrieve/generate the zip file for a specific submission.
+
+        Args:
+            submission: the submission to get the comments file for
+            publish_history_id: the ID of the PublishHistory object that represents the published submission to download
+            certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
+            is_local: a boolean indicating whether the application is running locally or not
+
+        Returns:
+            A JsonResponse containing the url to the zip, JsonResponse error containing the details of the error if
+            something went wrong
+    """
+    if publish_history_id:
+        zip_filename = 'Broker-Submission-{}-Pub-{}'.format(submission.submission_id, publish_history_id)
+    elif certify_history_id:
+        zip_filename = 'Broker-Submission-{}-Cert-{}'.format(submission.submission_id, certify_history_id)
+    else:
+        return JsonResponse.error(ValueError('A publish_history_id or certify_history_id is required.'),
+                                  StatusCode.CLIENT_ERROR)
+
+    # Determine if we need to generate the zip or reuse an older one
+    if is_local:
+        zips = [path for path in os.listdir(CONFIG_BROKER["broker_files"]) if path.startswith(zip_filename)]
+        sub_zip = zips[0] if len(zips) == 1 else None
+    else:
+        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+        zip_bucket = s3.Bucket(CONFIG_BROKER['sub_zips_bucket'])
+        zips = [obj.key for obj in zip_bucket.objects.filter(Prefix=zip_filename).all()
+                if obj.key.startswith(zip_filename)]
+        sub_zip = zips[0] if len(zips) == 1 else None
+
+    # Make the zip if not cached
+    if not sub_zip:
+        try:
+            generated_zip = zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename,
+                                                     is_local)
+        except (ValueError, OSError) as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+        sub_zip = os.path.basename(generated_zip)
+        if is_local:
+            shutil.copy(generated_zip, os.path.join(CONFIG_BROKER["broker_files"], sub_zip))
+        else:
+            s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            s3.upload_file(generated_zip, CONFIG_BROKER['sub_zips_bucket'], sub_zip)
+        os.remove(generated_zip)
+
+    if is_local:
+        url = os.path.join(CONFIG_BROKER['broker_files'], sub_zip)
+    else:
+        url = S3Handler().get_signed_url('', sub_zip, bucket_route=CONFIG_BROKER['sub_zips_bucket'],
+                                         method='get_object')
+    return JsonResponse.create(StatusCode.OK, {'url': url})
+
+
+def zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename, is_local):
+    """ Retrieve/generate the zip file for a specific submission. Currently only for published DABS submissions.
+
+        Args:
+            submission: the submission to get the comments file for
+            publish_history_id: the ID of the PublishHistory object that represents the published submission to download
+            certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
+            zip_filename: the name of the zip to be created
+            is_local: a boolean indicating whether the application is running locally or not
+
+        Returns:
+            Path to zip containing the published submission files
+
+        Raises:
+            ValueError if
+                - neither publish_history_id or certify_history_id is provided
+                - the submission is not a published DABS submission
+                - no submission files are found
+            OSError if the file has been removed since it's been published/certified
+
+    """
+    sess = GlobalDB.db().session
+
+    if publish_history_id:
+        history_id_check = (PublishedFilesHistory.publish_history_id == publish_history_id)
+    elif certify_history_id:
+        history_id_check = (PublishedFilesHistory.certify_history_id == certify_history_id)
+    else:
+        raise ValueError('A publish_history_id or certify_history_id is required.')
+
+    # Ensure we're just zipping up DABS submissions
+    if submission.d2_submission or submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished']:
+        raise ValueError('Only published DABS submissions can be zipped.')
+
+    # Get a list of the files to zip
+    published_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.warning_filename).\
+        filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check).all()
+    sub_file_paths = []
+    for published_file in published_files:
+        if published_file.filename:
+            sub_file_paths.append(published_file.filename)
+        if published_file.warning_filename:
+            sub_file_paths.append(published_file.warning_filename)
+    if not sub_file_paths:
+        raise ValueError('No submission files found.')
+
+    # Note: not using tempfile.TemporaryDirectory as we need to name the directory
+    tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
+    os.mkdir(tmp_dir_path)
+    for sub_file_path in sub_file_paths:
+        sub_filename = os.path.join(tmp_dir_path, os.path.basename(sub_file_path))
+        if is_local:
+            if not os.path.exists(sub_file_path):
+                shutil.rmtree(tmp_dir_path)
+                raise OSError('{} has been removed since it\'s been published/certified'.format(sub_file_path))
+            shutil.copy(sub_file_path, sub_filename)
+        else:
+            s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            s3.download_file(CONFIG_BROKER['certified_bucket'], sub_file_path, sub_filename)
+    sub_zip = zip_dir(tmp_dir_path, zip_filename)
+    shutil.rmtree(tmp_dir_path)
+
+    return sub_zip
+
+
 def create_fabs_published_file(sess, submission_id, new_route):
     """ Create a file containing all the published rows from this submission_id
 
@@ -1794,12 +1918,13 @@ def process_history_list(history_list, list_type):
 
     for history in history_list:
         user = sess.query(User).filter_by(user_id=history.user_id).one()
+        history_id = history.publish_history_id if list_type == 'publish' else history.certify_history_id
 
         file_history_query = sess.query(PublishedFilesHistory)
         if list_type == 'certify':
-            file_history_query = file_history_query.filter_by(certify_history_id=history.certify_history_id)
+            file_history_query = file_history_query.filter_by(certify_history_id=history_id)
         else:
-            file_history_query = file_history_query.filter_by(publish_history_id=history.publish_history_id)
+            file_history_query = file_history_query.filter_by(publish_history_id=history_id)
         file_history = file_history_query.all()
         history_files = []
 
@@ -1825,6 +1950,7 @@ def process_history_list(history_list, list_type):
         processed_list.append({
             '{}_date'.format(list_type): history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             '{}ing_user'.format(list_type): {'name': user.name, 'user_id': history.user_id},
+            '{}_history_id'.format(list_type): history_id,
             '{}ed_files'.format(list_type if list_type == 'publish' else 'certifi'): history_files
         })
 
