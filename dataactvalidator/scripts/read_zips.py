@@ -436,13 +436,13 @@ def read_zips():
         hot_swap_zip_tables(sess)
         update_external_data_load_date(start_time, datetime.now(), 'zip_code')
 
+        update_state_congr_table_current(sess)
         if CONFIG_BROKER["use_aws"]:
             census_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
                                                                           'Key': "census_congressional_districts.csv"},
                                                            ExpiresIn=600)
         else:
             census_file = os.path.join(base_path, "census_congressional_districts.csv")
-        update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)
         if CONFIG_BROKER['use_aws']:
             export_state_congr_table(sess)
