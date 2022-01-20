@@ -276,7 +276,8 @@ def job_to_dict(job):
         'filename': job.original_filename,
         'file_size': job.file_size,
         'number_of_rows': job.number_of_rows - 1 if job.number_of_rows else 0,
-        'file_type': job.file_type_name or ''
+        'file_type': job.file_type_name or '',
+        'last_validated': str(job.updated_at)
     }
 
     # @todo replace with relationships

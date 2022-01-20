@@ -183,7 +183,7 @@ def check_file_generation(job_id):
     response_dict['size'] = upload_job.file_size
     response_dict['status'] = map_generate_status(sess, upload_job)
     response_dict['message'] = upload_job.error_message or ''
-    response_dict['generated_at'] = upload_job.updated_at.strftime("%m/%d/%Y %H:%M:%S")
+    response_dict['generated_at'] = str(upload_job.updated_at)
 
     # Generate the URL (or path) to the file
     if CONFIG_BROKER['use_aws'] and response_dict['status'] == 'finished' and upload_job.filename:

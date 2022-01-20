@@ -27,8 +27,7 @@ This endpoint returns the status of each file type, including whether each has e
         "has_warnings": true,
         "upload_progress": 78.4,
         "validation_progress": null,
-        "file_name": "File A.csv",
-        "validation_last_updated": "01/15/2020 14:25:40"
+        "file_name": "File A.csv"
     }
 }
 ```
@@ -50,7 +49,6 @@ The contents of each attribute are an dictionary containing the following keys:
 - `upload_progress`: (float) indicates the percent progress of the upload jobs of that type. If there are no upload jobs associated with the job type it will display `null`
 - `validation_progress`: (float) indicates the percent progress of the validation jobs of that type. If there are no validation jobs associated with the job type it will display `null`
 - `file_name`: (string) the name of the file associated with the job. If there is no name it will display `null`
-- `validation_last_updated`: (string) the last time (in the `MM/DD/YYYY HH:mm:ss` format) the validation job changed statuses, for example switching to `running` or completing. If there is no validation job (files E/F) it will display `null`
 
 ## Errors
 Possible HTTP Status Codes:

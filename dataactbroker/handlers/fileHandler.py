@@ -1443,8 +1443,7 @@ def get_status(submission, file_type=''):
     # Set up a dictionary to store the jobs we want to look at and limit it to only the file types we care about. Also
     # setting up the response dict here because we need the same keys.
     response_template = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                         'upload_progress': None, 'validation_progress': None, 'file_name': None,
-                         'validation_last_updated': None}
+                         'upload_progress': None, 'validation_progress': None, 'file_name': None}
     job_dict = {}
     response_dict = {}
 
@@ -1479,8 +1478,7 @@ def get_status(submission, file_type=''):
                 'errors': job.number_of_errors,
                 'warnings': job.number_of_warnings,
                 'progress': job.progress,
-                'file_name': job.original_filename,
-                'updated_at': job.updated_at.strftime("%m/%d/%Y %H:%M:%S")
+                'file_name': job.original_filename
             })
 
     for job_file_type, job_data in job_dict.items():
@@ -1517,7 +1515,6 @@ def process_job_status(jobs, response_content):
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
             validation_em = job['error_message']
             response_content['validation_progress'] = job['progress']
-            response_content['validation_last_updated'] = job['updated_at']
         response_content['file_name'] = job['file_name']
 
     # checking for failures
