@@ -36,7 +36,7 @@ def test_pubished_date_failure(database):
     """ Test failure for when ActionDate is after October 1, 2010 and ActionType = A, AwardeeOrRecipientUEI should
         (when provided) have an active registration in SAM as of the ActionDate.
     """
-    duns= DUNS(uei='111111111111', registration_date='01/01/2017', expiration_date='01/01/2018')
+    duns = DUNS(uei='111111111111', registration_date='01/01/2017', expiration_date='01/01/2018')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(uei='12345', action_type='A', action_date='06/20/2020',
                                                           correction_delete_indicatr='')
 
