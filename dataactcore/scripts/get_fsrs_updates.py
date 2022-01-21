@@ -67,9 +67,9 @@ def main():
     logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
     sess = GlobalDB.db().session
     """
-    Query Summary:
-    Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day and
-    also includes summary data about the award associated with the transaction. 
+        Query Summary:
+        Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day
+        and also includes summary data about the award associated with the transaction.
     """
     results = sess.execute("""
     WITH base_transaction AS (
