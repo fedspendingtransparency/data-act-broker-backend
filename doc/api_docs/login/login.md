@@ -2,7 +2,7 @@
 
 **THIS ENDPOINT IS FOR LOCAL DEVELOPMENT ONLY AND CANNOT BE USED TO AUTHENTICATE INTO BROKER IN PRODUCTION**
 
-This route checks the username and password against a credentials file. It is used solely as a workaround for developing on a local instance of the broker to bypass MAX.gov login. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
+This route checks the username and password against a credentials file. It is used solely as a workaround for developing on a local instance of the broker to bypass MAX.gov login. Accepts input as json or form-urlencoded, with keys "username" and "password". See `active_user` docs for details.
 
 ## Body (JSON)
 

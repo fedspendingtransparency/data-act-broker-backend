@@ -147,7 +147,7 @@ Settings routes are used to set agency-wide settings for the DABS Dashboard. The
 ### User Routes
 User routes are used to get information about available users or get/set information about the currently logged in user.
 
-- [current\_user](./api_docs/user/current_user.md)
+- [active\_user](./api_docs/user/active_user.md)
 - [list\_submission\_users](./api_docs/user/list_submission_users.md)
 - [list\_user\_emails](./api_docs/user/list_user_emails.md)
 - [set\_skip\_guide](./api_docs/user/set_skip_guide.md)

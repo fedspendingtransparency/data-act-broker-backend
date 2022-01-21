@@ -22,7 +22,7 @@ from dataactbroker.handlers.submission_handler import (create_submission, get_su
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.helpers.generic_helper import zip_dir
-from dataactbroker.permissions import current_user_can_on_submission
+from dataactbroker.permissions import active_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -312,7 +312,7 @@ class FileHandler:
             # Add jobs or update existing ones
             job_dict = self.create_jobs_for_submission(upload_files, submission, existing_submission)
 
-            def upload(file_ref, file_type, app, current_user, submission_id):
+            def upload(file_ref, file_type, app, active_user, submission_id):
                 filename_key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
                 bucket_name = CONFIG_BROKER['broker_files'] if self.is_local else CONFIG_BROKER['aws_bucket']
                 logger.info({
@@ -324,7 +324,7 @@ class FileHandler:
                 })
                 if CONFIG_BROKER['use_aws']:
                     s3 = boto3.client('s3', region_name='us-gov-west-1')
-                    extra_args = {'Metadata': {'email': current_user.email}}
+                    extra_args = {'Metadata': {'email': active_user.email}}
                     s3.upload_fileobj(file_ref, bucket_name, filename_key, ExtraArgs=extra_args)
                 else:
                     file_ref.save(filename_key)
@@ -336,7 +336,7 @@ class FileHandler:
                     'file_name': filename_key
                 })
                 with app.app_context():
-                    g.user = current_user
+                    g.user = active_user
                     self.finalize(job_dict[file_type + '_id'])
             for file_type, file_ref in request_params['_files'].items():
                 t = threading.Thread(target=upload, args=(file_ref, file_type,
@@ -459,8 +459,8 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-            if (submission.d2_submission and not current_user_can_on_submission('editfabs', submission)) or \
-                    (not submission.d2_submission and not current_user_can_on_submission('writer', submission)):
+            if (submission.d2_submission and not active_user_can_on_submission('editfabs', submission)) or \
+                    (not submission.d2_submission and not active_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
                 raise ResponseException('Cannot finalize a job for a different agency', StatusCode.CLIENT_ERROR)
             # Change job status to finished
