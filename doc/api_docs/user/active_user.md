@@ -1,5 +1,5 @@
 # GET "/v1/active\_user/"
-Gets the information of the current that is logged in to the system.
+Gets the information of the active user that is logged into the system.
 
 ## Sample Request
 `/v1/active_user/`
