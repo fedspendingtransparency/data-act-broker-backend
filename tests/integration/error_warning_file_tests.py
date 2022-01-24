@@ -624,7 +624,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Unique ID': 'TAS: 049-2014/2015-0100-000',
                 'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe,'
                               ' budgetauthorityunobligatedbalancebroughtforward_fyb,'
-                              ' adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe',
+                              ' adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe,'
+                              ' GTAS SF133 Line 1902',
                 'Rule Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +'
                                 ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
                                 ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
@@ -632,7 +633,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01,'
                                   ' budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,'
                                   ' adjustmentstounobligatedbalancebroughtforward_cpe: 2.02,'
-                                  ' otherbudgetaryresourcesamount_cpe: 4.04',
+                                  ' otherbudgetaryresourcesamount_cpe: 4.04,'
+                                  ' GTAS SF133 Line 1902: 0',
                 'Expected Value': 'TotalBudgetaryResources_CPE must equal the sum of these elements:'
                                   ' BudgetAuthorityAppropriatedAmount_CPE +'
                                   ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
