@@ -16,6 +16,7 @@ WITH award_financial_b20_{0} AS
         program_activity_name,
         object_class,
         account_num,
+        disaster_emergency_fund_code,
         display_tas
     FROM award_financial
     WHERE submission_id = {0}),
@@ -23,7 +24,8 @@ ocpa_b20_{0} AS
     (SELECT account_num,
         program_activity_code,
         program_activity_name,
-        object_class
+        object_class,
+        disaster_emergency_fund_code
     FROM object_class_program_activity
     WHERE submission_id = {0})
 SELECT
@@ -31,10 +33,12 @@ SELECT
     af.program_activity_code AS "source_value_program_activity_code",
     af.program_activity_name AS "source_value_program_activity_name",
     af.object_class AS "source_value_object_class",
+    af.disaster_emergency_fund_code AS "source_value_disaster_emergency_fund_code",
     af.display_tas AS "uniqueid_TAS",
     af.program_activity_code AS "uniqueid_ProgramActivityCode",
     af.program_activity_name AS "uniqueid_ProgramActivityName",
-    af.object_class AS "uniqueid_ObjectClass"
+    af.object_class AS "uniqueid_ObjectClass",
+    af.disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM award_financial_b20_{0} AS af
 JOIN submission AS sub
     ON sub.submission_id = af.submission_id
@@ -54,6 +58,7 @@ WHERE NOT EXISTS (
                     AND op.object_class IN ('0', '00', '000', '0000')
                 )
             )
+            AND UPPER(COALESCE(af.disaster_emergency_fund_code, '')) = UPPER(COALESCE(op.disaster_emergency_fund_code, ''))
     )
     AND NOT (UPPER(af.program_activity_code) = 'OPTN'
         AND UPPER(af.program_activity_name) = 'FIELD IS OPTIONAL PRIOR TO FY21'
