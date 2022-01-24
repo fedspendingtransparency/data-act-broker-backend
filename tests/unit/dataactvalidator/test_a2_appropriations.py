@@ -8,7 +8,7 @@ _FILE = 'a2_appropriations'
 def test_column_headers(database):
     expected_subset = {'row_number', 'total_budgetary_resources_cpe', 'budget_authority_appropria_cpe',
                        'budget_authority_unobligat_fyb', 'adjustments_to_unobligated_cpe',
-                       'other_budgetary_resources_cpe', 'expected_value_GTAS SF133 Line 1902', 'difference',
+                       'other_budgetary_resources_cpe', 'GTAS SF133 Line 1902', 'difference',
                        'uniqueid_TAS'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual

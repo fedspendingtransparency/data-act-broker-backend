@@ -20,7 +20,7 @@ SELECT
     approp.budget_authority_unobligat_fyb,
     approp.adjustments_to_unobligated_cpe,
     approp.other_budgetary_resources_cpe,
-    COALESCE(SUM(sf.amount), 0) AS "expected_value_GTAS SF133 Line 1902",
+    COALESCE(SUM(sf.amount), 0) AS "GTAS SF133 Line 1902",
     COALESCE(approp.total_budgetary_resources_cpe, 0) - (COALESCE(approp.budget_authority_appropria_cpe, 0) +
                                                          COALESCE(approp.budget_authority_unobligat_fyb, 0) +
                                                          COALESCE(approp.adjustments_to_unobligated_cpe, 0) +
