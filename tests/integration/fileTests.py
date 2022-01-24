@@ -145,7 +145,8 @@ class FileTests(BaseTestAPI):
             insert_job(sess, None, FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['validation'],
                        cls.test_other_user_submission_id)
 
-            cls.test_certify_history_id, cls.test_publish_history_id = cls.setup_publication_history(sess)
+            cls.test_certify_history_id, cls.test_publish_history_id = cls.setup_publication_history(
+                sess, cls.test_published_submission_id)
 
     def setUp(self):
         """Test set-up."""
@@ -1147,6 +1148,82 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'appropriations and award is not a valid cross-pair.')
 
+    def test_submission_zip_url(self):
+        """ Test that the submission's zip is successfully generated """
+        # we're dealing with actual files for this endpoint.
+        test_files = {
+            'file_a': 'file_a.txt',
+            'file_a_warn': 'file_a_warn.txt',
+            'file_d1': 'file_d1.txt',
+            'cross_file': 'cross_file.txt'
+        }
+        for file_type, file_name in test_files.items():
+            with open(file_name, 'w') as test_file:
+                test_file.write(file_type)
+        test_certify_hist_id, test_publish_hist_id = self.setup_publication_history(self.session,
+                                                                                    self.test_published_submission_id,
+                                                                                    **test_files)
+
+        params = {'submission_id': self.test_published_submission_id,
+                  'publish_history_id': test_publish_hist_id}
+        response = self.app.get('/v1/get_submission_zip', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('url', response.json)
+
+        params = {'submission_id': self.test_published_submission_id,
+                  'certify_history_id': test_certify_hist_id}
+        response = self.app.get('/v1/get_submission_zip', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('url', response.json)
+
+        params = {'submission_id': self.test_published_submission_id,
+                  'publish_history_id': test_publish_hist_id,
+                  'certify_history_id': test_certify_hist_id}
+        response = self.app.get('/v1/get_submission_zip', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('url', response.json)
+
+        # cleanup
+        for file_type, file_name in test_files.items():
+            os.remove(file_name)
+
+    def test_submission_zip_url_invalid(self):
+        """ Test that the submission zip responds appropriately when invalid """
+        # Neither pub ID or cert ID is provided
+        params = {'submission_id': self.test_published_submission_id}
+        response = self.app.get('/v1/get_submission_zip', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'A publish_history_id or certify_history_id is required.')
+        # FABS
+        params = {'submission_id': self.test_fabs_submission_id,
+                  'publish_history_id': self.test_publish_history_id}
+        response = self.app.get('/v1/get_submission_zip', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'Only published DABS submissions can be zipped.')
+        # Unpublished
+        params = {'submission_id': self.test_unpublished_submission_id,
+                  'publish_history_id': self.test_publish_history_id}
+        response = self.app.get('/v1/get_submission_zip', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'Only published DABS submissions can be zipped.')
+        # Wrong submission id
+        params = {'submission_id': self.test_published_submission_id + 1,
+                  'publish_history_id': self.test_publish_history_id}
+        response = self.app.get('/v1/get_submission_zip', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'No submission files found.')
+        # Wrong published id
+        params = {'submission_id': self.test_published_submission_id,
+                  'publish_history_id': self.test_publish_history_id + 1}
+        response = self.app.get('/v1/get_submission_zip', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'No submission files found.')
+
     def test_cross_file_status_reset_generate(self):
         """ Test that cross-file resets when D file generation is called. """
         submission = SubmissionFactory()
@@ -1287,9 +1364,9 @@ class FileTests(BaseTestAPI):
         return cfh.published_files_history_id
 
     @classmethod
-    def setup_publication_history(cls, sess):
-        submission_id = cls.test_published_submission_id
-
+    def setup_publication_history(cls, sess, submission_id, file_a='path/to/file_a.csv',
+                                  file_a_warn='path/to/warning_file_a.csv', file_d1='path/to/file_d1.csv',
+                                  cross_file='path/to/cross_file.csv'):
         ch = CertifyHistory(
             user_id=cls.submission_user_id,
             submission_id=submission_id
@@ -1308,8 +1385,8 @@ class FileTests(BaseTestAPI):
             ph.publish_history_id,
             submission_id,
             FILE_TYPE_DICT['appropriations'],
-            'path/to/file_a.csv',
-            'path/to/warning_file_a.csv',
+            file_a,
+            file_a_warn,
             'Comment content'
         )
 
@@ -1320,7 +1397,7 @@ class FileTests(BaseTestAPI):
             ph.publish_history_id,
             submission_id,
             FILE_TYPE_DICT['award_procurement'],
-            'path/to/file_d1.csv'
+            file_d1
         )
 
         # Create a cross-file entry
@@ -1329,7 +1406,7 @@ class FileTests(BaseTestAPI):
             ch.certify_history_id,
             ph.publish_history_id,
             submission_id,
-            warning_filename='path/to/cross_file.csv'
+            warning_filename=cross_file
         )
 
         return ch.certify_history_id, ph.publish_history_id

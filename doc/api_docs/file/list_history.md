@@ -78,6 +78,7 @@ Lists all the publication and certification history for a submission along with 
 ## Response Attributes
 - `submission_id `: (integer) the ID of the submission
 - `publications`: ([dict]) Each dictionary contains the following values and represents one publication:
+    - `publish_history_id`: (integer) the ID of the file in the `publish_history` table, used to download the zip
     - `publish_date`: (string) the date of the publication
     - `publishing_user`: (dict) contains the following details about the user that published the submission:
         - `name`: (string) the user's name
@@ -88,6 +89,7 @@ Lists all the publication and certification history for a submission along with 
         - `is_warning`: (boolean) whether the file is the warning file associated with that file or the file itself
         - `comment`: (string) the comment associated with the file
 - `certifications`: ([dict]) Each dictionary contains the following values and represents one certification:
+    - `certify_history_id`: (integer) the ID of the file in the `certify_history` table, used to download the zip
     - `certify_date`: (string) the date of the certification
     - `certifying_user`: (dict) contains the following details about the user that certified the submission:
         - `name`: (string) the user's name

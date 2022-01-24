@@ -52,7 +52,7 @@ class S3Handler:
         if S3Handler.ENABLE_S3:
             s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
             s3_params = {'Bucket': bucket_route,
-                         'Key': path + "/" + file_name}
+                         'Key': (path + "/" + file_name) if path else file_name}
             presigned_url = s3.generate_presigned_url(method, s3_params, ExpiresIn=S3Handler.URL_LIFETIME)
             if url_mapping:
                 presigned_url = presigned_url.replace(presigned_url.split('/')[2],
