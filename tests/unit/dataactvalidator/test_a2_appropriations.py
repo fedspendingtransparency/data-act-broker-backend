@@ -6,9 +6,10 @@ _FILE = 'a2_appropriations'
 
 
 def test_column_headers(database):
-    expected_subset = {'uniqueid_TAS', 'row_number', 'total_budgetary_resources_cpe', 'budget_authority_appropria_cpe',
+    expected_subset = {'row_number', 'total_budgetary_resources_cpe', 'budget_authority_appropria_cpe',
                        'budget_authority_unobligat_fyb', 'adjustments_to_unobligated_cpe',
-                       'other_budgetary_resources_cpe', 'difference'}
+                       'other_budgetary_resources_cpe', 'expected_value_GTAS SF133 Line 1902', 'difference',
+                       'uniqueid_TAS'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
@@ -18,22 +19,35 @@ def test_success(database):
         BudgetAuthorityUnobligatedBalanceBroughtForward_FYB + AdjustmentsToUnobligatedBalanceBroughtForward_CPE +
         OtherBudgetaryResourcesAmount_CPE + SF 133 Line 1902
     """
-    approp = AppropriationFactory(total_budgetary_resources_cpe=1100, budget_authority_appropria_cpe=100,
-                                  budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
-                                  other_budgetary_resources_cpe=400, tas='abcd')
-    approp_null = AppropriationFactory(total_budgetary_resources_cpe=700, budget_authority_appropria_cpe=100,
-                                       budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
-                                       other_budgetary_resources_cpe=None, tas='abcd')
-    sf_1 = SF133Factory(line=1902, tas='abcd', period=1, fiscal_year=2016, amount=100)
+    tas_1 = 'tas_one_line'
+    ap_1 = AppropriationFactory(total_budgetary_resources_cpe=1100, budget_authority_appropria_cpe=100,
+                                budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
+                                other_budgetary_resources_cpe=400, tas=tas_1)
+    ap_null = AppropriationFactory(total_budgetary_resources_cpe=700, budget_authority_appropria_cpe=100,
+                                   budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
+                                   other_budgetary_resources_cpe=None, tas=tas_1)
+    # Test with single SF133 line
+    sf_1 = SF133Factory(line=1902, tas=tas_1, period=1, fiscal_year=2016, amount=100)
 
     # unrelated tas doesn't affect it
     sf_2 = SF133Factory(line=1902, tas='bcda', period=1, fiscal_year=2016, amount=200)
 
     # Different line in same TAS doesn't affect it
-    sf_3 = SF133Factory(line=1900, tas='abcd', period=1, fiscal_year=2016, amount=200)
+    sf_3 = SF133Factory(line=1900, tas=tas_1, period=1, fiscal_year=2016, amount=200)
 
-    errors = number_of_errors(_FILE, database, models=[approp, approp_null, sf_1, sf_2, sf_3])
+    errors = number_of_errors(_FILE, database, models=[ap_1, ap_null, sf_1, sf_2, sf_3])
     assert errors == 0
+
+    # Test with split SF133 lines
+    tas_2 = 'tas_two_lines'
+    ap_2 = AppropriationFactory(total_budgetary_resources_cpe=1200, budget_authority_appropria_cpe=100,
+                                budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300,
+                                other_budgetary_resources_cpe=400, tas=tas_2)
+
+    sf_4 = SF133Factory(line=1902, tas=tas_2, period=1, fiscal_year=2016, amount=100)
+    sf_5 = SF133Factory(line=1902, tas=tas_2, period=1, fiscal_year=2016, amount=100)
+
+    assert number_of_errors(_FILE, database, models=[sf_4, sf_5, ap_2]) == 0
 
 
 def test_failure(database):
