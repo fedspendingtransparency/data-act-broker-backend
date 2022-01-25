@@ -1,12 +1,11 @@
--- AwardeeOrRecipientDUNS or AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the
--- record is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
+-- AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record is an aggregate or
+-- PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
 -- (BusinessTypes includes 'P').
 WITH detached_award_financial_assistance_31_2_1_{0} AS
     (SELECT unique_award_key,
     	row_number,
     	assistance_type,
     	action_date,
-    	awardee_or_recipient_uniqu,
     	uei,
     	business_types,
     	record_type,
@@ -19,9 +18,7 @@ WITH detached_award_financial_assistance_31_2_1_{0} AS
         AND (CASE WHEN is_date(COALESCE(action_date, '0'))
              THEN CAST(action_date AS DATE)
              END) > CAST('10/01/2010' AS DATE)
-        AND (COALESCE(awardee_or_recipient_uniqu, '') = ''
-            AND COALESCE(uei, '') = ''
-        )
+        AND COALESCE(uei, '') = ''
         AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'),
 min_dates_{0} AS
     (SELECT unique_award_key,
@@ -38,7 +35,6 @@ SELECT
     row_number,
     assistance_type,
     action_date,
-    awardee_or_recipient_uniqu,
     uei,
     business_types,
     record_type,

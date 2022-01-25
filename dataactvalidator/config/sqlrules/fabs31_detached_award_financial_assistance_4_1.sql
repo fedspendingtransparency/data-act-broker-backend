@@ -1,11 +1,10 @@
--- When provided, AwardeeOrRecipientUEI and/or AwardeeOrRecipientDUNS must be registered (not necessarily active)
--- in SAM, unless the ActionDate is before October 1, 2010.
+-- When provided, AwardeeOrRecipientUEI must be registered (not necessarily active) in SAM, unless the ActionDate is
+-- before October 1, 2010.
 WITH detached_award_financial_assistance_31_4_1_{0} AS
     (SELECT unique_award_key,
         row_number,
         assistance_type,
         action_date,
-        awardee_or_recipient_uniqu,
         uei,
         afa_generated_unique
     FROM detached_award_financial_assistance AS dafa
@@ -13,21 +12,11 @@ WITH detached_award_financial_assistance_31_4_1_{0} AS
         AND (CASE WHEN is_date(COALESCE(action_date, '0'))
              THEN CAST(action_date AS DATE)
              END) > CAST('10/01/2010' AS DATE)
-        AND (
-            (COALESCE(dafa.awardee_or_recipient_uniqu, '') <> ''
-             AND NOT EXISTS (
-                    SELECT 1
-                    FROM duns
-                    WHERE dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-                )
-            )
-            OR (COALESCE(dafa.uei, '') <> ''
-                AND NOT EXISTS (
-                    SELECT 1
-                    FROM duns
-                    WHERE UPPER(dafa.uei) = UPPER(duns.uei)
-                )
-            )
+        AND COALESCE(dafa.uei, '') <> ''
+        AND NOT EXISTS (
+            SELECT 1
+            FROM duns
+            WHERE UPPER(dafa.uei) = UPPER(duns.uei)
         )
         AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'),
 min_dates_{0} AS
@@ -45,7 +34,6 @@ SELECT
     row_number,
     assistance_type,
     action_date,
-    awardee_or_recipient_uniqu,
     uei,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_31_4_1_{0} AS dafa
