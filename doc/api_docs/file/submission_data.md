@@ -38,7 +38,8 @@ This endpoint returns detailed validation job data for the requested submission.
         }],
         'warning_data': [],
         'missing_headers': [],
-        'duplicated_headers': []
+        'duplicated_headers': [],
+        'last_validated': "2020-01-15 14:25:40.12345"
     }]
 }
 ```
@@ -97,6 +98,7 @@ This endpoint returns detailed validation job data for the requested submission.
 -  `warning_data`: ([dict]), details of each warning that ocurred in the submission. Each entry is an dictionary containing the same keys as those found in `error_data` with the exception that `error_name` can only be `rule_failed`.
 -  `missing_headers`: ([string]) each entry is a string with the name of the header that was missing
 -  `duplicated_headers`: ([string]) each entry is a string with the name of the header that was duplicated
+-  `last_validated`: (string) the last time (in the `YYYY-MM-DD HH:mm:ss` format) the validation job changed statuses, for example switching to `running` or completing.
 
 ## Errors
 Possible HTTP Status Codes:
