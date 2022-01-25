@@ -380,6 +380,7 @@ def test_get_latest_publication_period_no_threshold():
 def test_get_submission_data_dabs(database):
     """ Tests the get_submission_data function for dabs records """
     sess = database.session
+    now = datetime.datetime.now()
 
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
 
@@ -387,21 +388,24 @@ def test_get_submission_data_dabs(database):
     sub_2 = SubmissionFactory(submission_id=2, d2_submission=False)
 
     # Job for submission
-    job = JobFactory(job_id=1, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                     job_status_id=JOB_STATUS_DICT['finished'], file_type_id=FILE_TYPE_DICT['appropriations'],
-                     number_of_rows=3, file_size=7655, original_filename='file_1')
-    job_2 = JobFactory(job_id=2, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
-                       job_status_id=JOB_STATUS_DICT['finished'], file_type_id=FILE_TYPE_DICT['program_activity'],
-                       number_of_rows=None, file_size=None, original_filename='file_2')
-    job_3 = JobFactory(job_id=3, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       job_status_id=JOB_STATUS_DICT['running'], file_type_id=FILE_TYPE_DICT['program_activity'],
-                       number_of_rows=7, file_size=12345, original_filename='file_2')
-    job_4 = JobFactory(job_id=4, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
-                       job_status_id=JOB_STATUS_DICT['waiting'], file_type_id=None, number_of_rows=None,
-                       file_size=None, original_filename=None)
-    job_5 = JobFactory(job_id=5, submission_id=sub_2.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
-                       job_status_id=JOB_STATUS_DICT['waiting'], file_type_id=None, number_of_rows=None,
-                       file_size=None, original_filename=None)
+    job = JobFactory(updated_at=now, job_id=1, submission_id=sub.submission_id,
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['finished'],
+                     file_type_id=FILE_TYPE_DICT['appropriations'], number_of_rows=3, file_size=7655,
+                     original_filename='file_1')
+    job_2 = JobFactory(updated_at=now, job_id=2, submission_id=sub.submission_id,
+                       job_type_id=JOB_TYPE_DICT['file_upload'], job_status_id=JOB_STATUS_DICT['finished'],
+                       file_type_id=FILE_TYPE_DICT['program_activity'], number_of_rows=None, file_size=None,
+                       original_filename='file_2')
+    job_3 = JobFactory(updated_at=now, job_id=3, submission_id=sub.submission_id,
+                       job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['running'],
+                       file_type_id=FILE_TYPE_DICT['program_activity'], number_of_rows=7, file_size=12345,
+                       original_filename='file_2')
+    job_4 = JobFactory(updated_at=now, job_id=4, submission_id=sub.submission_id,
+                       job_type_id=JOB_TYPE_DICT['validation'], job_status_id=JOB_STATUS_DICT['waiting'],
+                       file_type_id=None, number_of_rows=None, file_size=None, original_filename=None)
+    job_5 = JobFactory(updated_at=now, job_id=5, submission_id=sub_2.submission_id,
+                       job_type_id=JOB_TYPE_DICT['validation'], job_status_id=JOB_STATUS_DICT['waiting'],
+                       file_type_id=None, number_of_rows=None, file_size=None, original_filename=None)
 
     sess.add_all([cgac, sub, sub_2, job, job_2, job_3, job_4, job_5])
     sess.commit()
@@ -420,7 +424,8 @@ def test_get_submission_data_dabs(database):
         'error_data': [],
         'warning_data': [],
         'missing_headers': [],
-        'duplicated_headers': []
+        'duplicated_headers': [],
+        'last_validated': str(now)
     }
 
     # cross-file job, should be in results
@@ -437,7 +442,8 @@ def test_get_submission_data_dabs(database):
         'error_data': [],
         'warning_data': [],
         'missing_headers': [],
-        'duplicated_headers': []
+        'duplicated_headers': [],
+        'last_validated': str(now)
     }
 
     # upload job, shouldn't be in the results
@@ -454,7 +460,8 @@ def test_get_submission_data_dabs(database):
         'error_data': [],
         'warning_data': [],
         'missing_headers': [],
-        'duplicated_headers': []
+        'duplicated_headers': [],
+        'last_validated': str(now)
     }
 
     # cross-file job but from another submission, shouldn't be in the results
@@ -471,7 +478,8 @@ def test_get_submission_data_dabs(database):
         'error_data': [],
         'warning_data': [],
         'missing_headers': [],
-        'duplicated_headers': []
+        'duplicated_headers': [],
+        'last_validated': str(now)
     }
 
     response = get_submission_data(sub)
