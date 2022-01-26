@@ -749,7 +749,7 @@ def test_generate_e_file(mock_broker_config_paths, database):
     """ Verify that generate_e_file makes an appropriate query (matching both D1 and D2 entries) and creates
         a file matching the expected DUNS
     """
-    # Generate several file D1 entries, largely with the same submission_id, and with two overlapping DUNS. Generate
+    # Generate several file D1 entries, largely with the same submission_id, and with two overlapping UEI. Generate
     # several D2 entries with the same submission_id as well
     sess = database.session
     sub = SubmissionFactory()
@@ -767,14 +767,14 @@ def test_generate_e_file(mock_broker_config_paths, database):
     model = AwardProcurementFactory(submission_id=sub.submission_id)
     aps = [AwardProcurementFactory(submission_id=sub.submission_id) for _ in range(4)]
     afas = [AwardFinancialAssistanceFactory(submission_id=sub.submission_id) for _ in range(5)]
-    same_duns = AwardProcurementFactory(
+    same_uei = AwardProcurementFactory(
         submission_id=sub.submission_id,
-        awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)
+        awardee_or_recipient_uei=model.awardee_or_recipient_uei)
     unrelated = AwardProcurementFactory(submission_id=sub_2.submission_id)
-    duns_list = [DunsFactory(awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)]
-    duns_list.extend([DunsFactory(awardee_or_recipient_uniqu=ap.awardee_or_recipient_uniqu) for ap in aps])
-    duns_list.extend([DunsFactory(awardee_or_recipient_uniqu=afa.awardee_or_recipient_duns) for afa in afas])
-    sess.add_all(aps + afas + duns_list + [model, same_duns, unrelated])
+    uei_list = [DunsFactory(uei=model.awardee_or_recipient_uei)]
+    uei_list.extend([DunsFactory(uei=ap.awardee_or_recipient_uei) for ap in aps])
+    uei_list.extend([DunsFactory(uei=afa.awardee_or_recipient_uei) for afa in afas])
+    sess.add_all(aps + afas + uei_list + [model, same_uei, unrelated])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(database.session, CONFIG_BROKER['local'], job=job)
@@ -782,21 +782,19 @@ def test_generate_e_file(mock_broker_config_paths, database):
 
     # check headers
     file_rows = read_file_rows(file_path)
-    assert file_rows[0] == ['AwardeeOrRecipientUEI', 'AwardeeOrRecipientUniqueIdentifier',
-                            'AwardeeOrRecipientLegalEntityName', 'UltimateParentUEI',
-                            'UltimateParentUniqueIdentifier', 'UltimateParentLegalEntityName',
-                            'HighCompOfficer1FullName', 'HighCompOfficer1Amount', 'HighCompOfficer2FullName',
-                            'HighCompOfficer2Amount', 'HighCompOfficer3FullName', 'HighCompOfficer3Amount',
-                            'HighCompOfficer4FullName', 'HighCompOfficer4Amount', 'HighCompOfficer5FullName',
-                            'HighCompOfficer5Amount']
+    assert file_rows[0] == ['AwardeeOrRecipientUEI', 'AwardeeOrRecipientLegalEntityName', 'UltimateParentUEI',
+                            'UltimateParentLegalEntityName', 'HighCompOfficer1FullName', 'HighCompOfficer1Amount',
+                            'HighCompOfficer2FullName', 'HighCompOfficer2Amount', 'HighCompOfficer3FullName',
+                            'HighCompOfficer3Amount', 'HighCompOfficer4FullName', 'HighCompOfficer4Amount',
+                            'HighCompOfficer5FullName', 'HighCompOfficer5Amount']
 
-    # Check listed DUNS
-    expected = [[duns.uei, duns.awardee_or_recipient_uniqu, duns.legal_business_name, duns.ultimate_parent_uei,
-                 duns.ultimate_parent_unique_ide, duns.ultimate_parent_legal_enti, duns.high_comp_officer1_full_na,
-                 duns.high_comp_officer1_amount, duns.high_comp_officer2_full_na, duns.high_comp_officer2_amount,
-                 duns.high_comp_officer3_full_na, duns.high_comp_officer3_amount, duns.high_comp_officer4_full_na,
-                 duns.high_comp_officer4_amount, duns.high_comp_officer5_full_na, duns.high_comp_officer5_amount]
-                for duns in duns_list]
+    # Check listed UEI
+    expected = [[uei.uei, uei.legal_business_name, uei.ultimate_parent_uei, uei.ultimate_parent_legal_enti,
+                 uei.high_comp_officer1_full_na, uei.high_comp_officer1_amount, uei.high_comp_officer2_full_na,
+                 uei.high_comp_officer2_amount, uei.high_comp_officer3_full_na, uei.high_comp_officer3_amount,
+                 uei.high_comp_officer4_full_na, uei.high_comp_officer4_amount, uei.high_comp_officer5_full_na,
+                 uei.high_comp_officer5_amount]
+                for uei in uei_list]
     received = [file_row for file_row in file_rows[1:]]
     assert sorted(received) == list(sorted(expected))
 
