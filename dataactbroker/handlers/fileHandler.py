@@ -28,7 +28,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import create_jobs, mark_job_status, get_time_period
+from dataactcore.interfaces.function_bag import create_jobs, mark_job_status, get_time_period, filename_fyp_sub_format
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
@@ -1395,9 +1395,9 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
             something went wrong
     """
     if publish_history_id:
-        zip_filename = 'Broker-Submission-{}-Pub-{}'.format(submission.submission_id, publish_history_id)
+        zip_filename = 'Broker_SubID-{}_PubID-{}'.format(submission.submission_id, publish_history_id)
     elif certify_history_id:
-        zip_filename = 'Broker-Submission-{}-Cert-{}'.format(submission.submission_id, certify_history_id)
+        zip_filename = 'Broker_SubID-{}_CertID-{}'.format(submission.submission_id, certify_history_id)
     else:
         return JsonResponse.error(ValueError('A publish_history_id or certify_history_id is required.'),
                                   StatusCode.CLIENT_ERROR)
@@ -1471,16 +1471,22 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
         raise ValueError('Only published DABS submissions can be zipped.')
 
     # Get a list of the files to zip
-    published_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.warning_filename).\
+    published_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.warning_filename,
+                                 Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
+                                 Submission.is_quarter_format).\
         filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check).all()
     sub_file_paths = []
+    fyp = None
     for published_file in published_files:
+        if not fyp:
+            fyp = filename_fyp_sub_format(published_file)
         if published_file.filename:
             sub_file_paths.append(published_file.filename)
         if published_file.warning_filename:
             sub_file_paths.append(published_file.warning_filename)
     if not sub_file_paths:
         raise ValueError('No submission files found.')
+    zip_filename = '{}_{}'.format(zip_filename, fyp)
 
     # Note: not using tempfile.TemporaryDirectory as we need to name the directory
     tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)

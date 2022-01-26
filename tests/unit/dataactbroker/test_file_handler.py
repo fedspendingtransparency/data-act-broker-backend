@@ -15,6 +15,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
 from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.function_bag import filename_fyp_sub_format
 from dataactcore.models.jobModels import PublishedFilesHistory, Submission
 from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT,
                                         FILE_TYPE_DICT_LETTER_ID)
@@ -601,7 +602,8 @@ def test_get_comments_file(database):
 @pytest.mark.usefixtures('job_constants', 'broker_files_tmp_dir')
 def test_get_submission_zip(database):
     """ Test that the submission's zip is successfully generated """
-    pub_dabs_sub = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
+    pub_dabs_sub = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                     reporting_fiscal_year='2022', reporting_fiscal_period='4')
     pub_1, pub_2 = PublishHistoryFactory(submission=pub_dabs_sub), PublishHistoryFactory(submission=pub_dabs_sub)
     cert = CertifyHistoryFactory(submission=pub_dabs_sub)
     models = [pub_dabs_sub, pub_1, pub_2, cert]
@@ -639,14 +641,16 @@ def test_get_submission_zip(database):
     resp = fileHandler.get_submission_zip(pub_dabs_sub, pub_2.publish_history_id, None, True)
     assert resp.status_code == 200
     resp = json.loads(resp.get_data().decode('UTF-8'))
-    expected_zip_name = 'Broker-Submission-{}-Pub-{}'.format(pub_dabs_sub.submission_id, pub_2.publish_history_id)
+    expected_zip_name = 'Broker_SubID-{}_PubID-{}_{}'.format(pub_dabs_sub.submission_id, pub_2.publish_history_id,
+                                                             filename_fyp_sub_format(pub_dabs_sub))
     assert expected_zip_name in resp['url']
 
     # zip the certified version
     resp = fileHandler.get_submission_zip(pub_dabs_sub, None, cert.certify_history_id, True)
     assert resp.status_code == 200
     resp = json.loads(resp.get_data().decode('UTF-8'))
-    expected_zip_name = 'Broker-Submission-{}-Cert-{}'.format(pub_dabs_sub.submission_id, cert.certify_history_id)
+    expected_zip_name = 'Broker_SubID-{}_CertID-{}_{}'.format(pub_dabs_sub.submission_id, cert.certify_history_id,
+                                                              filename_fyp_sub_format(pub_dabs_sub))
     assert expected_zip_name in resp['url']
 
     generated_zip = resp['url']
