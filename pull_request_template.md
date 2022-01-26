@@ -9,7 +9,8 @@ The technical details can be placed here for the knowledge of other developers. 
 
 The following are ALL required for the PR to be merged:
 - [ ] Backend review completed
+- [ ] Style Guide check completed
 - [ ] Merged concurrently with [Frontend#1234](https://github.com/fedspendingtransparency/data-act-broker-web-app/pull/1234)
 - [ ] Unit & integration tests updated with relevant test cases
 - [ ] Frontend impact assessment completed
-- [ ] Documentation Updated
+- [ ] Documentation updated
