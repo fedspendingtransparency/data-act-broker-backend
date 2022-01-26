@@ -603,6 +603,39 @@ def get_time_period(submission):
     return time_period
 
 
+def filename_fyp_sub_format(submission):
+    """ Wrapper for filename_fyp_format that takes in a submission object (must have the necessary fields)
+
+        Arguments:
+            submission: the submission object to find the time period
+
+        Returns:
+            the submission's time period string for filenames
+    """
+    return filename_fyp_format(submission.reporting_fiscal_year, submission.reporting_fiscal_period,
+                               submission.is_quarter_format)
+
+
+def filename_fyp_format(fy, period, is_quarter):
+    """ Return the proper FYP string to be included in the filenames throughout Broker
+
+        Arguments:
+            fy: fiscal year
+            period: the period
+            is_quarter: whether it should be based on quarters or periods
+
+        Returns:
+            the time period string for filenames
+    """
+    if is_quarter:
+        suffix = 'Q{}'.format(int(period) // 3)
+    elif int(period) > 2:
+        suffix = 'P{}'.format(str(period).zfill(2))
+    else:
+        suffix = 'P01-P02'
+    return 'FY{}{}'.format(str(fy)[2:], suffix)
+
+
 def get_last_validated_date(submission_id):
     """ Return the oldest last validated date for validation jobs """
     sess = GlobalDB.db().session
