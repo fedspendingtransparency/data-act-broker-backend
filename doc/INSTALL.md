@@ -102,7 +102,7 @@ It may take about 30+ seconds for all containers to report as running and ready.
 
 _**To the API:**_
 ```
-$ curl http://localhost:9999/v1/current_user/
+$ curl http://localhost:9999/v1/active_user/
 ```
 ```
 {"message": "Login Required"}

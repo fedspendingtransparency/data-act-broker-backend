@@ -34,9 +34,9 @@ def add_user_routes(app, system_email, bcrypt):
         """ List all users with submissions that the requesting user has permissions for """
         return list_submission_users(d2_submission)
 
-    @app.route("/v1/current_user/", methods=["GET"])
+    @app.route("/v1/active_user/", methods=["GET"])
     @requires_login
-    def current_user():
+    def active_user():
         """ gets the current user information """
         return JsonResponse.create(StatusCode.OK, json_for_user(g.user, session['sid']))
 

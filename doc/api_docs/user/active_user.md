@@ -1,8 +1,8 @@
-# GET "/v1/current\_user/"
-Gets the information of the current that is logged in to the system.
+# GET "/v1/active\_user/"
+Gets the information of the active user that is logged into the system.
 
 ## Sample Request
-`/v1/current_user/`
+`/v1/active_user/`
     
 ## Request Params
 N/A

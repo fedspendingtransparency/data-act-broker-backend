@@ -48,9 +48,9 @@ class UserTests(BaseTestAPI):
         super(UserTests, self).setUp()
         self.login_admin_user()
 
-    def test_current_user(self):
+    def test_active_user(self):
         """Test retrieving current user information."""
-        response = self.app.get("/v1/current_user/", headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/active_user/", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         assert response.json["name"] == "Administrator"
         assert not response.json["skip_guide"]
