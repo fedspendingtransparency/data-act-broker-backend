@@ -755,59 +755,82 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
 @pytest.mark.usefixtures('job_constants')
 def test_submission_report_url_local(monkeypatch, tmpdir, database):
     format_name_change = FormatChangeDate(name='DAIMS 2.0', change_date='2020-07-13 21:53:00')
-    old_sub = SubmissionFactory(submission_id=4, d2_submission=False)
-    new_sub = SubmissionFactory(submission_id=5, d2_submission=False)
-    old_job = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
-                         job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
-                         updated_at='2017-01-01')
-    new_job = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
-                         job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
-                         updated_at='2020-08-01')
-    add_models(database, [format_name_change, old_sub, old_job, new_sub, new_job])
+    dev_8325_change = FormatChangeDate(name='DEV-8325', change_date='2022-01-26 00:00:00')
+    sub1 = SubmissionFactory(submission_id=4, d2_submission=False)
+    sub2 = SubmissionFactory(submission_id=5, d2_submission=False)
+    sub3 = SubmissionFactory(submission_id=6, d2_submission=False, reporting_fiscal_year='2022',
+                             reporting_fiscal_period='2')
+    job1 = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
+                      job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
+                      updated_at='2017-01-01')
+    job2 = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
+                      job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
+                      updated_at='2020-08-01')
+    job3 = JobFactory(submission_id=6, job_status_id=JOB_STATUS_DICT['finished'],
+                      job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
+                      updated_at='2022-08-01')
+    add_models(database, [format_name_change, dev_8325_change, sub1, job1, sub2, job2, sub3, job3])
 
     file_path = str(tmpdir) + os.path.sep
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True})
     monkeypatch.setattr(fileHandler, 'CONFIG_SERVICES', {'error_report_path': file_path})
 
-    json_response = fileHandler.submission_report_url(old_sub, True, 'award_financial', 'award')
+    json_response = fileHandler.submission_report_url(sub1, True, 'award_financial', 'award')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == os.path.join(file_path, 'submission_4_cross_warning_award_financial_award.csv')
 
-    json_response = fileHandler.submission_report_url(new_sub, True, 'award_financial', 'award')
+    json_response = fileHandler.submission_report_url(sub2, True, 'award_financial', 'award')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == os.path.join(file_path, 'submission_5_crossfile_warning_File_C_to_D2_award_financial_award.csv')
+
+    json_response = fileHandler.submission_report_url(sub3, True, 'award_financial', 'award')
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == os.path.join(file_path, 'SubID-6_File-C-to-D2-crossfile-warning-report_FY22P01-P02.csv')
 
 
 @pytest.mark.usefixtures('job_constants')
 def test_submission_report_url_s3(monkeypatch, database):
-    format_name_change = FormatChangeDate(name='DAIMS 2.0', change_date='2020-07-13 21:53:00')
-    old_sub = SubmissionFactory(submission_id=4, d2_submission=False)
-    new_sub = SubmissionFactory(submission_id=5, d2_submission=False)
-    old_job = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
-                         job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                         file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2017-01-01')
-    new_job = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
-                         job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                         file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2020-08-01')
-    add_models(database, [format_name_change, old_sub, old_job, new_sub, new_job])
+    daims_change = FormatChangeDate(name='DAIMS 2.0', change_date='2020-07-13 21:53:00')
+    dev_8325_change = FormatChangeDate(name='DEV-8325', change_date='2022-01-26 00:00:00')
+    sub1 = SubmissionFactory(submission_id=4, d2_submission=False)
+    sub2 = SubmissionFactory(submission_id=5, d2_submission=False)
+    sub3 = SubmissionFactory(submission_id=6, d2_submission=False, reporting_fiscal_year='2022',
+                             reporting_fiscal_period='2')
+    job1 = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
+                      job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                      file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2017-01-01')
+    job2 = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
+                      job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                      file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2020-08-01')
+    job3 = JobFactory(submission_id=6, job_status_id=JOB_STATUS_DICT['finished'],
+                      job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                      file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2022-08-01')
+    add_models(database, [daims_change, dev_8325_change, sub1, job1, sub2, job2, sub3, job3])
 
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False, 'submission_bucket_mapping': 'test/path'})
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
 
-    json_response = fileHandler.submission_report_url(old_sub, False, 'appropriations', None)
+    json_response = fileHandler.submission_report_url(sub1, False, 'appropriations', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_4_appropriations_error_report.csv'),
         {'method': 'get_object', 'url_mapping': 'test/path'}
     )
-    json_response = fileHandler.submission_report_url(new_sub, False, 'appropriations', None)
+    json_response = fileHandler.submission_report_url(sub2, False, 'appropriations', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_5_File_A_appropriations_error_report.csv'),
+        {'method': 'get_object', 'url_mapping': 'test/path'}
+    )
+    json_response = fileHandler.submission_report_url(sub3, False, 'appropriations', None)
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == 'some/url/here.csv'
+    assert s3_url_handler.return_value.get_signed_url.call_args == (
+        ('errors', 'SubID-6_File-A-error-report_FY22P01-P02.csv'),
         {'method': 'get_object', 'url_mapping': 'test/path'}
     )
 
@@ -934,11 +957,11 @@ def test_get_upload_file_url_s3(database, monkeypatch):
 def test_move_published_files(database, monkeypatch):
     # set up cgac and submission
     cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
-    qtr_sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
+    qtr_sub = SubmissionFactory(submission_id=1, cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
                                 reporting_fiscal_year=2017, reporting_fiscal_period=6, is_quarter_format=True)
-    mon_sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
+    mon_sub = SubmissionFactory(submission_id=2, cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
                                 reporting_fiscal_year=2017, reporting_fiscal_period=2, is_quarter_format=False)
-    database.session.add_all([cgac, qtr_sub])
+    database.session.add_all([cgac, qtr_sub, mon_sub])
     database.session.commit()
 
     # set up publish/certify history and jobs based on submission
@@ -1054,7 +1077,7 @@ def test_move_published_files(database, monkeypatch):
     c_cert_hist = sess.query(PublishedFilesHistory).\
         filter_by(publish_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == '/path/to/award/fin/file_c.csv'
-    expected_filename = '/path/to/error/reports/submission_{}_File_C_award_financial_warning_report.csv'.\
+    expected_filename = '/path/to/error/reports/SubID-{}_File-C-warning-report_FY17Q2.csv'.\
         format(qtr_sub.submission_id)
     assert c_cert_hist.warning_filename == expected_filename
     assert c_cert_hist.comment == 'Test comment'
@@ -1065,7 +1088,7 @@ def test_move_published_files(database, monkeypatch):
     assert warning_cert_hist[0].comment is None
 
     warning_cert_hist_files = [hist.warning_filename for hist in warning_cert_hist]
-    assert '/path/to/error/reports/submission_{}_crossfile_warning_File_A_to_B_appropriations_program_activity.csv'.\
+    assert '/path/to/error/reports/SubID-{}_File-A-to-B-crossfile-warning-report_FY17Q2.csv'.\
         format(qtr_sub.submission_id) in warning_cert_hist_files
 
     # test remote publication - quarter
@@ -1075,7 +1098,7 @@ def test_move_published_files(database, monkeypatch):
     c_cert_hist = sess.query(PublishedFilesHistory). \
         filter_by(publish_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == 'zyxwv/2017/Q2/{}/file_c.csv'.format(remote_id)
-    assert c_cert_hist.warning_filename == 'zyxwv/2017/Q2/{}/submission_{}_File_C_award_financial_warning_report.csv'. \
+    assert c_cert_hist.warning_filename == 'zyxwv/2017/Q2/{}/SubID-{}_File-C-warning-report_FY17Q2.csv'. \
         format(remote_id, qtr_sub.submission_id)
 
     # test remote publication - month
@@ -1085,7 +1108,7 @@ def test_move_published_files(database, monkeypatch):
     c_cert_hist = sess.query(PublishedFilesHistory). \
         filter_by(publish_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == 'zyxwv/2017/P02/{}/file_c.csv'.format(remote_id)
-    assert c_cert_hist.warning_filename == 'zyxwv/2017/P02/{}/submission_{}_File_C_award_financial_warning_report.csv'.\
+    assert c_cert_hist.warning_filename == 'zyxwv/2017/P02/{}/SubID-{}_File-C-warning-report_FY17P01-P02.csv'.\
         format(remote_id, mon_sub.submission_id)
 
 
