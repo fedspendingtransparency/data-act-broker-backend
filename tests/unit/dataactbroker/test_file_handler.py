@@ -16,7 +16,7 @@ from dataactbroker.handlers import fileHandler
 from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.function_bag import filename_fyp_sub_format
-from dataactcore.models.jobModels import PublishedFilesHistory, Submission
+from dataactcore.models.jobModels import PublishedFilesHistory, Submission, FormatChangeDate
 from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT,
                                         FILE_TYPE_DICT_LETTER_ID)
 from dataactcore.utils.responseException import ResponseException
@@ -567,7 +567,7 @@ def test_get_comments_file(database):
     result = fileHandler.get_comments_file(sub1, CONFIG_BROKER['local'])
     assert result.status_code == 200
     result = json.loads(result.get_data().decode('UTF-8'))
-    assert 'submission_{}_comments.csv'.format(sub1.submission_id) in result['url']
+    assert 'SubID-{}_comments_{}.csv'.format(sub1.submission_id, filename_fyp_sub_format(sub1)) in result['url']
 
     report_content = []
     report_headers = None
@@ -754,6 +754,7 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
 
 @pytest.mark.usefixtures('job_constants')
 def test_submission_report_url_local(monkeypatch, tmpdir, database):
+    format_name_change = FormatChangeDate(name='DAIMS 2.0', change_date='2020-07-13 21:53:00')
     old_sub = SubmissionFactory(submission_id=4, d2_submission=False)
     new_sub = SubmissionFactory(submission_id=5, d2_submission=False)
     old_job = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
@@ -762,7 +763,7 @@ def test_submission_report_url_local(monkeypatch, tmpdir, database):
     new_job = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
                          job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
                          updated_at='2020-08-01')
-    add_models(database, [old_sub, old_job, new_sub, new_job])
+    add_models(database, [format_name_change, old_sub, old_job, new_sub, new_job])
 
     file_path = str(tmpdir) + os.path.sep
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True})
@@ -779,6 +780,7 @@ def test_submission_report_url_local(monkeypatch, tmpdir, database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_submission_report_url_s3(monkeypatch, database):
+    format_name_change = FormatChangeDate(name='DAIMS 2.0', change_date='2020-07-13 21:53:00')
     old_sub = SubmissionFactory(submission_id=4, d2_submission=False)
     new_sub = SubmissionFactory(submission_id=5, d2_submission=False)
     old_job = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
@@ -787,7 +789,7 @@ def test_submission_report_url_s3(monkeypatch, database):
     new_job = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
                          job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                          file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2020-08-01')
-    add_models(database, [old_sub, old_job, new_sub, new_job])
+    add_models(database, [format_name_change, old_sub, old_job, new_sub, new_job])
 
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False, 'submission_bucket_mapping': 'test/path'})
     s3_url_handler = Mock()

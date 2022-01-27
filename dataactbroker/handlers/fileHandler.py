@@ -33,7 +33,8 @@ from dataactcore.interfaces.function_bag import create_jobs, mark_job_status, ge
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
                                           PublishHistory, PublishedFilesHistory, FileGeneration, FileType,
-                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period)
+                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period,
+                                          FormatChangeDate)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -1199,9 +1200,15 @@ class FileHandler:
                 sess.add(file_history)
 
             # Only move the file if we have any published comments
-            num_cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id).count()
-            if num_cert_comments > 0:
-                filename = 'submission_{}_comments.csv'.format(str(submission_id))
+            cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id)
+            if cert_comments.count() > 0:
+                format_change = sess.query(FormatChangeDate.change_date).filter_by(name='DEV-8325').one_or_none()
+                created_at = cert_comments[0].created_at
+                if format_change and created_at < format_change.change_date:
+                    filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+                else:
+                    filename = 'SubID-{}_comments_{}.csv'.format(str(submission_id),
+                                                                 filename_fyp_sub_format(submission))
                 if not is_local:
                     old_path = '{}/{}'.format(str(submission.submission_id), filename)
                     new_path = new_route + filename
@@ -1332,7 +1339,7 @@ def update_submission_comments(submission, comment_request, is_local):
     sess.commit()
 
     # Preparing for the comments file
-    filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+    filename = 'SubID-{}_comments_{}.csv'.format(submission.submission_id, filename_fyp_sub_format(submission))
     local_file = ''.join([CONFIG_BROKER['broker_files'], filename])
     file_path = local_file if is_local else '{}/{}'.format(str(submission.submission_id), filename)
     headers = ['Comment Type', 'Comment']
@@ -1365,10 +1372,15 @@ def get_comments_file(submission, is_local):
     """
 
     sess = GlobalDB.db().session
-    num_comments = sess.query(Comment).filter_by(submission_id=submission.submission_id).count()
+    comments = sess.query(Comment).filter_by(submission_id=submission.submission_id)
     # if we have at least one comment, we have a file to return
-    if num_comments > 0:
-        filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+    if comments.count() > 0:
+        format_change = sess.query(FormatChangeDate.change_date).filter_by(name='DEV-8325').one_or_none()
+        created_at = comments[0].created_at
+        if format_change and created_at and created_at < format_change.change_date:
+            filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+        else:
+            filename = 'SubID-{}_comments_{}.csv'.format(submission.submission_id, filename_fyp_sub_format(submission))
         if is_local:
             # when local, can just grab the path
             url = os.path.join(CONFIG_BROKER['broker_files'], filename)
@@ -1385,7 +1397,7 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
     """ Retrieve/generate the zip file for a specific submission.
 
         Args:
-            submission: the submission to get the comments file for
+            submission: the submission to zip
             publish_history_id: the ID of the PublishHistory object that represents the published submission to download
             certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
             is_local: a boolean indicating whether the application is running locally or not
@@ -1440,7 +1452,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
     """ Retrieve/generate the zip file for a specific submission. Currently only for published DABS submissions.
 
         Args:
-            submission: the submission to get the comments file for
+            submission: the submission to zip
             publish_history_id: the ID of the PublishHistory object that represents the published submission to download
             certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
             zip_filename: the name of the zip to be created
