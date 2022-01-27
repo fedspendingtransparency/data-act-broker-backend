@@ -1,10 +1,6 @@
-from datetime import datetime
-
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Job
+from dataactcore.models.jobModels import Job, FormatChangeDate
 from dataactcore.models.lookups import FILE_TYPE_DICT_NAME_LETTER, JOB_TYPE_DICT, FILE_TYPE_DICT
-
-DAIMS_THRESHOLD = datetime.strptime('07-13-2020 21:53', '%m-%d-%Y %H:%M')
 
 
 def report_file_name(submission_id, warning, file_type, cross_type=None):
@@ -27,7 +23,8 @@ def report_file_name(submission_id, warning, file_type, cross_type=None):
         job = sess.query(Job).filter_by(submission_id=submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                                         file_type_id=FILE_TYPE_DICT[file_type]).one()
 
-    if job.updated_at < DAIMS_THRESHOLD:
+    daims_threshold = sess.query(FormatChangeDate.change_date).filter_by(name='DAIMS 2.0').one_or_none()
+    if daims_threshold and job.updated_at < daims_threshold.change_date:
         if cross_type:
             report_type_str = 'warning_' if warning else ''
             return "submission_{}_cross_{}{}_{}.csv".format(submission_id, report_type_str, file_type, cross_type)
