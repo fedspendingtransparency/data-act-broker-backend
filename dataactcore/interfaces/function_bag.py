@@ -2,6 +2,7 @@ import logging
 from operator import attrgetter
 import time
 import uuid
+from datetime import datetime
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -683,8 +684,7 @@ def get_fabs_meta(submission_id):
             path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
             published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
                                                         bucket_route=CONFIG_BROKER['certified_bucket'],
-                                                        url_mapping=CONFIG_BROKER['certified_bucket_mapping'],
-                                                        method='get_object')
+                                                        url_mapping=CONFIG_BROKER['certified_bucket_mapping'])
         elif file_path:
             published_file = file_path
 
@@ -728,6 +728,15 @@ def get_last_modified(submission_id):
     last_modified = sess.query(submission_updated_view.updated_at).\
         filter(submission_updated_view.submission_id == submission_id).first()
     return last_modified.updated_at if last_modified else None
+
+
+def get_timestamp():
+    """ Gets a timestamp in seconds
+
+        Returns:
+            a string representing seconds since the epoch
+    """
+    return str(int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()))
 
 
 def update_external_data_load_date(start_time, end_time, data_type):
