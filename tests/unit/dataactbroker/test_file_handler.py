@@ -11,14 +11,13 @@ from flask import Flask
 from unittest.mock import Mock
 from zipfile import ZipFile
 
-from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
 from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.function_bag import filename_fyp_sub_format
-from dataactcore.models.jobModels import PublishedFilesHistory, Submission, FormatChangeDate
+from dataactcore.models.jobModels import PublishedFilesHistory, Submission, Job, FormatChangeDate
 from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT,
-                                        FILE_TYPE_DICT_LETTER_ID)
+                                        FILE_TYPE_DICT_LETTER_ID, FILE_TYPE_DICT_LETTER)
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
@@ -138,6 +137,46 @@ def test_create_submission_already_pub_mon(database, monkeypatch):
     # quarterly different quarter unaffected
     assert new_qtr_diff_sub.published_submission_ids == []
     assert new_qtr_diff_sub.test_submission is False
+
+
+@pytest.mark.usefixtures('job_constants')
+def test_create_submission_external_files(database, monkeypatch):
+    """ Ensure submission's external files are appropriately populated upon creation """
+    sess = database.session
+
+    cgac = CGACFactory(cgac_code='020', agency_name='Age')
+    user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
+    pub_mon_sub = SubmissionFactory(user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
+                                    reporting_fiscal_period=4, reporting_fiscal_year=2010,
+                                    publish_status_id=2, is_quarter_format=False)
+    sess.add_all([user1, cgac, pub_mon_sub])
+    sess.commit()
+
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+
+    # Making a new monthly sub in the same period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '01/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+    ex_types = [FILE_TYPE_DICT_LETTER_ID[ex_type] for ex_type in fileHandler.FileHandler.EXTERNAL_FILE_TYPES]
+    external_sub_jobs = sess.query(Job).filter(Submission.submission_id == new_mon_same_sub.submission_id,
+                                               Job.file_type_id.in_(ex_types))
+    expected_job_names = {
+        'D1': 'SubID-2_File-D1_FY10P04_20100101_20100131_awarding.csv',
+        'D2': 'SubID-2_File-D2_FY10P04_20100101_20100131_awarding.csv',
+        'E': 'SubID-2_File-E_FY10P04.csv',
+        'F': 'SubID-2_File-F_FY10P04.csv'
+    }
+    for external_sub_job in external_sub_jobs:
+        assert external_sub_job.filename == expected_job_names[FILE_TYPE_DICT_LETTER[external_sub_job.file_type_id]]
 
 
 @pytest.mark.usefixtures('job_constants')
@@ -567,7 +606,8 @@ def test_get_comments_file(database):
     result = fileHandler.get_comments_file(sub1, CONFIG_BROKER['local'])
     assert result.status_code == 200
     result = json.loads(result.get_data().decode('UTF-8'))
-    assert 'SubID-{}_comments_{}.csv'.format(sub1.submission_id, filename_fyp_sub_format(sub1)) in result['url']
+    assert ('SubID-{}_comments_{}.csv'.format(sub1.submission_id, filename_fyp_sub_format(sub1))
+            in result['url'])
 
     report_content = []
     report_headers = None
@@ -817,21 +857,21 @@ def test_submission_report_url_s3(monkeypatch, database):
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_4_appropriations_error_report.csv'),
-        {'method': 'get_object', 'url_mapping': 'test/path'}
+        {'url_mapping': 'test/path'}
     )
     json_response = fileHandler.submission_report_url(sub2, False, 'appropriations', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_5_File_A_appropriations_error_report.csv'),
-        {'method': 'get_object', 'url_mapping': 'test/path'}
+        {'url_mapping': 'test/path'}
     )
     json_response = fileHandler.submission_report_url(sub3, False, 'appropriations', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'SubID-6_File-A-error-report_FY22P01-P02.csv'),
-        {'method': 'get_object', 'url_mapping': 'test/path'}
+        {'url_mapping': 'test/path'}
     )
 
 
@@ -840,15 +880,19 @@ def test_build_file_map_string(monkeypatch):
     upload_files = []
     file_type_list = ['fabs', 'appropriations', 'award_financial', 'program_activity']
     file_dict = {'fabs': 'fabs_file.csv',
-                 'appropriations': 'appropriations.csv',
+                 'appropriations': 'appropriations.txt',
                  'award_financial': 'award_financial.csv',
-                 'program_activity': 'program_activity.csv'}
-    monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: '123_' + x))
-    submission = SubmissionFactory(submission_id=3)
+                 'program_activity': 'program_activity.txt'}
+    monkeypatch.setattr(fileHandler, 'get_timestamp', Mock(return_value='123456789'))
+    submission = SubmissionFactory(submission_id=3, reporting_fiscal_year='2022', reporting_fiscal_period='2',
+                                   is_quarter_format=False)
     fh = fileHandler.FileHandler({})
     fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
-        assert file.upload_name == '3/123_' + file.file_name
+        split_filename = os.path.splitext(file.file_name)
+        fyp = '_{}'.format(filename_fyp_sub_format(submission)) if file.file_letter != 'FABS' else ''
+        assert file.upload_name == '3/SubID-3_File-{}{}_{}_123456789{}'.format(file.file_letter, fyp,
+                                                                               split_filename[0], split_filename[1])
 
 
 def test_build_file_map_file(monkeypatch):
@@ -856,21 +900,25 @@ def test_build_file_map_file(monkeypatch):
     upload_files = []
     file_type_list = ['fabs', 'appropriations', 'award_financial', 'program_activity']
     fabs_file = io.BytesIO(b'something')
-    fabs_file.filename = 'fabs.csv'
+    fabs_file.filename = 'fabs.txt'
     approp_file = io.BytesIO(b'something')
     approp_file.filename = 'approp.csv'
     pa_file = io.BytesIO(b'something')
-    pa_file.filename = 'pa.csv'
+    pa_file.filename = 'pa.txt'
     award_file = io.BytesIO(b'something')
     award_file.filename = 'award.csv'
     file_dict = {'fabs': fabs_file, 'award_financial': award_file, 'program_activity': pa_file,
                  'appropriations': approp_file}
-    monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: '123_' + x))
-    submission = SubmissionFactory(submission_id=3)
+    monkeypatch.setattr(fileHandler, 'get_timestamp', Mock(return_value='123456789'))
+    submission = SubmissionFactory(submission_id=3, reporting_fiscal_year='2022', reporting_fiscal_period='2',
+                                   is_quarter_format=False)
     fh = fileHandler.FileHandler({})
     fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
-        assert file.upload_name == '3/123_' + file.file_name
+        split_filename = os.path.splitext(file.file_name)
+        fyp = '_{}'.format(filename_fyp_sub_format(submission)) if file.file_letter != 'FABS' else ''
+        assert file.upload_name == '3/SubID-3_File-{}{}_{}_123456789{}'.format(file.file_letter, fyp,
+                                                                               split_filename[0], split_filename[1])
 
 
 @pytest.mark.usefixtures('job_constants')
@@ -949,19 +997,22 @@ def test_get_upload_file_url_s3(database, monkeypatch):
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('1', 'some_file.csv'),
-        {'method': 'get_object', 'url_mapping': 'test/path'}
+        {'url_mapping': 'test/path'}
     )
 
 
-@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('job_constants', 'broker_files_tmp_dir')
 def test_move_published_files(database, monkeypatch):
     # set up cgac and submission
     cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
     qtr_sub = SubmissionFactory(submission_id=1, cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
-                                reporting_fiscal_year=2017, reporting_fiscal_period=6, is_quarter_format=True)
+                                reporting_fiscal_year=2017, reporting_fiscal_period=6, is_quarter_format=True,
+                                d2_submission=False)
     mon_sub = SubmissionFactory(submission_id=2, cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
-                                reporting_fiscal_year=2017, reporting_fiscal_period=2, is_quarter_format=False)
-    database.session.add_all([cgac, qtr_sub, mon_sub])
+                                reporting_fiscal_year=2017, reporting_fiscal_period=2, is_quarter_format=False,
+                                d2_submission=False)
+    fabs_sub = SubmissionFactory(submission_id=3, d2_submission=True, cgac_code='zyxwv')
+    database.session.add_all([cgac, qtr_sub, mon_sub, fabs_sub])
     database.session.commit()
 
     # set up publish/certify history and jobs based on submission
@@ -969,14 +1020,18 @@ def test_move_published_files(database, monkeypatch):
     pub_hist_local = PublishHistoryFactory(submission_id=qtr_sub.submission_id)
     pub_hist_remote_qtr = PublishHistoryFactory(submission_id=qtr_sub.submission_id)
     pub_hist_remote_mon = PublishHistoryFactory(submission_id=qtr_sub.submission_id)
+    pub_hist_remote_fabs = PublishHistoryFactory(submission_id=fabs_sub.submission_id, created_at='01-01-2022')
     cert_hist_local = CertifyHistoryFactory(submission_id=qtr_sub.submission_id)
     cert_hist_remote_qtr = CertifyHistoryFactory(submission_id=qtr_sub.submission_id)
     cert_hist_remote_mon = CertifyHistoryFactory(submission_id=qtr_sub.submission_id)
+    cert_hist_remote_fabs = CertifyHistoryFactory(submission_id=fabs_sub.submission_id)
 
     finished_job = JOB_STATUS_DICT['finished']
     upload_job = JOB_TYPE_DICT['file_upload']
     val_job = JOB_TYPE_DICT['csv_record_validation']
     cross_job = JOB_TYPE_DICT['validation']
+
+    # Quarter Jobs
     appropriations_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/appropriations/file_a.csv',
                                         file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
                                         job_status_id=finished_job)
@@ -1014,6 +1069,7 @@ def test_move_published_files(database, monkeypatch):
     award_fin_narr_qtr = CommentFactory(submission=qtr_sub, comment='Test comment',
                                         file_type_id=FILE_TYPE_DICT['award_financial'])
 
+    # Monthly jobs
     appropriations_job_mon = JobFactory(submission=mon_sub, filename='/path/to/appropriations/file_a.csv',
                                         file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
                                         job_status_id=finished_job)
@@ -1048,6 +1104,11 @@ def test_move_published_files(database, monkeypatch):
                                    file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
                                    job_status_id=finished_job)
 
+    fabs_job = JobFactory(submission=fabs_sub, filename='/path/to/appropriations/fabs-test.csv',
+                          file_type_id=FILE_TYPE_DICT['fabs'], job_type_id=upload_job, job_status_id=finished_job)
+    val_fabs_job = JobFactory(submission=fabs_sub, filename='/path/to/appropriations/fabs-test.csv',
+                              file_type_id=FILE_TYPE_DICT['fabs'], job_type_id=val_job, job_status_id=finished_job)
+
     database.session.add_all([pub_hist_local, pub_hist_remote_qtr, cert_hist_local, cert_hist_remote_qtr,
                               appropriations_job_qtr, val_appropriations_job_qtr, prog_act_job_qtr,
                               val_prog_act_job_qtr, award_fin_job_qtr, val_award_fin_job_qtr, award_proc_job_qtr,
@@ -1055,14 +1116,18 @@ def test_move_published_files(database, monkeypatch):
                               award_fin_narr_qtr, pub_hist_remote_mon, cert_hist_remote_mon, appropriations_job_mon,
                               val_appropriations_job_mon, prog_act_job_mon, val_prog_act_job_mon, award_fin_job_mon,
                               val_award_fin_job_mon, award_proc_job_mon, award_job_mon, cross_job_mon,
-                              exec_comp_job_mon, sub_award_job_mon])
+                              exec_comp_job_mon, sub_award_job_mon, pub_hist_remote_fabs, cert_hist_remote_fabs,
+                              fabs_job, val_fabs_job])
     database.session.commit()
 
     s3_url_handler = Mock()
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'aws_bucket': 'original_bucket',
-                                                       'certified_bucket': 'cert_bucket'})
+                                                       'certified_bucket': 'cert_bucket',
+                                                       'broker_files': 'broker_files'})
     monkeypatch.setattr(fileHandler, 'CONFIG_SERVICES', {'error_report_path': '/path/to/error/reports/'})
+    monkeypatch.setattr(fileHandler, 'get_timestamp', Mock(return_value='123456789'))
+    monkeypatch.setattr(fileHandler, 'write_stream_query', Mock())
 
     fh = fileHandler.FileHandler(Mock())
 
@@ -1110,6 +1175,16 @@ def test_move_published_files(database, monkeypatch):
     assert c_cert_hist.filename == 'zyxwv/2017/P02/{}/file_c.csv'.format(remote_id)
     assert c_cert_hist.warning_filename == 'zyxwv/2017/P02/{}/SubID-{}_File-C-warning-report_FY17P01-P02.csv'.\
         format(remote_id, mon_sub.submission_id)
+
+    # test remote publication - fabs
+    monkeypatch.setattr(fileHandler, 'g', Mock(is_local=False))
+    fh.move_published_files(fabs_sub, pub_hist_remote_fabs, cert_hist_remote_fabs.certify_history_id, False)
+    remote_id = pub_hist_remote_fabs.publish_history_id
+
+    c_cert_hist = sess.query(PublishedFilesHistory). \
+        filter_by(publish_history_id=remote_id, file_type_id=FILE_TYPE_DICT['fabs']).one()
+    assert c_cert_hist.filename == 'FABS/zyxwv/2022/01/SubID-{}_Published-FABS_123456789.csv'.\
+        format(fabs_sub.submission_id)
 
 
 @pytest.mark.usefixtures('job_constants')
