@@ -89,6 +89,39 @@ FILE_TYPE_DICT_LETTER_ID = {item.letter: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER_NAME = {item.letter: item.name for item in FILE_TYPE}
 FILE_TYPE_DICT_NAME_LETTER = {item.name: item.letter for item in FILE_TYPE}
 
+SUBMISSION_FILENAMES = {
+    'A': 'SubID-{submission_id}_File-A_{FYP}_{raw_filename}_{timestamp}{ext}',
+    'B': 'SubID-{submission_id}_File-B_{FYP}_{raw_filename}_{timestamp}{ext}',
+    'C': 'SubID-{submission_id}_File-C_{FYP}_{raw_filename}_{timestamp}{ext}',
+    'D1': 'SubID-{submission_id}_File-D1_{FYP}_{start}_{end}_{agency_type}{ext}',
+    'D2': 'SubID-{submission_id}_File-D2_{FYP}_{start}_{end}_{agency_type}{ext}',
+    'E': 'SubID-{submission_id}_File-E_{FYP}.csv',
+    'F': 'SubID-{submission_id}_File-F_{FYP}.csv',
+    'FABS': 'SubID-{submission_id}_File-FABS_{raw_filename}_{timestamp}{ext}',
+    'FABS_publish': 'SubID-{submission_id}_Published-FABS_{timestamp}.csv',
+}
+DETACHED_FILENAMES = {
+    'A': 'File-A_{FYP}.csv',
+    'D1': 'File-D1_{start}_{end}_{agency_type}.{ext}',
+    'D2': 'File-D2_{start}_{end}_{agency_type}.{ext}'
+}
+REPORT_FILENAMES = {
+    'PRE-DAIMS 2.0': {
+        'file': 'submission_{submission_id}_{file_type}_{report_type}_report.csv',
+        'cross-file': 'submission_{submission_id}_cross_{report_type}{file_type}_{cross_type}.csv'
+    },
+    'DAIMS 2.0': {
+        'file': 'submission_{submission_id}_File_{file_letter}_{file_type}_{report_type}report.csv',
+        'cross-file': 'submission_{submission_id}_crossfile_{report_type}'
+                      'File_{file_letter}_to_{cross_letter}_{file_type}_{cross_type}.csv',
+    },
+    'DEV-8325': {
+        'file': 'SubID-{submission_id}_File-{file_letter}-{report_type}-report{FYP}.csv',
+        'cross-file': 'SubID-{submission_id}_File-{file_letter}-to-{cross_letter}-crossfile-{report_type}-report'
+                      '{FYP}.csv',
+    }
+}
+
 PERMISSION_TYPES = [
     LookupType(1, 'reader', 'This user is allowed to view any submission for their agency'),
     LookupType(2, 'writer', 'This user is allowed to create and edit any submission for their agency'),
