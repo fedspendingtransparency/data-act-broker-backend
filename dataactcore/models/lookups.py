@@ -102,8 +102,8 @@ SUBMISSION_FILENAMES = {
 }
 DETACHED_FILENAMES = {
     'A': 'File-A_{FYP}.csv',
-    'D1': 'File-D1_{start}_{end}_{agency_type}.{ext}',
-    'D2': 'File-D2_{start}_{end}_{agency_type}.{ext}'
+    'D1': 'File-D1_{start}_{end}_{agency_type}{ext}',
+    'D2': 'File-D2_{start}_{end}_{agency_type}{ext}'
 }
 REPORT_FILENAMES = {
     'PRE-DAIMS 2.0': {
