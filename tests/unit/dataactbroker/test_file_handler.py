@@ -146,10 +146,7 @@ def test_create_submission_external_files(database, monkeypatch):
 
     cgac = CGACFactory(cgac_code='020', agency_name='Age')
     user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
-    pub_mon_sub = SubmissionFactory(submission_id=2, user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
-                                    reporting_fiscal_period=4, reporting_fiscal_year=2010,
-                                    publish_status_id=2, is_quarter_format=False)
-    sess.add_all([user1, cgac, pub_mon_sub])
+    sess.add_all([user1, cgac])
     sess.commit()
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
@@ -170,10 +167,10 @@ def test_create_submission_external_files(database, monkeypatch):
     external_sub_jobs = sess.query(Job).filter(Submission.submission_id == new_mon_same_sub.submission_id,
                                                Job.file_type_id.in_(ex_types))
     expected_job_names = {
-        'D1': 'SubID-2_File-D1_FY10P04_20100101_20100131_awarding.csv',
-        'D2': 'SubID-2_File-D2_FY10P04_20100101_20100131_awarding.csv',
-        'E': 'SubID-2_File-E_FY10P04.csv',
-        'F': 'SubID-2_File-F_FY10P04.csv'
+        'D1': 'SubID-{}_File-D1_FY10P04_20100101_20100131_awarding.csv'.format(new_mon_same_sub.submission_id),
+        'D2': 'SubID-{}_File-D2_FY10P04_20100101_20100131_awarding.csv'.format(new_mon_same_sub.submission_id),
+        'E': 'SubID-{}_File-E_FY10P04.csv'.format(new_mon_same_sub.submission_id),
+        'F': 'SubID-{}_File-F_FY10P04.csv'.format(new_mon_same_sub.submission_id)
     }
     for external_sub_job in external_sub_jobs:
         assert external_sub_job.filename == expected_job_names[FILE_TYPE_DICT_LETTER[external_sub_job.file_type_id]]
