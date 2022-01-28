@@ -146,7 +146,7 @@ def test_create_submission_external_files(database, monkeypatch):
 
     cgac = CGACFactory(cgac_code='020', agency_name='Age')
     user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
-    pub_mon_sub = SubmissionFactory(user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
+    pub_mon_sub = SubmissionFactory(submission_id=2, user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
                                     reporting_fiscal_period=4, reporting_fiscal_year=2010,
                                     publish_status_id=2, is_quarter_format=False)
     sess.add_all([user1, cgac, pub_mon_sub])
