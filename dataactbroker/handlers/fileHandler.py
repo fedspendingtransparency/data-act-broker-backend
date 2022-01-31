@@ -311,7 +311,7 @@ class FileHandler:
                     if not self.is_local:
                         upload_name = '{}/{}'.format(submission.submission_id, filename)
                     else:
-                        upload_name = filename
+                        upload_name = os.path.join(CONFIG_BROKER['broker_files'], filename)
 
                     upload_files.append(FileHandler.UploadFile(
                         file_type=FILE_TYPE_DICT_LETTER_NAME[ext_file_type],
