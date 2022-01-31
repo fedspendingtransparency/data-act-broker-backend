@@ -101,7 +101,7 @@ SUBMISSION_FILENAMES = {
     'FABS_publish': 'SubID-{submission_id}_Published-FABS_{timestamp}.csv',
 }
 DETACHED_FILENAMES = {
-    'A': 'File-A_{FYP}.csv',
+    'A': 'File-A_{FYP}_{timestamp}.csv',
     'D1': 'File-D1_{start}_{end}_{agency_type}{ext}',
     'D2': 'File-D2_{start}_{end}_{agency_type}{ext}'
 }
