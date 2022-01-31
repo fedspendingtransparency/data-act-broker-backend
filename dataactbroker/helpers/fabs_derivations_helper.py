@@ -879,7 +879,7 @@ def derive_parent_uei(sess, submission_id):
         SET ultimate_parent_legal_enti = duns.ultimate_parent_legal_enti,
             ultimate_parent_uei = duns.ultimate_parent_uei
         FROM duns
-        WHERE pafa.uei = duns.uei
+        WHERE UPPER(pafa.uei) = UPPER(duns.uei)
             AND (duns.ultimate_parent_legal_enti IS NOT NULL
                 OR duns.ultimate_parent_uei IS NOT NULL);
     """
@@ -911,7 +911,7 @@ def derive_executive_compensation(sess, submission_id):
             high_comp_officer5_full_na = duns.high_comp_officer5_full_na,
             high_comp_officer5_amount = duns.high_comp_officer5_amount
         FROM duns
-        WHERE pafa.uei = duns.uei
+        WHERE UPPER(pafa.uei) = UPPER(duns.uei)
             AND duns.high_comp_officer1_full_na IS NOT NULL;
     """
     res = sess.execute(query.format(submission_id=submission_id))

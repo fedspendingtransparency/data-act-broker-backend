@@ -1006,8 +1006,8 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
 
     # Calculate executive compensation data for the entry.
-    if obj['awardee_or_recipient_uei'] and obj['awardee_or_recipient_uei'] in exec_comp_dict.keys():
-        exec_comp = exec_comp_dict[obj['awardee_or_recipient_uei']]
+    if obj['awardee_or_recipient_uei'] and obj['awardee_or_recipient_uei'].upper() in exec_comp_dict.keys():
+        exec_comp = exec_comp_dict[obj['awardee_or_recipient_uei'].upper()]
         for i in range(1, 6):
             obj['high_comp_officer{}_full_na'.format(i)] = exec_comp['officer{}_name'.format(i)]
             obj['high_comp_officer{}_amount'.format(i)] = exec_comp['officer{}_amt'.format(i)]
@@ -1800,9 +1800,9 @@ def create_lookups(sess):
 
     # get and create list of uei -> exec comp data mappings
     exec_comp_dict = {}
-    duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None)).all()
+    duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None), DUNS.uei.isnot(None)).all()
     for duns in duns_list:
-        exec_comp_dict[duns.uei] = \
+        exec_comp_dict[duns.uei.upper()] = \
             {'officer1_name': duns.high_comp_officer1_full_na, 'officer1_amt': duns.high_comp_officer1_amount,
              'officer2_name': duns.high_comp_officer2_full_na, 'officer2_amt': duns.high_comp_officer2_amount,
              'officer3_name': duns.high_comp_officer3_full_na, 'officer3_amt': duns.high_comp_officer3_amount,
