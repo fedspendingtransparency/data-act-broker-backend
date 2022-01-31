@@ -24,8 +24,8 @@ def extract_cfda(field, type):
 
 
 def reference_data(sess):
-    parent_duns = DunsFactory(awardee_or_recipient_uniqu='987654321', legal_business_name='TEST PARENT DUNS')
-    duns = DunsFactory(awardee_or_recipient_uniqu='123456789', legal_business_name='TEST DUNS',
+    parent_duns = DunsFactory(uei='Cba987654321', legal_business_name='TEST PARENT DUNS')
+    duns = DunsFactory(uei='123456789aBc', legal_business_name='TEST DUNS',
                        business_types=['TYPE 1', 'TYPE 2', 'TYPE 3'])
     dom_country = CountryCodeFactory(country_code='USA', country_code_2_char='US', country_name='UNITED STATES')
     int_country = CountryCodeFactory(country_code='INT', country_code_2_char='IT', country_name='INTERNATIONAL')
@@ -33,8 +33,8 @@ def reference_data(sess):
     return parent_duns, duns, dom_country, int_country
 
 
-def compare_contract_results(sub, d1, contract, sub_contract, parent_duns, duns, dom_country, int_country, created_at,
-                             updated_at, debug=False):
+def compare_contract_results(sub, d1, contract, sub_contract, dom_country, int_country, created_at, updated_at,
+                             debug=False):
     """ Helper function for contract results """
     attr = {
         'created_at': created_at,
@@ -197,7 +197,7 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     sess.query(Subaward).delete(synchronize_session=False)
     sess.commit()
 
-    parent_duns, duns, dom_country, int_country = reference_data(sess)
+    _, _, dom_country, int_country = reference_data(sess)
 
     # Setup - create awards, procurements, subcontract
     sub = SubmissionFactory(submission_id=1)
@@ -221,7 +221,6 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
         contracting_office_aid=d1_awd.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
-        duns=duns.awardee_or_recipient_uniqu,
         date_signed=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -253,7 +252,6 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
         contracting_office_aid=d1_idv.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
-        duns=duns.awardee_or_recipient_uniqu,
         date_signed=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -278,10 +276,10 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     created_at = updated_at = contracts_results[0].created_at
 
     # Expected Results
-    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, parent_duns, duns,
-                                    dom_country, int_country, created_at, updated_at) is True
-    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
-                                    dom_country, int_country, created_at, updated_at) is True
+    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country,
+                                    int_country, created_at, updated_at) is True
+    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
+                                    int_country, created_at, updated_at) is True
 
 
 def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_country, int_country, created_at,
@@ -476,7 +474,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         federal_agency_id='1234',
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
@@ -485,8 +483,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         parent=grant_non_pop_subtier,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code_2_char,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
-        duns=duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
+        uei_number=duns.uei,
         subaward_date=datetime.now()
     )
     # D2 Non-aggregate award with federal_agency_id NULL
@@ -513,7 +511,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         federal_agency_id=None,
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
@@ -522,8 +520,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         parent=grant_non_null_sub,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code_2_char,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
-        duns=duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
+        uei_number=duns.uei,
         subaward_date=datetime.now()
     )
     # D2 Aggregate award
@@ -550,7 +548,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         federal_agency_id='1234',
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
         cfda_numbers='00.003 CFDA 3',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
@@ -559,8 +557,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         parent=grant_agg,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
-        duns=duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei.lower(),
+        uei_number=duns.uei,
         subaward_date=datetime.now()
     )
     sess.add_all([sub, d2_non_pop_subtier, d2_non_pop_subtier_2, grant_non_pop_subtier, sub_grant_non_pop_subtier,
@@ -630,7 +628,7 @@ def test_fix_broken_links(database, monkeypatch):
         federal_agency_id='1234',
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
@@ -639,8 +637,8 @@ def test_fix_broken_links(database, monkeypatch):
         parent=grant_non_pop_subtier,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code_2_char,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
-        duns=duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
+        uei_number=duns.uei.lower(),
         subaward_date=datetime.now()
     )
     d2_non_null_subtier = PublishedAwardFinancialAssistanceFactory(
@@ -669,7 +667,7 @@ def test_fix_broken_links(database, monkeypatch):
         federal_agency_id=None,
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
@@ -678,8 +676,8 @@ def test_fix_broken_links(database, monkeypatch):
         parent=grant_non_null_subtier,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code_2_char,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
-        duns=duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
+        uei_number=duns.uei,
         subaward_date=datetime.now()
     )
     d2_non_other = PublishedAwardFinancialAssistanceFactory(
@@ -728,7 +726,7 @@ def test_fix_broken_links(database, monkeypatch):
         federal_agency_id=None,
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
@@ -737,8 +735,8 @@ def test_fix_broken_links(database, monkeypatch):
         parent=grant_non_other,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code_2_char,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
-        duns=duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
+        uei_number=duns.uei,
         subaward_date=datetime.now()
     )
     d2_agg = PublishedAwardFinancialAssistanceFactory(
@@ -766,7 +764,7 @@ def test_fix_broken_links(database, monkeypatch):
         federal_agency_id='1234',
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
         cfda_numbers='00.003 CFDA 3',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
@@ -775,8 +773,8 @@ def test_fix_broken_links(database, monkeypatch):
         parent=grant_agg,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code_2_char,
-        parent_duns=parent_duns.awardee_or_recipient_uniqu,
-        duns=duns.awardee_or_recipient_uniqu,
+        parent_uei=parent_duns.uei,
+        uei_number=duns.uei,
         subaward_date=datetime.now()
     )
 
@@ -870,10 +868,10 @@ def test_fix_broken_links(database, monkeypatch):
     contract_created_at = contract_updated_at = contracts_results[0].created_at
 
     # Expected Results - should be False as the award isn't provided
-    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, parent_duns, duns,
-                                    dom_country, int_country, contract_created_at, contract_updated_at) is False
-    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
-                                    dom_country, int_country, contract_created_at, contract_updated_at) is False
+    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country,
+                                    int_country, contract_created_at, contract_updated_at) is False
+    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
+                                    int_country, contract_created_at, contract_updated_at) is False
 
     assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
@@ -911,10 +909,10 @@ def test_fix_broken_links(database, monkeypatch):
     grant_updated_at = grants_results[0].updated_at
 
     # Expected Results - should now be True as the award is now available
-    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, parent_duns, duns,
-                                    dom_country, int_country, contract_created_at, contract_updated_at) is True
-    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
-                                    dom_country, int_country, contract_created_at, contract_updated_at) is True
+    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country,
+                                    int_country, contract_created_at, contract_updated_at) is True
+    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
+                                    int_country, contract_created_at, contract_updated_at) is True
     assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[1], d2_non_null_subtier, grant_non_null_subtier,

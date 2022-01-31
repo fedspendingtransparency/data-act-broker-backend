@@ -864,73 +864,32 @@ def derive_pii_redacted_ppop_data(sess, submission_id):
     log_derivation('Completed PII redacted information derivation', submission_id, start_time)
 
 
-def derive_duns_uei(sess, submission_id):
-    """ Deriving DUNS using provided UEI or UEI using provided DUNS if both are not provided
+def derive_parent_uei(sess, submission_id):
+    """ Deriving parent UEI name and number from SAM API
 
         Args:
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    # TODO: Delete this entire function once we stop using DUNS
     start_time = datetime.now()
-    log_derivation('Beginning DUNS derivation', submission_id)
-
-    query = """
-            UPDATE tmp_fabs_{submission_id} AS pafa
-            SET awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-            FROM duns
-            WHERE UPPER(pafa.uei) = UPPER(duns.uei)
-                AND pafa.awardee_or_recipient_uniqu IS NULL
-                AND pafa.uei IS NOT NULL;
-        """
-    res = sess.execute(query.format(submission_id=submission_id))
-
-    log_derivation('Completed DUNS derivation, updated {}'.format(res.rowcount), submission_id, start_time)
-
-    start_time = datetime.now()
-    log_derivation('Beginning UEI derivation', submission_id)
-
-    query = """
-                UPDATE tmp_fabs_{submission_id} AS pafa
-                SET uei = duns.uei
-                FROM duns
-                WHERE pafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-                    AND pafa.uei IS NULL
-                    AND pafa.awardee_or_recipient_uniqu IS NOT NULL;
-            """
-    res = sess.execute(query.format(submission_id=submission_id))
-
-    log_derivation('Completed UEI derivation, updated {}'.format(res.rowcount), submission_id, start_time)
-
-
-def derive_parent_duns_uei(sess, submission_id):
-    """ Deriving parent DUNS name and number from SAM API
-
-        Args:
-            sess: the current DB session
-            submission_id: The ID of the submission derivations are being run for
-    """
-    # TODO: Once we stop using DUNS, clean this up so it's just UEI and using that to get the name
-    start_time = datetime.now()
-    log_derivation('Beginning parent DUNS/UEI derivation', submission_id)
+    log_derivation('Beginning parent UEI derivation', submission_id)
 
     query = """
         UPDATE tmp_fabs_{submission_id} AS pafa
         SET ultimate_parent_legal_enti = duns.ultimate_parent_legal_enti,
-            ultimate_parent_unique_ide = duns.ultimate_parent_unique_ide,
             ultimate_parent_uei = duns.ultimate_parent_uei
         FROM duns
-        WHERE pafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
+        WHERE pafa.uei = duns.uei
             AND (duns.ultimate_parent_legal_enti IS NOT NULL
-                OR duns.ultimate_parent_unique_ide IS NOT NULL);
+                OR duns.ultimate_parent_uei IS NOT NULL);
     """
     res = sess.execute(query.format(submission_id=submission_id))
 
-    log_derivation('Completed parent DUNS/UEI derivation, updated {}'.format(res.rowcount), submission_id, start_time)
+    log_derivation('Completed parent UEI derivation, updated {}'.format(res.rowcount), submission_id, start_time)
 
 
 def derive_executive_compensation(sess, submission_id):
-    """ Deriving Executive Compensation information from DUNS.
+    """ Deriving Executive Compensation information from UEI.
 
         Args:
             sess: the current DB session
@@ -952,7 +911,7 @@ def derive_executive_compensation(sess, submission_id):
             high_comp_officer5_full_na = duns.high_comp_officer5_full_na,
             high_comp_officer5_amount = duns.high_comp_officer5_amount
         FROM duns
-        WHERE pafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
+        WHERE pafa.uei = duns.uei
             AND duns.high_comp_officer1_full_na IS NOT NULL;
     """
     res = sess.execute(query.format(submission_id=submission_id))
@@ -1123,9 +1082,7 @@ def fabs_derivations(sess, submission_id):
 
     derive_pii_redacted_ppop_data(sess, submission_id)
 
-    derive_duns_uei(sess, submission_id)
-
-    derive_parent_duns_uei(sess, submission_id)
+    derive_parent_uei(sess, submission_id)
 
     derive_executive_compensation(sess, submission_id)
 
