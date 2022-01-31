@@ -93,17 +93,17 @@ SUBMISSION_FILENAMES = {
     'A': 'SubID-{submission_id}_File-A_{FYP}_{raw_filename}_{timestamp}{ext}',
     'B': 'SubID-{submission_id}_File-B_{FYP}_{raw_filename}_{timestamp}{ext}',
     'C': 'SubID-{submission_id}_File-C_{FYP}_{raw_filename}_{timestamp}{ext}',
-    'D1': 'SubID-{submission_id}_File-D1_{FYP}_{start}_{end}_{agency_type}{ext}',
-    'D2': 'SubID-{submission_id}_File-D2_{FYP}_{start}_{end}_{agency_type}{ext}',
-    'E': 'SubID-{submission_id}_File-E_{FYP}.csv',
-    'F': 'SubID-{submission_id}_File-F_{FYP}.csv',
+    'D1': 'SubID-{submission_id}_File-D1_{FYP}_{start}_{end}_{agency_type}_{timestamp}{ext}',
+    'D2': 'SubID-{submission_id}_File-D2_{FYP}_{start}_{end}_{agency_type}_{timestamp}{ext}',
+    'E': 'SubID-{submission_id}_File-E_{FYP}_{timestamp}.csv',
+    'F': 'SubID-{submission_id}_File-F_{FYP}_{timestamp}.csv',
     'FABS': 'SubID-{submission_id}_File-FABS_{raw_filename}_{timestamp}{ext}',
     'FABS_publish': 'SubID-{submission_id}_Published-FABS_{timestamp}.csv',
 }
 DETACHED_FILENAMES = {
     'A': 'File-A_{FYP}_{timestamp}.csv',
-    'D1': 'File-D1_{start}_{end}_{agency_type}{ext}',
-    'D2': 'File-D2_{start}_{end}_{agency_type}{ext}'
+    'D1': 'File-D1_{start}_{end}_{agency_type}_{timestamp}{ext}',
+    'D2': 'File-D2_{start}_{end}_{agency_type}_{timestamp}{ext}'
 }
 REPORT_FILENAMES = {
     'PRE-DAIMS 2.0': {
