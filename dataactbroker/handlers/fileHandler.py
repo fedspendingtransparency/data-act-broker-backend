@@ -1964,24 +1964,57 @@ def process_history_list(history_list, list_type):
         file_history = file_history_query.all()
         history_files = []
 
+        main_files = []
+        warnings = []
+        cross_warnings = []
+        comments_file = None
         for file in file_history:
-            # if there's a filename, add it to the list
+            # Main files
             if file.filename is not None:
-                history_files.append({
+                file_dict = {
                     'published_files_history_id': file.published_files_history_id,
                     'filename': file.filename.split('/')[-1],
                     'is_warning': False,
                     'comment': file.comment
-                })
+                }
+                if file.file_type_id:
+                    file_dict['type'] = FILE_TYPE_DICT_LETTER[file.file_type_id]
+                    main_files.append(file_dict)
+                else:
+                    comments_file = file_dict
 
-            # if there's a warning file, add it to the list
+            # Warnings
             if file.warning_filename is not None:
-                history_files.append({
+                file_dict = {
                     'published_files_history_id': file.published_files_history_id,
                     'filename': file.warning_filename.split('/')[-1],
                     'is_warning': True,
                     'comment': None
-                })
+                }
+                if file.file_type_id:
+                    file_dict['type'] = FILE_TYPE_DICT_LETTER[file.file_type_id]
+                    warnings.append(file_dict)
+                else:
+                    # since crossfiles don't have filetypes in the DB and the oldest format has no file letters,
+                    # replacing them with their letter equivalents allows them to be sortable.
+                    file_dict['sort-filename'] = file_dict['filename']
+                    for replace_name, replace_letter in sorted(list(FILE_TYPE_DICT_NAME_LETTER.items()),
+                                                               key=lambda ftype: ftype[1]):
+                        file_dict['sort-filename'] = file_dict['sort-filename'].replace(replace_name, replace_letter)
+                    cross_warnings.append(file_dict)
+
+        # sort them all out
+        main_files.sort(key=lambda hist_file: hist_file['type'])
+        warnings.sort(key=lambda hist_file: hist_file['type'])
+        for main_file in main_files + warnings:
+            del main_file['type']
+        cross_warnings.sort(key=lambda hist_file: hist_file['sort-filename'])
+        for main_file in cross_warnings:
+            del main_file['sort-filename']
+
+        history_files = main_files + warnings + cross_warnings
+        if comments_file:
+            history_files.append(comments_file)
 
         processed_list.append({
             '{}_date'.format(list_type): history.created_at.strftime('%Y-%m-%d %H:%M:%S'),

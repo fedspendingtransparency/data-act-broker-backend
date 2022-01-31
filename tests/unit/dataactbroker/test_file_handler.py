@@ -1212,7 +1212,7 @@ def test_list_history(database):
                                                publish_history_id=pub_history_id, submission_id=sub_id,
                                                filename='/path/to/file_d2.csv',
                                                warning_filename=None,
-                                               file_type_id=FILE_TYPE_DICT['award'])
+                                               file_type_id=FILE_TYPE_DICT['award'], comment=None)
     file_hist_3 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
                                                publish_history_id=pub_history_id, submission_id=sub_id,
                                                filename=None,
@@ -1235,9 +1235,15 @@ def test_list_history(database):
     assert has_file_list['certified_files'][0]['is_warning'] is False
     assert has_file_list['certified_files'][0]['filename'] == 'file_a.csv'
     assert has_file_list['certified_files'][0]['comment'] == 'A has a comment'
-
-    assert has_file_list['certified_files'][1]['is_warning']
+    assert has_file_list['certified_files'][1]['is_warning'] is False
+    assert has_file_list['certified_files'][1]['filename'] == 'file_d2.csv'
     assert has_file_list['certified_files'][1]['comment'] is None
+    assert has_file_list['certified_files'][2]['is_warning'] is True
+    assert has_file_list['certified_files'][2]['filename'] == 'warning_file_a.csv'
+    assert has_file_list['certified_files'][2]['comment'] is None
+    assert has_file_list['certified_files'][3]['is_warning'] is True
+    assert has_file_list['certified_files'][3]['filename'] == 'warning_file_cross_test.csv'
+    assert has_file_list['certified_files'][3]['comment'] is None
 
     # asserts for certification without files associated
     assert len(empty_file_list['certified_files']) == 0
@@ -1247,6 +1253,129 @@ def test_list_history(database):
     assert pub_list['published_files'][0]['is_warning'] is False
     assert pub_list['published_files'][0]['filename'] == 'file_a.csv'
     assert pub_list['published_files'][0]['comment'] == 'A has a comment'
+    assert pub_list['published_files'][1]['is_warning'] is False
+    assert pub_list['published_files'][1]['filename'] == 'file_d2.csv'
+    assert pub_list['published_files'][1]['comment'] is None
+    assert pub_list['published_files'][2]['is_warning'] is True
+    assert pub_list['published_files'][2]['filename'] == 'warning_file_a.csv'
+    assert pub_list['published_files'][2]['comment'] is None
+    assert pub_list['published_files'][3]['is_warning'] is True
+    assert pub_list['published_files'][3]['filename'] == 'warning_file_cross_test.csv'
+    assert pub_list['published_files'][3]['comment'] is None
+
+
+@pytest.mark.usefixtures('job_constants')
+def test_list_history_order(database):
+    """ Ensuring that the files are still correctly ordered for older submissions """
+
+    # set up submission
+    sub = SubmissionFactory()
+    database.session.add(sub)
+    database.session.commit()
+
+    # set up publish history, make sure the empty one comes last in the list
+    cert_hist_empty = CertifyHistoryFactory(submission=sub, created_at=datetime.utcnow() - timedelta(days=1))
+    cert_hist = CertifyHistoryFactory(submission=sub)
+    pub_hist = PublishHistoryFactory(submission=sub)
+    database.session.add_all([cert_hist_empty, cert_hist, pub_hist])
+    database.session.commit()
+
+    # add some data to published_files_history for the cert_history ID
+    cert_history_id = cert_hist.certify_history_id
+    pub_history_id = pub_hist.publish_history_id
+    sub_id = sub.submission_id
+    file_hist_1 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_hist.publish_history_id, submission_id=sub_id,
+                                               filename='1624994733_File_A.csv',
+                                               warning_filename='submission_1_appropriations_warning_report.csv',
+                                               file_type_id=FILE_TYPE_DICT['appropriations'])
+    file_hist_2 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_hist.publish_history_id, submission_id=sub_id,
+                                               filename='1624994733_File B.csv',
+                                               warning_filename='submission_1_program_activity_warning_report.csv',
+                                               file_type_id=FILE_TYPE_DICT['program_activity'])
+    file_hist_3 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_hist.publish_history_id, submission_id=sub_id,
+                                               filename='1624994733_File C.csv',
+                                               warning_filename='submission_1_award_financial_warning_report.csv',
+                                               file_type_id=FILE_TYPE_DICT['award_financial'])
+    file_hist_4 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_hist.publish_history_id, submission_id=sub_id,
+                                               filename='1624994764_d1_20210101_20210331_awardingagency_data.csv',
+                                               warning_filename=None,
+                                               file_type_id=FILE_TYPE_DICT['award_procurement'])
+    file_hist_5 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_hist.publish_history_id, submission_id=sub_id,
+                                               filename='1624994759_d2_20210101_20210331_awardingagency_data.csv',
+                                               warning_filename=None,
+                                               file_type_id=FILE_TYPE_DICT['award'])
+    file_hist_6 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_history_id, submission_id=sub_id,
+                                               filename='executive_compensation_data.csv',
+                                               warning_filename=None,
+                                               file_type_id=FILE_TYPE_DICT['executive_compensation'], comment=None)
+    file_hist_7 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_history_id, submission_id=sub_id,
+                                               filename='sub_award_data.csv',
+                                               warning_filename=None,
+                                               file_type_id=FILE_TYPE_DICT['sub_award'], comment=None)
+    file_hist_8 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_history_id, submission_id=sub_id,
+                                               filename=None,
+                                               warning_filename='submission_1_cross_warning_appropriations_'
+                                                                'program_activity.csv',
+                                               file_type_id=None)
+    file_hist_9 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_history_id, submission_id=sub_id,
+                                               filename=None,
+                                               warning_filename='submission_1_cross_warning_program_activity_'
+                                                                'award_financial.csv',
+                                               file_type_id=None)
+    file_hist_10 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                                publish_history_id=pub_history_id, submission_id=sub_id,
+                                                filename=None,
+                                                warning_filename='submission_1_cross_warning_award_financial_'
+                                                                 'award_procurement.csv',
+                                                file_type_id=None)
+    file_hist_11 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                                publish_history_id=pub_history_id, submission_id=sub_id,
+                                                filename=None,
+                                                warning_filename='submission_1_cross_warning_award_financial_'
+                                                                 'award.csv',
+                                                file_type_id=None)
+    file_hist_12 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                                publish_history_id=pub_history_id, submission_id=sub_id,
+                                                filename='submission_1_comments.csv',
+                                                warning_filename=None,
+                                                file_type_id=None)
+    database.session.add_all([file_hist_1, file_hist_2, file_hist_3, file_hist_4, file_hist_5, file_hist_6, file_hist_7,
+                              file_hist_8, file_hist_9, file_hist_10, file_hist_11, file_hist_12])
+    database.session.commit()
+
+    json_response = fileHandler.list_history(sub)
+    response_dict = json.loads(json_response.get_data().decode('utf-8'))
+
+    pub_list = response_dict['publications'][0]
+
+    # asserts for publications with files associated
+    expected_filelist = [
+        '1624994733_File_A.csv',
+        '1624994733_File B.csv',
+        '1624994733_File C.csv',
+        '1624994764_d1_20210101_20210331_awardingagency_data.csv',
+        '1624994759_d2_20210101_20210331_awardingagency_data.csv',
+        'executive_compensation_data.csv',
+        'sub_award_data.csv',
+        'submission_1_appropriations_warning_report.csv',
+        'submission_1_program_activity_warning_report.csv',
+        'submission_1_award_financial_warning_report.csv',
+        'submission_1_cross_warning_appropriations_program_activity.csv',
+        'submission_1_cross_warning_program_activity_award_financial.csv',
+        'submission_1_cross_warning_award_financial_award_procurement.csv',
+        'submission_1_cross_warning_award_financial_award.csv',
+        'submission_1_comments.csv'
+    ]
+    assert [p_file['filename'] for p_file in pub_list['published_files']] == expected_filelist
 
 
 def test_file_history_url(database, monkeypatch):
