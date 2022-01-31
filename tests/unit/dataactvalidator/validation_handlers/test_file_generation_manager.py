@@ -220,7 +220,7 @@ def test_generate_a(database, monkeypatch):
     # providing agency code here as it will be passed via SQS and detached file jobs don't store agency code
     file_gen_manager.generate_file(agency_cgac)
 
-    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'], 'File-A_FY17P06.csv')
+    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'], 'File-A_FY17P06_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(job.filename)
@@ -266,8 +266,9 @@ def test_generate_a(database, monkeypatch):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_a_after_2020(database):
+def test_generate_a_after_2020(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
 
     agency_cgac = '097'
     year = 2021
@@ -297,7 +298,7 @@ def test_generate_a_after_2020(database):
     # providing agency code here as it will be passed via SQS and detached file jobs don't store agency code
     file_gen_manager.generate_file(agency_cgac)
 
-    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'], 'File-A_FY21P06.csv')
+    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'], 'File-A_FY21P06_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(job.filename)
@@ -335,8 +336,9 @@ def test_generate_a_after_2020(database):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_a_null_ata(database):
+def test_generate_a_null_ata(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
 
     agency_cgac = '097'
     agency_frec = '1137'
@@ -389,7 +391,7 @@ def test_generate_a_null_ata(database):
     # providing agency code here as it will be passed via SQS and detached file jobs don't store agency code
     file_gen_manager.generate_file(agency_cgac)
 
-    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'], 'File-A_FY17P06.csv')
+    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'], 'File-A_FY17P06_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(job.filename)
@@ -435,8 +437,9 @@ def test_generate_a_null_ata(database):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_sub_d1(database):
+def test_generate_sub_d1(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
 
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
@@ -456,12 +459,13 @@ def test_generate_sub_d1(database):
     file_gen_manager.generate_file()
 
     assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'],
-                                              'SubID-4_File-D1_FY22P04_20170101_20170131_awarding.csv')
+                                              'SubID-4_File-D1_FY22P04_20170101_20170131_awarding_123456789.csv')
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_sub_d2(database):
+def test_generate_sub_d2(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
 
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
@@ -481,12 +485,14 @@ def test_generate_sub_d2(database):
     file_gen_manager.generate_file()
 
     assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'],
-                                              'SubID-4_File-D2_FY22P04_20170101_20170131_funding.txt')
+                                              'SubID-4_File-D2_FY22P04_20170101_20170131_funding_123456789.txt')
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_awarding_d1(database):
+def test_generate_awarding_d1(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
     dap_2 = dap_model(awarding_agency_code='123', action_date='20170131', detached_award_proc_unique='unique2')
@@ -502,7 +508,8 @@ def test_generate_awarding_d1(database):
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
     file_gen_manager.generate_file()
 
-    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'], 'File-D1_20170101_20170131_awarding.csv')
+    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'],
+                                              'File-D1_20170101_20170131_awarding_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
@@ -530,8 +537,10 @@ def test_generate_awarding_d1(database):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_awarding_d1_alternate_headers(database):
+def test_generate_awarding_d1_alternate_headers(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
     dap_2 = dap_model(awarding_agency_code='123', action_date='20170131', detached_award_proc_unique='unique2')
@@ -547,7 +556,8 @@ def test_generate_awarding_d1_alternate_headers(database):
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
     file_gen_manager.generate_file()
 
-    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'], 'File-D1_20170101_20170131_awarding.csv')
+    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'],
+                                              'File-D1_20170101_20170131_awarding_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
@@ -575,8 +585,10 @@ def test_generate_awarding_d1_alternate_headers(database):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_funding_d1(database):
+def test_generate_funding_d1(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(funding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
     dap_2 = dap_model(funding_agency_code='123', action_date='20170131', detached_award_proc_unique='unique2')
@@ -592,7 +604,8 @@ def test_generate_funding_d1(database):
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
     file_gen_manager.generate_file()
 
-    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'], 'File-D1_20170101_20170131_funding.csv')
+    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'],
+                                              'File-D1_20170101_20170131_funding_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
@@ -620,8 +633,10 @@ def test_generate_funding_d1(database):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_awarding_d2(database):
+def test_generate_awarding_d2(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
     pafa = PublishedAwardFinancialAssistanceFactory
     pafa_1 = pafa(awarding_agency_code='123', action_date='20170101', afa_generated_unique='unique1', is_active=True)
     pafa_2 = pafa(awarding_agency_code='123', action_date='20170131', afa_generated_unique='unique2', is_active=True)
@@ -638,7 +653,8 @@ def test_generate_awarding_d2(database):
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
     file_gen_manager.generate_file()
 
-    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'], 'File-D2_20170101_20170131_awarding.csv')
+    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'],
+                                              'File-D2_20170101_20170131_awarding_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
@@ -662,8 +678,10 @@ def test_generate_awarding_d2(database):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_funding_d2(database):
+def test_generate_funding_d2(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
     pafa = PublishedAwardFinancialAssistanceFactory
     pafa_1 = pafa(funding_agency_code='123', action_date='20170101', afa_generated_unique='unique1', is_active=True)
     pafa_2 = pafa(funding_agency_code='123', action_date='20170131', afa_generated_unique='unique2', is_active=True)
@@ -680,7 +698,8 @@ def test_generate_funding_d2(database):
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
     file_gen_manager.generate_file()
 
-    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'], 'File-D2_20170101_20170131_funding.csv')
+    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'],
+                                              'File-D2_20170101_20170131_funding_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path)
@@ -704,8 +723,10 @@ def test_generate_funding_d2(database):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
-def test_generate_txt_d1(database):
+def test_generate_txt_d1(database, monkeypatch):
     sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
     dap_2 = dap_model(awarding_agency_code='123', action_date='20170131', detached_award_proc_unique='unique2')
@@ -721,7 +742,8 @@ def test_generate_txt_d1(database):
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
     file_gen_manager.generate_file()
 
-    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'], 'File-D1_20170101_20170131_awarding.txt')
+    assert file_gen.file_path == os.path.join(CONFIG_BROKER['broker_files'],
+                                              'File-D1_20170101_20170131_awarding_123456789.txt')
 
     # check headers
     file_rows = read_file_rows(file_gen.file_path, delimiter='|')

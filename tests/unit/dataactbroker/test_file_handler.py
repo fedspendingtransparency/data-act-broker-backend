@@ -150,6 +150,7 @@ def test_create_submission_external_files(database, monkeypatch):
     sess.commit()
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+    monkeypatch.setattr(fileHandler, 'get_timestamp', Mock(return_value='123456789'))
 
     # Making a new monthly sub in the same period
     request_params = {
@@ -162,18 +163,18 @@ def test_create_submission_external_files(database, monkeypatch):
                    'appropriations': UploadFile(APPROP_FILE_T[1]),
                    'program_activity': UploadFile(PA_FILE_T[1])}
     }
-    new_mon_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+    new_same_sub = mock_create_submission(sess, monkeypatch, request_params)
     ex_types = [FILE_TYPE_DICT_LETTER_ID[ex_type] for ex_type in fileHandler.FileHandler.EXTERNAL_FILE_TYPES]
-    external_sub_jobs = sess.query(Job).filter(Submission.submission_id == new_mon_same_sub.submission_id,
-                                               Job.file_type_id.in_(ex_types))
-    expected_job_names = {
-        'D1': 'SubID-{}_File-D1_FY10P04_20100101_20100131_awarding.csv'.format(new_mon_same_sub.submission_id),
-        'D2': 'SubID-{}_File-D2_FY10P04_20100101_20100131_awarding.csv'.format(new_mon_same_sub.submission_id),
-        'E': 'SubID-{}_File-E_FY10P04.csv'.format(new_mon_same_sub.submission_id),
-        'F': 'SubID-{}_File-F_FY10P04.csv'.format(new_mon_same_sub.submission_id)
+    external_files = sess.query(Job).filter(Submission.submission_id == new_same_sub.submission_id,
+                                            Job.file_type_id.in_(ex_types))
+    expected_names = {
+        'D1': 'SubID-{}_File-D1_FY10P04_20100101_20100131_awarding_123456789.csv'.format(new_same_sub.submission_id),
+        'D2': 'SubID-{}_File-D2_FY10P04_20100101_20100131_awarding_123456789.csv'.format(new_same_sub.submission_id),
+        'E': 'SubID-{}_File-E_FY10P04_123456789.csv'.format(new_same_sub.submission_id),
+        'F': 'SubID-{}_File-F_FY10P04_123456789.csv'.format(new_same_sub.submission_id)
     }
-    for external_sub_job in external_sub_jobs:
-        assert external_sub_job.filename == expected_job_names[FILE_TYPE_DICT_LETTER[external_sub_job.file_type_id]]
+    for external_file in external_files:
+        assert external_file.original_filename == expected_names[FILE_TYPE_DICT_LETTER[external_file.file_type_id]]
 
 
 @pytest.mark.usefixtures('job_constants')
