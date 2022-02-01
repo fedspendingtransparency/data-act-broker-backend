@@ -1504,10 +1504,11 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
     published_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.warning_filename,
                                  Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
                                  Submission.is_quarter_format).\
-        filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check).all()
+        join(PublishedFilesHistory, PublishedFilesHistory.submission_id == Submission.submission_id).\
+        filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check)
     sub_file_paths = []
     fyp = None
-    for published_file in published_files:
+    for published_file in published_files.all():
         if not fyp:
             fyp = filename_fyp_sub_format(published_file)
         if published_file.filename:
