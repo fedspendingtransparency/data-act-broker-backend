@@ -517,7 +517,6 @@ def main():
     for year in years:
         if year % num_nodes == node:
             years_array.append(str(year))
-    print(years_array)
     years = "|".join(years_array)
 
     # delete any data in the PublishedAwardFinancialAssistance table

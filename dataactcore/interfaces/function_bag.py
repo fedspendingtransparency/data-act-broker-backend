@@ -2,6 +2,7 @@ import logging
 from operator import attrgetter
 import time
 import uuid
+from datetime import datetime
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -603,6 +604,39 @@ def get_time_period(submission):
     return time_period
 
 
+def filename_fyp_sub_format(submission):
+    """ Wrapper for filename_fyp_format that takes in a submission object (must have the necessary fields)
+
+        Arguments:
+            submission: the submission object to find the time period
+
+        Returns:
+            the submission's time period string for filenames
+    """
+    return filename_fyp_format(submission.reporting_fiscal_year, submission.reporting_fiscal_period,
+                               submission.is_quarter_format)
+
+
+def filename_fyp_format(fy, period, is_quarter):
+    """ Return the proper FYP string to be included in the filenames throughout Broker
+
+        Arguments:
+            fy: fiscal year
+            period: the period
+            is_quarter: whether it should be based on quarters or periods
+
+        Returns:
+            the time period string for filenames
+    """
+    if is_quarter:
+        suffix = 'Q{}'.format(int(period) // 3)
+    elif int(period) > 2:
+        suffix = 'P{}'.format(str(period).zfill(2))
+    else:
+        suffix = 'P01-P02'
+    return 'FY{}{}'.format(str(fy)[2:], suffix)
+
+
 def get_last_validated_date(submission_id):
     """ Return the oldest last validated date for validation jobs """
     sess = GlobalDB.db().session
@@ -650,8 +684,7 @@ def get_fabs_meta(submission_id):
             path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
             published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
                                                         bucket_route=CONFIG_BROKER['certified_bucket'],
-                                                        url_mapping=CONFIG_BROKER['certified_bucket_mapping'],
-                                                        method='get_object')
+                                                        url_mapping=CONFIG_BROKER['certified_bucket_mapping'])
         elif file_path:
             published_file = file_path
 
@@ -695,6 +728,15 @@ def get_last_modified(submission_id):
     last_modified = sess.query(submission_updated_view.updated_at).\
         filter(submission_updated_view.submission_id == submission_id).first()
     return last_modified.updated_at if last_modified else None
+
+
+def get_timestamp():
+    """ Gets a timestamp in seconds
+
+        Returns:
+            a string representing seconds since the epoch
+    """
+    return str(int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()))
 
 
 def update_external_data_load_date(start_time, end_time, data_type):
