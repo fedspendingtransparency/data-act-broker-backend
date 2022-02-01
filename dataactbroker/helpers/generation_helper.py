@@ -466,7 +466,7 @@ def copy_file_generation_to_job(job, file_generation, is_local):
             # Check to see if the same file exists in the child bucket
             s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
             bucket = CONFIG_BROKER['aws_bucket']
-            response = s3.list_objects_v2(Bucket=bucket, Prefix=job.filename)
+            response = s3.list_objects_v2(Bucket=bucket, Prefix=filename)
             for obj in response.get('Contents', []):
                 if obj['Key'] == filename:
                     # The file already exists in this location
