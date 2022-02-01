@@ -1,4 +1,5 @@
 import pytest
+import shutil
 
 from datetime import datetime, date
 from unittest.mock import Mock
@@ -25,7 +26,8 @@ def test_start_d_generation_submission_cached(database, monkeypatch):
 
     submission = SubmissionFactory(
         submission_id=1000, reporting_start_date='2017-01-01', reporting_end_date='2017-01-31', frec_code='1234',
-        cgac_code=None, is_quarter_format=False, publishable=False, reporting_fiscal_year='2017')
+        cgac_code=None, is_quarter_format=False, publishable=False, reporting_fiscal_year='2017',
+        reporting_fiscal_period='4')
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
         agency_code='1234', agency_type='awarding', is_cached_file=True, file_path=file_path, file_format='csv')
@@ -41,19 +43,22 @@ def test_start_d_generation_submission_cached(database, monkeypatch):
     sess.commit()
 
     monkeypatch.setattr(generation_helper, 'g', Mock(return_value={'is_local': CONFIG_BROKER['local']}))
+    monkeypatch.setattr(generation_helper, 'get_timestamp', Mock(return_value='123456789'))
+    monkeypatch.setattr(shutil, 'copyfile', Mock())
     start_d_generation(up_job, '01/01/2017', '01/31/2017', 'awarding')
 
+    expected_filename = 'SubID-1000_File-D2_FY17P04_20170101_20170131_awarding_123456789.csv'
     assert up_job.file_generation_id == file_gen.file_generation_id
     assert up_job.start_date == date(2017, 1, 1)
     assert up_job.end_date == date(2017, 1, 31)
-    assert up_job.original_filename == original_filename
-    assert up_job.filename == gen_file_path_from_submission(up_job.submission_id, original_filename)
+    assert up_job.original_filename == expected_filename
+    assert up_job.filename == gen_file_path_from_submission(up_job.submission_id, expected_filename)
     assert up_job.job_status_id == JOB_STATUS_DICT['finished']
 
     assert up_job.start_date == date(2017, 1, 1)
     assert up_job.end_date == date(2017, 1, 31)
-    assert up_job.original_filename == original_filename
-    assert up_job.filename == gen_file_path_from_submission(up_job.submission_id, original_filename)
+    assert up_job.original_filename == expected_filename
+    assert up_job.filename == gen_file_path_from_submission(up_job.submission_id, expected_filename)
     assert up_job.job_status_id != JOB_STATUS_DICT['waiting']
 
 
@@ -454,7 +459,7 @@ def test_check_submission_d_file_generation(database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_copy_file_generation_to_job(monkeypatch, database):
+def test_copy_file_generation_to_job_detached(monkeypatch, database):
     sess = database.session
     original_filename = 'new_filename.csv'
     file_path = gen_file_path_from_submission('None', original_filename)
@@ -476,6 +481,43 @@ def test_copy_file_generation_to_job(monkeypatch, database):
     assert job.number_of_errors == 0
     assert job.number_of_warnings == 0
     assert job.file_generation_id == file_gen.file_generation_id
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_copy_file_generation_to_job_attached(monkeypatch, database):
+    sess = database.session
+    original_filename = 'new_filename.csv'
+
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2022', reporting_fiscal_period='4',
+                                   is_quarter_format=False)
+    file_path = gen_file_path_from_submission(submission.submission_id, original_filename)
+    up_job = JobFactory(submission=submission, job_status_id=JOB_STATUS_DICT['running'],
+                        job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['award_procurement'])
+    val_job = JobFactory(submission=submission, job_status_id=JOB_STATUS_DICT['running'],
+                         job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                         file_type_id=FILE_TYPE_DICT['award_procurement'])
+    file_gen = FileGenerationFactory(file_type='D1', file_path=file_path, file_format='csv',
+                                     agency_type='awarding', start_date='2022-01-01', end_date='2022-01-31')
+    sess.add_all([submission, up_job, val_job, file_gen])
+    sess.commit()
+
+    monkeypatch.setattr(generation_helper, 'g', Mock(return_value={'is_local': CONFIG_BROKER['local']}))
+    monkeypatch.setattr(generation_helper, 'get_timestamp', Mock(return_value='123456789'))
+    monkeypatch.setattr(shutil, 'copyfile', Mock())
+    copy_file_generation_to_job(up_job, file_gen, True)
+    sess.refresh(up_job)
+    sess.refresh(file_gen)
+
+    expected_filename = 'SubID-1_File-D1_FY22P04_20220101_20220131_awarding_123456789.csv'
+    assert up_job.job_status.name == 'finished'
+    assert up_job.filename == gen_file_path_from_submission(up_job.submission_id, expected_filename)
+    assert up_job.original_filename == expected_filename
+    assert up_job.number_of_errors == 0
+    assert up_job.number_of_warnings == 0
+    assert up_job.file_generation_id == file_gen.file_generation_id
+
+    assert val_job.filename == gen_file_path_from_submission(up_job.submission_id, expected_filename)
+    assert val_job.original_filename == expected_filename
 
 
 @pytest.mark.usefixtures("job_constants")
