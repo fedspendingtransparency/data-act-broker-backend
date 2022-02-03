@@ -62,8 +62,8 @@ def requires_admin(func):
     return inner
 
 
-def current_user_can(permission, cgac_code=None, frec_code=None):
-    """ Validate whether the current user can perform the act (described by the permission level) for the given
+def active_user_can(permission, cgac_code=None, frec_code=None):
+    """ Validate whether the active user can perform the act (described by the permission level) for the given
         cgac_code or frec_code
 
         Args:
@@ -101,7 +101,7 @@ def current_user_can(permission, cgac_code=None, frec_code=None):
     return False
 
 
-def current_user_can_on_submission(perm, submission, check_owner=True):
+def active_user_can_on_submission(perm, submission, check_owner=True):
     """ Submissions add another permission possibility: if a user created a submission, they can do anything to it,
         regardless of submission agency
 
@@ -114,7 +114,7 @@ def current_user_can_on_submission(perm, submission, check_owner=True):
             Boolean result on whether the user has permissions greater than or equal to perm
     """
     is_owner = hasattr(g, 'user') and submission.user_id == g.user.user_id
-    user_can = current_user_can(perm, cgac_code=submission.cgac_code, frec_code=submission.frec_code)
+    user_can = active_user_can(perm, cgac_code=submission.cgac_code, frec_code=submission.frec_code)
     return (is_owner and check_owner) or user_can
 
 
@@ -147,7 +147,7 @@ def requires_submission_perms(perm, check_owner=True, check_fabs=None):
                 raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
 
             permission = check_fabs if check_fabs and submission.d2_submission else perm
-            if not current_user_can_on_submission(permission, submission, check_owner):
+            if not active_user_can_on_submission(permission, submission, check_owner):
                 raise ResponseException("User does not have permission to access that submission",
                                         StatusCode.PERMISSION_DENIED)
             return fn(submission, *args, **kwargs)
@@ -189,7 +189,7 @@ def requires_agency_perms(perm):
                 check_existing_submission_perms(perm, req_args['existing_submission_id'])
             else:
                 # Check permissions for the agency
-                if not current_user_can(perm, cgac_code=req_args['cgac_code'], frec_code=req_args['frec_code']):
+                if not active_user_can(perm, cgac_code=req_args['cgac_code'], frec_code=req_args['frec_code']):
                     raise ResponseException("User does not have permissions to write to that agency",
                                             StatusCode.PERMISSION_DENIED)
             return fn(*args, **kwargs)
@@ -223,7 +223,7 @@ def requires_agency_code_perms(perm):
                 raise ResponseException('Missing required parameter: agency_code', StatusCode.CLIENT_ERROR)
 
             # Check permissions for the agency
-            if not current_user_can(perm, cgac_code=req_args['agency_code'], frec_code=req_args['agency_code']):
+            if not active_user_can(perm, cgac_code=req_args['agency_code'], frec_code=req_args['agency_code']):
                 raise ResponseException("User does not have permissions for that agency", StatusCode.PERMISSION_DENIED)
             return fn(*args, **kwargs)
         return wrapped
@@ -278,7 +278,7 @@ def requires_sub_agency_perms(perm):
 
                 cgac_code = sub_tier_agency.cgac.cgac_code if sub_tier_agency.cgac_id else None
                 frec_code = sub_tier_agency.frec.frec_code if sub_tier_agency.frec_id else None
-                if not current_user_can(perm, cgac_code=cgac_code, frec_code=frec_code):
+                if not active_user_can(perm, cgac_code=cgac_code, frec_code=frec_code):
                     raise ResponseException("User does not have permissions to write to that subtier agency",
                                             StatusCode.PERMISSION_DENIED)
 
@@ -332,6 +332,6 @@ def check_existing_submission_perms(perm, submission_id):
                                 StatusCode.CLIENT_ERROR)
 
     # Check permissions for the submission
-    if not current_user_can_on_submission(perm, submission):
+    if not active_user_can_on_submission(perm, submission):
         raise ResponseException("User does not have permissions to write to that submission",
                                 StatusCode.PERMISSION_DENIED)

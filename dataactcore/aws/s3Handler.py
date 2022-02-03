@@ -1,7 +1,5 @@
-import logging
-from datetime import datetime
 import boto3
-
+import logging
 from botocore.exceptions import ClientError
 
 from dataactcore.config import CONFIG_BROKER
@@ -60,7 +58,7 @@ class S3Handler:
             return presigned_url
         return S3Handler.BASE_URL + "/" + self.bucketRoute + "/" + path + "/" + file_name
 
-    def get_signed_url(self, path, file_name, bucket_route=None, url_mapping=None, method="put_object"):
+    def get_signed_url(self, path, file_name, bucket_route=None, url_mapping=None):
         """ Signs a URL
 
             Args:
@@ -75,22 +73,7 @@ class S3Handler:
         """
         bucket_route = self.bucketRoute if bucket_route is None else bucket_route
 
-        if method == "put_object":
-            file_name = S3Handler.get_timestamped_filename(file_name)
-        return self._sign_url(path, file_name, bucket_route, url_mapping, method)
-
-    @staticmethod
-    def get_timestamped_filename(filename):
-        """ Gets a Timestamped file name to prevent conflicts on S3 Uploading
-
-            Args:
-                filename: name of the file to timestamp
-
-            Returns:
-                The filename with a timestamp prepended
-        """
-        seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
-        return str(seconds) + "_" + filename
+        return self._sign_url(path, file_name, bucket_route, url_mapping, 'get_object')
 
     @staticmethod
     def get_file_size(filename):

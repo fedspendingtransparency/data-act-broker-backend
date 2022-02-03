@@ -276,7 +276,8 @@ def job_to_dict(job):
         'filename': job.original_filename,
         'file_size': job.file_size,
         'number_of_rows': job.number_of_rows - 1 if job.number_of_rows else 0,
-        'file_type': job.file_type_name or ''
+        'file_type': job.file_type_name or '',
+        'last_validated': str(job.updated_at)
     }
 
     # @todo replace with relationships
@@ -855,7 +856,7 @@ def process_dabs_publish(submission, file_manager):
     """
     publish_checks(submission)
 
-    current_user_id = g.user.user_id
+    active_user_id = g.user.user_id
     sess = GlobalDB.db().session
 
     # Determine if this is the first time this submission is being published
@@ -865,7 +866,7 @@ def process_dabs_publish(submission, file_manager):
     submission.publish_status_id = PUBLISH_STATUS_DICT['publishing']
 
     # create the publish_history entry
-    publish_history = PublishHistory(user_id=current_user_id, submission_id=submission.submission_id)
+    publish_history = PublishHistory(user_id=active_user_id, submission_id=submission.submission_id)
     sess.add(publish_history)
     sess.commit()
 
@@ -880,7 +881,7 @@ def process_dabs_publish(submission, file_manager):
     file_manager.move_published_files(submission, publish_history, None, file_manager.is_local)
 
     # set submission contents
-    submission.publishing_user_id = current_user_id
+    submission.publishing_user_id = active_user_id
     submission.publish_status_id = PUBLISH_STATUS_DICT['published']
     publish_history.updated_at = datetime.utcnow()
     sess.commit()
@@ -907,7 +908,7 @@ def process_dabs_certify(submission):
             ValueError if this is somehow called without a PublishHistory associated with the submission ID or if there
             is already a certification associated with the most recent publication
     """
-    current_user_id = g.user.user_id
+    active_user_id = g.user.user_id
     sess = GlobalDB.db().session
 
     max_pub_history = sess.query(func.max(PublishHistory.publish_history_id).label('max_id')). \
@@ -923,7 +924,7 @@ def process_dabs_certify(submission):
         if pub_file.certify_history_id is not None:
             raise ValueError('This submission already has a certification associated with the most recent publication.')
 
-    certify_history = CertifyHistory(user_id=current_user_id, submission_id=submission.submission_id)
+    certify_history = CertifyHistory(user_id=active_user_id, submission_id=submission.submission_id)
     sess.add(certify_history)
     sess.commit()
 
