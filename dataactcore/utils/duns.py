@@ -56,7 +56,8 @@ def parse_duns_file(file_path, metrics=None):
             metrics: dictionary representing metrics data for the load
 
         Returns:
-            dataframe representing the contents in the file
+            dataframe representing the contents in the file and the key column so we know if we're working with DUNS
+            or UEI
     """
     if not metrics:
         metrics = {
@@ -127,6 +128,7 @@ def parse_duns_file(file_path, metrics=None):
     }
     column_header_mapping = v1_column_header_mapping if version == 'v1' else v2_column_header_mapping
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
+    key_col = 'awardee_or_recipient_uniqu' if version == 'v1' else 'uei'
 
     nrows = 0
     with zfile.open(dat_file_name) as dat_file:
@@ -139,7 +141,7 @@ def parse_duns_file(file_path, metrics=None):
     rows_received = len(total_data.index)
     logger.info('%s DUNS records received', rows_received)
 
-    total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull()]
+    total_data = total_data[total_data[key_col].notnull()]
     rows_processed = len(total_data.index)
 
     if version == 'v1':
@@ -165,7 +167,7 @@ def parse_duns_file(file_path, metrics=None):
     relevant_data.sort_values(by=['sam_extract_code'], inplace=True)
     # drop DUNS duplicates, taking only the last one for dailies, first one for monthlies
     keep = 'first' if period == 'MONTHLY' else 'last'
-    relevant_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep=keep, inplace=True)
+    relevant_data.drop_duplicates(subset=[key_col], keep=keep, inplace=True)
 
     delete_data = relevant_data[relevant_data['sam_extract_code'] == '1']
     deletes_received = len(delete_data.index)
@@ -188,7 +190,7 @@ def parse_duns_file(file_path, metrics=None):
     metrics['updates_received'] += updates_received
     metrics['deletes_received'] += deletes_received
 
-    return add_update_data, delete_data
+    return add_update_data, delete_data, key_col
 
 
 def create_temp_duns_table(sess, table_name, data):
@@ -247,7 +249,8 @@ def create_temp_duns_table(sess, table_name, data):
     insert_dataframe(data, table_name, sess.connection())
 
 
-def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False):
+def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
+                update_col='awardee_or_recipient_uniqu'):
     """ Takes in a dataframe of duns and adds/updates associated DUNS
 
         Args:
@@ -256,6 +259,7 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
             table_name: the table to update (ex. 'duns', 'historic_duns')
             metrics: dictionary representing metrics of the script
             deletes: whether the data provided contains only delete records
+            update_col: which column type to update, awardee_or_recipient_uniqu and uei are the only valid options
 
         Returns:
             list of DUNS updated
@@ -272,18 +276,18 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
 
     logger.info('Getting list of DUNS that will be added/updated for metrics')
     insert_sql = """
-        SELECT {tmp_abbr}.awardee_or_recipient_uniqu
+        SELECT {tmp_abbr}.{update_col}
         FROM {tmp_name} AS {tmp_abbr}
-        LEFT JOIN {table_name} ON {table_name}.awardee_or_recipient_uniqu={tmp_abbr}.awardee_or_recipient_uniqu
-        WHERE {table_name}.awardee_or_recipient_uniqu IS NULL;
-    """.format(tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name)
-    added_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(insert_sql).fetchall()]
+        LEFT JOIN {table_name} ON {table_name}.{update_col}={tmp_abbr}.{update_col}
+        WHERE {table_name}.{update_col} IS NULL;
+    """.format(tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name, update_col=update_col)
+    added_duns_list = [row[update_col] for row in sess.execute(insert_sql).fetchall()]
     update_sql = """
-        SELECT {table_name}.awardee_or_recipient_uniqu
+        SELECT {table_name}.{update_col}
         FROM {table_name}
-        JOIN {tmp_name} AS {tmp_abbr} ON {table_name}.awardee_or_recipient_uniqu={tmp_abbr}.awardee_or_recipient_uniqu;
-    """.format(tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name)
-    updated_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
+        JOIN {tmp_name} AS {tmp_abbr} ON {table_name}.{update_col}={tmp_abbr}.{update_col};
+    """.format(tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name, update_col=update_col)
+    updated_duns_list = [row[update_col] for row in sess.execute(update_sql).fetchall()]
 
     logger.info('Adding/updating DUNS based on {}'.format(tmp_name))
     if deletes:
@@ -291,7 +295,7 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
     else:
         update_cols = ['{col} = {tmp_abbr}.{col}'.format(col=col, tmp_abbr=tmp_abbr)
                        for col in list(duns_data.columns)
-                       if col not in ['created_at', 'updated_at', 'deactivation_date', 'awardee_or_recipient_uniqu']]
+                       if col not in ['created_at', 'updated_at', 'deactivation_date', update_col]]
         if table_name == 'duns':
             update_cols.append('historic = FALSE')
     if table_name in ['duns', 'historic_duns']:
@@ -302,8 +306,9 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
         SET
             {update_cols}
         FROM {tmp_name} AS {tmp_abbr}
-        WHERE {tmp_abbr}.awardee_or_recipient_uniqu = {table_name}.awardee_or_recipient_uniqu;
-    """.format(table_name=table_name, update_cols=update_cols, tmp_name=tmp_name, tmp_abbr=tmp_abbr)
+        WHERE {tmp_abbr}.{update_col} = {table_name}.{update_col};
+    """.format(table_name=table_name, update_cols=update_cols, tmp_name=tmp_name, tmp_abbr=tmp_abbr,
+               update_col=update_col)
     sess.execute(update_sql)
 
     insert_cols = ', '.join(list(duns_data.columns))
@@ -320,10 +325,10 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False)
         WHERE NOT EXISTS (
             SELECT 1
             FROM {table_name}
-            WHERE {table_name}.awardee_or_recipient_uniqu = {tmp_abbr}.awardee_or_recipient_uniqu
+            WHERE {table_name}.{update_col} = {tmp_abbr}.{update_col}
         );
     """.format(table_name=table_name, insert_cols=insert_cols, tmp_name=tmp_name, tmp_abbr=tmp_abbr,
-               historic_col=insert_historic[0], historic_val=insert_historic[1])
+               historic_col=insert_historic[0], historic_val=insert_historic[1], update_col=update_col)
     sess.execute(insert_sql)
 
     logger.info('Dropping {}'.format(tmp_name))
