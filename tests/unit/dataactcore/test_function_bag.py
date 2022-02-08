@@ -6,7 +6,7 @@ from dataactcore.aws.sqsHandler import SQSMockQueue
 from dataactcore.models.jobModels import JobDependency
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.interfaces.function_bag import (check_job_dependencies, get_certification_deadline, get_time_period,
-                                                 get_last_modified)
+                                                 get_last_modified, filename_fyp_format)
 
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, SubmissionWindowScheduleFactory
 
@@ -137,6 +137,15 @@ def test_get_time_period(database):
     # Pass cases
     assert get_time_period(quart_sub) == 'FY 20 / Q2'
     assert get_time_period(month_sub) == '09 / 2020'
+
+
+def test_filename_fyp_format():
+    """ Tests filename_fyp_format """
+    assert filename_fyp_format(2022, 3, True) == 'FY22Q1'
+    assert filename_fyp_format('2022', 12, True) == 'FY22Q4'
+    assert filename_fyp_format(2022, '4', False) == 'FY22P04'
+    assert filename_fyp_format(2022, 11, False) == 'FY22P11'
+    assert filename_fyp_format(2022, 2, False) == 'FY22P01-P02'
 
 
 @pytest.mark.usefixtures("job_constants")

@@ -246,6 +246,15 @@ class RevalidationThreshold(Base):
     revalidation_date = Column(DateTime, primary_key=True)
 
 
+class FormatChangeDate(Base):
+    __tablename__ = "format_change_date"
+
+    format_change_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+    change_date = Column(DateTime)
+
+
 class SubmissionWindowSchedule(Base):
     __tablename__ = 'submission_window_schedule'
 

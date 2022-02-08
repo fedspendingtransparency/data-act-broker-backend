@@ -22,21 +22,24 @@ from dataactbroker.handlers.submission_handler import (create_submission, get_su
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.helpers.generic_helper import zip_dir
-from dataactbroker.permissions import current_user_can_on_submission
+from dataactbroker.permissions import active_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import create_jobs, mark_job_status, get_time_period
+from dataactcore.interfaces.function_bag import (create_jobs, mark_job_status, get_time_period, filename_fyp_sub_format,
+                                                 get_timestamp)
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
                                           PublishHistory, PublishedFilesHistory, FileGeneration, FileType,
-                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period)
+                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period,
+                                          FormatChangeDate)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
+    JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME, FILE_TYPE_DICT_NAME_LETTER,
+    SUBMISSION_FILENAMES)
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
@@ -50,7 +53,6 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
-from dataactvalidator.validation_handlers.file_generation_manager import GEN_FILENAMES
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
 logger = logging.getLogger(__name__)
@@ -273,11 +275,14 @@ class FileHandler:
                                                      reporting_fiscal_year, reporting_fiscal_period,
                                                      submission_data['is_quarter_format'], filter_published='published')
                 submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub in pub_subs]
-                # If there are already published submissions in this period/quarter or if it's a quarterly submission
-                # that is FY22 or later (starting FY22 all submissions must be monthly), force the new submission to be
-                # a test
-                if len(submission_data['published_submission_ids']) > 0 or\
-                        (reporting_fiscal_year >= 2022 and submission_data['is_quarter_format']):
+                # If it's a quarterly submission that is FY22 or later (starting FY22 all submissions must be monthly),
+                # throw an error
+                if reporting_fiscal_year >= 2022 and submission_data['is_quarter_format']:
+                    raise ResponseException('Quarterly submissions may not be created for FY22 or later',
+                                            StatusCode.CLIENT_ERROR)
+                # If there are already published submissions in this period/quarter, force the new submission to be a
+                # test
+                if len(submission_data['published_submission_ids']) > 0:
                     test_submission = True
 
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
@@ -288,19 +293,28 @@ class FileHandler:
             file_dict = request_params['_files']
             self.build_file_map(file_dict, FileHandler.FILE_TYPES, upload_files, submission)
 
+            # add external files (not for existing submissions)
             if not existing_submission:
-                # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
-                    filename = GEN_FILENAMES[ext_file_type]
+                    filename = SUBMISSION_FILENAMES[ext_file_type]
+                    fillin_vals = {
+                        'FYP': filename_fyp_sub_format(submission),
+                        'submission_id': submission.submission_id,
+                        'timestamp': get_timestamp()
+                    }
                     if ext_file_type in ['D1', 'D2']:
                         # default to using awarding agency and the start/end dates
-                        filename = filename.format(formatted_start_date.strftime('%Y%m%d'),
-                                                   formatted_end_date.strftime('%Y%m%d'), 'awarding', 'csv')
+                        fillin_vals.update({
+                            'start': formatted_start_date.strftime('%Y%m%d'),
+                            'end': formatted_end_date.strftime('%Y%m%d'),
+                            'agency_type': 'awarding',
+                            'ext': '.csv'
+                        })
+                    filename = filename.format(**fillin_vals)
                     if not self.is_local:
-                        upload_name = '{}/{}'.format(submission.submission_id,
-                                                     S3Handler.get_timestamped_filename(filename))
+                        upload_name = '{}/{}'.format(submission.submission_id, filename)
                     else:
-                        upload_name = filename
+                        upload_name = os.path.join(CONFIG_BROKER['broker_files'], filename)
 
                     upload_files.append(FileHandler.UploadFile(
                         file_type=FILE_TYPE_DICT_LETTER_NAME[ext_file_type],
@@ -312,7 +326,7 @@ class FileHandler:
             # Add jobs or update existing ones
             job_dict = self.create_jobs_for_submission(upload_files, submission, existing_submission)
 
-            def upload(file_ref, file_type, app, current_user, submission_id):
+            def upload(file_ref, file_type, app, active_user, submission_id):
                 filename_key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
                 bucket_name = CONFIG_BROKER['broker_files'] if self.is_local else CONFIG_BROKER['aws_bucket']
                 logger.info({
@@ -324,7 +338,7 @@ class FileHandler:
                 })
                 if CONFIG_BROKER['use_aws']:
                     s3 = boto3.client('s3', region_name='us-gov-west-1')
-                    extra_args = {'Metadata': {'email': current_user.email}}
+                    extra_args = {'Metadata': {'email': active_user.email}}
                     s3.upload_fileobj(file_ref, bucket_name, filename_key, ExtraArgs=extra_args)
                 else:
                     file_ref.save(filename_key)
@@ -336,7 +350,7 @@ class FileHandler:
                     'file_name': filename_key
                 })
                 with app.app_context():
-                    g.user = current_user
+                    g.user = active_user
                     self.finalize(job_dict[file_type + '_id'])
             for file_type, file_ref in request_params['_files'].items():
                 t = threading.Thread(target=upload, args=(file_ref, file_type,
@@ -459,8 +473,8 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-            if (submission.d2_submission and not current_user_can_on_submission('editfabs', submission)) or \
-                    (not submission.d2_submission and not current_user_can_on_submission('writer', submission)):
+            if (submission.d2_submission and not active_user_can_on_submission('editfabs', submission)) or \
+                    (not submission.d2_submission and not active_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
                 raise ResponseException('Cannot finalize a job for a different agency', StatusCode.CLIENT_ERROR)
             # Change job status to finished
@@ -975,13 +989,20 @@ class FileHandler:
                 return JsonResponse.error(Exception('{} parameter must be a file in binary form'.format(file_type)),
                                           StatusCode.CLIENT_ERROR)
             if file_name:
+                split_file_name = os.path.splitext(file_name)
+                fillin_vals = {
+                    'submission_id': submission.submission_id,
+                    'raw_filename': split_file_name[0],
+                    'timestamp': get_timestamp(),
+                    'ext': split_file_name[1]
+                }
+                if not submission.d2_submission:
+                    fillin_vals['FYP'] = filename_fyp_sub_format(submission)
+                upload_filename = SUBMISSION_FILENAMES[FILE_TYPE_DICT_NAME_LETTER[file_type]].format(**fillin_vals)
                 if not self.is_local:
-                    upload_name = '{}/{}'.format(
-                        submission.submission_id,
-                        S3Handler.get_timestamped_filename(file_name)
-                    )
+                    upload_name = '{}/{}'.format(submission.submission_id, upload_filename)
                 else:
-                    upload_name = os.path.join(self.server_path, S3Handler.get_timestamped_filename(file_name))
+                    upload_name = os.path.join(self.server_path, upload_filename)
 
                 upload_files.append(FileHandler.UploadFile(
                     file_type=file_type,
@@ -1199,9 +1220,15 @@ class FileHandler:
                 sess.add(file_history)
 
             # Only move the file if we have any published comments
-            num_cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id).count()
-            if num_cert_comments > 0:
-                filename = 'submission_{}_comments.csv'.format(str(submission_id))
+            cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id)
+            if cert_comments.count() > 0:
+                format_change = sess.query(FormatChangeDate.change_date).filter_by(name='DEV-8325').one_or_none()
+                created_at = cert_comments[0].created_at
+                if format_change and created_at < format_change.change_date:
+                    filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+                else:
+                    filename = 'SubID-{}_comments_{}.csv'.format(str(submission_id),
+                                                                 filename_fyp_sub_format(submission))
                 if not is_local:
                     old_path = '{}/{}'.format(str(submission.submission_id), filename)
                     new_path = new_route + filename
@@ -1332,7 +1359,7 @@ def update_submission_comments(submission, comment_request, is_local):
     sess.commit()
 
     # Preparing for the comments file
-    filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+    filename = 'SubID-{}_comments_{}.csv'.format(submission.submission_id, filename_fyp_sub_format(submission))
     local_file = ''.join([CONFIG_BROKER['broker_files'], filename])
     file_path = local_file if is_local else '{}/{}'.format(str(submission.submission_id), filename)
     headers = ['Comment Type', 'Comment']
@@ -1365,17 +1392,21 @@ def get_comments_file(submission, is_local):
     """
 
     sess = GlobalDB.db().session
-    num_comments = sess.query(Comment).filter_by(submission_id=submission.submission_id).count()
+    comments = sess.query(Comment).filter_by(submission_id=submission.submission_id)
     # if we have at least one comment, we have a file to return
-    if num_comments > 0:
-        filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+    if comments.count() > 0:
+        format_change = sess.query(FormatChangeDate.change_date).filter_by(name='DEV-8325').one_or_none()
+        created_at = comments[0].created_at
+        if format_change and created_at and created_at < format_change.change_date:
+            filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+        else:
+            filename = 'SubID-{}_comments_{}.csv'.format(submission.submission_id, filename_fyp_sub_format(submission))
         if is_local:
             # when local, can just grab the path
             url = os.path.join(CONFIG_BROKER['broker_files'], filename)
         else:
             url = S3Handler().get_signed_url(str(submission.submission_id), filename,
-                                             url_mapping=CONFIG_BROKER['submission_bucket_mapping'],
-                                             method='get_object')
+                                             url_mapping=CONFIG_BROKER['submission_bucket_mapping'])
         return JsonResponse.create(StatusCode.OK, {'url': url})
     return JsonResponse.error(ValueError('This submission does not have any comments associated with it'),
                               StatusCode.CLIENT_ERROR)
@@ -1385,7 +1416,7 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
     """ Retrieve/generate the zip file for a specific submission.
 
         Args:
-            submission: the submission to get the comments file for
+            submission: the submission to zip
             publish_history_id: the ID of the PublishHistory object that represents the published submission to download
             certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
             is_local: a boolean indicating whether the application is running locally or not
@@ -1395,9 +1426,9 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
             something went wrong
     """
     if publish_history_id:
-        zip_filename = 'Broker-Submission-{}-Pub-{}'.format(submission.submission_id, publish_history_id)
+        zip_filename = 'Broker_SubID-{}_PubID-{}'.format(submission.submission_id, publish_history_id)
     elif certify_history_id:
-        zip_filename = 'Broker-Submission-{}-Cert-{}'.format(submission.submission_id, certify_history_id)
+        zip_filename = 'Broker_SubID-{}_CertID-{}'.format(submission.submission_id, certify_history_id)
     else:
         return JsonResponse.error(ValueError('A publish_history_id or certify_history_id is required.'),
                                   StatusCode.CLIENT_ERROR)
@@ -1431,8 +1462,7 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
     if is_local:
         url = os.path.join(CONFIG_BROKER['broker_files'], sub_zip)
     else:
-        url = S3Handler().get_signed_url('', sub_zip, bucket_route=CONFIG_BROKER['sub_zips_bucket'],
-                                         method='get_object')
+        url = S3Handler().get_signed_url('', sub_zip, bucket_route=CONFIG_BROKER['sub_zips_bucket'])
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
 
@@ -1440,7 +1470,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
     """ Retrieve/generate the zip file for a specific submission. Currently only for published DABS submissions.
 
         Args:
-            submission: the submission to get the comments file for
+            submission: the submission to zip
             publish_history_id: the ID of the PublishHistory object that represents the published submission to download
             certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
             zip_filename: the name of the zip to be created
@@ -1471,16 +1501,23 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
         raise ValueError('Only published DABS submissions can be zipped.')
 
     # Get a list of the files to zip
-    published_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.warning_filename).\
-        filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check).all()
+    published_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.warning_filename,
+                                 Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
+                                 Submission.is_quarter_format).\
+        join(PublishedFilesHistory, PublishedFilesHistory.submission_id == Submission.submission_id).\
+        filter(PublishedFilesHistory.submission_id == submission.submission_id, history_id_check)
     sub_file_paths = []
-    for published_file in published_files:
+    fyp = None
+    for published_file in published_files.all():
+        if not fyp:
+            fyp = filename_fyp_sub_format(published_file)
         if published_file.filename:
             sub_file_paths.append(published_file.filename)
         if published_file.warning_filename:
             sub_file_paths.append(published_file.warning_filename)
     if not sub_file_paths:
         raise ValueError('No submission files found.')
+    zip_filename = '{}_{}'.format(zip_filename, fyp)
 
     # Note: not using tempfile.TemporaryDirectory as we need to name the directory
     tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
@@ -1512,10 +1549,10 @@ def create_fabs_published_file(sess, submission_id, new_route):
         Returns:
             The full path to the newly created/uploaded file
     """
-    # create timestamped name and paths
-    timestamped_name = S3Handler.get_timestamped_filename('submission_{}_published_fabs.csv'.format(submission_id))
-    local_filename = ''.join([CONFIG_BROKER['broker_files'], timestamped_name])
-    upload_name = ''.join([new_route, timestamped_name])
+    # create published name and paths
+    published_name = SUBMISSION_FILENAMES['FABS_publish'].format(submission_id=submission_id, timestamp=get_timestamp())
+    local_filename = os.path.join(CONFIG_BROKER['broker_files'], published_name)
+    upload_name = ''.join([new_route, published_name])
 
     # write file and stream to S3
     fabs_query = published_fabs_query({'sess': sess, 'submission_id': submission_id})
@@ -1566,7 +1603,8 @@ def get_status(submission, file_type=''):
     # Set up a dictionary to store the jobs we want to look at and limit it to only the file types we care about. Also
     # setting up the response dict here because we need the same keys.
     response_template = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': '',
-                         'upload_progress': None, 'validation_progress': None, 'file_name': None}
+                         'upload_progress': None, 'validation_progress': None, 'file_name': None,
+                         'validation_last_updated': None}
     job_dict = {}
     response_dict = {}
 
@@ -1601,7 +1639,8 @@ def get_status(submission, file_type=''):
                 'errors': job.number_of_errors,
                 'warnings': job.number_of_warnings,
                 'progress': job.progress,
-                'file_name': job.original_filename
+                'file_name': job.original_filename,
+                'updated_at': str(job.updated_at)
             })
 
     for job_file_type, job_data in job_dict.items():
@@ -1638,6 +1677,7 @@ def process_job_status(jobs, response_content):
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
             validation_em = job['error_message']
             response_content['validation_progress'] = job['progress']
+            response_content['validation_last_updated'] = job['updated_at']
         response_content['file_name'] = job['file_name']
 
     # checking for failures
@@ -1928,24 +1968,57 @@ def process_history_list(history_list, list_type):
         file_history = file_history_query.all()
         history_files = []
 
+        main_files = []
+        warnings = []
+        cross_warnings = []
+        comments_file = None
         for file in file_history:
-            # if there's a filename, add it to the list
+            # Main files
             if file.filename is not None:
-                history_files.append({
+                file_dict = {
                     'published_files_history_id': file.published_files_history_id,
                     'filename': file.filename.split('/')[-1],
                     'is_warning': False,
                     'comment': file.comment
-                })
+                }
+                if file.file_type_id:
+                    file_dict['type'] = FILE_TYPE_DICT_LETTER[file.file_type_id]
+                    main_files.append(file_dict)
+                else:
+                    comments_file = file_dict
 
-            # if there's a warning file, add it to the list
+            # Warnings
             if file.warning_filename is not None:
-                history_files.append({
+                file_dict = {
                     'published_files_history_id': file.published_files_history_id,
                     'filename': file.warning_filename.split('/')[-1],
                     'is_warning': True,
                     'comment': None
-                })
+                }
+                if file.file_type_id:
+                    file_dict['type'] = FILE_TYPE_DICT_LETTER[file.file_type_id]
+                    warnings.append(file_dict)
+                else:
+                    # since crossfiles don't have filetypes in the DB and the oldest format has no file letters,
+                    # replacing them with their letter equivalents allows them to be sortable.
+                    file_dict['sort-filename'] = file_dict['filename']
+                    for replace_name, replace_letter in sorted(list(FILE_TYPE_DICT_NAME_LETTER.items()),
+                                                               key=lambda ftype: ftype[1]):
+                        file_dict['sort-filename'] = file_dict['sort-filename'].replace(replace_name, replace_letter)
+                    cross_warnings.append(file_dict)
+
+        # sort them all out
+        main_files.sort(key=lambda hist_file: hist_file['type'])
+        warnings.sort(key=lambda hist_file: hist_file['type'])
+        for main_file in main_files + warnings:
+            del main_file['type']
+        cross_warnings.sort(key=lambda hist_file: hist_file['sort-filename'])
+        for main_file in cross_warnings:
+            del main_file['sort-filename']
+
+        history_files = main_files + warnings + cross_warnings
+        if comments_file:
+            history_files.append(comments_file)
 
         processed_list.append({
             '{}_date'.format(list_type): history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
@@ -2040,8 +2113,7 @@ def file_history_url(file_history_id, is_warning, is_local, submission=None):
         filename = file_array.pop()
         file_path = '/'.join(x for x in file_array)
         url = S3Handler().get_signed_url(file_path, filename, bucket_route=CONFIG_BROKER['certified_bucket'],
-                                         url_mapping=CONFIG_BROKER['certified_bucket_mapping'],
-                                         method='get_object')
+                                         url_mapping=CONFIG_BROKER['certified_bucket_mapping'])
 
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
@@ -2284,8 +2356,7 @@ def submission_report_url(submission, warning, file_type, cross_type):
         url = os.path.join(CONFIG_SERVICES['error_report_path'], file_name)
     else:
         url = S3Handler().get_signed_url('errors', file_name,
-                                         url_mapping=CONFIG_BROKER['submission_bucket_mapping'],
-                                         method='get_object')
+                                         url_mapping=CONFIG_BROKER['submission_bucket_mapping'])
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
 
@@ -2317,7 +2388,7 @@ def get_upload_file_url(submission, file_type):
         url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
     else:
         url = S3Handler().get_signed_url(split_name[0], split_name[1],
-                                         url_mapping=CONFIG_BROKER['submission_bucket_mapping'], method='get_object')
+                                         url_mapping=CONFIG_BROKER['submission_bucket_mapping'])
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
 
@@ -2344,7 +2415,7 @@ def get_detached_upload_file_url(job_id):
         url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
     else:
         url = S3Handler().get_signed_url(split_name[0], split_name[1],
-                                         url_mapping=CONFIG_BROKER['submission_bucket_mapping'], method='get_object')
+                                         url_mapping=CONFIG_BROKER['submission_bucket_mapping'])
     return JsonResponse.create(StatusCode.OK, {'url': url})
 
 
