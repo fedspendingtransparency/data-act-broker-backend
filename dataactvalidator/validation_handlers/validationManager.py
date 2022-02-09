@@ -135,10 +135,8 @@ class ValidationManager:
 
         # accounting for the column duns/uei <-> mismatch
         if self.short_to_long_dict:
-            self.short_to_long_dict[FILE_TYPE_DICT['fabs']]['awardee_or_recipient_uniqu'] = 'awardeeorrecipientduns'
             self.short_to_long_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'awardeeorrecipientuei'
         if self.short_to_daims_dict:
-            self.short_to_daims_dict[FILE_TYPE_DICT['fabs']]['awardee_or_recipient_uniqu'] = 'AwardeeOrRecipientDUNS'
             self.short_to_daims_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'AwardeeOrRecipientUEI'
 
     def get_file_name(self, path):

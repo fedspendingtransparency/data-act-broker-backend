@@ -58,6 +58,7 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, int_c
         'funding_office_code': contract.funding_office_id,
         'funding_office_name': contract.funding_office_name,
         'awardee_or_recipient_uniqu': contract.duns,
+        'awardee_or_recipient_uei': contract.uei_number,
         'awardee_or_recipient_legal': contract.company_name,
         'dba_name': contract.dba_name,
         'ultimate_parent_unique_ide': contract.parent_duns,
@@ -92,6 +93,7 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, int_c
         'subaward_amount': sub_contract.subcontract_amount,
         'sub_action_date': str(sub_contract.subcontract_date),
         'sub_awardee_or_recipient_uniqu': sub_contract.duns,
+        'sub_awardee_or_recipient_uei': sub_contract.uei_number,
         'sub_awardee_or_recipient_legal': sub_contract.company_name,
         'sub_dba_name': sub_contract.dba_name,
         'sub_ultimate_parent_unique_ide': sub_contract.parent_duns,
@@ -308,6 +310,7 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'funding_office_code': d2.funding_office_code if d2 else None,
         'funding_office_name': d2.funding_office_name if d2 else None,
         'awardee_or_recipient_uniqu': grant.duns,
+        'awardee_or_recipient_uei': grant.uei_number,
         'awardee_or_recipient_legal': grant.awardee_name,
         'dba_name': grant.dba_name,
         'ultimate_parent_unique_ide': grant.parent_duns,
@@ -342,6 +345,7 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'subaward_amount': sub_grant.subaward_amount,
         'sub_action_date': str(sub_grant.subaward_date),
         'sub_awardee_or_recipient_uniqu': sub_grant.duns,
+        'sub_awardee_or_recipient_uei': sub_grant.uei_number,
         'sub_awardee_or_recipient_legal': sub_grant.awardee_name,
         'sub_dba_name': sub_grant.dba_name,
         'sub_ultimate_parent_unique_ide': sub_grant.parent_duns,
@@ -803,7 +807,7 @@ def test_fix_broken_links(database, monkeypatch):
         contracting_office_aid=d1_awd.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code_2_char,
-        duns=duns.awardee_or_recipient_uniqu,
+        uei_number=duns.uei,
         date_signed=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -837,7 +841,7 @@ def test_fix_broken_links(database, monkeypatch):
         contracting_office_aid=d1_idv.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
-        duns=duns.awardee_or_recipient_uniqu,
+        uei_number=duns.uei,
         date_signed=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
