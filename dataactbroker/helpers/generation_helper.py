@@ -1,5 +1,6 @@
 import boto3
 import logging
+import shutil
 import traceback
 
 from datetime import datetime
@@ -10,7 +11,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import mark_job_status
+from dataactcore.interfaces.function_bag import mark_job_status, filename_fyp_sub_format, get_timestamp
 from dataactcore.models import lookups
 from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.jobModels import FileGeneration, Job, Submission
@@ -189,8 +190,7 @@ def check_file_generation(job_id):
     if CONFIG_BROKER['use_aws'] and response_dict['status'] == 'finished' and upload_job.filename:
         path, file_name = upload_job.filename.split('/')
         response_dict['url'] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                          url_mapping=CONFIG_BROKER["submission_bucket_mapping"],
-                                                          method='get_object')
+                                                          url_mapping=CONFIG_BROKER["submission_bucket_mapping"])
     elif response_dict['status'] == 'finished' and upload_job.filename:
         response_dict['url'] = upload_job.filename
 
@@ -437,41 +437,56 @@ def copy_file_generation_to_job(job, file_generation, is_local):
         sess.commit()
         return
 
-    # Generate file path for child Job's filename
     filepath = CONFIG_BROKER['broker_files'] if g.is_local else "{}/".format(str(job.submission_id))
-    original_filename = file_generation.file_path.split('/')[-1]
-    filename = '{}{}'.format(filepath, original_filename)
 
-    # Copy parent job's data
+    # Change the validation job's file data when within a submission
+    if job.submission_id is not None:
+        # Regenerate the filename based on the submission
+        fillin_vals = {
+            'start': file_generation.start_date.strftime('%Y%m%d'),
+            'end': file_generation.end_date.strftime('%Y%m%d'),
+            'agency_type': file_generation.agency_type,
+            'ext': '.{}'.format(file_generation.file_format),
+            'submission_id': job.submission_id,
+            'FYP': filename_fyp_sub_format(job.submission),
+            'timestamp': get_timestamp()
+        }
+        original_filename = lookups.SUBMISSION_FILENAMES[lookups.FILE_TYPE_DICT_LETTER[job.file_type_id]].\
+            format(**fillin_vals)
+        filename = '{}{}'.format(filepath, original_filename)
+
+        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                         Job.file_type_id == job.file_type_id,
+                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        val_job.original_filename = original_filename
+        val_job.filename = filename
+
+        # Copy the data to the Submission's bucket
+        if not g.is_local:
+            # Check to see if the same file exists in the child bucket
+            s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
+            bucket = CONFIG_BROKER['aws_bucket']
+            response = s3.list_objects_v2(Bucket=bucket, Prefix=filename)
+            for obj in response.get('Contents', []):
+                if obj['Key'] == filename:
+                    # The file already exists in this location
+                    log_data['message'] = '{} file already exists in this location: {}; not overwriting.'.format(
+                        job.file_type.name, filename)
+                    logger.info(log_data)
+                    mark_job_status(job.job_id, 'finished')
+                    return
+            S3Handler.copy_file(bucket, bucket, file_generation.file_path, filename)
+        else:
+            shutil.copyfile(file_generation.file_path, filename)
+    else:
+        # Just copy the detached names to the detached job
+        original_filename = file_generation.file_path.split('/')[-1]
+        filename = '{}{}'.format(filepath, original_filename)
+
     job.filename = filename
     job.original_filename = original_filename
     job.number_of_errors = 0
     job.number_of_warnings = 0
-
-    # Change the validation job's file data when within a submission
-    if job.submission_id is not None:
-        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                         Job.file_type_id == job.file_type_id,
-                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
-        val_job.filename = filename
-        val_job.original_filename = original_filename
-
-        # Copy the data to the Submission's bucket
-        if not g.is_local and file_generation.file_path != job.filename:
-            # Check to see if the same file exists in the child bucket
-            s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
-            bucket = CONFIG_BROKER['aws_bucket']
-            response = s3.list_objects_v2(Bucket=bucket, Prefix=job.filename)
-            for obj in response.get('Contents', []):
-                if obj['Key'] == job.filename:
-                    # The file already exists in this location
-                    log_data['message'] = '{} file already exists in this location: {}; not overwriting.'.format(
-                        job.file_type.name, job.filename)
-                    logger.info(log_data)
-                    mark_job_status(job.job_id, 'finished')
-                    return
-
-            S3Handler.copy_file(bucket, bucket, file_generation.file_path, job.filename)
     sess.commit()
 
     # Mark Job status last so the validation job doesn't start until everything is done

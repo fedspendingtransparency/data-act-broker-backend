@@ -4,21 +4,17 @@ from dateutil.relativedelta import relativedelta
 
 from dataactbroker.helpers.generation_helper import a_file_query, d_file_query, copy_file_generation_to_job
 
-from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.interfaces.function_bag import mark_job_status
+from dataactcore.interfaces.function_bag import (mark_job_status, filename_fyp_sub_format, filename_fyp_format,
+                                                 get_timestamp)
 from dataactcore.models.jobModels import Job
+from dataactcore.models.lookups import DETACHED_FILENAMES, SUBMISSION_FILENAMES
 from dataactcore.utils import fileA, fileD1, fileD2, fileE_F
 from dataactcore.utils.responseException import ResponseException
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
 
 logger = logging.getLogger(__name__)
-
-GEN_FILENAMES = {
-    'A': 'appropriations_data.csv', 'D1': 'd1_{}_{}_{}agency_data.{}', 'D2': 'd2_{}_{}_{}agency_data.{}',
-    'E': 'executive_compensation_data.csv', 'F': 'sub_award_data.csv'
-}
 
 
 class FileGenerationManager:
@@ -49,12 +45,27 @@ class FileGenerationManager:
 
     def generate_file(self, agency_code=None):
         """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
-        raw_filename = (GEN_FILENAMES[self.file_type] if not self.file_generation else
-                        GEN_FILENAMES[self.file_type].format(self.file_generation.start_date.strftime('%Y%m%d'),
-                                                             self.file_generation.end_date.strftime('%Y%m%d'),
-                                                             self.file_generation.agency_type,
-                                                             self.file_generation.file_format))
-        file_name = S3Handler.get_timestamped_filename(raw_filename)
+        fillin_vals = {'timestamp': get_timestamp()}
+        if self.file_generation:
+            fillin_vals.update({
+                'start': self.file_generation.start_date.strftime('%Y%m%d'),
+                'end': self.file_generation.end_date.strftime('%Y%m%d'),
+                'agency_type': self.file_generation.agency_type,
+                'ext': '.{}'.format(self.file_generation.file_format),
+            })
+        if self.job and self.job.submission:
+            # Submission Files
+            fillin_vals.update({
+                'submission_id': self.job.submission_id,
+                'FYP': filename_fyp_sub_format(self.job.submission),
+            })
+            file_name = SUBMISSION_FILENAMES[self.file_type].format(**fillin_vals)
+        else:
+            # Detached Files
+            if self.job and self.job.file_type.letter_name == 'A':
+                period_date = self.job.end_date + relativedelta(months=3)
+                fillin_vals['FYP'] = filename_fyp_format(period_date.year, period_date.month, False)
+            file_name = DETACHED_FILENAMES[self.file_type].format(**fillin_vals)
         if self.is_local:
             file_path = "".join([CONFIG_BROKER['broker_files'], file_name])
         else:

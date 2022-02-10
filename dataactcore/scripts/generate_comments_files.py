@@ -5,6 +5,7 @@ from sqlalchemy import func
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import filename_fyp_sub_format
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import (Comment, CertifiedComment, FileType, CertifyHistory, PublishHistory,
                                           PublishedFilesHistory, Submission)
@@ -32,13 +33,15 @@ if __name__ == '__main__':
 
         for submission in commented_submissions:
             # Preparing for the comments files
-            filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+            submission_id = submission.submission_id
+            submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
+            filename = 'SubID-{}_comments_{}.csv'.format(submission_id, filename_fyp_sub_format(submission))
             local_file = "".join([CONFIG_BROKER['broker_files'], filename])
-            file_path = local_file if is_local else '{}/{}'.format(str(submission.submission_id), filename)
+            file_path = local_file if is_local else '{}/{}'.format(str(submission_id), filename)
 
             unpublished_query = sess.query(FileType.name, Comment.comment).\
                 join(FileType, Comment.file_type_id == FileType.file_type_id).\
-                filter(Comment.submission_id == submission.submission_id)
+                filter(Comment.submission_id == submission_id)
 
             # Generate the file locally, then place in S3
             write_stream_query(sess, unpublished_query, local_file, file_path, is_local, header=headers)
@@ -52,7 +55,7 @@ if __name__ == '__main__':
         for certified_submission in commented_cert_submissions:
             submission_id = certified_submission.submission_id
             submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-            filename = 'submission_{}_comments.csv'.format(str(submission_id))
+            filename = 'SubID-{}_comments_{}.csv'.format(str(submission_id), filename_fyp_sub_format(submission))
 
             # See if we already have this published file in the list
             existing_pub_history = sess.query(PublishedFilesHistory).\
