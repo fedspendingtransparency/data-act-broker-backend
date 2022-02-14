@@ -1220,7 +1220,7 @@ class FileHandler:
                 sess.add(file_history)
 
             # Only move the file if we have any published comments
-            cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id)
+            cert_comments = sess.query(Comment).filter_by(submission_id=submission_id)
             if cert_comments.count() > 0:
                 format_change = sess.query(FormatChangeDate.change_date).filter_by(name='DEV-8325').one_or_none()
                 created_at = cert_comments[0].created_at
