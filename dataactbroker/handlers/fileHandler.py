@@ -1220,6 +1220,9 @@ class FileHandler:
                 sess.add(file_history)
 
             # Only move the file if we have any published comments
+            # Note: we are basing this off the original Comment table as the only difference between CertifiedComment
+            #       and Comment is the created_at/updated_at times. The Comment table indicates when the latest file was
+            #       generated.
             cert_comments = sess.query(Comment).filter_by(submission_id=submission_id)
             if cert_comments.count() > 0:
                 format_change = sess.query(FormatChangeDate.change_date).filter_by(name='DEV-8325').one_or_none()
