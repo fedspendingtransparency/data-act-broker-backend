@@ -34,7 +34,7 @@ from dataactcore.interfaces.function_bag import (create_jobs, mark_job_status, g
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
                                           PublishHistory, PublishedFilesHistory, FileGeneration, FileType,
-                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period,
+                                          generate_fiscal_year, generate_fiscal_period,
                                           FormatChangeDate)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
