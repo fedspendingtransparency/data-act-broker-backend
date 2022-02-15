@@ -1135,7 +1135,7 @@ def test_move_published_files(database, monkeypatch):
 
     # make sure we have the right number of history entries
     all_local_certs = sess.query(PublishedFilesHistory).filter_by(publish_history_id=local_id).all()
-    assert len(all_local_certs) == 11
+    assert len(all_local_certs) == 12
 
     c_cert_hist = sess.query(PublishedFilesHistory).\
         filter_by(publish_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
@@ -1146,7 +1146,8 @@ def test_move_published_files(database, monkeypatch):
     assert c_cert_hist.comment == 'Test comment'
 
     # cross-file warnings
-    warning_cert_hist = sess.query(PublishedFilesHistory).filter_by(publish_history_id=local_id, file_type=None).all()
+    warning_cert_hist = sess.query(PublishedFilesHistory).filter_by(publish_history_id=local_id, file_type=None,
+                                                                    filename=None).all()
     assert len(warning_cert_hist) == 4
     assert warning_cert_hist[0].comment is None
 
