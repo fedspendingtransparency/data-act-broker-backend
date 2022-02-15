@@ -34,7 +34,7 @@ from dataactcore.interfaces.function_bag import (create_jobs, mark_job_status, g
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
                                           PublishHistory, PublishedFilesHistory, FileGeneration, FileType,
-                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period,
+                                          generate_fiscal_year, generate_fiscal_period,
                                           FormatChangeDate)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
@@ -1220,7 +1220,10 @@ class FileHandler:
                 sess.add(file_history)
 
             # Only move the file if we have any published comments
-            cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id)
+            # Note: we are basing this off the original Comment table as the only difference between CertifiedComment
+            #       and Comment is the created_at/updated_at times. The Comment table indicates when the latest file was
+            #       generated.
+            cert_comments = sess.query(Comment).filter_by(submission_id=submission_id)
             if cert_comments.count() > 0:
                 format_change = sess.query(FormatChangeDate.change_date).filter_by(name='DEV-8325').one_or_none()
                 created_at = cert_comments[0].created_at
