@@ -8,6 +8,7 @@ from dataactcore.models import fsrs
 
 class _FSRSAttributes(factory.Factory):
     duns = fuzzy.FuzzyText()
+    uei_number = fuzzy.FuzzyText()
     dba_name = fuzzy.FuzzyText()
     principle_place_city = fuzzy.FuzzyText()
     principle_place_street = None
