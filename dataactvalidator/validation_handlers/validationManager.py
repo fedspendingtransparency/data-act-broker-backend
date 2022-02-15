@@ -2,6 +2,7 @@ import boto3
 import csv
 import logging
 import os
+import re
 import traceback
 import pandas as pd
 import psutil as ps
@@ -750,6 +751,11 @@ class ValidationManager:
                 chunk_df['unique_award_key'] = chunk_df.apply(
                     lambda x: derive_fabs_unique_award_key(x), axis=1)
             else:
+                # Updating DEFC QQQ specifically to be a single Q. Only check B and C because they're the only files
+                # with DEFC columns
+                if self.file_type_name in ['program_activity', 'award_financial']:
+                    chunk_df['disaster_emergency_fund_code'] = chunk_df['disaster_emergency_fund_code']. \
+                        apply(lambda x: re.sub(re.escape('QQQ'), 'Q', x, flags=re.IGNORECASE) if x else None)
                 chunk_df['tas'] = concat_tas_dict_vectorized(chunk_df)
                 # display_tas is done with axis=1 (row-wise, where each dict-like row is passed into the given lambda)
                 # because the rendering label is not generated consistently, but will have a different rendered-label
