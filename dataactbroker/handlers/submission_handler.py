@@ -231,12 +231,14 @@ def get_latest_publication_period():
             A dictionary containing the latest publication period (period and year)
     """
     sess = GlobalDB.db().session
-    last_pub_period = sess.query(SubmissionWindowSchedule.period, SubmissionWindowSchedule.year).\
+    last_pub_period = sess.query(SubmissionWindowSchedule.period, SubmissionWindowSchedule.year,
+                                 SubmissionWindowSchedule.publish_deadline).\
         filter(SubmissionWindowSchedule.period_start <= datetime.today()).\
         order_by(SubmissionWindowSchedule.period_start.desc()).first()
     return {
         'period': last_pub_period.period if last_pub_period else None,
-        'year': last_pub_period.year if last_pub_period else None
+        'year': last_pub_period.year if last_pub_period else None,
+        'deadline': str(last_pub_period.publish_deadline) if last_pub_period else None
     }
 
 
