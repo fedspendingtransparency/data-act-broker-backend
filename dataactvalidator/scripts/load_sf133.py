@@ -181,10 +181,6 @@ def load_sf133(sess, filename, fiscal_year, fiscal_period, force_sf133_load=Fals
     ]
     data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
 
-    # Uppercasing DEFC to save on indexing
-    # Empty values are still empty strings ('') at this point
-    data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code'].str.upper()
-
     # we didn't use the the 'keep_null' option when padding allocation transfer agency, because nulls in that column
     # break the pivot (see above comments). so, replace the ata '000' with an empty value before inserting to db
     data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
@@ -247,6 +243,12 @@ def clean_sf133_data(filename, sf133_data):
     # rules, so for now just remove them before loading our SF-133 table
     dupe_line_numbers = ['2002', '2102']
     data = data[~data.line.isin(dupe_line_numbers)]
+
+    # Uppercasing DEFC to save on indexing
+    # Empty values are still empty strings ('') at this point
+    data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code'].str.upper()
+    data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code']. \
+        apply(lambda x: x.replace('QQQ', 'Q') if x else None)
 
     # add concatenated TAS field for internal use (i.e., joining to staging tables)
     data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
