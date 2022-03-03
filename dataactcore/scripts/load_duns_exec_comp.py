@@ -230,8 +230,8 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
         if delete_data is not None:
             update_duns(sess, delete_data, metrics=metrics, deletes=True, update_col=key_col)
     else:
-        exec_comp_data = parse_exec_comp_file(file_path, metrics=metrics)
-        update_duns(sess, exec_comp_data, metrics=metrics)
+        exec_comp_data, key_col = parse_exec_comp_file(file_path, metrics=metrics)
+        update_duns(sess, exec_comp_data, metrics=metrics, update_col=key_col)
     if not local:
         os.remove(file_path)
 

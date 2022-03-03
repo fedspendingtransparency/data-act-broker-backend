@@ -377,12 +377,14 @@ def parse_exec_comp_file(file_path, metrics=None):
         'exec_comp_str': 89
     }
     v2_column_header_mapping = {
+        'uei': 0,
         'awardee_or_recipient_uniqu': 1,
         'sam_extract_code': 5,
         'exec_comp_str': 91
     }
     column_header_mapping = v1_column_header_mapping if version == 'v1' else v2_column_header_mapping
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
+    key_col = 'awardee_or_recipient_uniqu' if version == 'v1' else 'uei'
 
     # can't use skipfooter, pandas' c engine doesn't work with skipfooter and the python engine doesn't work with dtype
     nrows = 0
@@ -398,14 +400,14 @@ def parse_exec_comp_file(file_path, metrics=None):
     # trimming all columns before cleaning to ensure the sam_extract is working as intended
     total_data = total_data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
-    total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull()
+    total_data = total_data[total_data[key_col].notnull()
                             & total_data['sam_extract_code'].isin(['2', '3', 'A', 'E'])]
     records_processed = len(total_data.index)
     del total_data['sam_extract_code']
 
     # drop DUNS duplicates, taking only the last one
     keep = 'first' if period == 'MONTHLY' else 'last'
-    total_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep=keep, inplace=True)
+    total_data.drop_duplicates(subset=[key_col], keep=keep, inplace=True)
 
     # Note: we're splitting these up cause it vastly saves memory parsing only the records that are populated
     blank_exec = total_data[total_data['exec_comp_str'].isnull()]
@@ -432,7 +434,7 @@ def parse_exec_comp_file(file_path, metrics=None):
 
     # Cleaning out any untrimmed strings
     if not total_data.empty:
-        total_data = clean_data(total_data, DUNS, {
+        exec_comp_maps = {
             'awardee_or_recipient_uniqu': 'awardee_or_recipient_uniqu',
             'high_comp_officer1_amount': 'high_comp_officer1_amount',
             'high_comp_officer1_full_na': 'high_comp_officer1_full_na',
@@ -445,14 +447,17 @@ def parse_exec_comp_file(file_path, metrics=None):
             'high_comp_officer5_amount': 'high_comp_officer5_amount',
             'high_comp_officer5_full_na': 'high_comp_officer5_full_na',
             'last_exec_comp_mod_date': 'last_exec_comp_mod_date'
-        }, {})
+        }
+        if version == 'v2':
+            exec_comp_maps['uei'] = 'uei'
+        total_data = clean_data(total_data, DUNS, exec_comp_maps, {})
         total_data.drop(columns=['created_at', 'updated_at'], inplace=True)
 
     metrics['files_processed'].append(dat_file_name)
     metrics['records_received'] += records_received
     metrics['records_processed'] += records_processed
 
-    return total_data
+    return total_data, key_col
 
 
 def parse_exec_comp(exec_comp_str=None):
