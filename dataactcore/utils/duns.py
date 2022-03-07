@@ -268,8 +268,11 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
             'added_duns': [],
             'updated_duns': []
         }
-    if not key_cols:
+
+    if key_cols is None:
         key_cols = ['awardee_or_recipient_uniqu']
+    elif key_cols not in (['awardee_or_recipient_uniqu'], ['awardee_or_recipient_uniqu', 'uei']):
+        raise ValueError('key_cols must contain DUNS and may include UEI.')
 
     tmp_name = 'temp_{}_update'.format(table_name)
     tmp_abbr = 'tu'
@@ -303,6 +306,12 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
     """.format(tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name, join_condition=join_condition)
     updated_duns_list = ['{}/{}'.format(row['awardee_or_recipient_uniqu'], row['uei'])
                          for row in sess.execute(update_sql).fetchall()]
+
+    # Double checking we have a one-to-one match between the data provided and what we're adding/updating
+    # Accounting for the extreme case if they provide a non-matching DUNS and UEI combo, leading us to update two values
+    if len(added_duns_list) + len(updated_duns_list) != len(duns_data):
+        raise ValueError('Unable to add/update sam data. A record matched on more than one recipient: {}'
+                         .format(updated_duns_list))
 
     logger.info('Adding/updating DUNS based on {}'.format(tmp_name))
     if deletes:

@@ -1,5 +1,6 @@
 import os
 import datetime
+import pytest
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.scripts import load_duns_exec_comp
@@ -219,6 +220,13 @@ def test_load_duns(database):
             'historic': duns_obj.historic
         }
     assert uei_results == expected_uei_results
+
+    # Fail if provided a record with unmatching DUNS and UEI
+    error_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'error_files')
+    with pytest.raises(ValueError) as resp_except:
+        load_duns_exec_comp.load_from_sam('DUNS', sess, True, error_dir)
+    assert str(resp_except.value) == 'Unable to add/update sam data. A record matched on more than one recipient: ' \
+                                     '[\'000000002/B2\', \'000000001/A1\']'
 
 
 def test_load_exec_comp(database):
