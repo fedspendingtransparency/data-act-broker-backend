@@ -272,6 +272,12 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
     if includes_uei:
         key_cols.append('uei')
 
+        # SAM V2 files at one point have both DUNS and UEI populated. After a point, only the UEI is populated.
+        # This ensures that DUNS doesn't get overwritten with blank values in that case.
+        if duns_data['awardee_or_recipient_uniqu'].dropna().empty:
+            duns_data.drop(columns=['awardee_or_recipient_uniqu'], axis=1, inplace=True)
+            key_cols.remove('awardee_or_recipient_uniqu')
+
     tmp_name = 'temp_{}_update'.format(table_name)
     tmp_abbr = 'tu'
     create_temp_duns_table(sess, tmp_name, duns_data)
@@ -284,10 +290,9 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
     null_condition = ' AND '.join(['{table_name}.{key_col} IS NULL'.format(table_name=table_name,
                                                                            key_col=key_col)
                                   for key_col in key_cols])
-    if len(key_cols) == 1:
-        insert_cols = '{tmp_abbr}.awardee_or_recipient_uniqu, NULL AS \"uei\"'.format(tmp_abbr=tmp_abbr)
-    else:
-        insert_cols = '{tmp_abbr}.awardee_or_recipient_uniqu, {tmp_abbr}.uei'.format(tmp_abbr=tmp_abbr)
+    insert_cols = ', '.join(['{tmp_abbr}.{key_col}'.format(tmp_abbr=tmp_abbr, key_col=key_col)
+                             if key_col in key_cols else 'NULL AS \"{key_col}\"'.format(key_col=key_col)
+                             for key_col in ['awardee_or_recipient_uniqu', 'uei']])
     insert_sql = """
         SELECT {insert_cols}
         FROM {tmp_name} AS {tmp_abbr}
