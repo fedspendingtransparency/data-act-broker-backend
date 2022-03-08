@@ -45,5 +45,6 @@ Possible HTTP Status Codes:
 - 400:
     - Submission does not exist
     - Missing submission ID parameter
+    - Submission is publishing or reverting
 - 401: Login required
 - 403: Permission denied, user does not have update to view this submission
