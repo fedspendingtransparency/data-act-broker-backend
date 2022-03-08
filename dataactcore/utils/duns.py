@@ -248,7 +248,7 @@ def create_temp_duns_table(sess, table_name, data):
     insert_dataframe(data, table_name, sess.connection())
 
 
-def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False, key_cols=None):
+def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False, includes_uei=True):
     """ Takes in a dataframe of duns and adds/updates associated DUNS
 
         Args:
@@ -257,8 +257,7 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
             table_name: the table to update (ex. 'duns', 'historic_duns')
             metrics: dictionary representing metrics of the script
             deletes: whether the data provided contains only delete records
-            key_cols: list of unique id columns, must be ['awardee_or_recipient_uniqu']
-                      or ['awardee_or_recipient_uniqu', 'uei']
+            includes_uei: whether or not the dataframe includes uei
 
         Returns:
             list of DUNS updated
@@ -269,10 +268,9 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
             'updated_duns': []
         }
 
-    if key_cols is None:
-        key_cols = ['awardee_or_recipient_uniqu']
-    elif key_cols not in (['awardee_or_recipient_uniqu'], ['awardee_or_recipient_uniqu', 'uei']):
-        raise ValueError('key_cols must contain DUNS and may include UEI.')
+    key_cols = ['awardee_or_recipient_uniqu']
+    if includes_uei:
+        key_cols.append('uei')
 
     tmp_name = 'temp_{}_update'.format(table_name)
     tmp_abbr = 'tu'
