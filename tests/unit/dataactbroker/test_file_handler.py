@@ -596,7 +596,6 @@ def test_comments(database):
                                      'comments'
 
 
-
 @pytest.mark.usefixtures('job_constants', 'broker_files_tmp_dir')
 def test_get_comments_file(database):
     """ Test getting a URL for the comments file """
