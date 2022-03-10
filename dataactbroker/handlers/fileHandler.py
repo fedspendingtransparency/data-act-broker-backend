@@ -1265,7 +1265,7 @@ class FileHandler:
         comment_file = sess.query(PublishedFilesHistory.filename).\
             filter(PublishedFilesHistory.publish_history_id == publish_history_id,
                    PublishedFilesHistory.filename.like('%_comments%'),
-                   PublishedFilesHistory.file_type_id.isnot(None)).one_or_none()
+                   PublishedFilesHistory.file_type_id.is_(None)).one_or_none()
         for warning in warning_files:
             warning = warning.warning_filename
             # Getting headers and file names
