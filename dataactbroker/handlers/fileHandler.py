@@ -1309,7 +1309,7 @@ class FileHandler:
         if comment_file and not self.is_local:
             submission_bucket = CONFIG_BROKER['aws_bucket']
             certified_bucket = CONFIG_BROKER['certified_bucket']
-            file_name = comment_file.split('/')[-1]
+            file_name = comment_file.filename.split('/')[-1]
             S3Handler.copy_file(original_bucket=certified_bucket, new_bucket=submission_bucket,
                                 original_path=comment_file, new_path=str(submission_id) + '/' + file_name)
 
