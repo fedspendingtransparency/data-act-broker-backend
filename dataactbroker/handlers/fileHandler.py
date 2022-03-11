@@ -1341,6 +1341,11 @@ def update_submission_comments(submission, comment_request, is_local):
             comment_request: the contents of the request from the API
             is_local: a boolean indicating whether the application is running locally or not
     """
+    # If the submission is in flux, return an error
+    if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
+        raise ResponseException('Submission must not be publishing, certifying, or reverting when updating comments',
+                                StatusCode.CLIENT_ERROR)
+
     # If the submission has been published, set its status to updated when new comments are made.
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
