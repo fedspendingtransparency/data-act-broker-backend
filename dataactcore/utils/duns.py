@@ -609,7 +609,7 @@ def request_sam_entity_api(key_list, includes_uei=True):
         Returns:
             json list of SAM objects representing entities
     """
-    key_type = 'uei' if includes_uei else 'duns'
+    key_type = 'sam' if includes_uei else 'duns'
     params = {
         'sensitivity': 'fouo',
         'uei{}'.format(key_type.upper()): '[{}]'.format('~'.join(key_list))
@@ -637,7 +637,7 @@ def request_sam_iqaas_uei_api(key_list, includes_uei=True):
         Returns:
             json list of SAM objects representing entities
     """
-    key_type = 'uei' if includes_uei else 'duns'
+    key_type = 'sam' if includes_uei else 'duns'
     params = {
         'uei{}'.format(key_type.upper()): '{}'.format(','.join(key_list)),
         'api_key': CONFIG_BROKER['sam']['api_key']
