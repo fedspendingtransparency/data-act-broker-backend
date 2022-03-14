@@ -16,11 +16,11 @@ def test_success(database):
     """ Test success for AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record
         is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
         (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, or 11, if the base award (the earliest
-        record with the same unique award key) has an ActionDate prior to April 4, 2023, this will produce a warning
+        record with the same unique award key) has an ActionDate prior to October 1, 2022, this will produce a warning
         rather than a fatal error.
     """
     # Note: for FABS 31.2.2, we're setting assistance types to 06, 07, 08, 09, 10, or 11 and having the base
-    #       actiondate be less than April 4, 2023. This rule will not trigger if those *do* apply.
+    #       actiondate be less than October 1, 2022. This rule will not trigger if those *do* apply.
     #       FABS 31.2.1 *will not* trigger when these apply.
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
@@ -89,11 +89,11 @@ def test_failure(database):
     """ Test failure for AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record
         is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
         (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, or 11, if the base award (the earliest
-        record with the same unique award key) has an ActionDate prior to April 4, 2023, this will produce a warning
+        record with the same unique award key) has an ActionDate prior to October 1, 2022, this will produce a warning
         rather than a fatal error.
     """
     # Note: for FABS 31.2.2, we're setting assistance types to 06, 07, 08, 09, 10, or 11 and having the base
-    #       actiondate be less than April 4, 2023. This rule will not trigger if those *do* apply.
+    #       actiondate be less than October 1, 2022. This rule will not trigger if those *do* apply.
     #       FABS 31.2.1 *will not* trigger when these apply.
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
