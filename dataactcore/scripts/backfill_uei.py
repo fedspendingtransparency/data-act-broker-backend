@@ -21,21 +21,14 @@ def backfill_uei_via_entity_api(sess, table):
             sess: database connection
             table: table to backfill
     """
-    # duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter(
-    #     or_(DUNS.uei.is_(None), and_(DUNS.ultimate_parent_unique_ide.isnot(None),
-    #                                  DUNS.ultimate_parent_uei.is_(None)))).all()
-    duns_to_update = [
-        {'uei': 'D2N8MNNM28M1'},
-        {'uei': 'JTY6FPZ9GZV6'},
-        {'uei': 'Z1CJAM9KV535'},
-        {'uei': 'TWHFK572HEN1'},
-        {'uei': 'Y7SJLJEJCK25'}
-    ]
+    duns_to_update = sess.query(table.awardee_or_recipient_uniqu).filter(
+        or_(DUNS.uei.is_(None), and_(DUNS.ultimate_parent_unique_ide.isnot(None),
+                                     DUNS.ultimate_parent_uei.is_(None)))).all()
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
-        df = pd.DataFrame(columns=['uei'])
+        df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
         df = df.append(duns_batch)
         df = update_sam_props(df)
-        # df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
+        df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
         update_duns(sess, df, table_name=table.__table__.name)
 
 
