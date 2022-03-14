@@ -25,14 +25,14 @@ def backfill_uei_via_entity_api(sess, table):
     #     or_(DUNS.uei.is_(None), and_(DUNS.ultimate_parent_unique_ide.isnot(None),
     #                                  DUNS.ultimate_parent_uei.is_(None)))).all()
     duns_to_update = [
-        {'awardee_or_recipient_uniqu': '928338219'},
-        {'awardee_or_recipient_uniqu': '933243453'},
-        {'awardee_or_recipient_uniqu': '933248247'},
-        {'awardee_or_recipient_uniqu': '933251274'},
-        {'awardee_or_recipient_uniqu': '933251506'}
+        {'uei': 'D2N8MNNM28M1'},
+        {'uei': 'JTY6FPZ9GZV6'},
+        {'uei': 'Z1CJAM9KV535'},
+        {'uei': 'TWHFK572HEN1'},
+        {'uei': 'Y7SJLJEJCK25'}
     ]
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
-        df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
+        df = pd.DataFrame(columns=['uei'])
         df = df.append(duns_batch)
         df = update_sam_props(df)
         # df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
