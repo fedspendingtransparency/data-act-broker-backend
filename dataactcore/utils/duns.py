@@ -817,7 +817,7 @@ def get_sam_props(key_list, api='entity', includes_uei=True):
     return pd.DataFrame(sam_props)
 
 
-def xupdate_sam_props(df, api='entity'):
+def update_sam_props(df, api='entity'):
     """ Returns same dataframe with extraneous data updated
 
         Args:
