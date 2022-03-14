@@ -278,6 +278,11 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
             duns_data.drop(columns=['awardee_or_recipient_uniqu'], axis=1, inplace=True)
             key_cols.remove('awardee_or_recipient_uniqu')
 
+        # Also ensuring that if parent DUNS is empty, it's not overwritten
+        if 'ultimate_parent_unique_ide' in list(duns_data.columns)\
+                and duns_data['ultimate_parent_unique_ide'].dropna().empty:
+            duns_data.drop(columns=['ultimate_parent_unique_ide'], axis=1, inplace=True)
+
     tmp_name = 'temp_{}_update'.format(table_name)
     tmp_abbr = 'tu'
     create_temp_duns_table(sess, tmp_name, duns_data)
