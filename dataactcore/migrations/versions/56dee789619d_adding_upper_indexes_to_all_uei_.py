@@ -1,7 +1,7 @@
 """Adding upper indexes to all UEI elements in FSRS tables
 
 Revision ID: 56dee789619d
-Revises: a1c4e0eb6c26
+Revises: 589fcd5224fe
 Create Date: 2022-02-15 12:59:04.449093
 
 """
