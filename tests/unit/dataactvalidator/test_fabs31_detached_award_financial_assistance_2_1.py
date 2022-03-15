@@ -18,12 +18,12 @@ def test_success(database):
         (BusinessTypes includes 'P').
     """
     # Note: for FABS 31.2.1, we're setting assistance types to NOT 06, 07, 08, 09, 10, or 11 or having the base
-    #       actiondate NOT be less than April 4, 2022. This rule will not trigger if those *don't* apply.
+    #       actiondate NOT be less than April 4, 2023. This rule will not trigger if those *don't* apply.
     #       FABS 31.2.2 *will* trigger when these apply.
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
                                                            is_active=True)
-    pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='after_key', action_date='20220404',
+    pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='after_key', action_date='20230404',
                                                            is_active=True)
     pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='inactive_key', action_date='20091001',
                                                            is_active=False)
@@ -94,7 +94,7 @@ def test_failure(database):
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
                                                            is_active=True)
-    pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='after_key', action_date='20220404',
+    pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='after_key', action_date='20230404',
                                                            is_active=True)
     pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='inactive_key', action_date='20091001',
                                                            is_active=False)
@@ -109,11 +109,11 @@ def test_failure(database):
                                                           correction_delete_indicatr='C',
                                                           unique_award_key='after_key')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=4, business_types='AbC', uei='',
-                                                          action_date='04/05/2022', assistance_type='07',
+                                                          action_date='04/05/2023', assistance_type='07',
                                                           correction_delete_indicatr='c',
                                                           unique_award_key='new_key')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(record_type=5, business_types='aBc', uei='',
-                                                          action_date='04/05/2022', assistance_type='08',
+                                                          action_date='04/05/2023', assistance_type='08',
                                                           correction_delete_indicatr=None,
                                                           unique_award_key='inactive_key')
     models += [det_award_1, det_award_2, det_award_3, det_award_4]
