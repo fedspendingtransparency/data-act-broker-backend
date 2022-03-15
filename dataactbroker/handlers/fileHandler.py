@@ -1250,17 +1250,22 @@ class FileHandler:
         log_data['message'] = 'Completed move_published_files'
         logger.debug(log_data)
 
-    def revert_published_error_files(self, sess, publish_history_id):
-        """ Copy warning files (non-locally) back to the errors folder and revert error files to just headers for a
-            submission that is being reverted to published/certified status
+    def revert_published_error_comment_files(self, sess, publish_history_id, submission_id):
+        """ Copy warning/comment files (non-locally) back to the errors folder and revert error files to just headers
+            for a submission that is being reverted to published/certified status
 
             Args:
                 sess: the database connection
                 publish_history_id: the ID of the PublishHistory object that represents the latest publication
+                submission_id: the ID of the submission being reverted
         """
         warning_files = sess.query(PublishedFilesHistory.warning_filename). \
             filter(PublishedFilesHistory.publish_history_id == publish_history_id,
                    PublishedFilesHistory.warning_filename.isnot(None)).all()
+        comment_file = sess.query(PublishedFilesHistory.filename).\
+            filter(PublishedFilesHistory.publish_history_id == publish_history_id,
+                   PublishedFilesHistory.filename.like('%_comments%'),
+                   PublishedFilesHistory.file_type_id.is_(None)).one_or_none()
         for warning in warning_files:
             warning = warning.warning_filename
             # Getting headers and file names
@@ -1301,6 +1306,12 @@ class FileHandler:
                     error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
                     error_csv.writerow(headers)
                 error_file.close()
+        if comment_file and not self.is_local:
+            submission_bucket = CONFIG_BROKER['aws_bucket']
+            certified_bucket = CONFIG_BROKER['certified_bucket']
+            file_name = comment_file.filename.split('/')[-1]
+            S3Handler.copy_file(original_bucket=certified_bucket, new_bucket=submission_bucket,
+                                original_path=comment_file.filename, new_path=str(submission_id) + '/' + file_name)
 
 
 def get_submission_comments(submission):

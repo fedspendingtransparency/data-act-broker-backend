@@ -1182,8 +1182,8 @@ def revert_to_certified(submission, file_manager):
     submission.publish_status_id = PUBLISH_STATUS_DICT['published']
     sess.commit()
 
-    # Move warning files back non-locally and clear out error files for all environments
-    file_manager.revert_published_error_files(sess, max_pub_history[0])
+    # Move warning/comment files back non-locally and clear out error files for all environments
+    file_manager.revert_published_error_comment_files(sess, max_pub_history[0], submission.submission_id)
 
     return JsonResponse.create(StatusCode.OK, {'message': 'Submission {} successfully reverted to published status.'.
                                format(submission.submission_id)})
