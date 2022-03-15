@@ -15,10 +15,10 @@ def test_load_duns(database):
     load_duns_exec_comp.load_from_sam('DUNS', sess, True, duns_dir)
 
     # update if the fake DUNS file name/zip changes
-    deactivation_date = '2021-02-06'
+    deactivation_date = '2021-02-07'
 
     expected_duns_results = {
-        # Pulled active daily V1 record, not updated in V2
+        # Pulled active daily V1 record, not updated in V2 files
         '000000005': {
             'uei': None,
             'awardee_or_recipient_uniqu': '000000005',
@@ -41,7 +41,8 @@ def test_load_duns(database):
             'dba_name': 'DBA NAME 000000005 V1 DAILY',
             'ultimate_parent_uei': None,
             'ultimate_parent_unique_ide': '000000007',
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME G7 V2 DAILY',  # via missing parent names
+            # ultimate_parent_legal_enti derived via missing parent names
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME G7 V2 BLANK DUNS DAILY',
             'historic': False
         }
     }
@@ -83,25 +84,25 @@ def test_load_duns(database):
             'expiration_date': '2000-02-25',
             'last_sam_mod_date': '2000-02-15',
             'deactivation_date': None,
-            'legal_business_name': 'LEGAL BUSINESS NAME B2 V2 DAILY',
-            'address_line_1': 'ADDRESS LINE 1 B2 V2 DAILY',
-            'address_line_2': 'ADDRESS LINE 2 B2 V2 DAILY',
-            'city': 'CITY B2 V2 DAILY',
-            'state': 'ST B2 V2 DAILY',
-            'zip': 'ZIP B2 V2 DAILY',
-            'zip4': 'ZIP4 B2 V2 DAILY',
-            'country_code': 'COUNTRY B2 V2 DAILY',
-            'congressional_district': 'CONGRESSIONAL DISTRICT B2 V2 DAILY',
+            'legal_business_name': 'LEGAL BUSINESS NAME B2 V2 BLANK DUNS DAILY',
+            'address_line_1': 'ADDRESS LINE 1 B2 V2 BLANK DUNS DAILY',
+            'address_line_2': 'ADDRESS LINE 2 B2 V2 BLANK DUNS DAILY',
+            'city': 'CITY B2 V2 BLANK DUNS DAILY',
+            'state': 'ST B2 V2 BLANK DUNS DAILY',
+            'zip': 'ZIP B2 V2 BLANK DUNS DAILY',
+            'zip4': 'ZIP4 B2 V2 BLANK DUNS DAILY',
+            'country_code': 'COUNTRY B2 V2 BLANK DUNS DAILY',
+            'congressional_district': 'CONGRESSIONAL DISTRICT B2 V2 BLANK DUNS DAILY',
             'business_types_codes': ['2X', 'MF'],
             'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
-            'dba_name': 'DBA NAME B2 V2 DAILY',
+            'dba_name': 'DBA NAME B2 V2 BLANK DUNS DAILY',
             'ultimate_parent_uei': 'E5',
             'ultimate_parent_unique_ide': '000000005',
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME E5 V2 DAILY',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME E5 V2 BLANK DUNS DAILY',
             'historic': False
         },
         # Pulled active monthly record, updated as sam_extract = 3
-        # Also with UEI from V2 file
+        # Also with UEI from V2 files
         'C3': {
             'uei': 'C3',
             'awardee_or_recipient_uniqu': '000000003',
@@ -110,24 +111,24 @@ def test_load_duns(database):
             'expiration_date': '2000-03-25',
             'last_sam_mod_date': '2000-03-15',
             'deactivation_date': None,
-            'legal_business_name': 'LEGAL BUSINESS NAME C3 V2 DAILY',
-            'address_line_1': 'ADDRESS LINE 1 C3 V2 DAILY',
-            'address_line_2': 'ADDRESS LINE 2 C3 V2 DAILY',
-            'city': 'CITY C3 V2 DAILY',
-            'state': 'ST C3 V2 DAILY',
-            'zip': 'ZIP C3 V2 DAILY',
-            'zip4': 'ZIP4 C3 V2 DAILY',
-            'country_code': 'COUNTRY C3 V2 DAILY',
-            'congressional_district': 'CONGRESSIONAL DISTRICT C3 V2 DAILY',
+            'legal_business_name': 'LEGAL BUSINESS NAME C3 V2 BLANK DUNS DAILY',
+            'address_line_1': 'ADDRESS LINE 1 C3 V2 BLANK DUNS DAILY',
+            'address_line_2': 'ADDRESS LINE 2 C3 V2 BLANK DUNS DAILY',
+            'city': 'CITY C3 V2 BLANK DUNS DAILY',
+            'state': 'ST C3 V2 BLANK DUNS DAILY',
+            'zip': 'ZIP C3 V2 BLANK DUNS DAILY',
+            'zip4': 'ZIP4 C3 V2 BLANK DUNS DAILY',
+            'country_code': 'COUNTRY C3 V2 BLANK DUNS DAILY',
+            'congressional_district': 'CONGRESSIONAL DISTRICT C3 V2 BLANK DUNS DAILY',
             'business_types_codes': ['2X', 'MF'],
             'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
-            'dba_name': 'DBA NAME C3 V2 DAILY',
+            'dba_name': 'DBA NAME C3 V2 BLANK DUNS DAILY',
             'ultimate_parent_uei': 'F6',
             'ultimate_parent_unique_ide': '000000006',
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME F6 V2 DAILY',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME F6 V2 BLANK DUNS DAILY',
             'historic': False
         },
-        # Pulled active daily V1 record, updated in daily V2 record (non-UEI record does not reflect this)
+        # Pulled active daily V1 record, updated in daily V2 records (non-UEI record does not reflect this)
         # Also with UEI from V2 files
         'D4': {
             'uei': 'D4',
@@ -137,21 +138,21 @@ def test_load_duns(database):
             'expiration_date': '2000-03-25',
             'last_sam_mod_date': '2000-03-15',
             'deactivation_date': None,
-            'legal_business_name': 'LEGAL BUSINESS NAME D4 V2 DAILY',
-            'address_line_1': 'ADDRESS LINE 1 D4 V2 DAILY',
-            'address_line_2': 'ADDRESS LINE 2 D4 V2 DAILY',
-            'city': 'CITY D4 V2 DAILY',
-            'state': 'ST D4 V2 DAILY',
-            'zip': 'ZIP D4 V2 DAILY',
-            'zip4': 'ZIP4 D4 V2 DAILY',
-            'country_code': 'COUNTRY D4 V2 DAILY',
-            'congressional_district': 'CONGRESSIONAL DISTRICT D4 V2 DAILY',
+            'legal_business_name': 'LEGAL BUSINESS NAME D4 V2 BLANK DUNS DAILY',
+            'address_line_1': 'ADDRESS LINE 1 D4 V2 BLANK DUNS DAILY',
+            'address_line_2': 'ADDRESS LINE 2 D4 V2 BLANK DUNS DAILY',
+            'city': 'CITY D4 V2 BLANK DUNS DAILY',
+            'state': 'ST D4 V2 BLANK DUNS DAILY',
+            'zip': 'ZIP D4 V2 BLANK DUNS DAILY',
+            'zip4': 'ZIP4 D4 V2 BLANK DUNS DAILY',
+            'country_code': 'COUNTRY D4 V2 BLANK DUNS DAILY',
+            'congressional_district': 'CONGRESSIONAL DISTRICT D4 V2 BLANK DUNS DAILY',
             'business_types_codes': ['2X', 'MF'],
             'business_types': ['For Profit Organization', 'Manufacturer of Goods'],
-            'dba_name': 'DBA NAME D4 V2 DAILY',
+            'dba_name': 'DBA NAME D4 V2 BLANK DUNS DAILY',
             'ultimate_parent_uei': 'G7',
             'ultimate_parent_unique_ide': '000000007',
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME G7 V2 DAILY',
+            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME G7 V2 BLANK DUNS DAILY',
             'historic': False
         },
     }
@@ -225,8 +226,11 @@ def test_load_duns(database):
     error_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'error_files')
     with pytest.raises(ValueError) as resp_except:
         load_duns_exec_comp.load_from_sam('DUNS', sess, True, error_dir)
-    assert str(resp_except.value) == 'Unable to add/update sam data. A record matched on more than one recipient: ' \
-                                     '[\'000000002/B2\', \'000000001/A1\']'
+    expected_error_recps = ['000000001/A1', '000000002/B2']
+    assert str(resp_except.value).startswith('Unable to add/update sam data. '
+                                             'A record matched on more than one recipient')
+    error_recps = [recp.strip()[1:-1] for recp in str(resp_except.value)[77:-1].split(',')]
+    assert set(error_recps) == set(expected_error_recps)
 
 
 def test_load_exec_comp(database):

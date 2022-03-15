@@ -16,13 +16,13 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
 from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
 from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
-from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
+from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 
 logger = logging.getLogger(__name__)
 
-DUNS_COLUMNS = [col.key for col in DUNS.__table__.columns]
+SAM_COLUMNS = [col.key for col in DUNS.__table__.columns]
 EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date', 'activation_date',
                     'legal_business_name', 'historic', 'created_at', 'updated_at', 'duns_id', 'deactivation_date',
                     'last_exec_comp_mod_date']
@@ -156,15 +156,15 @@ def parse_duns_file(file_path, metrics=None):
     bt_func = (lambda bt_raw: pd.Series([[str(code).strip() for code in str(bt_raw).split('~')
                                           if isinstance(bt_raw, str)]]))
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
-    bt_str_func = (lambda bt_codes: pd.Series([[DUNS_BUSINESS_TYPE_DICT[code] for code in bt_codes
-                                                if code in DUNS_BUSINESS_TYPE_DICT]]))
+    bt_str_func = (lambda bt_codes: pd.Series([[SAM_BUSINESS_TYPE_DICT[code] for code in bt_codes
+                                                if code in SAM_BUSINESS_TYPE_DICT]]))
     total_data = total_data.assign(business_types=total_data["business_types_codes"].apply(bt_str_func))
     del total_data["business_types_raw"]
 
     relevant_data = total_data[total_data['sam_extract_code'].isin(['A', 'E', '1', '2', '3'])]
     # order by sam to exclude deletes befores adds/updates when dropping duplicates
     relevant_data.sort_values(by=['sam_extract_code'], inplace=True)
-    # drop DUNS duplicates, taking only the last one for dailies, first one for monthlies
+    # drop SAM duplicates, taking only the last one for dailies, first one for monthlies
     keep = 'first' if period == 'MONTHLY' else 'last'
     relevant_data.drop_duplicates(subset=[key_col], keep=keep, inplace=True)
 
@@ -193,12 +193,12 @@ def parse_duns_file(file_path, metrics=None):
 
 
 def create_temp_duns_table(sess, table_name, data):
-    """ Creates a temporary duns table with the given name and data.
+    """ Creates a temporary SAM table with the given name and data.
 
         Args:
             sess: database connection
             table_name: what to name the table being created
-            data: pandas dataframe representing duns data
+            data: pandas dataframe representing SAM data
     """
     logger.info('Making {} table'.format(table_name))
     column_types = {
@@ -272,6 +272,17 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
     if includes_uei:
         key_cols.append('uei')
 
+        # SAM V2 files at one point have both DUNS and UEI populated. After a point, only the UEI is populated.
+        # This ensures that DUNS doesn't get overwritten with blank values in that case.
+        if duns_data['awardee_or_recipient_uniqu'].dropna().empty:
+            duns_data.drop(columns=['awardee_or_recipient_uniqu'], axis=1, inplace=True)
+            key_cols.remove('awardee_or_recipient_uniqu')
+
+        # Also ensuring that if parent DUNS is empty, it's not overwritten
+        if 'ultimate_parent_unique_ide' in list(duns_data.columns)\
+                and duns_data['ultimate_parent_unique_ide'].dropna().empty:
+            duns_data.drop(columns=['ultimate_parent_unique_ide'], axis=1, inplace=True)
+
     tmp_name = 'temp_{}_update'.format(table_name)
     tmp_abbr = 'tu'
     create_temp_duns_table(sess, tmp_name, duns_data)
@@ -284,10 +295,9 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
     null_condition = ' AND '.join(['{table_name}.{key_col} IS NULL'.format(table_name=table_name,
                                                                            key_col=key_col)
                                   for key_col in key_cols])
-    if len(key_cols) == 1:
-        insert_cols = '{tmp_abbr}.awardee_or_recipient_uniqu, NULL AS \"uei\"'.format(tmp_abbr=tmp_abbr)
-    else:
-        insert_cols = '{tmp_abbr}.awardee_or_recipient_uniqu, {tmp_abbr}.uei'.format(tmp_abbr=tmp_abbr)
+    insert_cols = ', '.join(['{tmp_abbr}.{key_col}'.format(tmp_abbr=tmp_abbr, key_col=key_col)
+                             if key_col in key_cols else 'NULL AS \"{key_col}\"'.format(key_col=key_col)
+                             for key_col in ['awardee_or_recipient_uniqu', 'uei']])
     insert_sql = """
         SELECT {insert_cols}
         FROM {tmp_name} AS {tmp_abbr}
@@ -295,21 +305,21 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
         WHERE ({null_condition});
     """.format(insert_cols=insert_cols, tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name,
                null_condition=null_condition, join_condition=join_condition)
-    added_duns_list = ['{}/{}'.format(row['awardee_or_recipient_uniqu'], row['uei'])
-                       for row in sess.execute(insert_sql).fetchall()]
+    added_uei_list = ['{}/{}'.format(row['awardee_or_recipient_uniqu'], row['uei'])
+                      for row in sess.execute(insert_sql).fetchall()]
     update_sql = """
         SELECT {table_name}.awardee_or_recipient_uniqu, {table_name}.uei
         FROM {table_name}
         JOIN {tmp_name} AS {tmp_abbr} ON ({join_condition});
     """.format(tmp_name=tmp_name, tmp_abbr=tmp_abbr, table_name=table_name, join_condition=join_condition)
-    updated_duns_list = ['{}/{}'.format(row['awardee_or_recipient_uniqu'], row['uei'])
-                         for row in sess.execute(update_sql).fetchall()]
+    updated_uei_list = ['{}/{}'.format(row['awardee_or_recipient_uniqu'], row['uei'])
+                        for row in sess.execute(update_sql).fetchall()]
 
     # Double checking we have a one-to-one match between the data provided and what we're adding/updating
     # Accounting for the extreme case if they provide a non-matching DUNS and UEI combo, leading us to update two values
-    if len(added_duns_list) + len(updated_duns_list) != len(duns_data):
+    if len(added_uei_list) + len(updated_uei_list) != len(duns_data):
         raise ValueError('Unable to add/update sam data. A record matched on more than one recipient: {}'
-                         .format(updated_duns_list))
+                         .format(updated_uei_list))
 
     logger.info('Adding/updating DUNS based on {}'.format(tmp_name))
     if deletes:
@@ -359,12 +369,12 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
 
     sess.commit()
 
-    metrics['added_duns'].extend(added_duns_list)
-    metrics['updated_duns'].extend(updated_duns_list)
+    metrics['added_duns'].extend(added_uei_list)
+    metrics['updated_duns'].extend(updated_uei_list)
 
 
 def parse_exec_comp_file(file_path, metrics=None):
-    """ Parses the executive compensation file to update corresponding DUNS records
+    """ Parses the executive compensation file to update corresponding SAM records
 
         Args:
             file_path: the path to the SAM file
@@ -428,7 +438,7 @@ def parse_exec_comp_file(file_path, metrics=None):
     records_processed = len(total_data.index)
     del total_data['sam_extract_code']
 
-    # drop DUNS duplicates, taking only the last one
+    # drop SAM duplicates, taking only the last one
     keep = 'first' if period == 'MONTHLY' else 'last'
     total_data.drop_duplicates(subset=[key_col], keep=keep, inplace=True)
 
@@ -589,18 +599,20 @@ def update_missing_parent_names(sess, updated_date=None):
     return total_updated_count
 
 
-def request_sam_entity_api(duns_list):
-    """ Calls the SAM entity API to retrieve SAM data by the DUNS numbers provided.
+def request_sam_entity_api(key_list, includes_uei=True):
+    """ Calls the SAM entity API to retrieve SAM data by the keys provided.
 
         Args:
-            duns_list: list of DUNS to search
+            key_list: list of keys to search
+            includes_uei: whether the key is a UEI (True) or DUNS (False)
 
         Returns:
             json list of SAM objects representing entities
     """
+    key_type = 'sam' if includes_uei else 'duns'
     params = {
         'sensitivity': 'fouo',
-        'ueiDUNS': '[{}]'.format('~'.join(duns_list))
+        'uei{}'.format(key_type.upper()): '[{}]'.format('~'.join(key_list))
     }
     headers = {
         'x-api-key': CONFIG_BROKER['sam']['api_key'],
@@ -615,17 +627,19 @@ def request_sam_entity_api(duns_list):
     return entity_data
 
 
-def request_sam_iqaas_uei_api(duns_list):
-    """ Calls the SAM IQaaS API to retrieve SAM UEI data by the DUNS numbers provided.
+def request_sam_iqaas_uei_api(key_list, includes_uei=True):
+    """ Calls the SAM IQaaS API to retrieve SAM UEI data by the keys provided.
 
         Args:
-            duns_list: list of DUNS to search
+            key_list: list of keys to search
+            includes_uei: whether the key is a UEI (True) or DUNS (False)
 
         Returns:
             json list of SAM objects representing entities
     """
+    key_type = 'sam' if includes_uei else 'duns'
     params = {
-        'ueiDUNS': '{}'.format(','.join(duns_list)),
+        'uei{}'.format(key_type.upper()): '{}'.format(','.join(key_list)),
         'api_key': CONFIG_BROKER['sam']['api_key']
     }
     content = _request_sam_api(CONFIG_BROKER['sam']['duns']['uei_iqaas_api_url'], request_type='get', params=params)
@@ -726,18 +740,20 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None):
     return r.content
 
 
-def get_duns_props_from_sam(duns_list, api='entity'):
-    """ Calls SAM API to retrieve DUNS data by DUNS number. Returns relevant DUNS info as Data Frame
+def get_sam_props(key_list, api='entity', includes_uei=True):
+    """ Calls SAM API to retrieve SAM data by UEI. Returns relevant SAM info as Data Frame
 
         Args:
-            duns_list: list of DUNS to search
+            key_list: list of SAM keys to search
+            api: which api to hit (must be 'entity' or 'iqaaas')
+            includes_uei: whether the key is a UEI (True) or DUNS (False)
 
         Returns:
-            dataframe representing the DUNS props
+            dataframe representing the SAM props
     """
     if api == 'entity':
         request_api_method = request_sam_entity_api
-        duns_props_mappings = {
+        sam_props_mappings = {
             'awardee_or_recipient_uniqu': 'entityRegistration.ueiDUNS',
             'uei': 'entityRegistration.ueiSAM',
             'legal_business_name': 'entityRegistration.legalBusinessName',
@@ -759,84 +775,90 @@ def get_duns_props_from_sam(duns_list, api='entity'):
         }
     elif api == 'iqaas':
         request_api_method = request_sam_iqaas_uei_api
-        duns_props_mappings = {
+        sam_props_mappings = {
             'awardee_or_recipient_uniqu': 'ueiDUNS',
             'uei': 'ueiSAM',
         }
     else:
         raise ValueError('APIs available are \'entity\' or \'iqaas\'')
 
-    duns_props = []
-    for duns_obj in request_api_method(duns_list):
-        duns_props_dict = {}
-        for duns_props_name, duns_prop_path in duns_props_mappings.items():
-            nested_obj = duns_obj
+    sam_props = []
+    for sam_obj in request_api_method(key_list, includes_uei=includes_uei):
+        sam_props_dict = {}
+        for sam_props_name, sam_prop_path in sam_props_mappings.items():
+            nested_obj = sam_obj
             value = None
-            for nested_layer in duns_prop_path.split('.'):
+            for nested_layer in sam_prop_path.split('.'):
                 nested_obj = nested_obj.get(nested_layer, None)
                 if not nested_obj:
                     break
-                elif nested_layer == duns_prop_path.split('.')[-1]:
+                elif nested_layer == sam_prop_path.split('.')[-1]:
                     value = nested_obj
-            if duns_props_name == 'business_types_codes':
+            if sam_props_name == 'business_types_codes':
                 value = [busi_type['businessTypeCode'] for busi_type in nested_obj.get('businessTypeList', [])]
-                duns_props_dict['business_types'] = [DUNS_BUSINESS_TYPE_DICT[type] for type in value
-                                                     if type in DUNS_BUSINESS_TYPE_DICT]
-            if duns_props_name == 'executive_comp_data':
+                sam_props_dict['business_types'] = [SAM_BUSINESS_TYPE_DICT[bus_type] for bus_type in value
+                                                    if bus_type in SAM_BUSINESS_TYPE_DICT]
+            if sam_props_name == 'executive_comp_data':
                 for index in range(1, 6):
-                    duns_props_dict['high_comp_officer{}_full_na'.format(index)] = None
-                    duns_props_dict['high_comp_officer{}_amount'.format(index)] = None
+                    sam_props_dict['high_comp_officer{}_full_na'.format(index)] = None
+                    sam_props_dict['high_comp_officer{}_amount'.format(index)] = None
                 if nested_obj:
                     for index, exec_comp in enumerate(nested_obj.get('listOfExecutiveCompensation', []), start=1):
                         if exec_comp['execName'] is not None:
-                            duns_props_dict['high_comp_officer{}_full_na'.format(index)] = exec_comp['execName']
-                            duns_props_dict['high_comp_officer{}_amount'.format(index)] = \
+                            sam_props_dict['high_comp_officer{}_full_na'.format(index)] = exec_comp['execName']
+                            sam_props_dict['high_comp_officer{}_amount'.format(index)] = \
                                 exec_comp['compensationAmount']
                 continue
-            duns_props_dict[duns_props_name] = value
-        for k, v in duns_props_dict.items():
+            sam_props_dict[sam_props_name] = value
+        for k, v in sam_props_dict.items():
             if isinstance(v, str) and v.lower() == 'currently not available':
-                duns_props_dict[k] = None
-        duns_props.append(duns_props_dict)
-    return pd.DataFrame(duns_props)
+                sam_props_dict[k] = None
+        sam_props.append(sam_props_dict)
+    return pd.DataFrame(sam_props)
 
 
-def update_duns_props(df, api='entity'):
+def update_sam_props(df, api='entity'):
     """ Returns same dataframe with extraneous data updated
 
         Args:
-            df: the dataframe containing the duns data
-            api: which api to extract the duns data
+            df: the dataframe containing the recipient data
+            api: which api to extract the recipient data
 
         Returns:
-            a merged dataframe with the duns updated with extraneous info from SAM's individual DUNS API
+            a merged dataframe with the reicpient updated with extraneous info from SAM's individual recipient API
     """
-    request_cols = [col for col in DUNS_COLUMNS if col not in EXCLUDE_FROM_API]
+    request_cols = [col for col in SAM_COLUMNS if col not in EXCLUDE_FROM_API]
     empty_row_template = {request_col: None for request_col in request_cols}
     for array_col in ['business_types_codes', 'business_types']:
         empty_row_template[array_col] = []
-    prefilled_cols = [col for col in list(df.columns) if col not in ['awardee_or_recipient_uniqu']]
+    if 'uei' in list(df.columns):
+        key_col = 'uei'
+        includes_uei = True
+    else:
+        key_col = 'awardee_or_recipient_uniqu'
+        includes_uei = False
+    prefilled_cols = [col for col in list(df.columns) if col != key_col]
 
-    all_duns = df['awardee_or_recipient_uniqu'].tolist()
-    duns_props_df = pd.DataFrame(columns=request_cols)
+    all_keys = df[key_col].tolist()
+    sam_props_df = pd.DataFrame(columns=request_cols)
     # SAM service only takes in batches of 100
     index = 0
     batch_size = 100
-    for duns_list in batch(all_duns, batch_size):
-        logger.info('Gathering data for the following DUNS: {}'.format(duns_list))
-        duns_props_batch = get_duns_props_from_sam(duns_list, api=api)
-        duns_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
-        # Adding in blank rows for DUNS where data was not found
-        added_duns_list = []
-        if not duns_props_batch.empty:
-            added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
-        logger.info('Retrieved data for DUNS records: {}'.format(added_duns_list))
-        empty_duns_rows = []
-        for duns in (set(added_duns_list) ^ set(duns_list)):
-            empty_duns_row = empty_row_template.copy()
-            empty_duns_row['awardee_or_recipient_uniqu'] = duns
-            empty_duns_rows.append(empty_duns_row)
-        duns_props_batch = duns_props_batch.append(pd.DataFrame(empty_duns_rows), sort=True)
-        duns_props_df = duns_props_df.append(duns_props_batch, sort=True)
+    for key_list in batch(all_keys, batch_size):
+        logger.info('Gathering data for the following recipients: {}'.format(key_list))
+        sam_props_batch = get_sam_props(key_list, api=api, includes_uei=includes_uei)
+        sam_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
+        # Adding in blank rows for recipients where data was not found
+        added_keys_list = []
+        if not sam_props_batch.empty:
+            added_keys_list = [str(key) for key in sam_props_batch[key_col].tolist()]
+        logger.info('Retrieved data for recipients: {}'.format(added_keys_list))
+        empty_sam_rows = []
+        for key in (set(added_keys_list) ^ set(key_list)):
+            empty_recp_row = empty_row_template.copy()
+            empty_recp_row[key_col] = key
+            empty_sam_rows.append(empty_recp_row)
+        sam_props_batch = sam_props_batch.append(pd.DataFrame(empty_sam_rows), sort=True)
+        sam_props_df = sam_props_df.append(sam_props_batch, sort=True)
         index += batch_size
-    return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
+    return pd.merge(df, sam_props_df, on=[key_col])
