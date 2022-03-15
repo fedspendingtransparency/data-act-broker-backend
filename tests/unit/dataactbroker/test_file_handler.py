@@ -588,6 +588,13 @@ def test_comments(database):
         'F': ''
     }
 
+    sub1.publish_status_id = PUBLISH_STATUS_DICT['publishing']
+    with pytest.raises(ResponseException) as resp_except:
+        fileHandler.update_submission_comments(sub1, {}, CONFIG_BROKER['local'])
+    assert resp_except.value.status == 400
+    assert str(resp_except.value) == 'Submission must not be publishing, certifying, or reverting when updating ' \
+                                     'comments'
+
 
 @pytest.mark.usefixtures('job_constants', 'broker_files_tmp_dir')
 def test_get_comments_file(database):

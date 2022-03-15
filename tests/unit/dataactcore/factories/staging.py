@@ -1011,3 +1011,4 @@ class DetachedAwardProcurementFactory(factory.Factory):
     inherently_government_desc = fuzzy.FuzzyText()
     organizational_type = fuzzy.FuzzyText()
     additional_reporting = fuzzy.FuzzyText()
+    entity_data_source = fuzzy.FuzzyText()
