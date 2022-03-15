@@ -226,8 +226,11 @@ def test_load_duns(database):
     error_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'error_files')
     with pytest.raises(ValueError) as resp_except:
         load_duns_exec_comp.load_from_sam('DUNS', sess, True, error_dir)
-    assert str(resp_except.value) == 'Unable to add/update sam data. A record matched on more than one recipient: ' \
-                                     '[\'000000002/B2\', \'000000001/A1\']'
+    expected_error_recps = ['000000001/A1', '000000002/B2']
+    assert str(resp_except.value).startswith('Unable to add/update sam data. '
+                                             'A record matched on more than one recipient')
+    error_recps = [recp.strip()[1:-1] for recp in str(resp_except.value)[77:-1].split(',')]
+    assert set(error_recps) == set(expected_error_recps)
 
 
 def test_load_exec_comp(database):
