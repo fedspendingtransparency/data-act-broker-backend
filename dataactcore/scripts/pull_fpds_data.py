@@ -722,6 +722,7 @@ def vendor_site_details_values(data, obj):
     value_map = {'city': 'legal_entity_city_name',
                  'congressionalDistrictCode': 'legal_entity_congressional',
                  'countryCode': 'legal_entity_country_code',
+                 'entityDataSource': 'entity_data_source',
                  'faxNo': 'vendor_fax_number',
                  'phoneNo': 'vendor_phone_number',
                  'streetAddress': 'legal_entity_address_line1',
