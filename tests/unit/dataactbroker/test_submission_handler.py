@@ -1083,7 +1083,7 @@ def test_revert_submission(database, monkeypatch):
         sess.commit()
 
         file_handler = fileHandler.FileHandler({}, is_local=True)
-        monkeypatch.setattr(file_handler, 'revert_published_error_files', Mock())
+        monkeypatch.setattr(file_handler, 'revert_published_error_comment_files', Mock())
         revert_to_certified(sub, file_handler)
 
         # Test that published data is moved back
