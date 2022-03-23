@@ -947,7 +947,7 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
             county_by_code: a dictionary containing all county names, keyed by state and county code
             state_code_list: a dictionary containing all state names, keyed by state code
             country_list: a dictionary containing all country names, keyed by country code
-            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
             atom_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
 
         Returns:
@@ -1007,13 +1007,13 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
 
     # Calculate executive compensation data for the entry.
-    if obj['awardee_or_recipient_uniqu'] and obj['awardee_or_recipient_uniqu'] in exec_comp_dict.keys():
-        exec_comp = exec_comp_dict[obj['awardee_or_recipient_uniqu']]
+    if obj['awardee_or_recipient_uei'] and obj['awardee_or_recipient_uei'].upper() in exec_comp_dict.keys():
+        exec_comp = exec_comp_dict[obj['awardee_or_recipient_uei'].upper()]
         for i in range(1, 6):
             obj['high_comp_officer{}_full_na'.format(i)] = exec_comp['officer{}_name'.format(i)]
             obj['high_comp_officer{}_amount'.format(i)] = exec_comp['officer{}_amt'.format(i)]
     else:
-        # Need to make sure they're null in case this is updating and the DUNS has changed somehow
+        # Need to make sure they're null in case this is updating and the UEI has changed somehow
         for i in range(1, 6):
             obj['high_comp_officer{}_full_na'.format(i)] = None
             obj['high_comp_officer{}_amount'.format(i)] = None
@@ -1064,7 +1064,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
             county_by_code: a dictionary containing all county names, keyed by state and county code
             state_code_list: a dictionary containing all state names, keyed by state code
             country_list: a dictionary containing all country names, keyed by country code
-            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
 
         Returns:
             An object containing the processed and calculated data.
@@ -1329,7 +1329,7 @@ def create_processed_data_list(data, contract_type, sess, sub_tier_list, county_
             county_by_code: a dictionary containing all county names, keyed by state and county code
             state_code_list: a dictionary containing all state names, keyed by state code
             country_list: a dictionary containing all country names, keyed by country code
-            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
 
         Returns:
             A list containing the processed and calculated data.
@@ -1372,7 +1372,7 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
             county_by_code: a dictionary containing all county names, keyed by state and county code
             state_code_list: a dictionary containing all state names, keyed by state code
             country_list: a dictionary containing all country names, keyed by country code
-            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
             now: a timestamp indicating the time to set the updated_at to
             threaded: a boolean indicating whether the process is running as a thread or not
     """
@@ -1489,7 +1489,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             county_by_code: a dictionary containing all county names, keyed by state and county code
             state_code_list: a dictionary containing all state names, keyed by state code
             country_list: a dictionary containing all country names, keyed by country code
-            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
             last_run: a date indicating the last time the pull was run
             threaded: a boolean indicating whether the process is running as a thread or not
             start_date: a date indicating the first date to pull from (must be provided with end_date)
@@ -1755,7 +1755,7 @@ def create_lookups(sess):
         Returns:
             Dictionaries of sub tier agencies by code, country names by code, county names by state code + county
             code, county codes by state code + county name, state name by code, and executive compensation data by
-            DUNS number
+            UEI number
     """
 
     # get and create list of sub tier agencies
@@ -1799,11 +1799,11 @@ def create_lookups(sess):
         if re.match('^[A-Z\s]+$', county_code.county_name):
             county_by_name[county_code.state_code][county_name] = county_code.county_number
 
-    # get and create list of duns -> exec comp data mappings
+    # get and create list of uei -> exec comp data mappings
     exec_comp_dict = {}
-    duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None)).all()
+    duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None), DUNS.uei.isnot(None)).all()
     for duns in duns_list:
-        exec_comp_dict[duns.awardee_or_recipient_uniqu] = \
+        exec_comp_dict[duns.uei.upper()] = \
             {'officer1_name': duns.high_comp_officer1_full_na, 'officer1_amt': duns.high_comp_officer1_amount,
              'officer2_name': duns.high_comp_officer2_full_na, 'officer2_amt': duns.high_comp_officer2_amount,
              'officer3_name': duns.high_comp_officer3_full_na, 'officer3_amt': duns.high_comp_officer3_amount,

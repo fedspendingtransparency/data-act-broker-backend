@@ -10,10 +10,8 @@ def replicate_file_e_results(duns):
     """ Helper function for subaward results """
     return OrderedDict([
         ('AwardeeOrRecipientUEI', duns.uei),
-        ('AwardeeOrRecipientUniqueIdentifier', duns.awardee_or_recipient_uniqu),
         ('AwardeeOrRecipientLegalEntityName', duns.legal_business_name),
         ('UltimateParentUEI', duns.ultimate_parent_uei),
-        ('UltimateParentUniqueIdentifier', duns.ultimate_parent_unique_ide),
         ('UltimateParentLegalEntityName', duns.ultimate_parent_legal_enti),
         ('HighCompOfficer1FullName', duns.high_comp_officer1_full_na),
         ('HighCompOfficer1Amount', duns.high_comp_officer1_amount),
@@ -36,13 +34,13 @@ def test_generate_file_e_sql(database, monkeypatch):
     sub1 = SubmissionFactory(submission_id=1)
     sub2 = SubmissionFactory(submission_id=2)
 
-    d1_show = AwardProcurementFactory(submission_id=sub1.submission_id, awardee_or_recipient_uniqu='000000000')
-    d2_show = AwardFinancialAssistanceFactory(submission_id=sub1.submission_id, awardee_or_recipient_duns='111111111')
-    d1_hide = AwardProcurementFactory(submission_id=sub2.submission_id, awardee_or_recipient_uniqu='222222222')
-    d2_hide = AwardFinancialAssistanceFactory(submission_id=sub2.submission_id, awardee_or_recipient_duns='333333333')
+    d1_show = AwardProcurementFactory(submission_id=sub1.submission_id, awardee_or_recipient_uei='00000000000e')
+    d2_show = AwardFinancialAssistanceFactory(submission_id=sub1.submission_id, awardee_or_recipient_uei='11111111111e')
+    d1_hide = AwardProcurementFactory(submission_id=sub2.submission_id, awardee_or_recipient_uei='22222222222e')
+    d2_hide = AwardFinancialAssistanceFactory(submission_id=sub2.submission_id, awardee_or_recipient_uei='33333333333e')
 
-    duns_show = [DunsFactory(awardee_or_recipient_uniqu=(str(i) * 9)) for i in range(0, 2)]
-    duns_hide = [DunsFactory(awardee_or_recipient_uniqu=(str(i) * 9)) for i in range(2, 4)]
+    duns_show = [DunsFactory(uei=(str(i) * 11) + 'e') for i in range(0, 2)]
+    duns_hide = [DunsFactory(uei=(str(i) * 11) + 'e') for i in range(2, 4)]
     duns_s = duns_show + duns_hide
 
     sess.add_all([sub1, sub2, d1_hide, d1_show, d2_hide, d2_show] + duns_s)

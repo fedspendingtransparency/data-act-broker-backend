@@ -42,28 +42,28 @@ def initialize_db_values(db):
     country_1 = CountryCodeFactory(country_code='USA', country_name='United States of America')
     country_2 = CountryCodeFactory(country_code='GBR', country_name='Great Britain')
     # DUNS
-    duns_1 = DunsFactory(awardee_or_recipient_uniqu='123456789', ultimate_parent_unique_ide='234567890',
+    duns_1 = DunsFactory(uei='123456789AbC', ultimate_parent_uei='234567890',
                          ultimate_parent_legal_enti='Parent 1', high_comp_officer1_full_na='Officer 1',
                          high_comp_officer1_amount='15', high_comp_officer2_full_na='Officer 2',
                          high_comp_officer2_amount='77.12', high_comp_officer3_full_na='This is the third Officer',
                          high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
                          high_comp_officer4_amount='0', high_comp_officer5_full_na=None,
                          high_comp_officer5_amount=None)
-    duns_2a = DunsFactory(awardee_or_recipient_uniqu='234567890', ultimate_parent_unique_ide='234567890',
+    duns_2a = DunsFactory(uei='234567890cBA', ultimate_parent_uei='234567890',
                           ultimate_parent_legal_enti='Parent 2', high_comp_officer1_full_na=None,
                           high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
                           high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
                           high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
                           high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
                           high_comp_officer5_amount=None)
-    duns_2b = DunsFactory(awardee_or_recipient_uniqu='234567890', ultimate_parent_unique_ide=None,
+    duns_2b = DunsFactory(uei='234567890cBA', ultimate_parent_uei=None,
                           ultimate_parent_legal_enti=None, high_comp_officer1_full_na=None,
                           high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
                           high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
                           high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
                           high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
                           high_comp_officer5_amount=None)
-    duns_3 = DunsFactory(awardee_or_recipient_uniqu='345678901', ultimate_parent_unique_ide=None,
+    duns_3 = DunsFactory(uei='345678901AaA', ultimate_parent_uei=None,
                          ultimate_parent_legal_enti=None, high_comp_officer1_full_na=None,
                          high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
                          high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
@@ -132,7 +132,7 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
                         award_mod_amend=None, fain=None, uri=None, cdi=None, awarding_office='03ab03',
                         funding_office='03ab03', legal_congr=None, primary_place_country='USA', legal_country='USA',
                         legal_foreign_city=None, action_type=None, assist_type=None, busi_type=None, busi_fund=None,
-                        awardee_or_recipient_uniqu=None, submission_id=9999):
+                        uei=None, submission_id=9999):
     """ Initialize the values in the object being run through the fabs_derivations function """
     column_list = [col.key for col in PublishedAwardFinancialAssistance.__table__.columns]
     remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active',
@@ -162,12 +162,12 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
             place_of_performance_zip4a, place_of_performance_congr, legal_entity_zip5, legal_entity_zip_last4,
             record_type, award_modification_amendme, fain, uri, correction_delete_indicatr, awarding_office_code,
             funding_office_code, legal_entity_congressional, place_of_perform_country_c, legal_entity_country_code,
-            legal_entity_foreign_city, awardee_or_recipient_uniqu, action_type, assistance_type, business_types,
+            legal_entity_foreign_city, uei, action_type, assistance_type, business_types,
             business_funds_indicator)
         VALUES ({fao}, {nffa}, {cfda_num}, {sub_tier_code}, {sub_fund_agency_code}, {ppop_code}, {ppop_zip4a},
             {ppop_cd}, {le_zip5}, {le_zip4}, {record_type}, {award_mod_amend}, {fain}, {uri}, {cdi}, {awarding_office},
             {funding_office}, {legal_congr}, {primary_place_country}, {legal_country}, {legal_foreign_city},
-            {awardee_or_recipient_uniqu}, {action_type}, {assist_type}, {busi_type}, {busi_fund})
+            {uei}, {action_type}, {assist_type}, {busi_type}, {busi_fund})
     """.format(submission_id=submission_id,
                fao=fao if fao else 'NULL',
                nffa=nffa if nffa else 'NULL',
@@ -190,7 +190,7 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
                primary_place_country=stringify(primary_place_country),
                legal_country=stringify(legal_country),
                legal_foreign_city=stringify(legal_foreign_city),
-               awardee_or_recipient_uniqu=stringify(awardee_or_recipient_uniqu),
+               uei=stringify(uei),
                action_type=stringify(action_type),
                assist_type=stringify(assist_type),
                busi_type=stringify(busi_type),
@@ -786,37 +786,37 @@ def test_split_zip(database):
     assert fabs_obj.place_of_perform_zip_last4 is None
 
 
-def test_derive_parent_duns_single(database):
+def test_derive_parent_uei_single(database):
     initialize_db_values(database)
 
-    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='123456789')
+    submission_id = initialize_test_row(database, uei='123456789abc')
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.ultimate_parent_legal_enti == 'Parent 1'
-    assert fabs_obj.ultimate_parent_unique_ide == '234567890'
+    assert fabs_obj.ultimate_parent_uei == '234567890'
 
 
-def test_derive_parent_duns_multiple(database):
+def test_derive_parent_uei_multiple(database):
     initialize_db_values(database)
 
-    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='234567890')
+    submission_id = initialize_test_row(database, uei='234567890cba')
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.ultimate_parent_legal_enti == 'Parent 2'
-    assert fabs_obj.ultimate_parent_unique_ide == '234567890'
+    assert fabs_obj.ultimate_parent_uei == '234567890'
 
 
-def test_derive_parent_duns_no_parent_info(database):
+def test_derive_parent_uei_no_parent_info(database):
     initialize_db_values(database)
 
-    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='345678901')
+    submission_id = initialize_test_row(database, uei='345678901aaa')
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.ultimate_parent_legal_enti is None
-    assert fabs_obj.ultimate_parent_unique_ide is None
+    assert fabs_obj.ultimate_parent_uei is None
 
 
 def test_derive_executive_compensation(database):
@@ -831,8 +831,8 @@ def test_derive_executive_compensation(database):
     assert fabs_obj.high_comp_officer1_full_na is None
     assert fabs_obj.high_comp_officer1_amount is None
 
-    # Test when DUNS doesn't have exec comp data associated
-    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='345678901', submission_id=3)
+    # Test when UEI doesn't have exec comp data associated
+    submission_id = initialize_test_row(database, uei='345678901AAA', submission_id=3)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -840,8 +840,8 @@ def test_derive_executive_compensation(database):
     assert fabs_obj.high_comp_officer1_full_na is None
     assert fabs_obj.high_comp_officer1_amount is None
 
-    # Test with DUNS that has exec comp data
-    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='123456789', submission_id=4)
+    # Test with UEI that has exec comp data
+    submission_id = initialize_test_row(database, uei='123456789abc', submission_id=4)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)

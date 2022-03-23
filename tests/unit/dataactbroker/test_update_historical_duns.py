@@ -3,12 +3,12 @@ import pandas as pd
 
 from dataactbroker.scripts import update_historical_duns
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.duns import DUNS_COLUMNS, EXCLUDE_FROM_API
+from dataactcore.utils.duns import SAM_COLUMNS, EXCLUDE_FROM_API
 from dataactcore.models.domainModels import DUNS, HistoricDUNS
 
 
-def test_remove_existing_duns(database):
-    """ Testing the removing existing duns function"""
+def test_remove_existing_recipients(database):
+    """ Testing the removing existing recipients function"""
     sess = database.session
     # of the duns 000000001-000000009, half of them are in the database
     all_duns = ['00000000{}'.format(x) for x in range(0, 10)]
@@ -19,18 +19,18 @@ def test_remove_existing_duns(database):
     sess.commit()
 
     # confirm that the dataframe returned only has half the duns
-    expected_duns = list(set(existing_duns) ^ set(all_duns))
-    new_df = update_historical_duns.remove_existing_duns(data, sess)
-    assert sorted(expected_duns) == sorted(new_df['awardee_or_recipient_uniqu'].tolist())
+    expected_recps = list(set(existing_duns) ^ set(all_duns))
+    new_df = update_historical_duns.remove_existing_recipients(data, sess)
+    assert sorted(expected_recps) == sorted(new_df['awardee_or_recipient_uniqu'].tolist())
 
 
-def mock_get_duns_props_from_sam(duns_list, api='entity'):
-    """ Mock function for get_duns_props as we can't connect to the SAM service """
-    request_cols = [col for col in DUNS_COLUMNS if col not in EXCLUDE_FROM_API]
+def mock_get_sam_props(key_list, api='entity', includes_uei=True):
+    """ Mock function for get_sam_props as we can't connect to the SAM service """
+    request_cols = [col for col in SAM_COLUMNS if col not in EXCLUDE_FROM_API]
     columns = request_cols
     results = pd.DataFrame(columns=columns)
 
-    duns_mappings = {
+    sam_mappings = {
         '000000001': {
             'awardee_or_recipient_uniqu': '000000001',
             'uei': 'A1',
@@ -92,16 +92,16 @@ def mock_get_duns_props_from_sam(duns_list, api='entity'):
             'high_comp_officer5_amount': '10'
         }
     }
-    for duns in duns_list:
-        if duns in duns_mappings:
-            results = results.append(pd.DataFrame(duns_mappings[duns]), sort=True)
+    for key in key_list:
+        if key in sam_mappings:
+            results = results.append(pd.DataFrame(sam_mappings[key]), sort=True)
     return results
 
 
-def test_update_duns_props(monkeypatch):
-    """ Testing updating the duns props with both populated/blank data """
-    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
-    duns_df = pd.DataFrame.from_dict({
+def test_update_sam_props(monkeypatch):
+    """ Testing updating the sam props with both populated/blank data """
+    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
+    recp_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000001', '000000002', '000000003']
     })
 
@@ -135,14 +135,14 @@ def test_update_duns_props(monkeypatch):
         'high_comp_officer5_amount': ['5', '10', None]
     })
 
-    assert expected_df.sort_index(inplace=True) == update_historical_duns.update_duns_props(duns_df)\
+    assert expected_df.sort_index(inplace=True) == update_historical_duns.update_sam_props(recp_df)\
         .sort_index(inplace=True)
 
 
-def test_update_duns_props_empty(monkeypatch):
+def test_update_sam_props_empty(monkeypatch):
     """ Special case where no data is returned """
-    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
-    duns_df = pd.DataFrame.from_dict({
+    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
+    recp_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000003']
     })
 
@@ -176,12 +176,12 @@ def test_update_duns_props_empty(monkeypatch):
         'high_comp_officer5_amount': [None]
     })
 
-    assert expected_df.to_dict() == update_historical_duns.update_duns_props(duns_df).to_dict()
+    assert expected_df.to_dict() == update_historical_duns.update_sam_props(recp_df).to_dict()
 
 
-def test_run_duns_batches(database, monkeypatch):
-    """ Test run_duns_batches for the core functionality """
-    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
+def test_run_sam_batches(database, monkeypatch):
+    """ Test run_sam_batches for the core functionality """
+    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
@@ -189,9 +189,9 @@ def test_run_duns_batches(database, monkeypatch):
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
-    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
+    recipient_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
-    update_historical_duns.run_duns_batches(duns_file, sess, block_size=1)
+    update_historical_duns.run_sam_batches(recipient_file, sess, block_size=1)
 
     expected_results = {
         '000000001': {
@@ -264,47 +264,47 @@ def test_run_duns_batches(database, monkeypatch):
         }
     }
     results = {}
-    for duns_obj in sess.query(HistoricDUNS).all():
-        results[duns_obj.awardee_or_recipient_uniqu] = {
-            'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
-            'uei': duns_obj.uei,
-            'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
-            'expiration_date': str(duns_obj.expiration_date) if duns_obj.expiration_date else None,
-            'last_sam_mod_date': str(duns_obj.last_sam_mod_date) if duns_obj.last_sam_mod_date else None,
-            'activation_date': str(duns_obj.activation_date) if duns_obj.activation_date else None,
-            'legal_business_name': duns_obj.legal_business_name,
-            'address_line_1': duns_obj.address_line_1,
-            'address_line_2': duns_obj.address_line_2,
-            'city': duns_obj.city,
-            'state': duns_obj.state,
-            'zip': duns_obj.zip,
-            'zip4': duns_obj.zip4,
-            'country_code': duns_obj.country_code,
-            'congressional_district': duns_obj.congressional_district,
-            'business_types_codes': duns_obj.business_types_codes,
-            'business_types': duns_obj.business_types,
-            'dba_name': duns_obj.dba_name,
-            'entity_structure': duns_obj.entity_structure,
-            'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
-            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
-            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
-            'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
-            'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
-            'high_comp_officer2_full_na': duns_obj.high_comp_officer2_full_na,
-            'high_comp_officer2_amount': duns_obj.high_comp_officer2_amount,
-            'high_comp_officer3_full_na': duns_obj.high_comp_officer3_full_na,
-            'high_comp_officer3_amount': duns_obj.high_comp_officer3_amount,
-            'high_comp_officer4_full_na': duns_obj.high_comp_officer4_full_na,
-            'high_comp_officer4_amount': duns_obj.high_comp_officer4_amount,
-            'high_comp_officer5_full_na': duns_obj.high_comp_officer5_full_na,
-            'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount
+    for recp_obj in sess.query(HistoricDUNS).all():
+        results[recp_obj.awardee_or_recipient_uniqu] = {
+            'awardee_or_recipient_uniqu': recp_obj.awardee_or_recipient_uniqu,
+            'uei': recp_obj.uei,
+            'registration_date': str(recp_obj.registration_date) if recp_obj.registration_date else None,
+            'expiration_date': str(recp_obj.expiration_date) if recp_obj.expiration_date else None,
+            'last_sam_mod_date': str(recp_obj.last_sam_mod_date) if recp_obj.last_sam_mod_date else None,
+            'activation_date': str(recp_obj.activation_date) if recp_obj.activation_date else None,
+            'legal_business_name': recp_obj.legal_business_name,
+            'address_line_1': recp_obj.address_line_1,
+            'address_line_2': recp_obj.address_line_2,
+            'city': recp_obj.city,
+            'state': recp_obj.state,
+            'zip': recp_obj.zip,
+            'zip4': recp_obj.zip4,
+            'country_code': recp_obj.country_code,
+            'congressional_district': recp_obj.congressional_district,
+            'business_types_codes': recp_obj.business_types_codes,
+            'business_types': recp_obj.business_types,
+            'dba_name': recp_obj.dba_name,
+            'entity_structure': recp_obj.entity_structure,
+            'ultimate_parent_unique_ide': recp_obj.ultimate_parent_unique_ide,
+            'ultimate_parent_uei': recp_obj.ultimate_parent_uei,
+            'ultimate_parent_legal_enti': recp_obj.ultimate_parent_legal_enti,
+            'high_comp_officer1_full_na': recp_obj.high_comp_officer1_full_na,
+            'high_comp_officer1_amount': recp_obj.high_comp_officer1_amount,
+            'high_comp_officer2_full_na': recp_obj.high_comp_officer2_full_na,
+            'high_comp_officer2_amount': recp_obj.high_comp_officer2_amount,
+            'high_comp_officer3_full_na': recp_obj.high_comp_officer3_full_na,
+            'high_comp_officer3_amount': recp_obj.high_comp_officer3_amount,
+            'high_comp_officer4_full_na': recp_obj.high_comp_officer4_full_na,
+            'high_comp_officer4_amount': recp_obj.high_comp_officer4_amount,
+            'high_comp_officer5_full_na': recp_obj.high_comp_officer5_full_na,
+            'high_comp_officer5_amount': recp_obj.high_comp_officer5_amount
         }
     assert results == expected_results
 
 
 def test_workflows(database, monkeypatch):
     """ Test both scenarios of the script, starting with a full run """
-    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
+    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
@@ -312,10 +312,10 @@ def test_workflows(database, monkeypatch):
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
-    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
+    recipient_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
-    update_historical_duns.run_duns_batches(duns_file, sess, block_size=1)
-    update_historical_duns.import_historic_duns(sess)
+    update_historical_duns.run_sam_batches(recipient_file, sess, block_size=1)
+    update_historical_duns.import_historic_recipients(sess)
 
     expected_results = {
         '000000001': {
@@ -456,98 +456,98 @@ def test_workflows(database, monkeypatch):
         }
     }
     results = {}
-    for duns_obj in sess.query(DUNS).all():
-        results[duns_obj.awardee_or_recipient_uniqu] = {
-            'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
-            'uei': duns_obj.uei,
-            'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
-            'expiration_date': str(duns_obj.expiration_date) if duns_obj.expiration_date else None,
-            'last_sam_mod_date': str(duns_obj.last_sam_mod_date) if duns_obj.last_sam_mod_date else None,
-            'activation_date': str(duns_obj.activation_date) if duns_obj.activation_date else None,
-            'legal_business_name': duns_obj.legal_business_name,
-            'address_line_1': duns_obj.address_line_1,
-            'address_line_2': duns_obj.address_line_2,
-            'city': duns_obj.city,
-            'state': duns_obj.state,
-            'zip': duns_obj.zip,
-            'zip4': duns_obj.zip4,
-            'country_code': duns_obj.country_code,
-            'congressional_district': duns_obj.congressional_district,
-            'business_types_codes': duns_obj.business_types_codes,
-            'business_types': duns_obj.business_types,
-            'dba_name': duns_obj.dba_name,
-            'entity_structure': duns_obj.entity_structure,
-            'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
-            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
-            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
-            'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
-            'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
-            'high_comp_officer2_full_na': duns_obj.high_comp_officer2_full_na,
-            'high_comp_officer2_amount': duns_obj.high_comp_officer2_amount,
-            'high_comp_officer3_full_na': duns_obj.high_comp_officer3_full_na,
-            'high_comp_officer3_amount': duns_obj.high_comp_officer3_amount,
-            'high_comp_officer4_full_na': duns_obj.high_comp_officer4_full_na,
-            'high_comp_officer4_amount': duns_obj.high_comp_officer4_amount,
-            'high_comp_officer5_full_na': duns_obj.high_comp_officer5_full_na,
-            'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount
+    for recp_obj in sess.query(DUNS).all():
+        results[recp_obj.awardee_or_recipient_uniqu] = {
+            'awardee_or_recipient_uniqu': recp_obj.awardee_or_recipient_uniqu,
+            'uei': recp_obj.uei,
+            'registration_date': str(recp_obj.registration_date) if recp_obj.registration_date else None,
+            'expiration_date': str(recp_obj.expiration_date) if recp_obj.expiration_date else None,
+            'last_sam_mod_date': str(recp_obj.last_sam_mod_date) if recp_obj.last_sam_mod_date else None,
+            'activation_date': str(recp_obj.activation_date) if recp_obj.activation_date else None,
+            'legal_business_name': recp_obj.legal_business_name,
+            'address_line_1': recp_obj.address_line_1,
+            'address_line_2': recp_obj.address_line_2,
+            'city': recp_obj.city,
+            'state': recp_obj.state,
+            'zip': recp_obj.zip,
+            'zip4': recp_obj.zip4,
+            'country_code': recp_obj.country_code,
+            'congressional_district': recp_obj.congressional_district,
+            'business_types_codes': recp_obj.business_types_codes,
+            'business_types': recp_obj.business_types,
+            'dba_name': recp_obj.dba_name,
+            'entity_structure': recp_obj.entity_structure,
+            'ultimate_parent_unique_ide': recp_obj.ultimate_parent_unique_ide,
+            'ultimate_parent_uei': recp_obj.ultimate_parent_uei,
+            'ultimate_parent_legal_enti': recp_obj.ultimate_parent_legal_enti,
+            'high_comp_officer1_full_na': recp_obj.high_comp_officer1_full_na,
+            'high_comp_officer1_amount': recp_obj.high_comp_officer1_amount,
+            'high_comp_officer2_full_na': recp_obj.high_comp_officer2_full_na,
+            'high_comp_officer2_amount': recp_obj.high_comp_officer2_amount,
+            'high_comp_officer3_full_na': recp_obj.high_comp_officer3_full_na,
+            'high_comp_officer3_amount': recp_obj.high_comp_officer3_amount,
+            'high_comp_officer4_full_na': recp_obj.high_comp_officer4_full_na,
+            'high_comp_officer4_amount': recp_obj.high_comp_officer4_amount,
+            'high_comp_officer5_full_na': recp_obj.high_comp_officer5_full_na,
+            'high_comp_officer5_amount': recp_obj.high_comp_officer5_amount
         }
     assert results == expected_results
 
-    # Test to see if truncating the DUNS table while keeping the historic reuploads the historic values
+    # Test to see if truncating the SAM table while keeping the historic reuploads the historic values
     sess.query(DUNS).filter(DUNS.historic.is_(True)).delete(synchronize_session=False)
 
-    # Make sure all the historic DUNS are removed from the DUNS table
+    # Make sure all the historic recipients are removed from the DUNS table
     assert sess.query(DUNS).filter(DUNS.historic.is_(True)).all() == []
 
-    # Redo script but don't go through run_duns_batches
-    update_historical_duns.clean_historic_duns(sess)
-    update_historical_duns.import_historic_duns(sess)
+    # Redo script but don't go through run_sam_batches
+    update_historical_duns.clean_historic_recipients(sess)
+    update_historical_duns.import_historic_recipients(sess)
 
     results = {}
-    for duns_obj in sess.query(DUNS).all():
-        results[duns_obj.awardee_or_recipient_uniqu] = {
-            'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
-            'uei': duns_obj.uei,
-            'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
-            'expiration_date': str(duns_obj.expiration_date) if duns_obj.expiration_date else None,
-            'last_sam_mod_date': str(duns_obj.last_sam_mod_date) if duns_obj.last_sam_mod_date else None,
-            'activation_date': str(duns_obj.activation_date) if duns_obj.activation_date else None,
-            'legal_business_name': duns_obj.legal_business_name,
-            'address_line_1': duns_obj.address_line_1,
-            'address_line_2': duns_obj.address_line_2,
-            'city': duns_obj.city,
-            'state': duns_obj.state,
-            'zip': duns_obj.zip,
-            'zip4': duns_obj.zip4,
-            'country_code': duns_obj.country_code,
-            'congressional_district': duns_obj.congressional_district,
-            'business_types_codes': duns_obj.business_types_codes,
-            'business_types': duns_obj.business_types,
-            'dba_name': duns_obj.dba_name,
-            'entity_structure': duns_obj.entity_structure,
-            'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
-            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
-            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
-            'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
-            'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
-            'high_comp_officer2_full_na': duns_obj.high_comp_officer2_full_na,
-            'high_comp_officer2_amount': duns_obj.high_comp_officer2_amount,
-            'high_comp_officer3_full_na': duns_obj.high_comp_officer3_full_na,
-            'high_comp_officer3_amount': duns_obj.high_comp_officer3_amount,
-            'high_comp_officer4_full_na': duns_obj.high_comp_officer4_full_na,
-            'high_comp_officer4_amount': duns_obj.high_comp_officer4_amount,
-            'high_comp_officer5_full_na': duns_obj.high_comp_officer5_full_na,
-            'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount
+    for recp_obj in sess.query(DUNS).all():
+        results[recp_obj.awardee_or_recipient_uniqu] = {
+            'awardee_or_recipient_uniqu': recp_obj.awardee_or_recipient_uniqu,
+            'uei': recp_obj.uei,
+            'registration_date': str(recp_obj.registration_date) if recp_obj.registration_date else None,
+            'expiration_date': str(recp_obj.expiration_date) if recp_obj.expiration_date else None,
+            'last_sam_mod_date': str(recp_obj.last_sam_mod_date) if recp_obj.last_sam_mod_date else None,
+            'activation_date': str(recp_obj.activation_date) if recp_obj.activation_date else None,
+            'legal_business_name': recp_obj.legal_business_name,
+            'address_line_1': recp_obj.address_line_1,
+            'address_line_2': recp_obj.address_line_2,
+            'city': recp_obj.city,
+            'state': recp_obj.state,
+            'zip': recp_obj.zip,
+            'zip4': recp_obj.zip4,
+            'country_code': recp_obj.country_code,
+            'congressional_district': recp_obj.congressional_district,
+            'business_types_codes': recp_obj.business_types_codes,
+            'business_types': recp_obj.business_types,
+            'dba_name': recp_obj.dba_name,
+            'entity_structure': recp_obj.entity_structure,
+            'ultimate_parent_unique_ide': recp_obj.ultimate_parent_unique_ide,
+            'ultimate_parent_uei': recp_obj.ultimate_parent_uei,
+            'ultimate_parent_legal_enti': recp_obj.ultimate_parent_legal_enti,
+            'high_comp_officer1_full_na': recp_obj.high_comp_officer1_full_na,
+            'high_comp_officer1_amount': recp_obj.high_comp_officer1_amount,
+            'high_comp_officer2_full_na': recp_obj.high_comp_officer2_full_na,
+            'high_comp_officer2_amount': recp_obj.high_comp_officer2_amount,
+            'high_comp_officer3_full_na': recp_obj.high_comp_officer3_full_na,
+            'high_comp_officer3_amount': recp_obj.high_comp_officer3_amount,
+            'high_comp_officer4_full_na': recp_obj.high_comp_officer4_full_na,
+            'high_comp_officer4_amount': recp_obj.high_comp_officer4_amount,
+            'high_comp_officer5_full_na': recp_obj.high_comp_officer5_full_na,
+            'high_comp_officer5_amount': recp_obj.high_comp_officer5_amount
         }
     assert results == expected_results
 
 
-def test_clean_historic_duns(database, monkeypatch):
+def test_clean_historic_recipients(database, monkeypatch):
     """
-        Test to make sure if a new DUNS is loaded and we reload historic DUNS (skipping the major load),
+        Test to make sure if a new recipient is loaded and we reload historic recipients (skipping the major load),
         we should remove the historic equivalents.
     """
-    monkeypatch.setattr('dataactcore.utils.duns.get_duns_props_from_sam', mock_get_duns_props_from_sam)
+    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
@@ -555,11 +555,11 @@ def test_clean_historic_duns(database, monkeypatch):
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
-    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
+    recipient_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
     # normal run
-    update_historical_duns.run_duns_batches(duns_file, sess, block_size=1)
-    update_historical_duns.import_historic_duns(sess)
+    update_historical_duns.run_sam_batches(recipient_file, sess, block_size=1)
+    update_historical_duns.import_historic_recipients(sess)
 
     # update old DUNS as part of load_duns_exec_comp.py
     updated_duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == '000000002').one()
@@ -567,8 +567,8 @@ def test_clean_historic_duns(database, monkeypatch):
     sess.commit()
 
     # rerun with a skip
-    update_historical_duns.clean_historic_duns(sess)
-    update_historical_duns.import_historic_duns(sess)
+    update_historical_duns.clean_historic_recipients(sess)
+    update_historical_duns.import_historic_recipients(sess)
 
     # check to see if historic duns equivalent is removed
     expected_count = sess.query(HistoricDUNS).filter(HistoricDUNS.awardee_or_recipient_uniqu == '000000002').count()
