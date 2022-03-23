@@ -238,7 +238,7 @@ BUSINESS_TYPE = [
 ]
 BUSINESS_TYPE_DICT = {item.name: item.desc for item in BUSINESS_TYPE}
 
-DUNS_BUSINESS_TYPE = [
+SAM_BUSINESS_TYPE = [
     LookupType(1, 'A6', 'SBA Certified 8(a), Program Participant'),
     LookupType(2, 'JT', 'SBA Certified 8(a), Joint Venture'),
     LookupType(3, 'XX', 'SBA Certified HUBZone Small Business Concern'),
@@ -323,7 +323,7 @@ DUNS_BUSINESS_TYPE = [
     LookupType(82, '2A', 'U.S. Government Entity'),
     LookupType(83, 'X6', 'International Organization')
 ]
-DUNS_BUSINESS_TYPE_DICT = {item.name: item.desc for item in DUNS_BUSINESS_TYPE}
+SAM_BUSINESS_TYPE_DICT = {item.name: item.desc for item in SAM_BUSINESS_TYPE}
 
 BUSINESS_FUNDS_IND = [
     LookupType(1, 'NON', 'Not Recovery Act'),

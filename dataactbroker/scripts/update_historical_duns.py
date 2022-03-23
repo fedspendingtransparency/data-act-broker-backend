@@ -14,7 +14,7 @@ from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.duns import update_duns_props, LOAD_BATCH_SIZE, update_duns
+from dataactcore.utils.duns import update_sam_props, LOAD_BATCH_SIZE, update_duns
 
 logger = logging.getLogger(__name__)
 
@@ -22,41 +22,41 @@ HD_COLUMNS = [col.key for col in HistoricDUNS.__table__.columns
               if col.key not in ('duns_id', 'created_at', 'updated_at')]
 
 
-def remove_existing_duns(data, sess):
-    """ Remove rows from file that already have a entry in broker database. We should only update missing DUNS
+def remove_existing_recipients(data, sess):
+    """ Remove rows from file that already have a entry in broker database. We should only update missing recipients
 
         Args:
-            data: dataframe representing a list of duns
+            data: dataframe representing a list of recipients
             sess: the database session
 
         Returns:
-            a new dataframe with the DUNS removed that already exist in the database
+            a new dataframe with the recipients removed that already exist in the database
     """
 
-    duns_in_file = ",".join(list(data['awardee_or_recipient_uniqu'].unique()))
+    recps_in_file = ",".join(list(data['awardee_or_recipient_uniqu'].unique()))
     sql_query = "SELECT awardee_or_recipient_uniqu " +\
                 "FROM duns where awardee_or_recipient_uniqu = ANY('{" + \
-                duns_in_file +\
+                recps_in_file +\
                 "}')"
 
     db_duns = pd.read_sql(sql_query, sess.bind)
-    missing_duns = data[~data['awardee_or_recipient_uniqu'].isin(db_duns['awardee_or_recipient_uniqu'])]
+    missing_recps = data[~data['awardee_or_recipient_uniqu'].isin(db_duns['awardee_or_recipient_uniqu'])]
 
-    return missing_duns
+    return missing_recps
 
 
-def run_duns_batches(file, sess, block_size=LOAD_BATCH_SIZE):
+def run_sam_batches(file, sess, block_size=LOAD_BATCH_SIZE):
     """ Updates Historic DUNS table in chunks from csv file
 
         Args:
-            file: path to the DUNS export file to use
+            file: path to the recipient export file to use
             sess: the database connection
-            block_size: the size of the batches to read from the DUNS export file.
+            block_size: the size of the batches to read from the recipient export file.
     """
-    logger.info("Retrieving total rows from duns file")
+    logger.info("Retrieving total rows from recipients file")
     start = datetime.now()
 
-    # CSV column header name in DUNS file
+    # CSV column header name in recipient file
     column_headers = [
         "awardee_or_recipient_uniqu",  # DUNS Field
         "registration_date",  # Registration_Date
@@ -65,74 +65,74 @@ def run_duns_batches(file, sess, block_size=LOAD_BATCH_SIZE):
         "activation_date",  # Activation_Date
         "legal_business_name"  # Legal_Business_Name
     ]
-    duns_reader_obj = pd.read_csv(file, skipinitialspace=True, header=None, quotechar='"', dtype=str,
-                                  names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
-    duns_dfs = [duns_df for duns_df in duns_reader_obj]
-    row_count = sum([len(duns_df.index) for duns_df in duns_dfs])
+    sam_reader_obj = pd.read_csv(file, skipinitialspace=True, header=None, quotechar='"', dtype=str,
+                                 names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
+    sam_dfs = [sam_df for sam_df in sam_reader_obj]
+    row_count = sum([len(sam_df.index) for sam_df in sam_dfs])
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now() - start).total_seconds()))
 
-    duns_added = 0
-    for duns_df in duns_dfs:
+    recipients_added = 0
+    for sam_df in sam_dfs:
         # Remove rows where awardee_or_recipient_uniqu is null
-        duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
-        # Ignore old DUNS we already have
-        duns_to_load = remove_existing_duns(duns_df, sess)
+        sam_df = sam_df[sam_df['awardee_or_recipient_uniqu'].notnull()]
+        # Ignore old recipients we already have
+        recps_to_load = remove_existing_recipients(sam_df, sess)
 
-        if not duns_to_load.empty:
-            logger.info("Adding {} DUNS records from historic data".format(len(duns_to_load.index)))
+        if not recps_to_load.empty:
+            logger.info("Adding {} SAM records from historic data".format(len(recps_to_load.index)))
             start = datetime.now()
 
-            # get address info for incoming duns
-            duns_to_load = update_duns_props(duns_to_load)
-            column_mappings = {col: col for col in duns_to_load.columns}
-            duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
-            duns_added += len(duns_to_load.index)
-            update_duns(sess, duns_to_load, HistoricDUNS.__table__.name)
+            # get address info for incoming recipients
+            recps_to_load = update_sam_props(recps_to_load)
+            column_mappings = {col: col for col in recps_to_load.columns}
+            recps_to_load = clean_data(recps_to_load, HistoricDUNS, column_mappings, {})
+            recipients_added += len(recps_to_load.index)
+            update_duns(sess, recps_to_load, HistoricDUNS.__table__.name)
             sess.commit()
 
-            logger.info("Finished updating {} DUNS rows in {} s".format(len(duns_to_load.index),
-                                                                        (datetime.now() - start).total_seconds()))
+            logger.info("Finished updating {} SAM rows in {} s".format(len(recps_to_load.index),
+                                                                       (datetime.now() - start).total_seconds()))
 
-    logger.info("Imported {} historical duns".format(duns_added))
+    logger.info("Imported {} historical recipients".format(recipients_added))
 
 
 def reload_from_sam(sess):
-    """ Reload current historic duns data from SAM to pull in any new columns or data
+    """ Reload current historic recipient data from SAM to pull in any new columns or data
 
         Args:
             sess: database connection
     """
-    historic_duns_to_update = sess.query(HistoricDUNS.awardee_or_recipient_uniqu).all()
-    for duns_batch in batch(historic_duns_to_update, LOAD_BATCH_SIZE):
+    historic_recps_to_update = sess.query(HistoricDUNS.awardee_or_recipient_uniqu).all()
+    for sam_batch in batch(historic_recps_to_update, LOAD_BATCH_SIZE):
         df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
-        df = df.append(duns_batch)
-        df = update_duns_props(df)
+        df = df.append(sam_batch)
+        df = update_sam_props(df)
         update_duns(sess, df, table_name=HistoricDUNS.__table__.name)
 
 
-def clean_historic_duns(sess):
+def clean_historic_recipients(sess):
     """ Removes historic DUNS that now appear in SAM csvs
 
         Args:
             sess: the database connection
     """
-    new_duns = list(sess.query(DUNS.awardee_or_recipient_uniqu).filter(
+    new_recps = list(sess.query(DUNS.awardee_or_recipient_uniqu).filter(
         DUNS.awardee_or_recipient_uniqu == HistoricDUNS.awardee_or_recipient_uniqu, DUNS.historic.is_(False)).all())
-    if new_duns:
+    if new_recps:
         logger.info('Found {} new DUNS that were previously only available as a historic DUNS. Removing the historic'
-                    ' records from the historic duns table.'.format(len(new_duns)))
-        sess.query(HistoricDUNS).filter(HistoricDUNS.awardee_or_recipient_uniqu.in_(new_duns))\
+                    ' records from the historic duns table.'.format(len(new_recps)))
+        sess.query(HistoricDUNS).filter(HistoricDUNS.awardee_or_recipient_uniqu.in_(new_recps))\
             .delete(synchronize_session=False)
         sess.commit()
 
 
-def import_historic_duns(sess):
+def import_historic_recipients(sess):
     """ Copy the historic DUNS to the DUNS table
 
         Args:
             sess: the database connection
     """
-    logger.info('Updating historic duns values in the DUNS table')
+    logger.info('Updating historic recipient values in the SAM table')
     update_cols = ['{col} = hd.{col}'.format(col=col) for col in HD_COLUMNS
                    if col not in ['created_at', 'updated_at', 'awardee_or_recipient_uniqu']]
     update_cols.append('updated_at = NOW()')
@@ -146,9 +146,9 @@ def import_historic_duns(sess):
             AND duns.historic = TRUE;
     """.format(update_cols=','.join(update_cols))
     sess.execute(update_sql)
-    logger.info('Updated historic duns values to DUNS table')
+    logger.info('Updated historic recipient values to SAM table')
 
-    logger.info('Inserting historic duns values to DUNS table')
+    logger.info('Inserting historic recipient values to SAM table')
     from_columns = ['hd.{}'.format(column) for column in HD_COLUMNS]
     copy_sql = """
         INSERT INTO duns (
@@ -171,15 +171,15 @@ def import_historic_duns(sess):
     """.format(columns=', '.join(HD_COLUMNS), from_columns=', '.join(from_columns))
     sess.execute(copy_sql)
     sess.commit()
-    logger.info('Inserted new historic duns values to DUNS table')
+    logger.info('Inserted new historic recipient values to SAM table')
 
 
 def main():
     """
-        Loads DUNS from the DUNS export file (comprised of DUNS pre-2014).
+        Loads recipients from the legacy recipients export file (comprised of recipients pre-2014).
         Note: Should only run after importing all the SAM csv data to prevent unnecessary reloading
     """
-    parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
+    parser = argparse.ArgumentParser(description='Adding historical recipients to Broker.')
     parser.add_argument('--block_size', '-s', help='Number of rows to batch load', type=int, default=LOAD_BATCH_SIZE)
     action = parser.add_mutually_exclusive_group()
     action.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
@@ -195,38 +195,38 @@ def main():
     sess = GlobalDB.db().session
 
     if reload_file:
-        logger.info('Retrieving historical DUNS file')
+        logger.info('Retrieving historical recipients file')
         start = datetime.now()
         if CONFIG_BROKER["use_aws"]:
             s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-            duns_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
-                                                                        'Key': "DUNS_export_deduped.csv"},
-                                                         ExpiresIn=10000)
+            recps_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
+                                                                         'Key': "DUNS_export_deduped.csv"},
+                                                          ExpiresIn=10000)
         else:
-            duns_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export_deduped.csv")
+            recps_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export_deduped.csv")
 
-        if not duns_file:
+        if not recps_file:
             raise OSError("No DUNS_export_deduped.csv found.")
 
-        logger.info("Retrieved historical DUNS file in {} s".format((datetime.now() - start).total_seconds()))
+        logger.info("Retrieved historical recipients file in {} s".format((datetime.now() - start).total_seconds()))
 
         try:
-            run_duns_batches(duns_file, sess, block_size)
+            run_sam_batches(recps_file, sess, block_size)
         except Exception as e:
             logger.exception(e)
             sess.rollback()
     else:
-        # if we're using an old historic duns table, clean it up before importing
-        clean_historic_duns(sess)
+        # if we're using an old historic recipients table, clean it up before importing
+        clean_historic_recipients(sess)
 
         if update_from_sam:
             reload_from_sam(sess)
 
-    # import the historic duns to the current DUNS table
-    import_historic_duns(sess)
+    # import the historic recipients to the current SAM table
+    import_historic_recipients(sess)
 
     sess.close()
-    logger.info("Updating historical DUNS complete")
+    logger.info("Updating historical recipients complete")
 
 
 if __name__ == '__main__':
