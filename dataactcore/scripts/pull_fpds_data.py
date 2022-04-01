@@ -683,7 +683,6 @@ def vendor_site_details_values(data, obj):
 
     # entityIdentifiers > vendorDUNSInformation sub-level
     value_map = {'DUNSNumber': 'awardee_or_recipient_uniqu',
-                 'globalParentDUNSName': 'ultimate_parent_legal_enti',
                  'globalParentDUNSNumber': 'ultimate_parent_unique_ide'}
 
     for key, value in value_map.items():
@@ -694,7 +693,8 @@ def vendor_site_details_values(data, obj):
 
     # entityIdentifiers > vendorUEIInformation sub-level
     value_map = {'UEI': 'awardee_or_recipient_uei',
-                 'ultimateParentUEI': 'ultimate_parent_uei'}
+                 'ultimateParentUEI': 'ultimate_parent_uei',
+                 'ultimateParentUEIName': 'ultimate_parent_legal_enti'}
 
     for key, value in value_map.items():
         try:
