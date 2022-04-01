@@ -140,6 +140,14 @@ Index("ix_fsrs_proc_idv_ref_upper", func.upper(FSRSProcurement.idv_reference_num
 Index("ix_fsrs_proc_contract_office_aid_upper", func.upper(FSRSProcurement.contracting_office_aid))
 Index("ix_fsrs_grant_fain_upper", func.upper(FSRSGrant.fain))
 Index("ix_fsrs_grant_federal_agency_id_upper", func.upper(FSRSGrant.federal_agency_id))
+Index("ix_fsrs_grant_uei_number_upper", func.upper(FSRSGrant.uei_number))
+Index("ix_fsrs_grant_parent_uei_upper", func.upper(FSRSGrant.parent_uei))
+Index("ix_fsrs_subgrant_uei_number_upper", func.upper(FSRSSubgrant.uei_number))
+Index("ix_fsrs_subgrant_parent_uei_upper", func.upper(FSRSSubgrant.parent_uei))
+Index("ix_fsrs_proc_uei_number_upper", func.upper(FSRSProcurement.uei_number))
+Index("ix_fsrs_proc_parent_uei_upper", func.upper(FSRSProcurement.parent_uei))
+Index("ix_fsrs_subcont_uei_number_upper", func.upper(FSRSSubcontract.uei_number))
+Index("ix_fsrs_subcont_parent_uei_upper", func.upper(FSRSSubcontract.parent_uei))
 
 
 class Subaward(Base):

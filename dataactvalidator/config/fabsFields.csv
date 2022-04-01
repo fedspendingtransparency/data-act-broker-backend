@@ -3,7 +3,6 @@ ActionDate,actiondate,action_date,FALSE,str,8,
 ActionType,actiontype,action_type,FALSE,str,1,
 AssistanceType,assistancetype,assistance_type,FALSE,str,2,TRUE
 AwardDescription,awarddescription,award_description,FALSE,str,18000,
-AwardeeOrRecipientDUNS,awardeeorrecipientduns,awardee_or_recipient_duns,FALSE,str,9,
 AwardeeOrRecipientLegalEntityName,awardeeorrecipientlegalentityname,awardee_or_recipient_legal,FALSE,str,120,
 AwardeeOrRecipientUEI,awardeeorrecipientuei,awardee_or_recipient_uei,FALSE,str,12,
 AwardingOfficeCode,awardingofficecode,awarding_office_code,FALSE,str,6,

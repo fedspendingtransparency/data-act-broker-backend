@@ -223,15 +223,16 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
         download_sam_file(root_dir, file_name, api=api)
 
     file_path = os.path.join(root_dir, file_name)
+    includes_uei = version == 'v2'
     if data_type == 'DUNS':
         add_update_data, delete_data = parse_duns_file(file_path, metrics=metrics)
         if add_update_data is not None:
-            update_duns(sess, add_update_data, metrics=metrics)
+            update_duns(sess, add_update_data, metrics=metrics, includes_uei=includes_uei)
         if delete_data is not None:
-            update_duns(sess, delete_data, metrics=metrics, deletes=True)
+            update_duns(sess, delete_data, metrics=metrics, deletes=True, includes_uei=includes_uei)
     else:
         exec_comp_data = parse_exec_comp_file(file_path, metrics=metrics)
-        update_duns(sess, exec_comp_data, metrics=metrics)
+        update_duns(sess, exec_comp_data, metrics=metrics, includes_uei=includes_uei)
     if not local:
         os.remove(file_path)
 

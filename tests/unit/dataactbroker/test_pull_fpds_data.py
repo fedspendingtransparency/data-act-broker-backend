@@ -57,11 +57,11 @@ def test_calculate_remaining_fields(database):
                       'GU': {'123': 'GU COUNTY'}}
     state_codes = {'GA': 'GEORGIA', 'MD': 'MARYLAND', 'PR': 'PUERTO RICO', 'GU': 'GUAM'}
     country_list = {'USA': 'UNITED STATES'}
-    exec_comp = {'123456': {'officer1_name': 'officer 1', 'officer1_amt': '0',
-                            'officer2_name': 'officer 2', 'officer2_amt': '77.5',
-                            'officer3_name': 'officer 3', 'officer3_amt': None,
-                            'officer4_name': None, 'officer4_amt': '20',
-                            'officer5_name': None, 'officer5_amt': None}}
+    exec_comp = {'123456ABC': {'officer1_name': 'officer 1', 'officer1_amt': '0',
+                               'officer2_name': 'officer 2', 'officer2_amt': '77.5',
+                               'officer3_name': 'officer 3', 'officer3_amt': None,
+                               'officer4_name': None, 'officer4_amt': '20',
+                               'officer5_name': None, 'officer5_amt': None}}
 
     # build business category values
     business_category_dict = {}
@@ -81,7 +81,7 @@ def test_calculate_remaining_fields(database):
                     'legal_entity_country_name': 'UNITED STATES',
                     'legal_entity_state_code': 'GA',
                     'legal_entity_state_descrip': 'GEORGIA',
-                    'awardee_or_recipient_uniqu': None}
+                    'awardee_or_recipient_uei': None}
     tmp_obj_data.update(business_category_dict.copy())
     tmp_obj_data['emerging_small_business'] = 'Y'
     tmp_obj = pull_fpds_data.calculate_remaining_fields(tmp_obj_data,
@@ -108,7 +108,7 @@ def test_calculate_remaining_fields(database):
                       'legal_entity_country_name': 'UNITED STATES',
                       'legal_entity_state_code': 'GA',
                       'legal_entity_state_descrip': 'GEORGIA',
-                      'awardee_or_recipient_uniqu': '654321'}
+                      'awardee_or_recipient_uei': '654321cDe'}
     tmp_obj_2_data.update(business_category_dict.copy())
     tmp_obj_2_data['contracting_officers_deter'] = 'O'
     tmp_obj_2 = pull_fpds_data.calculate_remaining_fields(tmp_obj_2_data,
@@ -135,7 +135,7 @@ def test_calculate_remaining_fields(database):
                       'legal_entity_country_name': 'GUAM',
                       'legal_entity_state_code': 'GA',
                       'legal_entity_state_descrip': 'GEORGIA',
-                      'awardee_or_recipient_uniqu': '123456'}
+                      'awardee_or_recipient_uei': '123456AbC'}
     tmp_obj_3_data.update(business_category_dict.copy())
     tmp_obj_3_data['alaskan_native_owned_corpo'] = 'True'
     tmp_obj_3 = pull_fpds_data.calculate_remaining_fields(tmp_obj_3_data,
