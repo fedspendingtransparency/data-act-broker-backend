@@ -32,55 +32,55 @@ WITH aw_pafa AS
                 AND UPPER(fsrs_grant.federal_agency_id) IS NOT DISTINCT FROM UPPER(pafa.awarding_sub_tier_agency_c)
         )
     ORDER BY UPPER(pafa.fain), UPPER(pafa.awarding_sub_tier_agency_c), pafa.action_date),
-grant_pduns AS
-    (SELECT grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
-        grand_pduns_from.legal_business_name AS legal_business_name
+grant_puei AS
+    (SELECT grant_puei_from.uei AS uei,
+        grant_puei_from.legal_business_name AS legal_business_name
     FROM (
-        SELECT duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+        SELECT duns.uei AS uei,
             duns.legal_business_name AS legal_business_name,
             row_number() OVER (PARTITION BY
-                duns.awardee_or_recipient_uniqu
+                UPPER(duns.uei)
             ) AS row
         FROM fsrs_grant
             LEFT OUTER JOIN duns
-                ON fsrs_grant.parent_duns = duns.awardee_or_recipient_uniqu
+                ON UPPER(fsrs_grant.parent_uei) = UPPER(duns.uei)
                 AND fsrs_grant.id {0} {1}
         ORDER BY duns.activation_date DESC
-     ) AS grand_pduns_from
-    WHERE grand_pduns_from.row = 1),
-subgrant_pduns AS (
-    SELECT sub_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
-        sub_pduns_from.legal_business_name AS legal_business_name
+     ) AS grant_puei_from
+    WHERE grant_puei_from.row = 1),
+subgrant_puei AS (
+    SELECT sub_puei_from.uei AS uei,
+        sub_puei_from.legal_business_name AS legal_business_name
     FROM (
-        SELECT duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+        SELECT duns.uei AS uei,
             duns.legal_business_name AS legal_business_name,
             row_number() OVER (PARTITION BY
-                duns.awardee_or_recipient_uniqu
+                UPPER(duns.uei)
             ) AS row
         FROM fsrs_subgrant
             LEFT OUTER JOIN duns
-                ON fsrs_subgrant.parent_duns = duns.awardee_or_recipient_uniqu
+                ON UPPER(fsrs_subgrant.parent_uei) = UPPER(duns.uei)
                 AND fsrs_subgrant.parent_id {0} {1}
         ORDER BY duns.activation_date DESC
-    ) AS sub_pduns_from
-    WHERE sub_pduns_from.row = 1),
-subgrant_duns AS (
-    SELECT sub_duns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
-        sub_duns_from.business_types AS business_types
+    ) AS sub_puei_from
+    WHERE sub_puei_from.row = 1),
+subgrant_uei AS (
+    SELECT sub_uei_from.uei AS uei,
+        sub_uei_from.business_types AS business_types
     FROM (
         SELECT
-            duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+            duns.uei AS uei,
             duns.business_types AS business_types,
             row_number() OVER (PARTITION BY
-                duns.awardee_or_recipient_uniqu
+                UPPER(duns.uei)
             ) AS row
         FROM fsrs_subgrant
             LEFT OUTER JOIN duns
-                ON fsrs_subgrant.duns = duns.awardee_or_recipient_uniqu
+                ON UPPER(fsrs_subgrant.uei_number) = UPPER(duns.uei)
                 AND fsrs_subgrant.parent_id {0} {1}
         ORDER BY duns.activation_date DESC
-    ) AS sub_duns_from
-    WHERE sub_duns_from.row = 1)
+    ) AS sub_uei_from
+    WHERE sub_uei_from.row = 1)
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -244,7 +244,7 @@ SELECT
     fsrs_grant.dba_name AS "dba_name",
     fsrs_grant.parent_duns AS "ultimate_parent_unique_ide",
     fsrs_grant.parent_uei AS "ultimate_parent_uei",
-    grant_pduns.legal_business_name AS "ultimate_parent_legal_enti",
+    grant_puei.legal_business_name AS "ultimate_parent_legal_enti",
     le_country.country_code AS "legal_entity_country_code",
     le_country.country_name AS "legal_entity_country_name",
     fsrs_grant.awardee_address_street AS "legal_entity_address_line1",
@@ -293,7 +293,7 @@ SELECT
     fsrs_subgrant.dba_name AS "sub_dba_name",
     fsrs_subgrant.parent_duns AS "sub_ultimate_parent_unique_ide",
     fsrs_subgrant.parent_uei AS "sub_ultimate_parent_uei",
-    subgrant_pduns.legal_business_name AS "sub_ultimate_parent_legal_enti",
+    subgrant_puei.legal_business_name AS "sub_ultimate_parent_legal_enti",
     sub_le_country.country_code AS "sub_legal_entity_country_code",
     sub_le_country.country_name AS "sub_legal_entity_country_name",
     fsrs_subgrant.awardee_address_street AS "sub_legal_entity_address_line1",
@@ -309,8 +309,8 @@ SELECT
          THEN fsrs_subgrant.awardee_address_zip
          ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
-    CASE WHEN cardinality(subgrant_duns.business_types) > 0
-         THEN array_to_string(subgrant_duns.business_types, ',')
+    CASE WHEN cardinality(subgrant_uei.business_types) > 0
+         THEN array_to_string(subgrant_uei.business_types, ',')
          ELSE NULL
     END AS "sub_business_types",
     fsrs_subgrant.principle_place_city AS "sub_place_of_perform_city_name",
@@ -402,10 +402,10 @@ FROM fsrs_grant
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON (UPPER(fsrs_subgrant.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subgrant.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
-    LEFT OUTER JOIN grant_pduns
-        ON fsrs_grant.parent_duns = grant_pduns.awardee_or_recipient_uniqu
-    LEFT OUTER JOIN subgrant_pduns
-        ON fsrs_subgrant.parent_duns = subgrant_pduns.awardee_or_recipient_uniqu
-    LEFT OUTER JOIN subgrant_duns
-        ON fsrs_subgrant.duns = subgrant_duns.awardee_or_recipient_uniqu
+    LEFT OUTER JOIN grant_puei
+        ON UPPER(fsrs_grant.parent_uei) = UPPER(grant_puei.uei)
+    LEFT OUTER JOIN subgrant_puei
+        ON UPPER(fsrs_subgrant.parent_uei) = UPPER(subgrant_puei.uei)
+    LEFT OUTER JOIN subgrant_uei
+        ON UPPER(fsrs_subgrant.uei_number) = UPPER(subgrant_uei.uei)
 WHERE fsrs_grant.id {0} {1}
