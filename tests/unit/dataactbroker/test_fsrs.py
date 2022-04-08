@@ -107,7 +107,7 @@ def test_soap_to_dict():
 def test_flatten_soap_dict():
     """Spot check that data's imported to the proper fields"""
     obj = dict(
-        duns='DuNs', recovery_model_q1=True, bus_types=['a', 'b', 'c'],
+        uei_number='UeINuM', recovery_model_q1=True, bus_types=['a', 'b', 'c'],
         dropped='field', another_dropped=['l', 'i', 's', 't'],
         company_address=dict(city='CompanyCity', district='CompanyDist'),
         principle_place=dict(street='PrincipleStreet'),
@@ -120,7 +120,7 @@ def test_flatten_soap_dict():
         )
     )
     expected = dict(
-        duns='DuNs', recovery_model_q1=True, bus_types='a,b,c',
+        uei_number='UeINuM', recovery_model_q1=True, bus_types='a,b,c',
         company_address_city='CompanyCity',
         company_address_street=None, company_address_state=None, company_address_state_name=None,
         company_address_country=None, company_address_zip=None,
@@ -136,7 +136,7 @@ def test_flatten_soap_dict():
         top_paid_fullname_5='full5', top_paid_amount_5='5'
     )
     result = fsrs.flatten_soap_dict(
-        simple_fields=('duns', 'recovery_model_q1'),
+        simple_fields=('uei_number', 'recovery_model_q1'),
         address_fields=('company_address', 'principle_place'),
         comma_field='bus_types',
         soap_dict=obj)
@@ -183,33 +183,33 @@ def test_fetch_and_replace_batch_saves_data(no_award_db, monkeypatch):
 
 
 def test_fetch_and_replace_batch_overrides_data(no_award_db, monkeypatch):
-    def fetch_duns(award_id):
-        test_result = no_award_db.query(FSRSGrant.duns).filter(
+    def fetch_uei(award_id):
+        test_result = no_award_db.query(FSRSGrant.uei_number).filter(
             FSRSGrant.id == award_id).one_or_none()
         if test_result:
             return test_result[0]
         return None
 
-    award1 = FSRSGrantFactory(id=1, internal_id='12345', duns='To Be Replaced')
+    award1 = FSRSGrantFactory(id=1, internal_id='12345', uei_number='To Be Replaced')
     award1.subawards = [FSRSSubgrantFactory() for _ in range(4)]
-    award2 = FSRSGrantFactory(id=2, internal_id='54321', duns='Not Altered')
+    award2 = FSRSGrantFactory(id=2, internal_id='54321', uei_number='Not Altered')
     award2.subawards = [FSRSSubgrantFactory()]
     monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award1, award2]))
 
     fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT, id=award1.internal_id, min_id=True)
-    assert fetch_duns(1) == 'To Be Replaced'
-    assert fetch_duns(2) == 'Not Altered'
+    assert fetch_uei(1) == 'To Be Replaced'
+    assert fetch_uei(2) == 'Not Altered'
     # 5 subawards, 4 from award1 and 1 from award2
     assert no_award_db.query(FSRSSubgrant).count() == 5
 
     no_award_db.expunge_all()   # Reset the model cache
 
-    award3 = FSRSGrantFactory(id=3, internal_id='12345', duns='Replaced')
+    award3 = FSRSGrantFactory(id=3, internal_id='12345', uei_number='Replaced')
     award3.subawards = [FSRSSubgrantFactory() for _ in range(2)]
     monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award3]))
     fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT, id=award3.internal_id, min_id=True)
-    assert fetch_duns(1) is None
-    assert fetch_duns(2) == 'Not Altered'
-    assert fetch_duns(3) == 'Replaced'
+    assert fetch_uei(1) is None
+    assert fetch_uei(2) == 'Not Altered'
+    assert fetch_uei(3) == 'Replaced'
     # 3 subawards, 4 from award1/award3 and 1 from award2
     assert no_award_db.query(FSRSSubgrant).count() == 3

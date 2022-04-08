@@ -25,9 +25,9 @@ These are derivations that can happen in any order.
 	- `office.office_code` => `funding_office_code`
 	- `office.office_name` => `awarding_office_name`
 	- `office.office_name` => `funding_office_name`
-- `derive_parent_duns`
+- `derive_parent_uei`
 	- `duns.ultimate_parent_legal_enti` => `ultimate_parent_legal_enti`
-	- `duns.ultimate_parent_unique_ide` => `ultimate_parent_unique_ide`
+	- `duns.ultimate_parent_uei` => `ultimate_parent_uei`
 - `derive_executive_compensation`
 	- `duns.high_comp_officer1_full_na` => `high_comp_officer1_full_na`
 	- `duns.high_comp_officer1_amount` => `high_comp_officer1_amount`
