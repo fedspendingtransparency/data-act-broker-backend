@@ -24,14 +24,14 @@ SELECT
 FROM detached_award_financial_assistance_fabs31_5_{0} AS dafa
 WHERE NOT EXISTS (
         SELECT 1
-        FROM duns
+        FROM sam_recipient
         WHERE (
-            UPPER(dafa.uei) = UPPER(duns.uei)
+            UPPER(dafa.uei) = UPPER(sam_recipient.uei)
             AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
                  THEN CAST(dafa.action_date AS DATE)
-                 END) >= CAST(duns.registration_date AS DATE)
+                 END) >= CAST(sam_recipient.registration_date AS DATE)
             AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
                  THEN CAST(dafa.action_date AS DATE)
-                 END) < CAST(duns.expiration_date AS DATE)
+                 END) < CAST(sam_recipient.expiration_date AS DATE)
         )
     );
