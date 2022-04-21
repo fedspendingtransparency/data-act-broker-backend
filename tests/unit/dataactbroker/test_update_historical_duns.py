@@ -4,7 +4,7 @@ import pandas as pd
 from dataactbroker.scripts import update_historical_duns
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.duns import SAM_COLUMNS, EXCLUDE_FROM_API
-from dataactcore.models.domainModels import DUNS, HistoricDUNS
+from dataactcore.models.domainModels import SAMRecipient, HistoricDUNS
 
 
 def test_remove_existing_recipients(database):
@@ -15,7 +15,7 @@ def test_remove_existing_recipients(database):
     existing_duns = all_duns[: 4]
     data = pd.DataFrame.from_dict({'awardee_or_recipient_uniqu': all_duns})
     for duns in existing_duns:
-        sess.add(DUNS(awardee_or_recipient_uniqu=duns))
+        sess.add(SAMRecipient(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
     # confirm that the dataframe returned only has half the duns
@@ -186,7 +186,7 @@ def test_run_sam_batches(database, monkeypatch):
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
     for duns in existing_duns:
-        sess.add(DUNS(awardee_or_recipient_uniqu=duns))
+        sess.add(SAMRecipient(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
     recipient_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
@@ -201,7 +201,7 @@ def test_run_sam_batches(database, monkeypatch):
             'expiration_date': '2013-01-11',
             'last_sam_mod_date': '2013-01-11',
             'activation_date': '2012-01-11',
-            'legal_business_name': 'TEST DUNS 1',
+            'legal_business_name': 'TEST RECIPIENT 1',
             'address_line_1': 'Test address 1',
             'address_line_2': 'Test address 2',
             'city': 'Test city',
@@ -235,7 +235,7 @@ def test_run_sam_batches(database, monkeypatch):
             'expiration_date': '2013-01-12',
             'last_sam_mod_date': '2013-01-12',
             'activation_date': '2012-01-12',
-            'legal_business_name': 'TEST DUNS 2',
+            'legal_business_name': 'TEST RECIPIENT 2',
             'address_line_1': 'Other Test address 1',
             'address_line_2': 'Other Test address 2',
             'city': 'Other Test city',
@@ -309,7 +309,7 @@ def test_workflows(database, monkeypatch):
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
     for duns in existing_duns:
-        sess.add(DUNS(awardee_or_recipient_uniqu=duns))
+        sess.add(SAMRecipient(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
     recipient_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
@@ -325,7 +325,7 @@ def test_workflows(database, monkeypatch):
             'expiration_date': '2013-01-11',
             'last_sam_mod_date': '2013-01-11',
             'activation_date': '2012-01-11',
-            'legal_business_name': 'TEST DUNS 1',
+            'legal_business_name': 'TEST RECIPIENT 1',
             'address_line_1': 'Test address 1',
             'address_line_2': 'Test address 2',
             'city': 'Test city',
@@ -359,7 +359,7 @@ def test_workflows(database, monkeypatch):
             'expiration_date': '2013-01-12',
             'last_sam_mod_date': '2013-01-12',
             'activation_date': '2012-01-12',
-            'legal_business_name': 'TEST DUNS 2',
+            'legal_business_name': 'TEST RECIPIENT 2',
             'address_line_1': 'Other Test address 1',
             'address_line_2': 'Other Test address 2',
             'city': 'Other Test city',
@@ -456,7 +456,7 @@ def test_workflows(database, monkeypatch):
         }
     }
     results = {}
-    for recp_obj in sess.query(DUNS).all():
+    for recp_obj in sess.query(SAMRecipient).all():
         results[recp_obj.awardee_or_recipient_uniqu] = {
             'awardee_or_recipient_uniqu': recp_obj.awardee_or_recipient_uniqu,
             'uei': recp_obj.uei,
@@ -494,17 +494,17 @@ def test_workflows(database, monkeypatch):
     assert results == expected_results
 
     # Test to see if truncating the SAM table while keeping the historic reuploads the historic values
-    sess.query(DUNS).filter(DUNS.historic.is_(True)).delete(synchronize_session=False)
+    sess.query(SAMRecipient).filter(SAMRecipient.historic.is_(True)).delete(synchronize_session=False)
 
-    # Make sure all the historic recipients are removed from the DUNS table
-    assert sess.query(DUNS).filter(DUNS.historic.is_(True)).all() == []
+    # Make sure all the historic recipients are removed from the SAMRecipient table
+    assert sess.query(SAMRecipient).filter(SAMRecipient.historic.is_(True)).all() == []
 
     # Redo script but don't go through run_sam_batches
     update_historical_duns.clean_historic_recipients(sess)
     update_historical_duns.import_historic_recipients(sess)
 
     results = {}
-    for recp_obj in sess.query(DUNS).all():
+    for recp_obj in sess.query(SAMRecipient).all():
         results[recp_obj.awardee_or_recipient_uniqu] = {
             'awardee_or_recipient_uniqu': recp_obj.awardee_or_recipient_uniqu,
             'uei': recp_obj.uei,
@@ -552,7 +552,7 @@ def test_clean_historic_recipients(database, monkeypatch):
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
     for duns in existing_duns:
-        sess.add(DUNS(awardee_or_recipient_uniqu=duns))
+        sess.add(SAMRecipient(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
     recipient_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
@@ -562,7 +562,7 @@ def test_clean_historic_recipients(database, monkeypatch):
     update_historical_duns.import_historic_recipients(sess)
 
     # update old DUNS as part of load_duns_exec_comp.py
-    updated_duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == '000000002').one()
+    updated_duns = sess.query(SAMRecipient).filter(SAMRecipient.awardee_or_recipient_uniqu == '000000002').one()
     updated_duns.historic = False
     sess.commit()
 

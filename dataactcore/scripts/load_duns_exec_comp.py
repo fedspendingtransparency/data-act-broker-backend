@@ -12,9 +12,9 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import DUNS
-from dataactcore.utils.duns import (parse_duns_file, update_duns, parse_exec_comp_file, update_missing_parent_names,
-                                    request_sam_csv_api, is_nonexistent_file_error)
+from dataactcore.models.domainModels import SAMRecipient
+from dataactcore.utils.duns import (parse_sam_recipient_file, update_sam_recipient, parse_exec_comp_file,
+                                    update_missing_parent_names, request_sam_csv_api, is_nonexistent_file_error)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -97,10 +97,10 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
         # a bit redundant but also date validation
         load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d').date()
     else:
-        sam_field = DUNS.last_sam_mod_date if data_type == 'DUNS' else DUNS.last_exec_comp_mod_date
+        sam_field = SAMRecipient.last_sam_mod_date if data_type == 'DUNS' else SAMRecipient.last_exec_comp_mod_date
         load_date = sess.query(sam_field).filter(sam_field.isnot(None)).order_by(sam_field.desc()).first()
         if not load_date:
-            field = 'sam' if data_type == 'duns' else 'executive compenstation'
+            field = 'sam' if data_type == 'DUNS' else 'executive compensation'
             raise Exception('No last {} mod date found in DUNS table. Please run historic loader first.'.format(field))
         load_date = load_date[0]
 
@@ -225,14 +225,14 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
     file_path = os.path.join(root_dir, file_name)
     includes_uei = version == 'v2'
     if data_type == 'DUNS':
-        add_update_data, delete_data = parse_duns_file(file_path, metrics=metrics)
+        add_update_data, delete_data = parse_sam_recipient_file(file_path, metrics=metrics)
         if add_update_data is not None:
-            update_duns(sess, add_update_data, metrics=metrics, includes_uei=includes_uei)
+            update_sam_recipient(sess, add_update_data, metrics=metrics, includes_uei=includes_uei)
         if delete_data is not None:
-            update_duns(sess, delete_data, metrics=metrics, deletes=True, includes_uei=includes_uei)
+            update_sam_recipient(sess, delete_data, metrics=metrics, deletes=True, includes_uei=includes_uei)
     else:
         exec_comp_data = parse_exec_comp_file(file_path, metrics=metrics)
-        update_duns(sess, exec_comp_data, metrics=metrics, includes_uei=includes_uei)
+        update_sam_recipient(sess, exec_comp_data, metrics=metrics, includes_uei=includes_uei)
     if not local:
         os.remove(file_path)
 
@@ -242,7 +242,7 @@ if __name__ == '__main__':
 
     configure_logging()
 
-    parser = argparse.ArgumentParser(description='Get data from SAM and update duns/exec comp tables')
+    parser = argparse.ArgumentParser(description='Get data from SAM and update SAM Recipient/exec comp tables')
     parser.add_argument("-t", "--data_type", choices=['duns', 'exec_comp', 'both'], default='both',
                         help='Select data type to load')
     scope = parser.add_mutually_exclusive_group(required=True)

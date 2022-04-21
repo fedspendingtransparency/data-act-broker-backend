@@ -312,7 +312,7 @@ class CountryCode(Base):
     territory_free_state = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
-class DUNS(Base):
+class SAMRecipient(Base):
     """ DUNS Records """
     __tablename__ = "sam_recipient"
 
@@ -354,7 +354,7 @@ class DUNS(Base):
     historic = Column(Boolean, default=False, server_default="False")
 
 
-Index("ix_duns_uei_upper", sa.func.upper(DUNS.uei))
+Index("ix_sam_recipient_uei_upper", sa.func.upper(SAMRecipient.uei))
 
 
 class HistoricDUNS(Base):

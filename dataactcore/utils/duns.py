@@ -13,7 +13,7 @@ from ratelimit import limits, sleep_and_retry
 from backoff import on_exception, expo
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.domainModels import DUNS
+from dataactcore.models.domainModels import SAMRecipient
 from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
 from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
 from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
@@ -22,10 +22,10 @@ from dataactcore.models.userModel import User # noqa
 
 logger = logging.getLogger(__name__)
 
-SAM_COLUMNS = [col.key for col in DUNS.__table__.columns]
+SAM_COLUMNS = [col.key for col in SAMRecipient.__table__.columns]
 EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date', 'activation_date',
-                    'legal_business_name', 'historic', 'created_at', 'updated_at', 'duns_id', 'deactivation_date',
-                    'last_exec_comp_mod_date']
+                    'legal_business_name', 'historic', 'created_at', 'updated_at', 'sam_recipient_id',
+                    'deactivation_date', 'last_exec_comp_mod_date']
 LOAD_BATCH_SIZE = 10000
 
 # SAM's Rate Limit is 259,200 requests/day
@@ -34,7 +34,7 @@ RATE_LIMIT_PERIOD = 24 * 60 * 60  # seconds
 
 
 def clean_sam_data(data):
-    """ Wrapper around clean_data with the DUNS context
+    """ Wrapper around clean_data with the SAM Recipient context
 
         Args:
             data: the dataframe to be cleaned
@@ -44,12 +44,12 @@ def clean_sam_data(data):
     """
     if not data.empty:
         column_mappings = {col: col for col in data.columns}
-        return clean_data(data, DUNS, column_mappings, {})
+        return clean_data(data, SAMRecipient, column_mappings, {})
     return data
 
 
-def parse_duns_file(file_path, metrics=None):
-    """ Takes in a DUNS file and adds the DUNS data to the database
+def parse_sam_recipient_file(file_path, metrics=None):
+    """ Takes in a SAMRecipient file and adds the SAMRecipient data to the database
 
         Args:
             file_path: the path to the SAM file
@@ -138,7 +138,7 @@ def parse_duns_file(file_path, metrics=None):
                                names=column_header_mapping_ordered.keys(), quoting=3)
     total_data = csv_data.copy()
     rows_received = len(total_data.index)
-    logger.info('%s DUNS records received', rows_received)
+    logger.info('%s SAM Recipient records received', rows_received)
 
     total_data = total_data[total_data[key_col].notnull()]
     rows_processed = len(total_data.index)
@@ -192,7 +192,7 @@ def parse_duns_file(file_path, metrics=None):
     return add_update_data, delete_data
 
 
-def create_temp_duns_table(sess, table_name, data):
+def create_temp_sam_recipient_table(sess, table_name, data):
     """ Creates a temporary SAM table with the given name and data.
 
         Args:
@@ -248,13 +248,14 @@ def create_temp_duns_table(sess, table_name, data):
     insert_dataframe(data, table_name, sess.connection())
 
 
-def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False, includes_uei=True):
-    """ Takes in a dataframe of duns and adds/updates associated DUNS
+def update_sam_recipient(sess, sam_recipient_data, table_name='sam_recipient', metrics=None, deletes=False,
+                         includes_uei=True):
+    """ Takes in a dataframe of sam_recipient data and adds/updates associated SAMRecipient/HistoricalDUNS table
 
         Args:
             sess: database connection
-            duns_data: pandas dataframe representing duns data
-            table_name: the table to update (ex. 'duns', 'historic_duns')
+            sam_recipient_data: pandas dataframe representing sam_recipient data
+            table_name: the table to update (ex. 'sam_recipient', 'historic_duns')
             metrics: dictionary representing metrics of the script
             deletes: whether the data provided contains only delete records
             includes_uei: whether or not the dataframe includes uei
@@ -274,18 +275,18 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
 
         # SAM V2 files at one point have both DUNS and UEI populated. After a point, only the UEI is populated.
         # This ensures that DUNS doesn't get overwritten with blank values in that case.
-        if duns_data['awardee_or_recipient_uniqu'].dropna().empty:
-            duns_data.drop(columns=['awardee_or_recipient_uniqu'], axis=1, inplace=True)
+        if sam_recipient_data['awardee_or_recipient_uniqu'].dropna().empty:
+            sam_recipient_data.drop(columns=['awardee_or_recipient_uniqu'], axis=1, inplace=True)
             key_cols.remove('awardee_or_recipient_uniqu')
 
         # Also ensuring that if parent DUNS is empty, it's not overwritten
-        if 'ultimate_parent_unique_ide' in list(duns_data.columns)\
-                and duns_data['ultimate_parent_unique_ide'].dropna().empty:
-            duns_data.drop(columns=['ultimate_parent_unique_ide'], axis=1, inplace=True)
+        if 'ultimate_parent_unique_ide' in list(sam_recipient_data.columns)\
+                and sam_recipient_data['ultimate_parent_unique_ide'].dropna().empty:
+            sam_recipient_data.drop(columns=['ultimate_parent_unique_ide'], axis=1, inplace=True)
 
     tmp_name = 'temp_{}_update'.format(table_name)
     tmp_abbr = 'tu'
-    create_temp_duns_table(sess, tmp_name, duns_data)
+    create_temp_sam_recipient_table(sess, tmp_name, sam_recipient_data)
 
     logger.info('Getting list of DUNS that will be added/updated for metrics')
     join_condition = ' OR '.join(['{table_name}.{key_col} = {tmp_abbr}.{key_col}'.format(table_name=table_name,
@@ -317,7 +318,7 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
 
     # Double checking we have a one-to-one match between the data provided and what we're adding/updating
     # Accounting for the extreme case if they provide a non-matching DUNS and UEI combo, leading us to update two values
-    if len(added_uei_list) + len(updated_uei_list) != len(duns_data):
+    if len(added_uei_list) + len(updated_uei_list) != len(sam_recipient_data):
         raise ValueError('Unable to add/update sam data. A record matched on more than one recipient: {}'
                          .format(updated_uei_list))
 
@@ -327,11 +328,11 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
                        for col in key_cols + ['deactivation_date']]
     else:
         update_cols = ['{col} = {tmp_abbr}.{col}'.format(col=col, tmp_abbr=tmp_abbr)
-                       for col in list(duns_data.columns)
+                       for col in list(sam_recipient_data.columns)
                        if col not in ['created_at', 'updated_at', 'deactivation_date']]
-        if table_name == 'duns':
+        if table_name == 'sam_recipient':
             update_cols.append('historic = FALSE')
-    if table_name in ['duns', 'historic_duns']:
+    if table_name in ['sam_recipient', 'historic_duns']:
         update_cols.append('updated_at = NOW()')
     update_cols = ', '.join(update_cols)
     update_sql = """
@@ -344,8 +345,8 @@ def update_duns(sess, duns_data, table_name='duns', metrics=None, deletes=False,
                join_condition=join_condition)
     sess.execute(update_sql)
 
-    insert_cols = ', '.join(list(duns_data.columns))
-    insert_historic = ('historic,', 'FALSE,') if table_name == 'duns' else ('', '')
+    insert_cols = ', '.join(list(sam_recipient_data.columns))
+    insert_historic = ('historic,', 'FALSE,') if table_name == 'sam_recipient' else ('', '')
     insert_sql = """
         INSERT INTO {table_name} (
             {historic_col}
@@ -483,7 +484,7 @@ def parse_exec_comp_file(file_path, metrics=None):
         }
         if version == 'v2':
             exec_comp_maps['uei'] = 'uei'
-        total_data = clean_data(total_data, DUNS, exec_comp_maps, {})
+        total_data = clean_data(total_data, SAMRecipient, exec_comp_maps, {})
         total_data.drop(columns=['created_at', 'updated_at'], inplace=True)
 
     metrics['files_processed'].append(dat_file_name)
@@ -546,9 +547,9 @@ def update_missing_parent_names(sess, updated_date=None):
     # Create a mapping of all the unique parent duns -> name mappings from the database
     parent_duns_by_number_name = {}
 
-    distinct_parent_duns = sess.query(DUNS.ultimate_parent_unique_ide, DUNS.ultimate_parent_legal_enti)\
-        .filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') != '',
-                     DUNS.ultimate_parent_unique_ide.isnot(None))).distinct()
+    distinct_parent_duns = sess.query(SAMRecipient.ultimate_parent_unique_ide, SAMRecipient.ultimate_parent_legal_enti)\
+        .filter(and_(func.coalesce(SAMRecipient.ultimate_parent_legal_enti, '') != '',
+                     SAMRecipient.ultimate_parent_unique_ide.isnot(None))).distinct()
 
     # Creating a mapping (parent_duns_by_number_name) of parent duns numbers to parent name
     for duns in distinct_parent_duns:
@@ -559,11 +560,12 @@ def update_missing_parent_names(sess, updated_date=None):
         parent_duns_by_number_name[duns.ultimate_parent_unique_ide] = duns.ultimate_parent_legal_enti
 
     # Query to find rows where the parent duns number is present, but there is no legal entity name
-    missing_parent_name = sess.query(DUNS).filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') == '',
-                                                       DUNS.ultimate_parent_unique_ide.isnot(None)))
+    missing_parent_name = sess.query(SAMRecipient).filter(and_(
+        func.coalesce(SAMRecipient.ultimate_parent_legal_enti, '') == '',
+        SAMRecipient.ultimate_parent_unique_ide.isnot(None)))
 
     if updated_date:
-        missing_parent_name = missing_parent_name.filter(DUNS.updated_at >= updated_date)
+        missing_parent_name = missing_parent_name.filter(SAMRecipient.updated_at >= updated_date)
 
     missing_count = missing_parent_name.count()
 
@@ -581,7 +583,7 @@ def update_missing_parent_names(sess, updated_date=None):
                             str(missing_count if batch == batches else (batch + 1) * block_size)
                             ))
 
-        missing_parent_name_block = missing_parent_name.order_by(DUNS.duns_id).\
+        missing_parent_name_block = missing_parent_name.order_by(SAMRecipient.sam_recipient_id).\
             slice(batch_start, batch_start + block_size)
 
         for row in missing_parent_name_block:
@@ -589,7 +591,7 @@ def update_missing_parent_names(sess, updated_date=None):
                 setattr(row, 'ultimate_parent_legal_enti', parent_duns_by_number_name[row.ultimate_parent_unique_ide])
                 updated_count += 1
 
-        logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, DUNS.__name__,
+        logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, SAMRecipient.__name__,
                                                                                 time.time() - start))
         total_updated_count += updated_count
 

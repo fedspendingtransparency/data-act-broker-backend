@@ -27,7 +27,7 @@ from sqlalchemy.exc import IntegrityError
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.models.domainModels import (SubTierAgency, CountryCode, States, CountyCode, Zips, DUNS,
+from dataactcore.models.domainModels import (SubTierAgency, CountryCode, States, CountyCode, Zips, SAMRecipient,
                                              ExternalDataLoadDate)
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
@@ -1801,15 +1801,16 @@ def create_lookups(sess):
 
     # get and create list of uei -> exec comp data mappings
     exec_comp_dict = {}
-    duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None), DUNS.uei.isnot(None)).all()
-    for duns in duns_list:
-        exec_comp_dict[duns.uei.upper()] = \
-            {'officer1_name': duns.high_comp_officer1_full_na, 'officer1_amt': duns.high_comp_officer1_amount,
-             'officer2_name': duns.high_comp_officer2_full_na, 'officer2_amt': duns.high_comp_officer2_amount,
-             'officer3_name': duns.high_comp_officer3_full_na, 'officer3_amt': duns.high_comp_officer3_amount,
-             'officer4_name': duns.high_comp_officer4_full_na, 'officer4_amt': duns.high_comp_officer4_amount,
-             'officer5_name': duns.high_comp_officer5_full_na, 'officer5_amt': duns.high_comp_officer5_amount}
-    del duns_list
+    sam_recipient_list = sess.query(SAMRecipient).filter(SAMRecipient.high_comp_officer1_full_na.isnot(None),
+                                                         SAMRecipient.uei.isnot(None)).all()
+    for recipient in sam_recipient_list:
+        exec_comp_dict[recipient.uei.upper()] = \
+            {'officer1_name': recipient.high_comp_officer1_full_na, 'officer1_amt': recipient.high_comp_officer1_amount,
+             'officer2_name': recipient.high_comp_officer2_full_na, 'officer2_amt': recipient.high_comp_officer2_amount,
+             'officer3_name': recipient.high_comp_officer3_full_na, 'officer3_amt': recipient.high_comp_officer3_amount,
+             'officer4_name': recipient.high_comp_officer4_full_na, 'officer4_amt': recipient.high_comp_officer4_amount,
+             'officer5_name': recipient.high_comp_officer5_full_na, 'officer5_amt': recipient.high_comp_officer5_amount}
+    del sam_recipient_list
 
     return sub_tier_list, country_list, state_code_list, county_by_name, county_by_code, exec_comp_dict
 

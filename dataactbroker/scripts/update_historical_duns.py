@@ -8,13 +8,13 @@ from datetime import datetime
 from dataactbroker.helpers.generic_helper import batch
 from dataactvalidator.scripts.loader_utils import clean_data
 from dataactvalidator.health_check import create_app
-from dataactcore.models.domainModels import HistoricDUNS, DUNS
+from dataactcore.models.domainModels import HistoricDUNS, SAMRecipient
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.duns import update_sam_props, LOAD_BATCH_SIZE, update_duns
+from dataactcore.utils.duns import update_sam_props, LOAD_BATCH_SIZE, update_sam_recipient
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def remove_existing_recipients(data, sess):
 
     recps_in_file = ",".join(list(data['awardee_or_recipient_uniqu'].unique()))
     sql_query = "SELECT awardee_or_recipient_uniqu " +\
-                "FROM duns where awardee_or_recipient_uniqu = ANY('{" + \
+                "FROM sam_recipient where awardee_or_recipient_uniqu = ANY('{" + \
                 recps_in_file +\
                 "}')"
 
@@ -87,7 +87,7 @@ def run_sam_batches(file, sess, block_size=LOAD_BATCH_SIZE):
             column_mappings = {col: col for col in recps_to_load.columns}
             recps_to_load = clean_data(recps_to_load, HistoricDUNS, column_mappings, {})
             recipients_added += len(recps_to_load.index)
-            update_duns(sess, recps_to_load, HistoricDUNS.__table__.name)
+            update_sam_recipient(sess, recps_to_load, HistoricDUNS.__table__.name)
             sess.commit()
 
             logger.info("Finished updating {} SAM rows in {} s".format(len(recps_to_load.index),
@@ -107,7 +107,7 @@ def reload_from_sam(sess):
         df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
         df = df.append(sam_batch)
         df = update_sam_props(df)
-        update_duns(sess, df, table_name=HistoricDUNS.__table__.name)
+        update_sam_recipient(sess, df, table_name=HistoricDUNS.__table__.name)
 
 
 def clean_historic_recipients(sess):
@@ -116,8 +116,9 @@ def clean_historic_recipients(sess):
         Args:
             sess: the database connection
     """
-    new_recps = list(sess.query(DUNS.awardee_or_recipient_uniqu).filter(
-        DUNS.awardee_or_recipient_uniqu == HistoricDUNS.awardee_or_recipient_uniqu, DUNS.historic.is_(False)).all())
+    new_recps = list(sess.query(SAMRecipient.awardee_or_recipient_uniqu).filter(
+        SAMRecipient.awardee_or_recipient_uniqu == HistoricDUNS.awardee_or_recipient_uniqu,
+        SAMRecipient.historic.is_(False)).all())
     if new_recps:
         logger.info('Found {} new DUNS that were previously only available as a historic DUNS. Removing the historic'
                     ' records from the historic duns table.'.format(len(new_recps)))
@@ -138,12 +139,12 @@ def import_historic_recipients(sess):
     update_cols.append('updated_at = NOW()')
     # only updating the historic records that are still not updated over time
     update_sql = """
-        UPDATE duns
+        UPDATE sam_recipient
         SET
             {update_cols}
         FROM historic_duns AS hd
-        WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
-            AND duns.historic = TRUE;
+        WHERE sam_recipient.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
+            AND sam_recipient.historic = TRUE;
     """.format(update_cols=','.join(update_cols))
     sess.execute(update_sql)
     logger.info('Updated historic recipient values to SAM table')
@@ -151,7 +152,7 @@ def import_historic_recipients(sess):
     logger.info('Inserting historic recipient values to SAM table')
     from_columns = ['hd.{}'.format(column) for column in HD_COLUMNS]
     copy_sql = """
-        INSERT INTO duns (
+        INSERT INTO sam_recipient (
             {columns},
             historic,
             updated_at,
@@ -165,8 +166,8 @@ def import_historic_recipients(sess):
         FROM historic_duns AS hd
         WHERE NOT EXISTS (
             SELECT 1
-            FROM duns
-            WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
+            FROM sam_recipient
+            WHERE sam_recipient.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
         );
     """.format(columns=', '.join(HD_COLUMNS), from_columns=', '.join(from_columns))
     sess.execute(copy_sql)
