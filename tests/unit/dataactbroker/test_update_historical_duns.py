@@ -3,7 +3,7 @@ import pandas as pd
 
 from dataactbroker.scripts import update_historical_duns
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.duns import SAM_COLUMNS, EXCLUDE_FROM_API
+from dataactcore.utils.sam_recipient import SAM_COLUMNS, EXCLUDE_FROM_API
 from dataactcore.models.domainModels import SAMRecipient, HistoricDUNS
 
 
@@ -100,7 +100,7 @@ def mock_get_sam_props(key_list, api='entity', includes_uei=True):
 
 def test_update_sam_props(monkeypatch):
     """ Testing updating the sam props with both populated/blank data """
-    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
+    monkeypatch.setattr('dataactcore.utils.sam_recipient.get_sam_props', mock_get_sam_props)
     recp_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000001', '000000002', '000000003']
     })
@@ -141,7 +141,7 @@ def test_update_sam_props(monkeypatch):
 
 def test_update_sam_props_empty(monkeypatch):
     """ Special case where no data is returned """
-    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
+    monkeypatch.setattr('dataactcore.utils.sam_recipient.get_sam_props', mock_get_sam_props)
     recp_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000003']
     })
@@ -181,7 +181,7 @@ def test_update_sam_props_empty(monkeypatch):
 
 def test_run_sam_batches(database, monkeypatch):
     """ Test run_sam_batches for the core functionality """
-    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
+    monkeypatch.setattr('dataactcore.utils.sam_recipient.get_sam_props', mock_get_sam_props)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
@@ -304,7 +304,7 @@ def test_run_sam_batches(database, monkeypatch):
 
 def test_workflows(database, monkeypatch):
     """ Test both scenarios of the script, starting with a full run """
-    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
+    monkeypatch.setattr('dataactcore.utils.sam_recipient.get_sam_props', mock_get_sam_props)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
@@ -547,7 +547,7 @@ def test_clean_historic_recipients(database, monkeypatch):
         Test to make sure if a new recipient is loaded and we reload historic recipients (skipping the major load),
         we should remove the historic equivalents.
     """
-    monkeypatch.setattr('dataactcore.utils.duns.get_sam_props', mock_get_sam_props)
+    monkeypatch.setattr('dataactcore.utils.sam_recipient.get_sam_props', mock_get_sam_props)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]

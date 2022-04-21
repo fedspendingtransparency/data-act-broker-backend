@@ -5,7 +5,7 @@ import tempfile
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.utils.duns import get_client, REMOTE_SAM_EXEC_COMP_DIR, parse_exec_comp_file, \
+from dataactcore.utils.sam_recipient import get_client, REMOTE_SAM_EXEC_COMP_DIR, parse_exec_comp_file, \
     create_temp_exec_comp_table
 from dataactvalidator.health_check import create_app
 

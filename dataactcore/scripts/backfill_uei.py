@@ -8,7 +8,7 @@ from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 
 from dataactbroker.helpers.generic_helper import batch
-from dataactcore.utils.duns import update_sam_props, update_sam_recipient, LOAD_BATCH_SIZE
+from dataactcore.utils.sam_recipient import update_sam_props, update_sam_recipient, LOAD_BATCH_SIZE
 from dataactcore.models.domainModels import SAMRecipient
 
 logger = logging.getLogger(__name__)

@@ -13,8 +13,9 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import SAMRecipient
-from dataactcore.utils.duns import (parse_sam_recipient_file, update_sam_recipient, parse_exec_comp_file,
-                                    update_missing_parent_names, request_sam_csv_api, is_nonexistent_file_error)
+from dataactcore.utils.sam_recipient import (parse_sam_recipient_file, update_sam_recipient, parse_exec_comp_file,
+                                             update_missing_parent_names, request_sam_csv_api,
+                                             is_nonexistent_file_error)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)

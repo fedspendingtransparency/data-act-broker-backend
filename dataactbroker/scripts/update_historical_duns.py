@@ -14,7 +14,7 @@ from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.duns import update_sam_props, LOAD_BATCH_SIZE, update_sam_recipient
+from dataactcore.utils.sam_recipient import update_sam_props, LOAD_BATCH_SIZE, update_sam_recipient
 
 logger = logging.getLogger(__name__)
 
