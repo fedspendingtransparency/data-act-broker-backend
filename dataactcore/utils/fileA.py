@@ -63,6 +63,8 @@ def query_data(session, agency_code, period, year):
         agency_array = ['020', '580', '373']
     elif agency_code == '077':
         agency_array = ['077', '071']
+    elif agency_code == '089':
+        agency_array = ['089', '486']
     elif agency_code == '1601':
         agency_array = ['1601', '016']
     elif agency_code == '1125':
@@ -78,7 +80,7 @@ def query_data(session, agency_code, period, year):
         agency_filters.append(tas_gtas.c.allocation_transfer_agency.in_(agency_array))
 
     # Save the AID filter
-    if agency_code in ['097', '020', '077']:
+    if agency_code in ['097', '020', '077', '089']:
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.agency_identifier.in_(agency_array)))
     elif agency_code == '1100':
