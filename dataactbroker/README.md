@@ -1,1 +1,0 @@
-Documentation on the Broker API can be found in the [README.md](../doc/README.md) file in the doc folder
