@@ -42,7 +42,7 @@ def test_load_duns(database):
             'ultimate_parent_uei': None,
             'ultimate_parent_unique_ide': '000000007',
             # ultimate_parent_legal_enti derived via missing parent names
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME G7 V2 BLANK DUNS DAILY',
+            'ultimate_parent_legal_enti': None,
             'historic': False
         }
     }
