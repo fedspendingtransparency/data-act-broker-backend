@@ -261,7 +261,7 @@ def update_sam_recipient(sess, sam_recipient_data, table_name='sam_recipient', m
             includes_uei: whether or not the dataframe includes uei
 
         Returns:
-            list of DUNS updated
+            list of UEI updated
     """
     if not metrics:
         metrics = {
@@ -288,7 +288,7 @@ def update_sam_recipient(sess, sam_recipient_data, table_name='sam_recipient', m
     tmp_abbr = 'tu'
     create_temp_sam_recipient_table(sess, tmp_name, sam_recipient_data)
 
-    logger.info('Getting list of DUNS that will be added/updated for metrics')
+    logger.info('Getting list of recipients that will be added/updated for metrics')
     join_condition = ' OR '.join(['{table_name}.{key_col} = {tmp_abbr}.{key_col}'.format(table_name=table_name,
                                                                                          tmp_abbr=tmp_abbr,
                                                                                          key_col=key_col)
@@ -322,7 +322,7 @@ def update_sam_recipient(sess, sam_recipient_data, table_name='sam_recipient', m
         raise ValueError('Unable to add/update sam data. A record matched on more than one recipient: {}'
                          .format(updated_uei_list))
 
-    logger.info('Adding/updating DUNS based on {}'.format(tmp_name))
+    logger.info('Adding/updating recipients based on {}'.format(tmp_name))
     if deletes:
         update_cols = ['{col} = {tmp_abbr}.{col}'.format(col=col, tmp_abbr=tmp_abbr)
                        for col in key_cols + ['deactivation_date']]
@@ -531,38 +531,38 @@ def parse_exec_comp(exec_comp_str=None):
 
 
 def update_missing_parent_names(sess, updated_date=None):
-    """ Updates DUNS rows in batches where the parent DUNS number is provided but not the parent name.
-        Uses other instances of the parent DUNS number where the name is populated to derive blank parent names.
-        Updated_date argument used for daily DUNS loads so that only data updated that day is updated.
+    """ Updates SAMRecipient rows in batches where the parent recipient number is provided but not the parent name.
+        Uses other instances of the parent recipient number where the name is populated to derive blank parent names.
+        Updated_date argument used for daily recipient loads so that only data updated that day is updated.
 
         Args:
             sess: the database connection
             updated_date: the date to start importing from
 
         Returns:
-            number of DUNS updated
+            number of recipients updated
     """
     logger.info("Updating missing parent names")
 
-    # Create a mapping of all the unique parent duns -> name mappings from the database
-    parent_duns_by_number_name = {}
+    # Create a mapping of all the unique parent recipient -> name mappings from the database
+    parent_recipient_by_number_name = {}
 
-    distinct_parent_duns = sess.query(SAMRecipient.ultimate_parent_unique_ide, SAMRecipient.ultimate_parent_legal_enti)\
+    distinct_parent_recipients = sess.query(SAMRecipient.ultimate_parent_uei, SAMRecipient.ultimate_parent_legal_enti)\
         .filter(and_(func.coalesce(SAMRecipient.ultimate_parent_legal_enti, '') != '',
-                     SAMRecipient.ultimate_parent_unique_ide.isnot(None))).distinct()
+                     SAMRecipient.ultimate_parent_uei.isnot(None))).distinct()
 
-    # Creating a mapping (parent_duns_by_number_name) of parent duns numbers to parent name
-    for duns in distinct_parent_duns:
-        if parent_duns_by_number_name.get(duns.ultimate_parent_unique_ide):
+    # Creating a mapping (parent_recipient_by_number_name) of parent recipient numbers to parent name
+    for recipient in distinct_parent_recipients:
+        if parent_recipient_by_number_name.get(recipient.ultimate_parent_uei):
             # Do not want to deal with parent ids with multiple names
-            del parent_duns_by_number_name[duns.ultimate_parent_unique_ide]
+            del parent_recipient_by_number_name[recipient.ultimate_parent_uei]
 
-        parent_duns_by_number_name[duns.ultimate_parent_unique_ide] = duns.ultimate_parent_legal_enti
+        parent_recipient_by_number_name[recipient.ultimate_parent_uei] = recipient.ultimate_parent_legal_enti
 
-    # Query to find rows where the parent duns number is present, but there is no legal entity name
+    # Query to find rows where the parent recipient number is present, but there is no legal entity name
     missing_parent_name = sess.query(SAMRecipient).filter(and_(
         func.coalesce(SAMRecipient.ultimate_parent_legal_enti, '') == '',
-        SAMRecipient.ultimate_parent_unique_ide.isnot(None)))
+        SAMRecipient.ultimate_parent_uei.isnot(None)))
 
     if updated_date:
         missing_parent_name = missing_parent_name.filter(SAMRecipient.updated_at >= updated_date)
@@ -578,7 +578,7 @@ def update_missing_parent_names(sess, updated_date=None):
         updated_count = 0
         start = time.time()
         batch_start = batch * block_size
-        logger.info("Processing row {} - {} with missing parent duns name"
+        logger.info("Processing row {} - {} with missing parent recipient name"
                     .format(str(batch * block_size + 1),
                             str(missing_count if batch == batches else (batch + 1) * block_size)
                             ))
@@ -587,8 +587,8 @@ def update_missing_parent_names(sess, updated_date=None):
             slice(batch_start, batch_start + block_size)
 
         for row in missing_parent_name_block:
-            if parent_duns_by_number_name.get(row.ultimate_parent_unique_ide):
-                setattr(row, 'ultimate_parent_legal_enti', parent_duns_by_number_name[row.ultimate_parent_unique_ide])
+            if parent_recipient_by_number_name.get(row.ultimate_parent_uei):
+                setattr(row, 'ultimate_parent_legal_enti', parent_recipient_by_number_name[row.ultimate_parent_uei])
                 updated_count += 1
 
         logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, SAMRecipient.__name__,
