@@ -247,7 +247,7 @@ def test_load_exec_comp(database):
     last_daily_exec_date = datetime.date(2019, 3, 30)
 
     expected_duns_results = {
-        # not included in any of the exec comp but listed in sam_recipient?
+        # not included in any of the exec comp but listed in sam_recipient
         '000000005': {
             'uei': None,
             'awardee_or_recipient_uniqu': '000000005',

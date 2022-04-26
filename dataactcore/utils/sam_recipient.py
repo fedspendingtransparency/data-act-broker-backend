@@ -265,8 +265,8 @@ def update_sam_recipient(sess, sam_recipient_data, table_name='sam_recipient', m
     """
     if not metrics:
         metrics = {
-            'added_duns': [],
-            'updated_duns': []
+            'added_uei': [],
+            'updated_uei': []
         }
 
     key_cols = ['awardee_or_recipient_uniqu']
@@ -370,8 +370,8 @@ def update_sam_recipient(sess, sam_recipient_data, table_name='sam_recipient', m
 
     sess.commit()
 
-    metrics['added_duns'].extend(added_uei_list)
-    metrics['updated_duns'].extend(updated_uei_list)
+    metrics['added_uei'].extend(added_uei_list)
+    metrics['updated_uei'].extend(updated_uei_list)
 
 
 def parse_exec_comp_file(file_path, metrics=None):
