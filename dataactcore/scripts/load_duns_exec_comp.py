@@ -271,8 +271,8 @@ if __name__ == '__main__':
         'adds_received': 0,
         'updates_received': 0,
         'deletes_received': 0,
-        'added_duns': [],
-        'updated_duns': [],
+        'added_uei': [],
+        'updated_uei': [],
         'records_added': 0,
         'records_updated': 0,
         'parent_rows_updated': 0,
@@ -291,10 +291,10 @@ if __name__ == '__main__':
             update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         sess.close()
 
-    metrics['records_added'] = len(set(metrics['added_duns']))
-    metrics['records_updated'] = len(set(metrics['updated_duns']) - set(metrics['added_duns']))
-    del metrics['added_duns']
-    del metrics['updated_duns']
+    metrics['records_added'] = len(set(metrics['added_uei']))
+    metrics['records_updated'] = len(set(metrics['updated_uei']) - set(metrics['added_uei']))
+    del metrics['added_uei']
+    del metrics['updated_uei']
 
     logger.info('Added {} records and updated {} records'.format(metrics['records_added'], metrics['records_updated']))
 

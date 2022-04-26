@@ -531,8 +531,8 @@ def parse_exec_comp(exec_comp_str=None):
 
 
 def update_missing_parent_names(sess, updated_date=None):
-    """ Updates SAMRecipient rows in batches where the parent recipient number is provided but not the parent name.
-        Uses other instances of the parent recipient number where the name is populated to derive blank parent names.
+    """ Updates SAMRecipient rows in batches where the parent recipient uei is provided but not the parent name.
+        Uses other instances of the parent recipient uei where the name is populated to derive blank parent names.
         Updated_date argument used for daily recipient loads so that only data updated that day is updated.
 
         Args:
@@ -545,21 +545,21 @@ def update_missing_parent_names(sess, updated_date=None):
     logger.info("Updating missing parent names")
 
     # Create a mapping of all the unique parent recipient -> name mappings from the database
-    parent_recipient_by_number_name = {}
+    parent_recipient_by_uei_name = {}
 
     distinct_parent_recipients = sess.query(SAMRecipient.ultimate_parent_uei, SAMRecipient.ultimate_parent_legal_enti)\
         .filter(and_(func.coalesce(SAMRecipient.ultimate_parent_legal_enti, '') != '',
                      SAMRecipient.ultimate_parent_uei.isnot(None))).distinct()
 
-    # Creating a mapping (parent_recipient_by_number_name) of parent recipient numbers to parent name
+    # Creating a mapping (parent_recipient_by_uei_name) of parent recipient ueis to parent name
     for recipient in distinct_parent_recipients:
-        if parent_recipient_by_number_name.get(recipient.ultimate_parent_uei):
+        if parent_recipient_by_uei_name.get(recipient.ultimate_parent_uei):
             # Do not want to deal with parent ids with multiple names
-            del parent_recipient_by_number_name[recipient.ultimate_parent_uei]
+            del parent_recipient_by_uei_name[recipient.ultimate_parent_uei]
 
-        parent_recipient_by_number_name[recipient.ultimate_parent_uei] = recipient.ultimate_parent_legal_enti
+        parent_recipient_by_uei_name[recipient.ultimate_parent_uei] = recipient.ultimate_parent_legal_enti
 
-    # Query to find rows where the parent recipient number is present, but there is no legal entity name
+    # Query to find rows where the parent recipient uei is present, but there is no legal entity name
     missing_parent_name = sess.query(SAMRecipient).filter(and_(
         func.coalesce(SAMRecipient.ultimate_parent_legal_enti, '') == '',
         SAMRecipient.ultimate_parent_uei.isnot(None)))
@@ -587,8 +587,8 @@ def update_missing_parent_names(sess, updated_date=None):
             slice(batch_start, batch_start + block_size)
 
         for row in missing_parent_name_block:
-            if parent_recipient_by_number_name.get(row.ultimate_parent_uei):
-                setattr(row, 'ultimate_parent_legal_enti', parent_recipient_by_number_name[row.ultimate_parent_uei])
+            if parent_recipient_by_uei_name.get(row.ultimate_parent_uei):
+                setattr(row, 'ultimate_parent_legal_enti', parent_recipient_by_uei_name[row.ultimate_parent_uei])
                 updated_count += 1
 
         logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, SAMRecipient.__name__,

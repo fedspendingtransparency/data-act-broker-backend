@@ -57,8 +57,8 @@ if __name__ == '__main__':
     configure_logging()
 
     parser = argparse.ArgumentParser(description='Get data from SAM and backfill uei')
-    parser.add_argument("-m", "--method", choices=['duns', 'crosswalk'], default='crosswalk',
-                        help='Select method of backfilling (duns table, uei crosswalk table)')
+    parser.add_argument("-m", "--method", choices=['sam_recipient', 'crosswalk'], default='crosswalk',
+                        help='Select method of backfilling (sam_recipient table, uei crosswalk table)')
     parser.add_argument("-ct", "--crosswalk_table", default='uei-crosswalk',
                         help='Name of the crosswalk table to backfill')
     args = parser.parse_args()
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
         affected = 0
 
-        if method == 'duns':
+        if method == 'sam_recipient':
             logger.info('Backfilling empty uei and ultimate_parent_uei in the SAMRecipient table using the entity API.')
             backfill_uei_via_entity_api(sess, SAMRecipient)
         else:

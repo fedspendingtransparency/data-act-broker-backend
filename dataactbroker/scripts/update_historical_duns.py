@@ -128,7 +128,7 @@ def clean_historic_recipients(sess):
 
 
 def import_historic_recipients(sess):
-    """ Copy the historic DUNS to the DUNS table
+    """ Copy the historic DUNS to the sam_recipient table
 
         Args:
             sess: the database connection
