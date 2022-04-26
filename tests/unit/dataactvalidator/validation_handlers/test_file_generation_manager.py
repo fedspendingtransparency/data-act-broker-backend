@@ -17,7 +17,8 @@ from dataactvalidator.validation_handlers import file_generation_manager
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
 
 from tests.unit.dataactcore.factories.job import JobFactory, FileGenerationFactory, SubmissionFactory
-from tests.unit.dataactcore.factories.domain import TASFactory, SF133Factory, DunsFactory, CGACFactory, FRECFactory
+from tests.unit.dataactcore.factories.domain import (TASFactory, SF133Factory, SAMRecipientFactory, CGACFactory,
+                                                     FRECFactory)
 from tests.unit.dataactcore.factories.staging import (
     AwardFinancialAssistanceFactory, AwardProcurementFactory, DetachedAwardProcurementFactory,
     PublishedAwardFinancialAssistanceFactory)
@@ -818,7 +819,7 @@ def test_generate_file_updates_jobs(monkeypatch, database):
 @pytest.mark.usefixtures("job_constants")
 def test_generate_e_file(mock_broker_config_paths, database):
     """ Verify that generate_e_file makes an appropriate query (matching both D1 and D2 entries) and creates
-        a file matching the expected DUNS
+        a file matching the expected recipient
     """
     # Generate several file D1 entries, largely with the same submission_id, and with two overlapping UEI. Generate
     # several D2 entries with the same submission_id as well
@@ -842,9 +843,9 @@ def test_generate_e_file(mock_broker_config_paths, database):
         submission_id=sub.submission_id,
         awardee_or_recipient_uei=model.awardee_or_recipient_uei)
     unrelated = AwardProcurementFactory(submission_id=sub_2.submission_id)
-    uei_list = [DunsFactory(uei=model.awardee_or_recipient_uei)]
-    uei_list.extend([DunsFactory(uei=ap.awardee_or_recipient_uei) for ap in aps])
-    uei_list.extend([DunsFactory(uei=afa.awardee_or_recipient_uei) for afa in afas])
+    uei_list = [SAMRecipientFactory(uei=model.awardee_or_recipient_uei)]
+    uei_list.extend([SAMRecipientFactory(uei=ap.awardee_or_recipient_uei) for ap in aps])
+    uei_list.extend([SAMRecipientFactory(uei=afa.awardee_or_recipient_uei) for afa in afas])
     sess.add_all(aps + afas + uei_list + [model, same_uei, unrelated])
     sess.commit()
 

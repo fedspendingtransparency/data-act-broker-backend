@@ -4,7 +4,7 @@ from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, 
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 
 from tests.unit.dataactcore.factories.domain import (ZipCityFactory, ZipsFactory, ZipsGroupedFactory, CityCodeFactory,
-                                                     DunsFactory, CFDAProgramFactory, CGACFactory, FRECFactory,
+                                                     SAMRecipientFactory, CFDAProgramFactory, CGACFactory, FRECFactory,
                                                      SubTierAgencyFactory, OfficeFactory, StatesFactory,
                                                      CountyCodeFactory, CountryCodeFactory)
 from tests.unit.dataactcore.factories.staging import PublishedAwardFinancialAssistanceFactory
@@ -41,35 +41,36 @@ def initialize_db_values(db):
     # Countries
     country_1 = CountryCodeFactory(country_code='USA', country_name='United States of America')
     country_2 = CountryCodeFactory(country_code='GBR', country_name='Great Britain')
-    # DUNS
-    duns_1 = DunsFactory(uei='123456789AbC', ultimate_parent_uei='234567890',
-                         ultimate_parent_legal_enti='Parent 1', high_comp_officer1_full_na='Officer 1',
-                         high_comp_officer1_amount='15', high_comp_officer2_full_na='Officer 2',
-                         high_comp_officer2_amount='77.12', high_comp_officer3_full_na='This is the third Officer',
-                         high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
-                         high_comp_officer4_amount='0', high_comp_officer5_full_na=None,
-                         high_comp_officer5_amount=None)
-    duns_2a = DunsFactory(uei='234567890cBA', ultimate_parent_uei='234567890',
-                          ultimate_parent_legal_enti='Parent 2', high_comp_officer1_full_na=None,
-                          high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
-                          high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
-                          high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
-                          high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
-                          high_comp_officer5_amount=None)
-    duns_2b = DunsFactory(uei='234567890cBA', ultimate_parent_uei=None,
-                          ultimate_parent_legal_enti=None, high_comp_officer1_full_na=None,
-                          high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
-                          high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
-                          high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
-                          high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
-                          high_comp_officer5_amount=None)
-    duns_3 = DunsFactory(uei='345678901AaA', ultimate_parent_uei=None,
-                         ultimate_parent_legal_enti=None, high_comp_officer1_full_na=None,
-                         high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
-                         high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
-                         high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
-                         high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
-                         high_comp_officer5_amount=None)
+    # SAMRecipient
+    recipient_1 = SAMRecipientFactory(uei='123456789AbC', ultimate_parent_uei='234567890',
+                                      ultimate_parent_legal_enti='Parent 1', high_comp_officer1_full_na='Officer 1',
+                                      high_comp_officer1_amount='15', high_comp_officer2_full_na='Officer 2',
+                                      high_comp_officer2_amount='77.12',
+                                      high_comp_officer3_full_na='This is the third Officer',
+                                      high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
+                                      high_comp_officer4_amount='0', high_comp_officer5_full_na=None,
+                                      high_comp_officer5_amount=None)
+    recipient_2a = SAMRecipientFactory(uei='234567890cBA', ultimate_parent_uei='234567890',
+                                       ultimate_parent_legal_enti='Parent 2', high_comp_officer1_full_na=None,
+                                       high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
+                                       high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
+                                       high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
+                                       high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
+                                       high_comp_officer5_amount=None)
+    recipient_2b = SAMRecipientFactory(uei='234567890cBA', ultimate_parent_uei=None,
+                                       ultimate_parent_legal_enti=None, high_comp_officer1_full_na=None,
+                                       high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
+                                       high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
+                                       high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
+                                       high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
+                                       high_comp_officer5_amount=None)
+    recipient_3 = SAMRecipientFactory(uei='345678901AaA', ultimate_parent_uei=None,
+                                      ultimate_parent_legal_enti=None, high_comp_officer1_full_na=None,
+                                      high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
+                                      high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
+                                      high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
+                                      high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
+                                      high_comp_officer5_amount=None)
     # CFDA
     cfda = CFDAProgramFactory(program_number=12.345, program_title='CFDA Title')
     # Agencies
@@ -116,9 +117,9 @@ def initialize_db_values(db):
                                                       awarding_office_code='654321', is_active=True, record_type=1,
                                                       award_modification_amendme='0', submission_id=1)
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zips_grouped_1, zips_grouped_2, zips_grouped_3,
-                        zip_city, zip_city_2, zip_city_3, city_code, state, county, country_1, country_2, duns_1,
-                        duns_2a, duns_2b, duns_3, cfda, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier, frec_sub_tier,
-                        valid_office, invalid_office, pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
+                        zip_city, zip_city_2, zip_city_3, city_code, state, county, country_1, country_2, recipient_1,
+                        recipient_2a, recipient_2b, recipient_3, cfda, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier,
+                        frec_sub_tier, valid_office, invalid_office, pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
     db.session.commit()
 
 

@@ -1,4 +1,4 @@
-WITH submission_duns_{0} AS
+WITH submission_uei_{0} AS
     (SELECT awardee_or_recipient_uei
     FROM (
         SELECT DISTINCT awardee_or_recipient_uei
@@ -24,10 +24,10 @@ SELECT
     high_comp_officer4_amount AS "HighCompOfficer4Amount",
     high_comp_officer5_full_na AS "HighCompOfficer5FullName",
     high_comp_officer5_amount AS "HighCompOfficer5Amount"
-FROM duns
+FROM sam_recipient
 WHERE EXISTS (
     SELECT 1
-    FROM submission_duns_{0} AS sd
-    WHERE sd.awardee_or_recipient_uei = duns.uei
+    FROM submission_uei_{0} AS sd
+    WHERE sd.awardee_or_recipient_uei = sam_recipient.uei
 )
-ORDER BY uei, duns_id DESC
+ORDER BY uei, sam_recipient_id DESC

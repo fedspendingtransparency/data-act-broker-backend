@@ -235,11 +235,11 @@ class CountryCodeFactory(factory.Factory):
     country_name = fuzzy.FuzzyText()
 
 
-class DunsFactory(factory.Factory):
+class SAMRecipientFactory(factory.Factory):
     class Meta:
-        model = domainModels.DUNS
+        model = domainModels.SAMRecipient
 
-    duns_id = None
+    sam_recipient_id = None
     uei = fuzzy.FuzzyText()
     awardee_or_recipient_uniqu = fuzzy.FuzzyText()
     legal_business_name = fuzzy.FuzzyText()
