@@ -66,7 +66,7 @@ FROM sf_133 AS sf
                        END
                     OR CASE WHEN sub_c.frec_code = '1100'
                        THEN sf.agency_identifier = '256'
-                            OR sf.fr_entity_type = '1100'
+                            OR tl.fr_entity_type = '1100'
                        END))
             -- match against FRECs related to CGAC 011
             OR sub_c.frec_list IS NOT NULL
