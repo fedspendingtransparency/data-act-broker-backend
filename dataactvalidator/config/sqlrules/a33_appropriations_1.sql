@@ -59,10 +59,15 @@ FROM sf_133 AS sf
             -- AID filter, should only apply for CGACs as it's always 3 digits
             -- fr_entity_type should only apply for FRECs as it's always 4 digits
             OR (sf.allocation_transfer_agency IS NULL
-                AND CASE WHEN sub_c.cgac_code IS NOT NULL
-                    THEN sf.agency_identifier = ANY(sub_c.associated_codes)
-                    ELSE tl.fr_entity_type = sub_c.frec_code
-                    END)
+                AND (
+                       CASE WHEN sub_c.cgac_code IS NOT NULL
+                       THEN sf.agency_identifier = ANY(sub_c.associated_codes)
+                       ELSE tl.fr_entity_type = sub_c.frec_code
+                       END
+                    OR CASE WHEN sub_c.frec_code = '1100'
+                       THEN sf.agency_identifier = '256'
+                            OR sf.fr_entity_type = '1100'
+                       END))
             -- match against FRECs related to CGAC 011
             OR sub_c.frec_list IS NOT NULL
                 AND sub_c.cgac_code IS NOT NULL
