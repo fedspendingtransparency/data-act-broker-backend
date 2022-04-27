@@ -56,6 +56,7 @@ def query_data(session, agency_code, period, year):
         # Put the frec list in a format that can be read by a filter
         frec_list = [frec.frec_code for frec in frec_list]
     # Group agencies together that need to be grouped
+    # NOTE: If these change, update A33.1 to match
     agency_array = []
     if agency_code == '097':
         agency_array = ['017', '021', '057', '097']
