@@ -15,8 +15,12 @@ cgac_exceptions AS (
 	SELECT *
 	FROM (VALUES
 	    ('097', ARRAY ['017', '021', '057', '097']),
+	    ('020', ARRAY ['020', '580', '373']),
+	    ('077', ARRAY ['077', '071']),
+	    ('089', ARRAY ['089', '486']),
 	    ('1601', ARRAY ['1601', '016']),
-	    ('1125', ARRAY ['1125', '011'])
+	    ('1125', ARRAY ['1125', '011']),
+	    ('1100', ARRAY ['1100', '256'])
 	) AS t (agency_code, associated_codes)
 ),
 sub_{0}_combo AS (
