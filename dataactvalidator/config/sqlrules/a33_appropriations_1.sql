@@ -15,8 +15,12 @@ cgac_exceptions AS (
 	SELECT *
 	FROM (VALUES
 	    ('097', ARRAY ['017', '021', '057', '097']),
+	    ('020', ARRAY ['020', '580', '373']),
+	    ('077', ARRAY ['077', '071']),
+	    ('089', ARRAY ['089', '486']),
 	    ('1601', ARRAY ['1601', '016']),
-	    ('1125', ARRAY ['1125', '011'])
+	    ('1125', ARRAY ['1125', '011']),
+	    ('1100', ARRAY ['1100', '256'])
 	) AS t (agency_code, associated_codes)
 ),
 sub_{0}_combo AS (
@@ -55,10 +59,15 @@ FROM sf_133 AS sf
             -- AID filter, should only apply for CGACs as it's always 3 digits
             -- fr_entity_type should only apply for FRECs as it's always 4 digits
             OR (sf.allocation_transfer_agency IS NULL
-                AND CASE WHEN sub_c.cgac_code IS NOT NULL
-                    THEN sf.agency_identifier = ANY(sub_c.associated_codes)
-                    ELSE tl.fr_entity_type = sub_c.frec_code
-                    END)
+                AND (
+                       CASE WHEN sub_c.cgac_code IS NOT NULL
+                       THEN sf.agency_identifier = ANY(sub_c.associated_codes)
+                       ELSE tl.fr_entity_type = sub_c.frec_code
+                       END
+                    OR CASE WHEN sub_c.frec_code = '1100'
+                       THEN sf.agency_identifier = '256'
+                            OR tl.fr_entity_type = '1100'
+                       END))
             -- match against FRECs related to CGAC 011
             OR sub_c.frec_list IS NOT NULL
                 AND sub_c.cgac_code IS NOT NULL

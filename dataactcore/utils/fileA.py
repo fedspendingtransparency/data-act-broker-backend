@@ -56,13 +56,22 @@ def query_data(session, agency_code, period, year):
         # Put the frec list in a format that can be read by a filter
         frec_list = [frec.frec_code for frec in frec_list]
     # Group agencies together that need to be grouped
+    # NOTE: If these change, update A33.1 to match
     agency_array = []
     if agency_code == '097':
         agency_array = ['017', '021', '057', '097']
+    elif agency_code == '020':
+        agency_array = ['020', '580', '373']
+    elif agency_code == '077':
+        agency_array = ['077', '071']
+    elif agency_code == '089':
+        agency_array = ['089', '486']
     elif agency_code == '1601':
         agency_array = ['1601', '016']
     elif agency_code == '1125':
         agency_array = ['1125', '011']
+    elif agency_code == '1100':
+        agency_array = ['1100', '256']
 
     # Save the ATA filter
     agency_filters = []
@@ -72,9 +81,13 @@ def query_data(session, agency_code, period, year):
         agency_filters.append(tas_gtas.c.allocation_transfer_agency.in_(agency_array))
 
     # Save the AID filter
-    if agency_code == '097':
+    if agency_code in ['097', '020', '077', '089']:
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.agency_identifier.in_(agency_array)))
+    elif agency_code == '1100':
+        agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
+                                   or_(tas_gtas.c.agency_identifier == '256',
+                                       tas_gtas.c.fr_entity_type == '1100')))
     elif not frec_provided:
         agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
                                    tas_gtas.c.agency_identifier == agency_code))

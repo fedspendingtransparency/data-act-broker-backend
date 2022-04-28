@@ -4,7 +4,7 @@ import pytest
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.scripts import load_duns_exec_comp
-from dataactcore.models.domainModels import DUNS
+from dataactcore.models.domainModels import SAMRecipient
 
 
 def test_load_duns(database):
@@ -42,7 +42,7 @@ def test_load_duns(database):
             'ultimate_parent_uei': None,
             'ultimate_parent_unique_ide': '000000007',
             # ultimate_parent_legal_enti derived via missing parent names
-            'ultimate_parent_legal_enti': 'ULTIMATE PARENT LEGAL BUSINESS NAME G7 V2 BLANK DUNS DAILY',
+            'ultimate_parent_legal_enti': None,
             'historic': False
         }
     }
@@ -158,67 +158,67 @@ def test_load_duns(database):
     }
 
     # Ensure duplicates are covered
-    expected_duns_count = 5
-    duns_count = sess.query(DUNS).count()
-    assert duns_count == expected_duns_count
+    expected_recipient_count = 5
+    recipient_count = sess.query(SAMRecipient).count()
+    assert recipient_count == expected_recipient_count
 
     duns_results = {}
     # Get DUNS results
-    for duns_obj in sess.query(DUNS).filter(DUNS.uei.is_(None)).all():
-        duns_results[duns_obj.awardee_or_recipient_uniqu] = {
-            'uei': duns_obj.uei,
-            'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
-            'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
-            'activation_date': str(duns_obj.activation_date) if duns_obj.activation_date else None,
-            'expiration_date': str(duns_obj.expiration_date) if duns_obj.expiration_date else None,
-            'last_sam_mod_date': str(duns_obj.last_sam_mod_date) if duns_obj.last_sam_mod_date else None,
-            'deactivation_date': str(duns_obj.deactivation_date) if duns_obj.deactivation_date else None,
-            'legal_business_name': duns_obj.legal_business_name,
-            'address_line_1': duns_obj.address_line_1,
-            'address_line_2': duns_obj.address_line_2,
-            'city': duns_obj.city,
-            'state': duns_obj.state,
-            'zip': duns_obj.zip,
-            'zip4': duns_obj.zip4,
-            'country_code': duns_obj.country_code,
-            'congressional_district': duns_obj.congressional_district,
-            'business_types_codes': duns_obj.business_types_codes,
-            'business_types': duns_obj.business_types,
-            'dba_name': duns_obj.dba_name,
-            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
-            'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
-            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
-            'historic': duns_obj.historic
+    for recipient_obj in sess.query(SAMRecipient).filter(SAMRecipient.uei.is_(None)).all():
+        duns_results[recipient_obj.awardee_or_recipient_uniqu] = {
+            'uei': recipient_obj.uei,
+            'awardee_or_recipient_uniqu': recipient_obj.awardee_or_recipient_uniqu,
+            'registration_date': str(recipient_obj.registration_date) if recipient_obj.registration_date else None,
+            'activation_date': str(recipient_obj.activation_date) if recipient_obj.activation_date else None,
+            'expiration_date': str(recipient_obj.expiration_date) if recipient_obj.expiration_date else None,
+            'last_sam_mod_date': str(recipient_obj.last_sam_mod_date) if recipient_obj.last_sam_mod_date else None,
+            'deactivation_date': str(recipient_obj.deactivation_date) if recipient_obj.deactivation_date else None,
+            'legal_business_name': recipient_obj.legal_business_name,
+            'address_line_1': recipient_obj.address_line_1,
+            'address_line_2': recipient_obj.address_line_2,
+            'city': recipient_obj.city,
+            'state': recipient_obj.state,
+            'zip': recipient_obj.zip,
+            'zip4': recipient_obj.zip4,
+            'country_code': recipient_obj.country_code,
+            'congressional_district': recipient_obj.congressional_district,
+            'business_types_codes': recipient_obj.business_types_codes,
+            'business_types': recipient_obj.business_types,
+            'dba_name': recipient_obj.dba_name,
+            'ultimate_parent_uei': recipient_obj.ultimate_parent_uei,
+            'ultimate_parent_unique_ide': recipient_obj.ultimate_parent_unique_ide,
+            'ultimate_parent_legal_enti': recipient_obj.ultimate_parent_legal_enti,
+            'historic': recipient_obj.historic
         }
     assert duns_results == expected_duns_results
 
     uei_results = {}
     # Get UEI results
-    for duns_obj in sess.query(DUNS).filter(DUNS.uei.isnot(None)).all():
-        uei_results[duns_obj.uei] = {
-            'uei': duns_obj.uei,
-            'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
-            'registration_date': str(duns_obj.registration_date) if duns_obj.registration_date else None,
-            'activation_date': str(duns_obj.activation_date) if duns_obj.activation_date else None,
-            'expiration_date': str(duns_obj.expiration_date) if duns_obj.expiration_date else None,
-            'last_sam_mod_date': str(duns_obj.last_sam_mod_date) if duns_obj.last_sam_mod_date else None,
-            'deactivation_date': str(duns_obj.deactivation_date) if duns_obj.deactivation_date else None,
-            'legal_business_name': duns_obj.legal_business_name,
-            'address_line_1': duns_obj.address_line_1,
-            'address_line_2': duns_obj.address_line_2,
-            'city': duns_obj.city,
-            'state': duns_obj.state,
-            'zip': duns_obj.zip,
-            'zip4': duns_obj.zip4,
-            'country_code': duns_obj.country_code,
-            'congressional_district': duns_obj.congressional_district,
-            'business_types_codes': duns_obj.business_types_codes,
-            'business_types': duns_obj.business_types,
-            'dba_name': duns_obj.dba_name,
-            'ultimate_parent_uei': duns_obj.ultimate_parent_uei,
-            'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
-            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
-            'historic': duns_obj.historic
+    for recipient_obj in sess.query(SAMRecipient).filter(SAMRecipient.uei.isnot(None)).all():
+        uei_results[recipient_obj.uei] = {
+            'uei': recipient_obj.uei,
+            'awardee_or_recipient_uniqu': recipient_obj.awardee_or_recipient_uniqu,
+            'registration_date': str(recipient_obj.registration_date) if recipient_obj.registration_date else None,
+            'activation_date': str(recipient_obj.activation_date) if recipient_obj.activation_date else None,
+            'expiration_date': str(recipient_obj.expiration_date) if recipient_obj.expiration_date else None,
+            'last_sam_mod_date': str(recipient_obj.last_sam_mod_date) if recipient_obj.last_sam_mod_date else None,
+            'deactivation_date': str(recipient_obj.deactivation_date) if recipient_obj.deactivation_date else None,
+            'legal_business_name': recipient_obj.legal_business_name,
+            'address_line_1': recipient_obj.address_line_1,
+            'address_line_2': recipient_obj.address_line_2,
+            'city': recipient_obj.city,
+            'state': recipient_obj.state,
+            'zip': recipient_obj.zip,
+            'zip4': recipient_obj.zip4,
+            'country_code': recipient_obj.country_code,
+            'congressional_district': recipient_obj.congressional_district,
+            'business_types_codes': recipient_obj.business_types_codes,
+            'business_types': recipient_obj.business_types,
+            'dba_name': recipient_obj.dba_name,
+            'ultimate_parent_uei': recipient_obj.ultimate_parent_uei,
+            'ultimate_parent_unique_ide': recipient_obj.ultimate_parent_unique_ide,
+            'ultimate_parent_legal_enti': recipient_obj.ultimate_parent_legal_enti,
+            'historic': recipient_obj.historic
         }
     assert uei_results == expected_uei_results
 
@@ -247,7 +247,7 @@ def test_load_exec_comp(database):
     last_daily_exec_date = datetime.date(2019, 3, 30)
 
     expected_duns_results = {
-        # not included in any of the exec comp but listed in duns
+        # not included in any of the exec comp but listed in sam_recipient
         '000000005': {
             'uei': None,
             'awardee_or_recipient_uniqu': '000000005',
@@ -333,40 +333,40 @@ def test_load_exec_comp(database):
 
     # Get DUNS results
     duns_results = {}
-    for duns_obj in sess.query(DUNS).filter(DUNS.uei.is_(None)).all():
-        duns_results[duns_obj.awardee_or_recipient_uniqu] = {
-            'uei': duns_obj.uei,
-            'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
-            'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
-            'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
-            'high_comp_officer2_full_na': duns_obj.high_comp_officer2_full_na,
-            'high_comp_officer2_amount': duns_obj.high_comp_officer2_amount,
-            'high_comp_officer3_full_na': duns_obj.high_comp_officer3_full_na,
-            'high_comp_officer3_amount': duns_obj.high_comp_officer3_amount,
-            'high_comp_officer4_full_na': duns_obj.high_comp_officer4_full_na,
-            'high_comp_officer4_amount': duns_obj.high_comp_officer4_amount,
-            'high_comp_officer5_full_na': duns_obj.high_comp_officer5_full_na,
-            'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount,
-            'last_exec_comp_mod_date': duns_obj.last_exec_comp_mod_date
+    for recipient_obj in sess.query(SAMRecipient).filter(SAMRecipient.uei.is_(None)).all():
+        duns_results[recipient_obj.awardee_or_recipient_uniqu] = {
+            'uei': recipient_obj.uei,
+            'awardee_or_recipient_uniqu': recipient_obj.awardee_or_recipient_uniqu,
+            'high_comp_officer1_full_na': recipient_obj.high_comp_officer1_full_na,
+            'high_comp_officer1_amount': recipient_obj.high_comp_officer1_amount,
+            'high_comp_officer2_full_na': recipient_obj.high_comp_officer2_full_na,
+            'high_comp_officer2_amount': recipient_obj.high_comp_officer2_amount,
+            'high_comp_officer3_full_na': recipient_obj.high_comp_officer3_full_na,
+            'high_comp_officer3_amount': recipient_obj.high_comp_officer3_amount,
+            'high_comp_officer4_full_na': recipient_obj.high_comp_officer4_full_na,
+            'high_comp_officer4_amount': recipient_obj.high_comp_officer4_amount,
+            'high_comp_officer5_full_na': recipient_obj.high_comp_officer5_full_na,
+            'high_comp_officer5_amount': recipient_obj.high_comp_officer5_amount,
+            'last_exec_comp_mod_date': recipient_obj.last_exec_comp_mod_date
         }
     assert duns_results == expected_duns_results
 
     # Get UEI results
     uei_results = {}
-    for duns_obj in sess.query(DUNS).filter(DUNS.uei.isnot(None)).all():
-        uei_results[duns_obj.uei] = {
-            'uei': duns_obj.uei,
-            'awardee_or_recipient_uniqu': duns_obj.awardee_or_recipient_uniqu,
-            'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
-            'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
-            'high_comp_officer2_full_na': duns_obj.high_comp_officer2_full_na,
-            'high_comp_officer2_amount': duns_obj.high_comp_officer2_amount,
-            'high_comp_officer3_full_na': duns_obj.high_comp_officer3_full_na,
-            'high_comp_officer3_amount': duns_obj.high_comp_officer3_amount,
-            'high_comp_officer4_full_na': duns_obj.high_comp_officer4_full_na,
-            'high_comp_officer4_amount': duns_obj.high_comp_officer4_amount,
-            'high_comp_officer5_full_na': duns_obj.high_comp_officer5_full_na,
-            'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount,
-            'last_exec_comp_mod_date': duns_obj.last_exec_comp_mod_date
+    for recipient_obj in sess.query(SAMRecipient).filter(SAMRecipient.uei.isnot(None)).all():
+        uei_results[recipient_obj.uei] = {
+            'uei': recipient_obj.uei,
+            'awardee_or_recipient_uniqu': recipient_obj.awardee_or_recipient_uniqu,
+            'high_comp_officer1_full_na': recipient_obj.high_comp_officer1_full_na,
+            'high_comp_officer1_amount': recipient_obj.high_comp_officer1_amount,
+            'high_comp_officer2_full_na': recipient_obj.high_comp_officer2_full_na,
+            'high_comp_officer2_amount': recipient_obj.high_comp_officer2_amount,
+            'high_comp_officer3_full_na': recipient_obj.high_comp_officer3_full_na,
+            'high_comp_officer3_amount': recipient_obj.high_comp_officer3_amount,
+            'high_comp_officer4_full_na': recipient_obj.high_comp_officer4_full_na,
+            'high_comp_officer4_amount': recipient_obj.high_comp_officer4_amount,
+            'high_comp_officer5_full_na': recipient_obj.high_comp_officer5_full_na,
+            'high_comp_officer5_amount': recipient_obj.high_comp_officer5_amount,
+            'last_exec_comp_mod_date': recipient_obj.last_exec_comp_mod_date
         }
     assert uei_results == expected_uei_results

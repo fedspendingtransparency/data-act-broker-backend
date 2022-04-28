@@ -26,19 +26,19 @@ These are derivations that can happen in any order.
 	- `office.office_name` => `awarding_office_name`
 	- `office.office_name` => `funding_office_name`
 - `derive_parent_uei`
-	- `duns.ultimate_parent_legal_enti` => `ultimate_parent_legal_enti`
-	- `duns.ultimate_parent_uei` => `ultimate_parent_uei`
+	- `sam_recipient.ultimate_parent_legal_enti` => `ultimate_parent_legal_enti`
+	- `sam_recipient.ultimate_parent_uei` => `ultimate_parent_uei`
 - `derive_executive_compensation`
-	- `duns.high_comp_officer1_full_na` => `high_comp_officer1_full_na`
-	- `duns.high_comp_officer1_amount` => `high_comp_officer1_amount`
-	- `duns.high_comp_officer2_full_na` => `high_comp_officer2_full_na`
-	- `duns.high_comp_officer2_amount` => `high_comp_officer2_amount`
-	- `duns.high_comp_officer3_full_na` => `high_comp_officer3_full_na`
-	- `duns.high_comp_officer3_amount` => `high_comp_officer3_amount`
-	- `duns.high_comp_officer4_full_na` => `high_comp_officer4_full_na`
-	- `duns.high_comp_officer4_amount` => `high_comp_officer4_amount`
-	- `duns.high_comp_officer5_full_na` => `high_comp_officer5_full_na`
-	- `duns.high_comp_officer5_amount` => `high_comp_officer5_amount`
+	- `sam_recipient.high_comp_officer1_full_na` => `high_comp_officer1_full_na`
+	- `sam_recipient.high_comp_officer1_amount` => `high_comp_officer1_amount`
+	- `sam_recipient.high_comp_officer2_full_na` => `high_comp_officer2_full_na`
+	- `sam_recipient.high_comp_officer2_amount` => `high_comp_officer2_amount`
+	- `sam_recipient.high_comp_officer3_full_na` => `high_comp_officer3_full_na`
+	- `sam_recipient.high_comp_officer3_amount` => `high_comp_officer3_amount`
+	- `sam_recipient.high_comp_officer4_full_na` => `high_comp_officer4_full_na`
+	- `sam_recipient.high_comp_officer4_amount` => `high_comp_officer4_amount`
+	- `sam_recipient.high_comp_officer5_full_na` => `high_comp_officer5_full_na`
+	- `sam_recipient.high_comp_officer5_amount` => `high_comp_officer5_amount`
 - `derive_labels`
 	- `action_type_desc.description` => `action_type_description`
 	- `assistance_type_description.description` => `assistance_type_desc`
