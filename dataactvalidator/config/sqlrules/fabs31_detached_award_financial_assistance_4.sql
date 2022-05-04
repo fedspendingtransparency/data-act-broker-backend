@@ -15,8 +15,8 @@ WITH detached_award_financial_assistance_31_4_1_{0} AS
         AND COALESCE(dafa.uei, '') <> ''
         AND NOT EXISTS (
             SELECT 1
-            FROM duns
-            WHERE UPPER(dafa.uei) = UPPER(duns.uei)
+            FROM sam_recipient
+            WHERE UPPER(dafa.uei) = UPPER(sam_recipient.uei)
         )
         AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'),
 min_dates_{0} AS

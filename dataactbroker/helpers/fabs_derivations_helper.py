@@ -876,12 +876,12 @@ def derive_parent_uei(sess, submission_id):
 
     query = """
         UPDATE tmp_fabs_{submission_id} AS pafa
-        SET ultimate_parent_legal_enti = duns.ultimate_parent_legal_enti,
-            ultimate_parent_uei = duns.ultimate_parent_uei
-        FROM duns
-        WHERE UPPER(pafa.uei) = UPPER(duns.uei)
-            AND (duns.ultimate_parent_legal_enti IS NOT NULL
-                OR duns.ultimate_parent_uei IS NOT NULL);
+        SET ultimate_parent_legal_enti = sam_recipient.ultimate_parent_legal_enti,
+            ultimate_parent_uei = sam_recipient.ultimate_parent_uei
+        FROM sam_recipient
+        WHERE UPPER(pafa.uei) = UPPER(sam_recipient.uei)
+            AND (sam_recipient.ultimate_parent_legal_enti IS NOT NULL
+                OR sam_recipient.ultimate_parent_uei IS NOT NULL);
     """
     res = sess.execute(query.format(submission_id=submission_id))
 
@@ -900,19 +900,19 @@ def derive_executive_compensation(sess, submission_id):
 
     query = """
         UPDATE tmp_fabs_{submission_id} AS pafa
-        SET high_comp_officer1_full_na = duns.high_comp_officer1_full_na,
-            high_comp_officer1_amount = duns.high_comp_officer1_amount,
-            high_comp_officer2_full_na = duns.high_comp_officer2_full_na,
-            high_comp_officer2_amount = duns.high_comp_officer2_amount,
-            high_comp_officer3_full_na = duns.high_comp_officer3_full_na,
-            high_comp_officer3_amount = duns.high_comp_officer3_amount,
-            high_comp_officer4_full_na = duns.high_comp_officer4_full_na,
-            high_comp_officer4_amount = duns.high_comp_officer4_amount,
-            high_comp_officer5_full_na = duns.high_comp_officer5_full_na,
-            high_comp_officer5_amount = duns.high_comp_officer5_amount
-        FROM duns
-        WHERE UPPER(pafa.uei) = UPPER(duns.uei)
-            AND duns.high_comp_officer1_full_na IS NOT NULL;
+        SET high_comp_officer1_full_na = sam_recipient.high_comp_officer1_full_na,
+            high_comp_officer1_amount = sam_recipient.high_comp_officer1_amount,
+            high_comp_officer2_full_na = sam_recipient.high_comp_officer2_full_na,
+            high_comp_officer2_amount = sam_recipient.high_comp_officer2_amount,
+            high_comp_officer3_full_na = sam_recipient.high_comp_officer3_full_na,
+            high_comp_officer3_amount = sam_recipient.high_comp_officer3_amount,
+            high_comp_officer4_full_na = sam_recipient.high_comp_officer4_full_na,
+            high_comp_officer4_amount = sam_recipient.high_comp_officer4_amount,
+            high_comp_officer5_full_na = sam_recipient.high_comp_officer5_full_na,
+            high_comp_officer5_amount = sam_recipient.high_comp_officer5_amount
+        FROM sam_recipient
+        WHERE UPPER(pafa.uei) = UPPER(sam_recipient.uei)
+            AND sam_recipient.high_comp_officer1_full_na IS NOT NULL;
     """
     res = sess.execute(query.format(submission_id=submission_id))
 

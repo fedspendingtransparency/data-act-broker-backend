@@ -12,7 +12,7 @@ These are derivations that can happen in any order.
 	- `cgac.cgac_code` or `frec.frec_code` => `funding_agency_code`
 	- `cgac.cgac_name` or `frec.frec_name` => `funding_agency_name`
 - Various boolean fields => `business_categories`
-- If `awardee_or_recipient_uei` is populated and matches the DUNS data with executive compensation 
+- If `awardee_or_recipient_uei` is populated and matches the SAM Recipient data with executive compensation 
     - exec comp matching on `awardee_or_recipient_uei` => `high_comp_officerX_full_na`
 	- exec comp matching on `awardee_or_recipient_uei` => `high_comp_officerX_amount`
 - `piid`, `agency_id`, `parent_award_id`, `referenced_idv_agency_iden` or `piid`, `agency_id` => `unique_award_key`

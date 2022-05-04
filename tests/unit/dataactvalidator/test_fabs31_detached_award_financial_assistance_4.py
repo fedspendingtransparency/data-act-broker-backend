@@ -1,6 +1,6 @@
 from tests.unit.dataactcore.factories.staging import (
     DetachedAwardFinancialAssistanceFactory, PublishedAwardFinancialAssistanceFactory)
-from dataactcore.models.domainModels import DUNS
+from dataactcore.models.domainModels import SAMRecipient
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs31_detached_award_financial_assistance_4'
@@ -24,11 +24,11 @@ def test_pubished_date_success(database):
     models = [pub_award_1, pub_award_2]
 
     # new records that may or may not be related to older awards
-    duns = DUNS(uei='22222222222E')
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(uei=duns.uei, assistance_type='02', action_date='10/02/2010',
-                                                          correction_delete_indicatr='',
+    recipient = SAMRecipient(uei='22222222222E')
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(uei=recipient.uei, assistance_type='02',
+                                                          action_date='10/02/2010', correction_delete_indicatr='',
                                                           unique_award_key='active_key')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(uei=duns.uei.lower(), assistance_type='02',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(uei=recipient.uei.lower(), assistance_type='02',
                                                           action_date='10/02/2010', correction_delete_indicatr='c',
                                                           unique_award_key='active_key')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(uei=None, assistance_type='01', action_date='10/02/2010',
@@ -43,7 +43,7 @@ def test_pubished_date_success(database):
                                                           correction_delete_indicatr='d',
                                                           unique_award_key='inactive_key')
 
-    models += [duns, det_award_1, det_award_2, det_award_3, det_award_4, det_award_5]
+    models += [recipient, det_award_1, det_award_2, det_award_3, det_award_4, det_award_5]
 
     errors = number_of_errors(_FILE, database, models=models)
     assert errors == 0
@@ -61,14 +61,14 @@ def test_pubished_date_failure(database):
     models = [pub_award_1, pub_award_2]
 
     # new records that may or may not be related to older awards
-    duns_1 = DUNS(uei='1111111111111E')
+    recipient = SAMRecipient(uei='1111111111111E')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(uei='12345', assistance_type='02', action_date='10/02/2010',
                                                           correction_delete_indicatr='',
                                                           unique_award_key='active_key')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(uei='12345', assistance_type='06', action_date='04/05/2022',
                                                           correction_delete_indicatr=None,
                                                           unique_award_key='inactive_key')
-    models += [duns_1, det_award_1, det_award_2]
+    models += [recipient, det_award_1, det_award_2]
 
     errors = number_of_errors(_FILE, database, models=models)
     assert errors == 2

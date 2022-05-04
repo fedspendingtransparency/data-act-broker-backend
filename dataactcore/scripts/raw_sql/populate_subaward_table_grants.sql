@@ -36,32 +36,32 @@ grant_puei AS
     (SELECT grant_puei_from.uei AS uei,
         grant_puei_from.legal_business_name AS legal_business_name
     FROM (
-        SELECT duns.uei AS uei,
-            duns.legal_business_name AS legal_business_name,
+        SELECT sam_recipient.uei AS uei,
+            sam_recipient.legal_business_name AS legal_business_name,
             row_number() OVER (PARTITION BY
-                UPPER(duns.uei)
+                UPPER(sam_recipient.uei)
             ) AS row
         FROM fsrs_grant
-            LEFT OUTER JOIN duns
-                ON UPPER(fsrs_grant.parent_uei) = UPPER(duns.uei)
+            LEFT OUTER JOIN sam_recipient
+                ON UPPER(fsrs_grant.parent_uei) = UPPER(sam_recipient.uei)
                 AND fsrs_grant.id {0} {1}
-        ORDER BY duns.activation_date DESC
+        ORDER BY sam_recipient.activation_date DESC
      ) AS grant_puei_from
     WHERE grant_puei_from.row = 1),
 subgrant_puei AS (
     SELECT sub_puei_from.uei AS uei,
         sub_puei_from.legal_business_name AS legal_business_name
     FROM (
-        SELECT duns.uei AS uei,
-            duns.legal_business_name AS legal_business_name,
+        SELECT sam_recipient.uei AS uei,
+            sam_recipient.legal_business_name AS legal_business_name,
             row_number() OVER (PARTITION BY
-                UPPER(duns.uei)
+                UPPER(sam_recipient.uei)
             ) AS row
         FROM fsrs_subgrant
-            LEFT OUTER JOIN duns
-                ON UPPER(fsrs_subgrant.parent_uei) = UPPER(duns.uei)
+            LEFT OUTER JOIN sam_recipient
+                ON UPPER(fsrs_subgrant.parent_uei) = UPPER(sam_recipient.uei)
                 AND fsrs_subgrant.parent_id {0} {1}
-        ORDER BY duns.activation_date DESC
+        ORDER BY sam_recipient.activation_date DESC
     ) AS sub_puei_from
     WHERE sub_puei_from.row = 1),
 subgrant_uei AS (
@@ -69,16 +69,16 @@ subgrant_uei AS (
         sub_uei_from.business_types AS business_types
     FROM (
         SELECT
-            duns.uei AS uei,
-            duns.business_types AS business_types,
+            sam_recipient.uei AS uei,
+            sam_recipient.business_types AS business_types,
             row_number() OVER (PARTITION BY
-                UPPER(duns.uei)
+                UPPER(sam_recipient.uei)
             ) AS row
         FROM fsrs_subgrant
-            LEFT OUTER JOIN duns
-                ON UPPER(fsrs_subgrant.uei_number) = UPPER(duns.uei)
+            LEFT OUTER JOIN sam_recipient
+                ON UPPER(fsrs_subgrant.uei_number) = UPPER(sam_recipient.uei)
                 AND fsrs_subgrant.parent_id {0} {1}
-        ORDER BY duns.activation_date DESC
+        ORDER BY sam_recipient.activation_date DESC
     ) AS sub_uei_from
     WHERE sub_uei_from.row = 1)
 INSERT INTO subaward (
