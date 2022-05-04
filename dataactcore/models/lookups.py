@@ -379,6 +379,7 @@ EXTERNAL_DATA_TYPE = [
     LookupType(16, 'program_activity', 'OMB program activity data loaded'),
     LookupType(17, 'state_code', 'state code data loaded'),
     LookupType(18, 'subaward', 'FSRS subaward data loaded'),
-    LookupType(19, 'zip_code', 'USPS zip code data loaded')
+    LookupType(19, 'zip_code', 'USPS zip code data loaded'),
+    LookupType(20, 'defc', 'disaster emergency fund code data loaded')
 ]
 EXTERNAL_DATA_TYPE_DICT = {item.name: item.id for item in EXTERNAL_DATA_TYPE}
