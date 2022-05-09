@@ -306,8 +306,8 @@ def update_historical_fabs(sess, start, end):
         end_slice = start_slice + QUERY_SIZE if start_slice + QUERY_SIZE < end else end
         query_result = sess.query(PublishedFABS).\
             filter(PublishedFABS.is_active.is_(True)).\
-            filter(PublishedFABS.published_award_financial_assistance_id >= start_slice).\
-            filter(PublishedFABS.published_award_financial_assistance_id <= end_slice).all()
+            filter(PublishedFABS.published_fabs_id >= start_slice).\
+            filter(PublishedFABS.published_fabs_id <= end_slice).all()
         found_records += len(query_result)
 
         logger.info("Updating records: %s to %s", str(start_slice), str(end_slice))

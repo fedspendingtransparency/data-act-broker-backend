@@ -130,8 +130,7 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
                         uei=None, submission_id=9999):
     """ Initialize the values in the object being run through the fabs_derivations function """
     column_list = [col.key for col in PublishedFABS.__table__.columns]
-    remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active',
-                   'published_award_financial_assistance_id']
+    remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active', 'published_fabs_id']
     for remove_col in remove_cols:
         column_list.remove(remove_col)
     col_string = ", ".join(column_list)
@@ -142,12 +141,12 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
         CREATE TABLE tmp_fabs_{submission_id}
         AS
             SELECT {cols}
-            FROM published_award_financial_assistance
+            FROM published_fabs
             WHERE false;
 
         TRUNCATE TABLE tmp_fabs_{submission_id};
 
-        ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_award_financial_assistance_id SERIAL PRIMARY KEY;
+        ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_fabs_id SERIAL PRIMARY KEY;
     """
     db.session.execute(create_query.format(submission_id=submission_id, cols=col_string))
 

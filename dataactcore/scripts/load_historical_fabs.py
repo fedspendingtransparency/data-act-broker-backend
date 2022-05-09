@@ -494,15 +494,15 @@ def generate_unique_string(row):
 def set_active_rows(sess):
     logger.info('marking current records as active')
     sess.execute(
-        """UPDATE published_award_financial_assistance AS all_pafa SET is_active=TRUE
-        FROM (SELECT DISTINCT pafa.published_award_financial_assistance_id
-        FROM published_award_financial_assistance AS pafa
+        """UPDATE published_fabs AS all_pf SET is_active=TRUE
+        FROM (SELECT DISTINCT pf.published_fabs_id
+        FROM published_fabs AS pf
         INNER JOIN (SELECT max(modified_at) AS modified_at, afa_generated_unique
-        FROM published_award_financial_assistance GROUP BY UPPER(afa_generated_unique)) sub_pafa
-        ON pafa.modified_at = sub_pafa.modified_at AND
-        UPPER(COALESCE(pafa.afa_generated_unique, '')) = UPPER(COALESCE(sub_pafa.afa_generated_unique, ''))
-        WHERE COALESCE(UPPER(pafa.correction_delete_indicatr), '') != 'D') AS selected
-        WHERE all_pafa.published_award_financial_assistance_id = selected.published_award_financial_assistance_id"""
+        FROM published_fabs GROUP BY UPPER(afa_generated_unique)) sub_pf
+        ON pf.modified_at = sub_pf.modified_at AND
+        UPPER(COALESCE(pf.afa_generated_unique, '')) = UPPER(COALESCE(sub_pf.afa_generated_unique, ''))
+        WHERE COALESCE(UPPER(pf.correction_delete_indicatr), '') != 'D') AS selected
+        WHERE all_pf.published_fabs_id = selected.published_fabs_id"""
     )
     sess.commit()
 

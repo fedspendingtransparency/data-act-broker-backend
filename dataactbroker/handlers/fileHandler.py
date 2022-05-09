@@ -734,7 +734,7 @@ class FileHandler:
 
             column_list = [col.key for col in PublishedFABS.__table__.columns]
             remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active',
-                           'published_award_financial_assistance_id']
+                           'published_fabs_id']
             for remove_col in remove_cols:
                 column_list.remove(remove_col)
             published_col_string = ", ".join(column_list)
@@ -745,10 +745,10 @@ class FileHandler:
                 ON COMMIT DROP
                 AS
                     SELECT {cols}
-                    FROM published_award_financial_assistance
+                    FROM published_fabs
                     WHERE false;
 
-                ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_award_financial_assistance_id
+                ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_fabs_id
                     SERIAL PRIMARY KEY;
             """.format(submission_id=submission_id, cols=published_col_string)
             sess.execute(create_table_sql)
@@ -843,8 +843,7 @@ class FileHandler:
 
             # Inserting non-delete records
             insert_query = """
-                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols}, modified_at,
-                                                                  is_active)
+                INSERT INTO published_fabs (created_at, updated_at, {cols}, modified_at, is_active)
                 SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at, TRUE AS is_active
                 FROM tmp_fabs_{submission_id} AS tmp_fabs;
             """
@@ -852,7 +851,7 @@ class FileHandler:
 
             # Inserting delete records, we didn't have to process these
             insert_query = """
-                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols}, modified_at)
+                INSERT INTO published_fabs (created_at, updated_at, {cols}, modified_at)
                 SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at
                 FROM detached_award_financial_assistance AS dafa
                 WHERE dafa.submission_id = {submission_id}
@@ -869,15 +868,15 @@ class FileHandler:
                 WITH new_record_keys AS
                     (SELECT UPPER(afa_generated_unique) AS afa_generated_unique,
                         modified_at
-                    FROM published_award_financial_assistance
+                    FROM published_fabs
                     WHERE submission_id={submission_id}
                         AND UPPER(correction_delete_indicatr) IN ('C', 'D'))
-                UPDATE published_award_financial_assistance AS pafa
+                UPDATE published_fabs AS pf
                 SET is_active = FALSE,
                     updated_at = nrk.modified_at
                 FROM new_record_keys AS nrk
-                WHERE COALESCE(pafa.submission_id, 0) <> {submission_id}
-                    AND UPPER(pafa.afa_generated_unique) = nrk.afa_generated_unique
+                WHERE COALESCE(pf.submission_id, 0) <> {submission_id}
+                    AND UPPER(pf.afa_generated_unique) = nrk.afa_generated_unique
                     AND is_active IS TRUE;
             """
             sess.execute(deactivate_query.format(submission_id=submission_id))
@@ -887,7 +886,7 @@ class FileHandler:
             uncache_query = """
                 WITH affected_agencies AS
                     (SELECT DISTINCT awarding_agency_code
-                    FROM published_award_financial_assistance
+                    FROM published_fabs
                     WHERE submission_id={submission_id})
                 UPDATE file_generation
                 SET is_cached_file = FALSE
@@ -902,7 +901,7 @@ class FileHandler:
             uncache_query = """
                 WITH affected_agencies AS
                     (SELECT DISTINCT funding_agency_code
-                    FROM published_award_financial_assistance
+                    FROM published_fabs
                     WHERE submission_id={submission_id})
                 UPDATE file_generation
                 SET is_cached_file = FALSE

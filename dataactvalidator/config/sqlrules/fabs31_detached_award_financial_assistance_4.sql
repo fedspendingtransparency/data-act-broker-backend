@@ -22,12 +22,12 @@ WITH detached_award_financial_assistance_31_4_1_{0} AS
 min_dates_{0} AS
     (SELECT unique_award_key,
         MIN(cast_as_date(action_date)) AS min_date
-    FROM published_award_financial_assistance AS pafa
+    FROM published_fabs AS pf
     WHERE is_active IS TRUE
         AND EXISTS (
             SELECT 1
             FROM detached_award_financial_assistance_31_4_1_{0} AS dafa
-            WHERE pafa.unique_award_key = dafa.unique_award_key
+            WHERE pf.unique_award_key = dafa.unique_award_key
         )
     GROUP BY unique_award_key)
 SELECT

@@ -19,9 +19,9 @@ WHERE dafa.submission_id = {0}
     AND COALESCE(UPPER(dafa.correction_delete_indicatr), '') NOT IN ('C', 'D')
     AND NOT EXISTS (
         SELECT 1
-        FROM published_award_financial_assistance AS pafa
-        WHERE dafa.unique_award_key = pafa.unique_award_key
-            AND pafa.is_active IS TRUE
+        FROM published_fabs AS pf
+        WHERE dafa.unique_award_key = pf.unique_award_key
+            AND pf.is_active IS TRUE
     )
     AND NOT ((COALESCE(UPPER(dafa.action_type), '') = 'E'
             AND dafa.record_type = 1)

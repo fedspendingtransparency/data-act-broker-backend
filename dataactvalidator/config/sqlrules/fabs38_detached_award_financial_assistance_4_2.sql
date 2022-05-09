@@ -18,23 +18,23 @@ WITH detached_award_financial_assistance_38_4_2_{0} AS
 min_dates_{0} AS
     (SELECT unique_award_key,
         MIN(cast_as_date(action_date)) AS min_date
-    FROM published_award_financial_assistance AS pafa
+    FROM published_fabs AS pf
     WHERE is_active IS TRUE
         AND EXISTS (
             SELECT 1
             FROM detached_award_financial_assistance_38_4_2_{0} AS dafa
-            WHERE pafa.unique_award_key = dafa.unique_award_key)
+            WHERE pf.unique_award_key = dafa.unique_award_key)
     GROUP BY unique_award_key),
 awarding_codes_{0} AS
-	(SELECT pafa.unique_award_key,
-		pafa.awarding_office_code,
-		pafa.award_modification_amendme
-	FROM published_award_financial_assistance AS pafa
+	(SELECT pf.unique_award_key,
+		pf.awarding_office_code,
+		pf.award_modification_amendme
+	FROM published_fabs AS pf
 	JOIN min_dates_{0} AS md
-		ON md.unique_award_key = pafa.unique_award_key
-			AND md.min_date = cast_as_date(pafa.action_date)
-	WHERE COALESCE(pafa.awarding_office_code, '') <> ''
-	    AND pafa.is_active IS TRUE)
+		ON md.unique_award_key = pf.unique_award_key
+			AND md.min_date = cast_as_date(pf.action_date)
+	WHERE COALESCE(pf.awarding_office_code, '') <> ''
+	    AND pf.is_active IS TRUE)
 SELECT
     row_number,
     awarding_office_code,

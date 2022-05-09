@@ -15,7 +15,7 @@ WHERE dafa.submission_id = {0}
     AND COALESCE(UPPER(dafa.correction_delete_indicatr), '') = 'C'
     AND NOT EXISTS (
         SELECT 1
-        FROM published_award_financial_assistance AS pafa
-        WHERE UPPER(dafa.afa_generated_unique) = UPPER(pafa.afa_generated_unique)
-            AND pafa.is_active = TRUE
+        FROM published_fabs AS pf
+        WHERE UPPER(dafa.afa_generated_unique) = UPPER(pf.afa_generated_unique)
+            AND pf.is_active = TRUE
     );

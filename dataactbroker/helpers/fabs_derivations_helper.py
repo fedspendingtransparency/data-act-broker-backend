@@ -579,7 +579,7 @@ def derive_office_data(sess, submission_id):
             (SELECT CAST(MIN(action_date) AS DATE) AS min_date,
                 UPPER(fain) AS upper_fain,
                 UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier
-            FROM published_award_financial_assistance AS pafa
+            FROM published_fabs
             WHERE is_active IS TRUE
                 AND record_type <> '1'
                 AND EXISTS (
@@ -595,7 +595,7 @@ def derive_office_data(sess, submission_id):
                 award_modification_amendme,
                 UPPER(fain) AS upper_fain,
                 UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier
-            FROM published_award_financial_assistance AS pafa
+            FROM published_fabs AS pf
             WHERE is_active IS TRUE
                 AND record_type <> '1'
                 AND EXISTS (
@@ -603,7 +603,7 @@ def derive_office_data(sess, submission_id):
                     FROM min_date AS md
                     WHERE upper_fain = UPPER(fain)
                         AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
-                        AND cast_as_date(pafa.action_date) = min_date
+                        AND cast_as_date(pf.action_date) = min_date
                 )),
         filtered_offices AS
             (SELECT award_modification_amendme,
@@ -650,7 +650,7 @@ def derive_office_data(sess, submission_id):
         min_date AS
             (SELECT CAST(MIN(action_date) AS DATE) AS min_date,
             UPPER(uri) AS upper_uri, UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier
-            FROM published_award_financial_assistance AS pafa
+            FROM published_fabs
             WHERE is_active IS TRUE
                 AND record_type = '1'
                 AND EXISTS (
@@ -666,7 +666,7 @@ def derive_office_data(sess, submission_id):
                 award_modification_amendme,
                 UPPER(uri) AS upper_uri,
                 UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier
-            FROM published_award_financial_assistance AS pafa
+            FROM published_fabs AS pf
             WHERE is_active IS TRUE
                 AND record_type = '1'
                 AND EXISTS (
@@ -674,7 +674,7 @@ def derive_office_data(sess, submission_id):
                     FROM min_date AS md
                     WHERE upper_uri = UPPER(uri)
                         AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
-                        AND cast_as_date(pafa.action_date) = min_date
+                        AND cast_as_date(pf.action_date) = min_date
                 )),
         filtered_offices AS
             (SELECT award_modification_amendme,
@@ -1027,18 +1027,18 @@ def derive_labels(sess, submission_id):
             (SELECT *
             FROM(VALUES ({business_types})) as business_type_desc(letter, description)),
         aggregated_business_types AS
-            (SELECT published_award_financial_assistance_id,
+            (SELECT published_fabs_id,
                 string_agg(btd.description, ';' order by ordinality) AS aggregated
             FROM tmp_fabs_{submission_id} AS pafa,
                 unnest(string_to_array(pafa.business_types, NULL)) WITH ORDINALITY AS u(business_type_id, ordinality)
             LEFT JOIN business_type_desc AS btd
                 ON btd.letter = UPPER(business_type_id)
-            GROUP BY published_award_financial_assistance_id)
+            GROUP BY published_fabs_id)
         UPDATE tmp_fabs_{submission_id} AS pafa
         SET business_types_desc = abt.aggregated
         FROM aggregated_business_types AS abt
         WHERE
-            abt.published_award_financial_assistance_id = pafa.published_award_financial_assistance_id;
+            abt.published_fabs_id = pafa.published_fabs_id;
     """
     res = sess.execute(query.format(submission_id=submission_id, business_types=business_types_values))
     log_derivation('Completed business type label derivation, '
