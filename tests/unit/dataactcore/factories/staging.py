@@ -365,11 +365,11 @@ class DetachedAwardFinancialAssistanceFactory(factory.Factory):
     is_valid = True
 
 
-class PublishedAwardFinancialAssistanceFactory(factory.Factory):
+class PublishedFABSFactory(factory.Factory):
     class Meta:
-        model = stagingModels.PublishedAwardFinancialAssistance
+        model = stagingModels.PublishedFABS
 
-    published_award_financial_assistance_id = None
+    published_fabs_id = None
     afa_generated_unique = fuzzy.FuzzyText()
     unique_award_key = fuzzy.FuzzyText()
     action_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))

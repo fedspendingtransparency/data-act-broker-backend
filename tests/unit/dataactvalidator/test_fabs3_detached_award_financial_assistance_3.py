@@ -1,5 +1,4 @@
-from tests.unit.dataactcore.factories.staging import (DetachedAwardFinancialAssistanceFactory,
-                                                      PublishedAwardFinancialAssistanceFactory)
+from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory,PublishedFABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs3_detached_award_financial_assistance_3'
@@ -36,12 +35,12 @@ def test_success(database):
     det_award_6 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique4', action_type='A',
                                                           correction_delete_indicatr='')
 
-    pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='unique3', is_active=False)
-    pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='unique1', is_active=True)
-    pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='unique2', is_active=True)
+    pub_fabs_1 = PublishedFABSFactory(unique_award_key='unique3', is_active=False)
+    pub_fabs_2 = PublishedFABSFactory(unique_award_key='unique1', is_active=True)
+    pub_fabs_3 = PublishedFABSFactory(unique_award_key='unique2', is_active=True)
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, pub_award_1, pub_award_2, pub_award_3])
+                                                       det_award_6, pub_fabs_1, pub_fabs_2, pub_fabs_3])
     assert errors == 0
 
 
@@ -59,7 +58,7 @@ def test_failure(database):
     det_award_2 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='E',
                                                           correction_delete_indicatr='')
 
-    pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='unique1', is_active=True)
+    pub_fabs_1 = PublishedFABSFactory(unique_award_key='unique1', is_active=True)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, pub_award_1])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, pub_fabs_1])
     assert errors == 2

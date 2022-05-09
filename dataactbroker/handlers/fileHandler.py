@@ -40,7 +40,7 @@ from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME, FILE_TYPE_DICT_NAME_LETTER,
     SUBMISSION_FILENAMES)
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedFABS
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
 
@@ -680,7 +680,6 @@ class FileHandler:
         try:
             # need to set the models to something because the names are too long and flake gets mad
             dafa = DetachedAwardFinancialAssistance
-            pafa = PublishedAwardFinancialAssistance
 
             # Check to make sure no rows are currently publishing that collide with the rows in this submission
             # (in any way, including C or D)
@@ -709,8 +708,9 @@ class FileHandler:
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id == submission_id,
                        func.coalesce(func.upper(dafa.correction_delete_indicatr), '').notin_(['C', 'D'])).\
-                join(pafa, and_(func.upper(dafa.afa_generated_unique) == func.upper(pafa.afa_generated_unique),
-                                pafa.is_active.is_(True))).\
+                join(PublishedFABS,
+                     and_(func.upper(dafa.afa_generated_unique) == func.upper(PublishedFABS.afa_generated_unique),
+                          PublishedFABS.is_active.is_(True))).\
                 count()
             if colliding_rows > 0:
                 raise ResponseException('1 or more rows in this submission were already published (in a separate '
@@ -732,7 +732,7 @@ class FileHandler:
                 column_list.remove(remove_col)
             detached_col_string = ", ".join(column_list)
 
-            column_list = [col.key for col in PublishedAwardFinancialAssistance.__table__.columns]
+            column_list = [col.key for col in PublishedFABS.__table__.columns]
             remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active',
                            'published_award_financial_assistance_id']
             for remove_col in remove_cols:

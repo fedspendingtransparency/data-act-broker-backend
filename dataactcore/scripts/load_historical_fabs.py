@@ -14,7 +14,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
-from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import PublishedFABS
 from dataactcore.models.domainModels import SubTierAgency, CountyCode, States, Zips, ZipCity, CityCode
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
@@ -44,7 +44,7 @@ def parse_fabs_file(f, sess, fips_state_list, state_code_list, sub_tier_list, co
     if clean_data is not None:
         logger.info("loading {} rows".format(len(clean_data.index)))
 
-        insert_dataframe(clean_data, PublishedAwardFinancialAssistance.__table__.name, sess.connection())
+        insert_dataframe(clean_data, PublishedFABS.__table__.name, sess.connection())
         sess.commit()
 
 
@@ -113,7 +113,7 @@ def format_fabs_data(data, sess, fips_state_list, state_code_list, sub_tier_list
 
     cdata = clean_data(
         data,
-        PublishedAwardFinancialAssistance,
+        PublishedFABS,
         {
             'obligation_action_date': 'action_date',
             'action_type': 'action_type',
@@ -519,9 +519,9 @@ def main():
             years_array.append(str(year))
     years = "|".join(years_array)
 
-    # delete any data in the PublishedAwardFinancialAssistance table
-    logger.info('deleting PublishedAwardFinancialAssistance data')
-    sess.query(PublishedAwardFinancialAssistance).delete(synchronize_session=False)
+    # delete any data in the PublishedFABS table
+    logger.info('deleting PublishedFABS data')
+    sess.query(PublishedFABS).delete(synchronize_session=False)
     sess.commit()
 
     state_list = sess.query(States).all()

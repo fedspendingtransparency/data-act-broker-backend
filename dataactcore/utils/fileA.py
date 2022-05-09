@@ -159,7 +159,7 @@ def initial_query(session, model, year):
             year: the year for which to get data
 
         Returns:
-            The base query (a select from the PublishedAwardFinancialAssistance table with the specified columns).
+            The base query (a select from the tas/gtas tables with the specified columns).
     """
     budget_authority_line_max = 1042 if year <= 2020 else 1065
     return session.query(

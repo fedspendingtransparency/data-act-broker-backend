@@ -5,7 +5,7 @@ import re
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CountryCode, States, CountyCode, CityCode, Zips
-from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance, DetachedAwardProcurement
+from dataactcore.models.stagingModels import PublishedFABS, DetachedAwardProcurement
 
 from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
@@ -299,16 +299,15 @@ def process_fabs_derivations(data):
 
 def update_historical_fabs(sess, start, end):
     """ Update historical FABS location data with new columns and missing data where possible """
-    model = PublishedAwardFinancialAssistance
     start_slice = start
     found_records = 0
     logger.info("Starting fabs update for ids: %s to %s", start, end)
     while True:
         end_slice = start_slice + QUERY_SIZE if start_slice + QUERY_SIZE < end else end
-        query_result = sess.query(model).\
-            filter(model.is_active.is_(True)).\
-            filter(model.published_award_financial_assistance_id >= start_slice).\
-            filter(model.published_award_financial_assistance_id <= end_slice).all()
+        query_result = sess.query(PublishedFABS).\
+            filter(PublishedFABS.is_active.is_(True)).\
+            filter(PublishedFABS.published_award_financial_assistance_id >= start_slice).\
+            filter(PublishedFABS.published_award_financial_assistance_id <= end_slice).all()
         found_records += len(query_result)
 
         logger.info("Updating records: %s to %s", str(start_slice), str(end_slice))

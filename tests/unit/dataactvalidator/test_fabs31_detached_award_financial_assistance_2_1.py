@@ -1,5 +1,4 @@
-from tests.unit.dataactcore.factories.staging import (
-    DetachedAwardFinancialAssistanceFactory, PublishedAwardFinancialAssistanceFactory)
+from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory, PublishedFABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs31_detached_award_financial_assistance_2_1'
@@ -21,13 +20,10 @@ def test_success(database):
     #       actiondate NOT be less than April 4, 2023. This rule will not trigger if those *don't* apply.
     #       FABS 31.2.2 *will* trigger when these apply.
 
-    pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
-                                                           is_active=True)
-    pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='after_key', action_date='20230404',
-                                                           is_active=True)
-    pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='inactive_key', action_date='20091001',
-                                                           is_active=False)
-    models = [pub_award_1, pub_award_2, pub_award_3]
+    pub_fabs_1 = PublishedFABSFactory(unique_award_key='before_key', action_date='20091001', is_active=True)
+    pub_fabs_2 = PublishedFABSFactory(unique_award_key='after_key', action_date='20230404', is_active=True)
+    pub_fabs_3 = PublishedFABSFactory(unique_award_key='inactive_key', action_date='20091001', is_active=False)
+    models = [pub_fabs_1, pub_fabs_2, pub_fabs_3]
 
     # new records that may or may not be related to older awards
     det_award_01 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei='test',
@@ -92,13 +88,10 @@ def test_failure(database):
     #       actiondate NOT be less than April 4, 2022. This rule will not trigger if those *don't* apply.
     #       FABS 31.2.2 *will* trigger when these apply.
 
-    pub_award_1 = PublishedAwardFinancialAssistanceFactory(unique_award_key='before_key', action_date='20091001',
-                                                           is_active=True)
-    pub_award_2 = PublishedAwardFinancialAssistanceFactory(unique_award_key='after_key', action_date='20230404',
-                                                           is_active=True)
-    pub_award_3 = PublishedAwardFinancialAssistanceFactory(unique_award_key='inactive_key', action_date='20091001',
-                                                           is_active=False)
-    models = [pub_award_1, pub_award_2, pub_award_3]
+    pub_fabs_1 = PublishedFABSFactory(unique_award_key='before_key', action_date='20091001', is_active=True)
+    pub_fabs_2 = PublishedFABSFactory(unique_award_key='after_key', action_date='20230404', is_active=True)
+    pub_fabs_3 = PublishedFABSFactory(unique_award_key='inactive_key', action_date='20091001', is_active=False)
+    models = [pub_fabs_1, pub_fabs_2, pub_fabs_3]
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei=None,
                                                           action_date='10/02/2010', assistance_type='02',

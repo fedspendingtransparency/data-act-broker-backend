@@ -10,7 +10,7 @@ from dataactbroker.helpers import generation_helper
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
-from dataactcore.models.stagingModels import DetachedAwardProcurement, PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import DetachedAwardProcurement, PublishedFABS
 from dataactcore.models.domainModels import SF133, concat_tas_dict, concat_display_tas_dict
 
 from dataactvalidator.validation_handlers import file_generation_manager
@@ -19,9 +19,8 @@ from dataactvalidator.validation_handlers.file_generation_manager import FileGen
 from tests.unit.dataactcore.factories.job import JobFactory, FileGenerationFactory, SubmissionFactory
 from tests.unit.dataactcore.factories.domain import (TASFactory, SF133Factory, SAMRecipientFactory, CGACFactory,
                                                      FRECFactory)
-from tests.unit.dataactcore.factories.staging import (
-    AwardFinancialAssistanceFactory, AwardProcurementFactory, DetachedAwardProcurementFactory,
-    PublishedAwardFinancialAssistanceFactory)
+from tests.unit.dataactcore.factories.staging import (AwardFinancialAssistanceFactory, AwardProcurementFactory,
+                                                      DetachedAwardProcurementFactory, PublishedFABSFactory)
 
 
 d1_booleans = ['small_business_competitive', 'city_local_government', 'county_local_government',
@@ -638,17 +637,17 @@ def test_generate_awarding_d2(database, monkeypatch):
     sess = database.session
     monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
 
-    pafa = PublishedAwardFinancialAssistanceFactory
-    pafa_1 = pafa(awarding_agency_code='123', action_date='20170101', afa_generated_unique='unique1', is_active=True)
-    pafa_2 = pafa(awarding_agency_code='123', action_date='20170131', afa_generated_unique='unique2', is_active=True)
-    pafa_3 = pafa(awarding_agency_code='123', action_date='20161231', afa_generated_unique='unique3', is_active=True)
-    pafa_4 = pafa(awarding_agency_code='123', action_date='20170201', afa_generated_unique='unique4', is_active=True)
-    pafa_5 = pafa(awarding_agency_code='123', action_date='20170115', afa_generated_unique='unique5', is_active=False)
-    pafa_6 = pafa(awarding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
+    pub_fabs_1 = PublishedFABSFactory(awarding_agency_code='123', action_date='20170101',
+                                      afa_generated_unique='unique1', is_active=True)
+    pub_fabs_2 = PublishedFABSFactory(awarding_agency_code='123', action_date='20170131', afa_generated_unique='unique2', is_active=True)
+    pub_fabs_3 = PublishedFABSFactory(awarding_agency_code='123', action_date='20161231', afa_generated_unique='unique3', is_active=True)
+    pub_fabs_4 = PublishedFABSFactory(awarding_agency_code='123', action_date='20170201', afa_generated_unique='unique4', is_active=True)
+    pub_fabs_5 = PublishedFABSFactory(awarding_agency_code='123', action_date='20170115', afa_generated_unique='unique5', is_active=False)
+    pub_fabs_6 = PublishedFABSFactory(awarding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D2', agency_code='123', agency_type='awarding', is_cached_file=True,
                                      file_path=None, file_format='csv')
-    sess.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6, file_gen])
+    sess.add_all([pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6, file_gen])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
@@ -662,17 +661,17 @@ def test_generate_awarding_d2(database, monkeypatch):
     assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD2.mapping.items()]
 
     # check body
-    pafa1 = sess.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
-    pafa2 = sess.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique2').first()
+    pub_fabs1 = sess.query(PublishedFABS).filter_by(afa_generated_unique='unique1').first()
+    pub_fabs2 = sess.query(PublishedFABS).filter_by(afa_generated_unique='unique2').first()
     expected1, expected2 = [], []
     for value in file_generation_manager.fileD2.db_columns:
         # loop through all values and format date columns
         if value in ['period_of_performance_star', 'period_of_performance_curr', 'modified_at', 'action_date']:
-            expected1.append(re.sub(r"[-]", r"", str(pafa1.__dict__[value]))[0:8])
-            expected2.append(re.sub(r"[-]", r"", str(pafa2.__dict__[value]))[0:8])
+            expected1.append(re.sub(r"[-]", r"", str(pub_fabs1.__dict__[value]))[0:8])
+            expected2.append(re.sub(r"[-]", r"", str(pub_fabs2.__dict__[value]))[0:8])
         else:
-            expected1.append(str(pafa1.__dict__[value] or ''))
-            expected2.append(str(pafa2.__dict__[value] or ''))
+            expected1.append(str(pub_fabs1.__dict__[value] or ''))
+            expected2.append(str(pub_fabs2.__dict__[value] or ''))
 
     assert expected1 in file_rows
     assert expected2 in file_rows
@@ -683,17 +682,16 @@ def test_generate_funding_d2(database, monkeypatch):
     sess = database.session
     monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
 
-    pafa = PublishedAwardFinancialAssistanceFactory
-    pafa_1 = pafa(funding_agency_code='123', action_date='20170101', afa_generated_unique='unique1', is_active=True)
-    pafa_2 = pafa(funding_agency_code='123', action_date='20170131', afa_generated_unique='unique2', is_active=True)
-    pafa_3 = pafa(funding_agency_code='123', action_date='20161231', afa_generated_unique='unique3', is_active=True)
-    pafa_4 = pafa(funding_agency_code='123', action_date='20170201', afa_generated_unique='unique4', is_active=True)
-    pafa_5 = pafa(funding_agency_code='123', action_date='20170115', afa_generated_unique='unique5', is_active=False)
-    pafa_6 = pafa(funding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
+    pub_fabs_1 = PublishedFABSFactory(funding_agency_code='123', action_date='20170101', afa_generated_unique='unique1', is_active=True)
+    pub_fabs_2 = PublishedFABSFactory(funding_agency_code='123', action_date='20170131', afa_generated_unique='unique2', is_active=True)
+    pub_fabs_3 = PublishedFABSFactory(funding_agency_code='123', action_date='20161231', afa_generated_unique='unique3', is_active=True)
+    pub_fabs_4 = PublishedFABSFactory(funding_agency_code='123', action_date='20170201', afa_generated_unique='unique4', is_active=True)
+    pub_fabs_5 = PublishedFABSFactory(funding_agency_code='123', action_date='20170115', afa_generated_unique='unique5', is_active=False)
+    pub_fabs_6 = PublishedFABSFactory(funding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D2', agency_code='123', agency_type='funding', is_cached_file=True,
                                      file_path=None, file_format='csv')
-    sess.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6, file_gen])
+    sess.add_all([pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6, file_gen])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
@@ -707,17 +705,17 @@ def test_generate_funding_d2(database, monkeypatch):
     assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileD2.mapping.items()]
 
     # check body
-    pafa1 = sess.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
-    pafa2 = sess.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique2').first()
+    pub_fabs1 = sess.query(PublishedFABS).filter_by(afa_generated_unique='unique1').first()
+    pub_fabs2 = sess.query(PublishedFABS).filter_by(afa_generated_unique='unique2').first()
     expected1, expected2 = [], []
     for value in file_generation_manager.fileD2.db_columns:
         # loop through all values and format date columns
         if value in ['period_of_performance_star', 'period_of_performance_curr', 'modified_at', 'action_date']:
-            expected1.append(re.sub(r"[-]", r"", str(pafa1.__dict__[value]))[0:8])
-            expected2.append(re.sub(r"[-]", r"", str(pafa2.__dict__[value]))[0:8])
+            expected1.append(re.sub(r"[-]", r"", str(pub_fabs1.__dict__[value]))[0:8])
+            expected2.append(re.sub(r"[-]", r"", str(pub_fabs2.__dict__[value]))[0:8])
         else:
-            expected1.append(str(pafa1.__dict__[value] or ''))
-            expected2.append(str(pafa2.__dict__[value] or ''))
+            expected1.append(str(pub_fabs1.__dict__[value] or ''))
+            expected2.append(str(pub_fabs2.__dict__[value] or ''))
 
     assert expected1 in file_rows
     assert expected2 in file_rows

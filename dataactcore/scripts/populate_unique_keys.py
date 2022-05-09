@@ -6,8 +6,7 @@ from sqlalchemy.sql import func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.stagingModels import (DetachedAwardProcurement, DetachedAwardFinancialAssistance,
-                                              PublishedAwardFinancialAssistance)
+from dataactcore.models.stagingModels import DetachedAwardProcurement, DetachedAwardFinancialAssistance, PublishedFABS
 from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
 from dataactvalidator.health_check import create_app
@@ -163,27 +162,25 @@ if __name__ == '__main__':
 
         # published FABS
         if 'publishedFABS' in models:
-            pafa = PublishedAwardFinancialAssistance
-
             if key_type == 'award':
                 # record type 1
                 if 'AGG' in types:
-                    update_keys(pafa, 'published FABS', key_type, 'aggregate', years,
-                                func.concat('ASST_AGG_', func.coalesce(pafa.uri, '-none-'), '_',
-                                            func.coalesce(pafa.awarding_sub_tier_agency_c, '-none-')))
+                    update_keys(PublishedFABS, 'published FABS', key_type, 'aggregate', years,
+                                func.concat('ASST_AGG_', func.coalesce(PublishedFABS.uri, '-none-'), '_',
+                                            func.coalesce(PublishedFABS.awarding_sub_tier_agency_c, '-none-')))
 
                 # record type not 1
                 if 'NON' in types:
-                    update_keys(pafa, 'published FABS', key_type, 'non-aggregate', years,
-                                func.concat('ASST_NON_', func.coalesce(pafa.fain, '-none-'), '_',
-                                            func.coalesce(pafa.awarding_sub_tier_agency_c, '-none-')))
+                    update_keys(PublishedFABS, 'published FABS', key_type, 'non-aggregate', years,
+                                func.concat('ASST_NON_', func.coalesce(PublishedFABS.fain, '-none-'), '_',
+                                            func.coalesce(PublishedFABS.awarding_sub_tier_agency_c, '-none-')))
             else:
                 # All transaction keys are the same format for FABS
-                update_keys(pafa, 'published FABS', key_type, '', years,
-                            func.concat(func.coalesce(pafa.awarding_sub_tier_agency_c, '-none-'), '_',
-                                        func.coalesce(pafa.fain, '-none-'), '_',
-                                        func.coalesce(pafa.uri, '-none-'), '_',
-                                        func.coalesce(pafa.cfda_number, '-none-'), '_',
-                                        func.coalesce(pafa.award_modification_amendme, '-none-')))
+                update_keys(PublishedFABS, 'published FABS', key_type, '', years,
+                            func.concat(func.coalesce(PublishedFABS.awarding_sub_tier_agency_c, '-none-'), '_',
+                                        func.coalesce(PublishedFABS.fain, '-none-'), '_',
+                                        func.coalesce(PublishedFABS.uri, '-none-'), '_',
+                                        func.coalesce(PublishedFABS.cfda_number, '-none-'), '_',
+                                        func.coalesce(PublishedFABS.award_modification_amendme, '-none-')))
 
         sess.close()
