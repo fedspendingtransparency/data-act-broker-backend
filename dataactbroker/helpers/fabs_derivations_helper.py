@@ -60,10 +60,10 @@ def derive_cfda(sess, submission_id):
     log_derivation('Beginning cfda_title derivation', submission_id)
 
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET cfda_title = cfda.program_title
         FROM cfda_program AS cfda
-        WHERE pafa.cfda_number = to_char(cfda.program_number, 'FM00.000');
+        WHERE pf.cfda_number = to_char(cfda.program_number, 'FM00.000');
     """
     res = sess.execute(query.format(submission_id=submission_id))
 
@@ -85,11 +85,11 @@ def derive_awarding_agency_data(sess, submission_id):
     log_derivation('Beginning awarding sub tier code derivation', submission_id)
     # Deriving awarding sub tier agency code
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET awarding_sub_tier_agency_c = office.sub_tier_code
         FROM office
         WHERE UPPER(COALESCE(awarding_sub_tier_agency_c, '')) = ''
-            AND UPPER(pafa.awarding_office_code) = office.office_code;
+            AND UPPER(pf.awarding_office_code) = office.office_code;
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation('Completed sub tier code derivation, '
@@ -115,7 +115,7 @@ def derive_awarding_agency_data(sess, submission_id):
                     ON cgac.cgac_id = sta.cgac_id
                 INNER JOIN frec
                     ON frec.frec_id = sta.frec_id)
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET awarding_agency_code = agency_code,
             awarding_agency_name = agency_name,
             awarding_sub_tier_agency_n = sub_tier_name
@@ -143,11 +143,11 @@ def derive_funding_agency_data(sess, submission_id):
     log_derivation('Beginning funding sub tier code derivation', submission_id)
     # Deriving funding sub tier agency code
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET funding_sub_tier_agency_co = office.sub_tier_code
         FROM office
         WHERE UPPER(COALESCE(funding_sub_tier_agency_co, '')) = ''
-            AND UPPER(pafa.funding_office_code) = office.office_code;
+            AND UPPER(pf.funding_office_code) = office.office_code;
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation('Completed funding sub tier code derivation, '
@@ -173,7 +173,7 @@ def derive_funding_agency_data(sess, submission_id):
                     ON cgac.cgac_id = sta.cgac_id
                 INNER JOIN frec
                     ON frec.frec_id = sta.frec_id)
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET funding_agency_code = agency_code,
             funding_agency_name = agency_name,
             funding_sub_tier_agency_na = sub_tier_name
@@ -199,7 +199,7 @@ def derive_ppop_state(sess, submission_id):
 
     # Deriving office codes for record type not 1
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET place_of_perfor_state_code = CASE WHEN UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]'
                                               THEN state_code
                                               ELSE NULL
@@ -229,7 +229,7 @@ def split_ppop_zip(sess, submission_id):
     log_derivation('Beginning place of performance zip5 and zip last4 derivation', submission_id)
 
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_zip5 = SUBSTRING(place_of_performance_zip4a, 1, 5),
             place_of_perform_zip_last4 = CASE WHEN LENGTH(place_of_performance_zip4a) = 5
                                               THEN NULL
@@ -379,7 +379,7 @@ def derive_ppop_scope(sess, submission_id):
     log_derivation('Beginning ppop scope with non-null zip derivation', submission_id)
     # When zip is not null
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_scope = CASE WHEN UPPER(place_of_performance_zip4a) = 'CITY-WIDE'
                                               THEN 'City-wide'
                                               WHEN place_of_performance_zip4a ~ '^\d\d\d\d\d(\-?\d\d\d\d)?$'
@@ -397,7 +397,7 @@ def derive_ppop_scope(sess, submission_id):
     log_derivation('Beginning ppop scope with null zip derivation', submission_id)
     # When zip is null
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_scope = CASE WHEN UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dR]$'
                                               THEN 'City-wide'
                                               WHEN UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
@@ -619,17 +619,17 @@ def derive_office_data(sess, submission_id):
                 ON fund_office.office_code = UPPER(oi.funding_office_code)
                 AND (fund_office.contract_funding_office IS TRUE
                     OR fund_office.financial_assistance_funding_office IS TRUE))
-        UPDATE tmp_fabs_{submission_id} AS pafa
-        SET awarding_office_code = CASE WHEN pafa.awarding_office_code IS NULL
+        UPDATE tmp_fabs_{submission_id} AS pf
+        SET awarding_office_code = CASE WHEN pf.awarding_office_code IS NULL
                                         THEN fo.awarding_office_code
-                                        ELSE pafa.awarding_office_code
+                                        ELSE pf.awarding_office_code
                                    END,
-            funding_office_code = CASE WHEN pafa.funding_office_code IS NULL
+            funding_office_code = CASE WHEN pf.funding_office_code IS NULL
                                        THEN fo.funding_office_code
-                                       ELSE pafa.funding_office_code
+                                       ELSE pf.funding_office_code
                                   END
         FROM filtered_offices AS fo
-        WHERE COALESCE(pafa.award_modification_amendme, '') <> COALESCE(fo.award_modification_amendme, '')
+        WHERE COALESCE(pf.award_modification_amendme, '') <> COALESCE(fo.award_modification_amendme, '')
             AND upper_fain = UPPER(fain)
             AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
             AND record_type <> '1';
@@ -690,17 +690,17 @@ def derive_office_data(sess, submission_id):
                 ON fund_office.office_code = UPPER(oi.funding_office_code)
                 AND (fund_office.contract_funding_office IS TRUE
                     OR fund_office.financial_assistance_funding_office IS TRUE))
-        UPDATE tmp_fabs_{submission_id} AS pafa
-        SET awarding_office_code = CASE WHEN pafa.awarding_office_code IS NULL
+        UPDATE tmp_fabs_{submission_id} AS pf
+        SET awarding_office_code = CASE WHEN pf.awarding_office_code IS NULL
                                         THEN fo.awarding_office_code
-                                        ELSE pafa.awarding_office_code
+                                        ELSE pf.awarding_office_code
                                    END,
-            funding_office_code = CASE WHEN pafa.funding_office_code IS NULL
+            funding_office_code = CASE WHEN pf.funding_office_code IS NULL
                                        THEN fo.funding_office_code
-                                       ELSE pafa.funding_office_code
+                                       ELSE pf.funding_office_code
                                   END
         FROM filtered_offices AS fo
-        WHERE COALESCE(pafa.award_modification_amendme, '') <> COALESCE(fo.award_modification_amendme, '')
+        WHERE COALESCE(pf.award_modification_amendme, '') <> COALESCE(fo.award_modification_amendme, '')
             AND upper_uri = UPPER(uri)
             AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
             AND record_type = '1';
@@ -749,7 +749,7 @@ def derive_le_city_code(sess, submission_id):
     log_derivation('Beginning legal entity city code derivation', submission_id)
 
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET legal_entity_city_code = city_code
         FROM city_code
         WHERE UPPER(TRIM(legal_entity_city_name)) = UPPER(feature_name)
@@ -772,7 +772,7 @@ def derive_ppop_country_name(sess, submission_id):
     log_derivation('Beginning place of performance country name derivation', submission_id)
 
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET place_of_perform_country_n = country_name
         FROM country_code
         WHERE country_code.country_code = UPPER(place_of_perform_country_c);
@@ -794,7 +794,7 @@ def derive_le_country_name(sess, submission_id):
     log_derivation('Beginning legal entity country name derivation', submission_id)
 
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET legal_entity_country_name = country_name
         FROM country_code
         WHERE country_code.country_code = UPPER(legal_entity_country_code);
@@ -819,7 +819,7 @@ def derive_pii_redacted_ppop_data(sess, submission_id):
     log_derivation('Beginning PII redacted USA records derivation', submission_id)
     # Deriving information for USA records
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_code = CASE WHEN legal_entity_state_code IS NOT NULL
                                             THEN CASE WHEN legal_entity_city_code IS NOT NULL
                                                     THEN UPPER(legal_entity_state_code) || legal_entity_city_code
@@ -848,7 +848,7 @@ def derive_pii_redacted_ppop_data(sess, submission_id):
     log_derivation('Beginning PII redacted non-USA records derivation', submission_id)
     # Deriving information for non-USA records
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_code = '00FORGN',
             place_of_perform_country_c = legal_entity_country_code,
             place_of_perform_country_n = legal_entity_country_name,
@@ -875,11 +875,11 @@ def derive_parent_uei(sess, submission_id):
     log_derivation('Beginning parent UEI derivation', submission_id)
 
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET ultimate_parent_legal_enti = sam_recipient.ultimate_parent_legal_enti,
             ultimate_parent_uei = sam_recipient.ultimate_parent_uei
         FROM sam_recipient
-        WHERE UPPER(pafa.uei) = UPPER(sam_recipient.uei)
+        WHERE UPPER(pf.uei) = UPPER(sam_recipient.uei)
             AND (sam_recipient.ultimate_parent_legal_enti IS NOT NULL
                 OR sam_recipient.ultimate_parent_uei IS NOT NULL);
     """
@@ -899,7 +899,7 @@ def derive_executive_compensation(sess, submission_id):
     log_derivation('Beginning executive compensation derivation', submission_id)
 
     query = """
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET high_comp_officer1_full_na = sam_recipient.high_comp_officer1_full_na,
             high_comp_officer1_amount = sam_recipient.high_comp_officer1_amount,
             high_comp_officer2_full_na = sam_recipient.high_comp_officer2_full_na,
@@ -911,7 +911,7 @@ def derive_executive_compensation(sess, submission_id):
             high_comp_officer5_full_na = sam_recipient.high_comp_officer5_full_na,
             high_comp_officer5_amount = sam_recipient.high_comp_officer5_amount
         FROM sam_recipient
-        WHERE UPPER(pafa.uei) = UPPER(sam_recipient.uei)
+        WHERE UPPER(pf.uei) = UPPER(sam_recipient.uei)
             AND sam_recipient.high_comp_officer1_full_na IS NOT NULL;
     """
     res = sess.execute(query.format(submission_id=submission_id))
@@ -938,10 +938,10 @@ def derive_labels(sess, submission_id):
         WITH action_type_desc AS
             (SELECT *
             FROM (VALUES ({action_types})) as action_type_desc(letter, description))
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET action_type_description = description
         FROM action_type_desc AS atd
-        WHERE atd.letter = UPPER(pafa.action_type);
+        WHERE atd.letter = UPPER(pf.action_type);
     """
     res = sess.execute(query.format(submission_id=submission_id, action_types=action_type_values))
     log_derivation('Completed action type label derivation, '
@@ -956,10 +956,10 @@ def derive_labels(sess, submission_id):
         WITH assistance_type_description AS
             (SELECT *
             FROM (VALUES ({assistance_types})) as assistance_type_description(letter, description))
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET assistance_type_desc = description
         FROM assistance_type_description AS atd
-        WHERE atd.letter = UPPER(pafa.assistance_type);
+        WHERE atd.letter = UPPER(pf.assistance_type);
     """
     res = sess.execute(query.format(submission_id=submission_id, assistance_types=assistance_type_values))
     log_derivation('Completed assistance type label derivation, '
@@ -973,10 +973,10 @@ def derive_labels(sess, submission_id):
         WITH cdi_desc AS
             (SELECT *
             FROM (VALUES ({cdi_types})) as cdi_desc(letter, description))
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET correction_delete_ind_desc = description
         FROM cdi_desc
-        WHERE cdi_desc.letter = UPPER(pafa.correction_delete_indicatr);
+        WHERE cdi_desc.letter = UPPER(pf.correction_delete_indicatr);
     """
     res = sess.execute(query.format(submission_id=submission_id, cdi_types=cdi_values))
     log_derivation('Completed cdi label derivation, '
@@ -990,10 +990,10 @@ def derive_labels(sess, submission_id):
         WITH record_type_desc AS
             (SELECT *
             FROM (VALUES ({record_types})) as record_type_desc(letter, description))
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET record_type_description = description
         FROM record_type_desc AS rtd
-        WHERE rtd.letter = pafa.record_type;
+        WHERE rtd.letter = pf.record_type;
     """
     res = sess.execute(query.format(submission_id=submission_id, record_types=record_type_values))
     log_derivation('Completed record type label derivation, '
@@ -1008,10 +1008,10 @@ def derive_labels(sess, submission_id):
         WITH business_funds_ind_description AS
             (SELECT *
             FROM (VALUES ({business_funds_ind})) as business_funds_ind_description(letter, description))
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET business_funds_ind_desc = description
         FROM business_funds_ind_description AS bfid
-        WHERE bfid.letter = UPPER(pafa.business_funds_indicator);
+        WHERE bfid.letter = UPPER(pf.business_funds_indicator);
     """
     res = sess.execute(query.format(submission_id=submission_id, business_funds_ind=business_funds_values))
     log_derivation('Completed business funds ind label derivation, '
@@ -1029,16 +1029,16 @@ def derive_labels(sess, submission_id):
         aggregated_business_types AS
             (SELECT published_fabs_id,
                 string_agg(btd.description, ';' order by ordinality) AS aggregated
-            FROM tmp_fabs_{submission_id} AS pafa,
-                unnest(string_to_array(pafa.business_types, NULL)) WITH ORDINALITY AS u(business_type_id, ordinality)
+            FROM tmp_fabs_{submission_id} AS pf,
+                unnest(string_to_array(pf.business_types, NULL)) WITH ORDINALITY AS u(business_type_id, ordinality)
             LEFT JOIN business_type_desc AS btd
                 ON btd.letter = UPPER(business_type_id)
             GROUP BY published_fabs_id)
-        UPDATE tmp_fabs_{submission_id} AS pafa
+        UPDATE tmp_fabs_{submission_id} AS pf
         SET business_types_desc = abt.aggregated
         FROM aggregated_business_types AS abt
         WHERE
-            abt.published_fabs_id = pafa.published_fabs_id;
+            abt.published_fabs_id = pf.published_fabs_id;
     """
     res = sess.execute(query.format(submission_id=submission_id, business_types=business_types_values))
     log_derivation('Completed business type label derivation, '

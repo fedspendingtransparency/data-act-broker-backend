@@ -11,7 +11,7 @@ def test_column_headers(database):
     assert expected_subset == actual
 
 
-def test_success_ignore_null_pafa(database):
+def test_success_ignore_null_pub_fabs(database):
     """ Test that empty funding office codes aren't matching invalid office codes from the base record. """
 
     office_1 = OfficeFactory(office_code='12345b', contract_funding_office=False,
