@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactcore.factories.domain import OfficeFactory
 from dataactcore.models.domainModels import SubTierAgency, CGAC, FREC
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
@@ -27,33 +27,26 @@ def test_success(database):
     agency_2 = SubTierAgency(sub_tier_agency_code='0001', cgac_id=1, frec_id=1, is_frec=True)
 
     # Same agency for cgac
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
-                                                          awarding_office_code=office_1.office_code,
-                                                          correction_delete_indicatr='')
+    fabs_1 = FABSFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
+                         awarding_office_code=office_1.office_code, correction_delete_indicatr='')
     # Same agency for cgac (uppercased)
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code.
-                                                          upper(),
-                                                          awarding_office_code=office_1.office_code.upper(),
-                                                          correction_delete_indicatr=None)
+    fabs_2 = FABSFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code.upper(),
+                         awarding_office_code=office_1.office_code.upper(), correction_delete_indicatr=None)
     # Same agency for frec
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_2.sub_tier_agency_code,
-                                                          awarding_office_code=office_2.office_code,
-                                                          correction_delete_indicatr='c')
+    fabs_3 = FABSFactory(awarding_sub_tier_agency_c=agency_2.sub_tier_agency_code,
+                         awarding_office_code=office_2.office_code, correction_delete_indicatr='c')
     # Missing sub tier code
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='',
-                                                          awarding_office_code=office_2.office_code,
-                                                          correction_delete_indicatr='C')
+    fabs_4 = FABSFactory(awarding_sub_tier_agency_c='', awarding_office_code=office_2.office_code,
+                         correction_delete_indicatr='C')
     # Missing office code
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
-                                                          awarding_office_code=None,
-                                                          correction_delete_indicatr='')
+    fabs_5 = FABSFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code, awarding_office_code=None,
+                         correction_delete_indicatr='')
     # Ignore correction delete indicator of D
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
-                                                          awarding_office_code=office_2.office_code,
-                                                          correction_delete_indicatr='d')
+    fabs_6 = FABSFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
+                         awarding_office_code=office_2.office_code, correction_delete_indicatr='d')
 
-    errors = number_of_errors(_FILE, database, models=[cgac, frec, office_1, office_2, agency_1, agency_2, det_award_1,
-                                                       det_award_2, det_award_3, det_award_4, det_award_5, det_award_6])
+    errors = number_of_errors(_FILE, database, models=[cgac, frec, office_1, office_2, agency_1, agency_2, fabs_1,
+                                                       fabs_2, fabs_3, fabs_4, fabs_5, fabs_6])
     assert errors == 0
 
 
@@ -67,9 +60,8 @@ def test_failure(database):
     agency = SubTierAgency(sub_tier_agency_code='0000', frec_id=1, cgac_id=1, is_frec=True)
 
     # Sub tier is FREC, office is based on CGAC, the numbers are different
-    det_award = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency.sub_tier_agency_code,
-                                                        awarding_office_code=office.office_code,
-                                                        correction_delete_indicatr='')
+    fabs = FABSFactory(awarding_sub_tier_agency_c=agency.sub_tier_agency_code, awarding_office_code=office.office_code,
+                       correction_delete_indicatr='')
 
-    errors = number_of_errors(_FILE, database, models=[det_award, cgac, frec, office, agency])
+    errors = number_of_errors(_FILE, database, models=[fabs, cgac, frec, office, agency])
     assert errors == 1

@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory, PublishedFABSFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory, PublishedFABSFactory
 from dataactcore.models.domainModels import SAMRecipient
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
@@ -22,25 +22,20 @@ def test_pubished_date_success(database):
 
     # new records that may or may not be related to older awards
     recipient = SAMRecipient(uei='22222222222E')
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(uei=recipient.uei, assistance_type='02',
-                                                          action_date='10/02/2010', correction_delete_indicatr='',
-                                                          unique_award_key='active_key')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(uei=recipient.uei.lower(), assistance_type='02',
-                                                          action_date='10/02/2010', correction_delete_indicatr='c',
-                                                          unique_award_key='active_key')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(uei=None, assistance_type='01', action_date='10/02/2010',
-                                                          correction_delete_indicatr='c',
-                                                          unique_award_key='active_key')
+    fabs_1 = FABSFactory(uei=recipient.uei, assistance_type='02', action_date='10/02/2010',
+                         correction_delete_indicatr='', unique_award_key='active_key')
+    fabs_2 = FABSFactory(uei=recipient.uei.lower(), assistance_type='02', action_date='10/02/2010',
+                         correction_delete_indicatr='c', unique_award_key='active_key')
+    fabs_3 = FABSFactory(uei=None, assistance_type='01', action_date='10/02/2010', correction_delete_indicatr='c',
+                         unique_award_key='active_key')
     # Before October 1, 2010
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(uei='12345', assistance_type='02', action_date='09/30/2010',
-                                                          correction_delete_indicatr='C',
-                                                          unique_award_key='new_key')
+    fabs_4 = FABSFactory(uei='12345', assistance_type='02', action_date='09/30/2010', correction_delete_indicatr='C',
+                         unique_award_key='new_key')
     # Ignore correction delete indicator of D
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(uei='12345', assistance_type='01', action_date='10/02/2010',
-                                                          correction_delete_indicatr='d',
-                                                          unique_award_key='inactive_key')
+    fabs_5 = FABSFactory(uei='12345', assistance_type='01', action_date='10/02/2010', correction_delete_indicatr='d',
+                         unique_award_key='inactive_key')
 
-    models += [recipient, det_award_1, det_award_2, det_award_3, det_award_4, det_award_5]
+    models += [recipient, fabs_1, fabs_2, fabs_3, fabs_4, fabs_5]
 
     errors = number_of_errors(_FILE, database, models=models)
     assert errors == 0
@@ -57,13 +52,11 @@ def test_pubished_date_failure(database):
 
     # new records that may or may not be related to older awards
     recipient = SAMRecipient(uei='1111111111111E')
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(uei='12345', assistance_type='02', action_date='10/02/2010',
-                                                          correction_delete_indicatr='',
-                                                          unique_award_key='active_key')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(uei='12345', assistance_type='06', action_date='04/05/2022',
-                                                          correction_delete_indicatr=None,
-                                                          unique_award_key='inactive_key')
-    models += [recipient, det_award_1, det_award_2]
+    fabs_1 = FABSFactory(uei='12345', assistance_type='02', action_date='10/02/2010', correction_delete_indicatr='',
+                         unique_award_key='active_key')
+    fabs_2 = FABSFactory(uei='12345', assistance_type='06', action_date='04/05/2022', correction_delete_indicatr=None,
+                         unique_award_key='inactive_key')
+    models += [recipient, fabs_1, fabs_2]
 
     errors = number_of_errors(_FILE, database, models=models)
     assert errors == 2

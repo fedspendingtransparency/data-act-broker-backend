@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory, PublishedFABSFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory, PublishedFABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs3_detached_award_financial_assistance_5'
@@ -20,28 +20,23 @@ def test_success(database):
         AwardingSubTierAgencyCode when compared to currently published non-aggregate FABS records (RecordType = 2 or 3)
         of the same RecordType.
     """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='A', record_type=1,
-                                                          correction_delete_indicatr=None)
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='e', record_type=1,
-                                                          correction_delete_indicatr='')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique2', action_type='a', record_type=3,
-                                                          correction_delete_indicatr='')
+    fabs_1 = FABSFactory(unique_award_key='unique1', action_type='A', record_type=1, correction_delete_indicatr=None)
+    fabs_2 = FABSFactory(unique_award_key='unique1', action_type='e', record_type=1, correction_delete_indicatr='')
+    fabs_3 = FABSFactory(unique_award_key='unique2', action_type='a', record_type=3, correction_delete_indicatr='')
+
     # Ignore delete/correction record
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='C', record_type=3,
-                                                          correction_delete_indicatr='D')
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='C', record_type=3,
-                                                          correction_delete_indicatr='c')
+    fabs_4 = FABSFactory(unique_award_key='unique1', action_type='C', record_type=3, correction_delete_indicatr='D')
+    fabs_5 = FABSFactory(unique_award_key='unique1', action_type='C', record_type=3, correction_delete_indicatr='c')
+
     # This is an active award so it will be ignored
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique3', action_type='d', record_type=2,
-                                                          correction_delete_indicatr=None)
-    det_award_7 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique3', action_type='e', record_type=2,
-                                                          correction_delete_indicatr=None)
+    fabs_6 = FABSFactory(unique_award_key='unique3', action_type='d', record_type=2, correction_delete_indicatr=None)
+    fabs_7 = FABSFactory(unique_award_key='unique3', action_type='e', record_type=2, correction_delete_indicatr=None)
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key='unique2', is_active=False)
     pub_fabs_2 = PublishedFABSFactory(unique_award_key='unique3', is_active=True)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, pub_fabs_1, pub_fabs_2])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7,
+                                                       pub_fabs_1, pub_fabs_2])
     assert errors == 0
 
 
@@ -55,13 +50,12 @@ def test_failure(database):
     the same RecordType.
     """
 
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='b', record_type=1,
-                                                          correction_delete_indicatr=None)
+    fabs_1 = FABSFactory(unique_award_key='unique1', action_type='b', record_type=1, correction_delete_indicatr=None)
+
     # E is only valid for record type 1
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique2', action_type='E', record_type=2,
-                                                          correction_delete_indicatr='')
+    fabs_2 = FABSFactory(unique_award_key='unique2', action_type='E', record_type=2, correction_delete_indicatr='')
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key='unique2', is_active=False)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, pub_fabs_1])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, pub_fabs_1])
     assert errors == 2

@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from dataactcore.models.domainModels import CountryCode
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
@@ -18,14 +18,12 @@ def test_success(database):
     """
     cc_1 = CountryCode(country_code='USA', country_name='United States', territory_free_state=False)
     cc_2 = CountryCode(country_code='UKR', country_name='Ukraine', territory_free_state=False)
-    det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code='USA', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code='uKr',
-                                                          correction_delete_indicatr='c')
+    fabs = FABSFactory(legal_entity_country_code='USA', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(legal_entity_country_code='uKr', correction_delete_indicatr='c')
     # Ignore correction delete indicator of D
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code='ABCD',
-                                                          correction_delete_indicatr='d')
+    fabs_3 = FABSFactory(legal_entity_country_code='ABCD', correction_delete_indicatr='d')
 
-    errors = number_of_errors(_FILE, database, models=[cc_1, cc_2, det_award, det_award_2, det_award_3])
+    errors = number_of_errors(_FILE, database, models=[cc_1, cc_2, fabs, fabs_2, fabs_3])
     assert errors == 0
 
 
@@ -35,11 +33,9 @@ def test_failure(database):
         submitted with their GENC country code.
     """
     cc_1 = CountryCode(country_code='ASM', country_name='AMERICAN SAMOA', territory_free_state=True)
-    det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code='xyz', correction_delete_indicatr='c')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code='ABCD',
-                                                          correction_delete_indicatr='')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code='ASM',
-                                                          correction_delete_indicatr='')
+    fabs = FABSFactory(legal_entity_country_code='xyz', correction_delete_indicatr='c')
+    fabs_2 = FABSFactory(legal_entity_country_code='ABCD', correction_delete_indicatr='')
+    fabs_3 = FABSFactory(legal_entity_country_code='ASM', correction_delete_indicatr='')
 
-    errors = number_of_errors(_FILE, database, models=[cc_1, det_award, det_award_2, det_award_3])
+    errors = number_of_errors(_FILE, database, models=[cc_1, fabs, fabs_2, fabs_3])
     assert errors == 3

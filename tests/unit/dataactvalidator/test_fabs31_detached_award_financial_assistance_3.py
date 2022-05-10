@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs31_detached_award_financial_assistance_3'
@@ -12,22 +12,22 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test success for when AwardeeOrRecipientUEI is provided, it must be twelve characters. """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(uei='123456789aBc', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(uei='abc000000000', correction_delete_indicatr='C')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(uei='000000000000', correction_delete_indicatr=None)
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(uei=None, correction_delete_indicatr=None)
+    fabs_1 = FABSFactory(uei='123456789aBc', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(uei='abc000000000', correction_delete_indicatr='C')
+    fabs_3 = FABSFactory(uei='000000000000', correction_delete_indicatr=None)
+    fabs_4 = FABSFactory(uei=None, correction_delete_indicatr=None)
 
     # Ignore correction delete indicator of D
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(uei='2', correction_delete_indicatr='d')
+    fabs_5 = FABSFactory(uei='2', correction_delete_indicatr='d')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test failure for when AwardeeOrRecipientUEI is provided, it must be twelve characters. """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(uei='2', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(uei='1234567s89aBc', correction_delete_indicatr='c')
+    fabs_1 = FABSFactory(uei='2', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(uei='1234567s89aBc', correction_delete_indicatr='c')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2

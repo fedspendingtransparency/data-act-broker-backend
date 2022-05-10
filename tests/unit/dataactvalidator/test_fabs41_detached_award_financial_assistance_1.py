@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 from dataactcore.models.domainModels import CityCode
 
@@ -18,44 +18,34 @@ def test_success(database):
 
     city_code = CityCode(city_code='10987', state_code='NY')
     city_code_2 = CityCode(city_code='1098R', state_code='NY')
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY*****',
-                                                          place_of_performance_zip4a='2',
-                                                          correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY**123',
-                                                          place_of_performance_zip4a='1',
-                                                          correction_delete_indicatr=None)
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY**123',
-                                                          place_of_performance_zip4a=None,
-                                                          correction_delete_indicatr='c')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='ny10986',
-                                                          place_of_performance_zip4a='12345',
-                                                          correction_delete_indicatr='C')
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Na10987',
-                                                          place_of_performance_zip4a='12345-6789',
-                                                          correction_delete_indicatr='')
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny10987',
-                                                          place_of_performance_zip4a=None,
-                                                          correction_delete_indicatr='')
-    det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny10987',
-                                                          place_of_performance_zip4a='',
-                                                          correction_delete_indicatr='')
-    det_award_8 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny10987',
-                                                          place_of_performance_zip4a='city-wide',
-                                                          correction_delete_indicatr='')
+    fabs_1 = FABSFactory(place_of_performance_code='NY*****', place_of_performance_zip4a='2',
+                         correction_delete_indicatr='')
+    fabs_2 = FABSFactory(place_of_performance_code='NY**123', place_of_performance_zip4a='1',
+                         correction_delete_indicatr=None)
+    fabs_3 = FABSFactory(place_of_performance_code='NY**123', place_of_performance_zip4a=None,
+                         correction_delete_indicatr='c')
+    fabs_4 = FABSFactory(place_of_performance_code='ny10986', place_of_performance_zip4a='12345',
+                         correction_delete_indicatr='C')
+    fabs_5 = FABSFactory(place_of_performance_code='Na10987', place_of_performance_zip4a='12345-6789',
+                         correction_delete_indicatr='')
+    fabs_6 = FABSFactory(place_of_performance_code='Ny10987', place_of_performance_zip4a=None,
+                         correction_delete_indicatr='')
+    fabs_7 = FABSFactory(place_of_performance_code='Ny10987', place_of_performance_zip4a='',
+                         correction_delete_indicatr='')
+    fabs_8 = FABSFactory(place_of_performance_code='Ny10987', place_of_performance_zip4a='city-wide',
+                         correction_delete_indicatr='')
+
     # Testing with R ending
-    det_award_9 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny1098R',
-                                                          place_of_performance_zip4a='city-wide',
-                                                          correction_delete_indicatr='')
-    det_award_10 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny1098R',
-                                                           place_of_performance_zip4a=None,
-                                                           correction_delete_indicatr='c')
+    fabs_9 = FABSFactory(place_of_performance_code='Ny1098R', place_of_performance_zip4a='city-wide',
+                         correction_delete_indicatr='')
+    fabs_10 = FABSFactory(place_of_performance_code='Ny1098R', place_of_performance_zip4a=None,
+                          correction_delete_indicatr='c')
+
     # Ignore correction delete indicator of D
-    det_award_11 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='ny10986',
-                                                           place_of_performance_zip4a=None,
-                                                           correction_delete_indicatr='d')
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, det_award_8, det_award_9, det_award_10,
-                                                       det_award_11, city_code, city_code_2])
+    fabs_11 = FABSFactory(place_of_performance_code='ny10986', place_of_performance_zip4a=None,
+                          correction_delete_indicatr='d')
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8,
+                                                       fabs_9, fabs_10, fabs_11, city_code, city_code_2])
     assert errors == 0
 
 
@@ -66,18 +56,13 @@ def test_failure(database):
 
     city_code = CityCode(city_code='10987', state_code='NY')
     city_code_2 = CityCode(city_code='1098R', state_code='NY')
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='ny10986',
-                                                          place_of_performance_zip4a=None,
-                                                          correction_delete_indicatr=None)
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY10986',
-                                                          place_of_performance_zip4a='',
-                                                          correction_delete_indicatr='')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='na10987',
-                                                          place_of_performance_zip4a=None,
-                                                          correction_delete_indicatr='c')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='na1098R',
-                                                          place_of_performance_zip4a=None,
-                                                          correction_delete_indicatr='C')
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, city_code,
-                                                       city_code_2])
+    fabs_1 = FABSFactory(place_of_performance_code='ny10986', place_of_performance_zip4a=None,
+                         correction_delete_indicatr=None)
+    fabs_2 = FABSFactory(place_of_performance_code='NY10986', place_of_performance_zip4a='',
+                         correction_delete_indicatr='')
+    fabs_3 = FABSFactory(place_of_performance_code='na10987', place_of_performance_zip4a=None,
+                         correction_delete_indicatr='c')
+    fabs_4 = FABSFactory(place_of_performance_code='na1098R', place_of_performance_zip4a=None,
+                         correction_delete_indicatr='C')
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, city_code, city_code_2])
     assert errors == 4

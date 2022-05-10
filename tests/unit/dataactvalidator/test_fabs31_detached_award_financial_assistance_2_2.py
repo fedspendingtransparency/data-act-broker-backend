@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory, PublishedFABSFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory, PublishedFABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs31_detached_award_financial_assistance_2_2'
@@ -28,54 +28,33 @@ def test_success(database):
     models = [pub_fabs_1, pub_fabs_2, pub_fabs_3]
 
     # new records that may or may not be related to older awards
-    det_award_01 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei='test',
-                                                           action_date='10/02/2010', assistance_type='06',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='before_key')
-    det_award_02 = DetachedAwardFinancialAssistanceFactory(record_type=5, business_types='aBc', uei='test',
-                                                           action_date='10/02/2010', assistance_type='07',
-                                                           correction_delete_indicatr='c',
-                                                           unique_award_key='before_key')
+    fabs_1 = FABSFactory(record_type=2, business_types='AbC', uei='test', action_date='10/02/2010',
+                         assistance_type='06', correction_delete_indicatr='', unique_award_key='before_key')
+    fabs_2 = FABSFactory(record_type=5, business_types='aBc', uei='test', action_date='10/02/2010',
+                         assistance_type='07', correction_delete_indicatr='c', unique_award_key='before_key')
     # Ignored for dates before Oct 1 2010
-    det_award_03 = DetachedAwardFinancialAssistanceFactory(record_type=4, business_types='AbC', uei='',
-                                                           action_date='09/02/2010', assistance_type='08',
-                                                           correction_delete_indicatr='C',
-                                                           unique_award_key='before_key')
+    fabs_3 = FABSFactory(record_type=4, business_types='AbC', uei='', action_date='09/02/2010', assistance_type='08',
+                         correction_delete_indicatr='C', unique_award_key='before_key')
     # Ignored for record type 1/3
-    det_award_04 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types='aBc', uei=None,
-                                                           action_date='10/02/2010', assistance_type='09',
-                                                           correction_delete_indicatr=None,
-                                                           unique_award_key='before_key')
+    fabs_4 = FABSFactory(record_type=1, business_types='aBc', uei=None, action_date='10/02/2010', assistance_type='09',
+                         correction_delete_indicatr=None, unique_award_key='before_key')
     # Ignored for other assistance types
-    det_award_05 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei=None,
-                                                           action_date='10/02/2010', assistance_type='02',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='before_key')
+    fabs_5 = FABSFactory(record_type=2, business_types='AbC', uei=None, action_date='10/02/2010', assistance_type='02',
+                         correction_delete_indicatr='', unique_award_key='before_key')
     # Ignored when business types include P
-    det_award_06 = DetachedAwardFinancialAssistanceFactory(record_type=5, business_types='aPc', uei=None,
-                                                           action_date='10/02/2010', assistance_type='11',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='before_key')
+    fabs_6 = FABSFactory(record_type=5, business_types='aPc', uei=None, action_date='10/02/2010', assistance_type='11',
+                         correction_delete_indicatr='', unique_award_key='before_key')
     # Ignore correction delete indicator of D
-    det_award_07 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei=None,
-                                                           action_date='10/02/2010', assistance_type='06',
-                                                           correction_delete_indicatr='d',
-                                                           unique_award_key='before_key')
+    fabs_7 = FABSFactory(record_type=2, business_types='AbC', uei=None, action_date='10/02/2010', assistance_type='06',
+                         correction_delete_indicatr='d', unique_award_key='before_key')
     # Ensuring that this rule gets ignored when the base actiondate case doesn't apply
-    det_award_08 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei='',
-                                                           action_date='10/02/2010', assistance_type='06',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='after_key')
-    det_award_09 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei='',
-                                                           action_date='04/05/2023', assistance_type='06',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='inactive_key')
-    det_award_10 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei='',
-                                                           action_date='04/05/2023', assistance_type='06',
-                                                           correction_delete_indicatr='',
-                                                           unique_award_key='new_key')
-    models += [det_award_01, det_award_02, det_award_03, det_award_04, det_award_05, det_award_06, det_award_07,
-               det_award_08, det_award_09, det_award_10]
+    fabs_8 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='10/02/2010', assistance_type='06',
+                         correction_delete_indicatr='', unique_award_key='after_key')
+    fabs_9 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='04/05/2023', assistance_type='06',
+                         correction_delete_indicatr='', unique_award_key='inactive_key')
+    fabs_10 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='04/05/2023', assistance_type='06',
+                          correction_delete_indicatr='', unique_award_key='new_key')
+    models += [fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8, fabs_9, fabs_10]
 
     errors = number_of_errors(_FILE, database, models=models)
     assert errors == 0
@@ -97,31 +76,19 @@ def test_failure(database):
     pub_fabs_3 = PublishedFABSFactory(unique_award_key='inactive_key', action_date='20091001', is_active=False)
     models = [pub_fabs_1, pub_fabs_2, pub_fabs_3]
 
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei=None,
-                                                          action_date='10/02/2010', assistance_type='06',
-                                                          correction_delete_indicatr='',
-                                                          unique_award_key='before_key')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=5, business_types='aBc', uei=None,
-                                                          action_date='10/02/2010', assistance_type='07',
-                                                          correction_delete_indicatr='C',
-                                                          unique_award_key='before_key')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=4, business_types='AbC', uei='',
-                                                          action_date='10/02/2010', assistance_type='08',
-                                                          correction_delete_indicatr='c',
-                                                          unique_award_key='before_key')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(record_type=5, business_types='aBc', uei='',
-                                                          action_date='10/02/2010', assistance_type='09',
-                                                          correction_delete_indicatr=None,
-                                                          unique_award_key='before_key')
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei='',
-                                                          action_date='10/02/2010', assistance_type='06',
-                                                          correction_delete_indicatr='',
-                                                          unique_award_key='inactive_key')
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types='AbC', uei='',
-                                                          action_date='10/02/2010', assistance_type='06',
-                                                          correction_delete_indicatr='',
-                                                          unique_award_key='new_key')
-    models += [det_award_1, det_award_2, det_award_3, det_award_4, det_award_5, det_award_6]
+    fabs_1 = FABSFactory(record_type=2, business_types='AbC', uei=None, action_date='10/02/2010', assistance_type='06',
+                         correction_delete_indicatr='', unique_award_key='before_key')
+    fabs_2 = FABSFactory(record_type=5, business_types='aBc', uei=None, action_date='10/02/2010', assistance_type='07',
+                         correction_delete_indicatr='C', unique_award_key='before_key')
+    fabs_3 = FABSFactory(record_type=4, business_types='AbC', uei='', action_date='10/02/2010', assistance_type='08',
+                         correction_delete_indicatr='c', unique_award_key='before_key')
+    fabs_4 = FABSFactory(record_type=5, business_types='aBc', uei='', action_date='10/02/2010', assistance_type='09',
+                         correction_delete_indicatr=None, unique_award_key='before_key')
+    fabs_5 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='10/02/2010', assistance_type='06',
+                         correction_delete_indicatr='', unique_award_key='inactive_key')
+    fabs_6 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='10/02/2010', assistance_type='06',
+                         correction_delete_indicatr='', unique_award_key='new_key')
+    models += [fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6]
 
     errors = number_of_errors(_FILE, database, models=models)
     assert errors == 6

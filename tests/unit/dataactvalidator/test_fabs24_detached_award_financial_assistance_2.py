@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from dataactcore.models.domainModels import CountryCode
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
@@ -19,17 +19,13 @@ def test_success(database):
     """
     cc_1 = CountryCode(country_code='USA', country_name='United States', territory_free_state=False)
     cc_2 = CountryCode(country_code='UKR', country_name='Ukraine', territory_free_state=False)
-    det_award = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c='USA', record_type=1,
-                                                        correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c='uKr', record_type=2,
-                                                          correction_delete_indicatr='C')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c='abc', record_type=3,
-                                                          correction_delete_indicatr=None)
+    fabs = FABSFactory(place_of_perform_country_c='USA', record_type=1, correction_delete_indicatr='')
+    fabs_2 = FABSFactory(place_of_perform_country_c='uKr', record_type=2, correction_delete_indicatr='C')
+    fabs_3 = FABSFactory(place_of_perform_country_c='abc', record_type=3, correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c='xyz', record_type=1,
-                                                          correction_delete_indicatr='d')
+    fabs_4 = FABSFactory(place_of_perform_country_c='xyz', record_type=1, correction_delete_indicatr='d')
 
-    errors = number_of_errors(_FILE, database, models=[cc_1, cc_2, det_award, det_award_2, det_award_3, det_award_4])
+    errors = number_of_errors(_FILE, database, models=[cc_1, cc_2, fabs, fabs_2, fabs_3, fabs_4])
     assert errors == 0
 
 
@@ -40,14 +36,10 @@ def test_failure(database):
     """
 
     cc_1 = CountryCode(country_code='ASM', country_name='AMERICAN SAMOA', territory_free_state=True)
-    det_award = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c='xyz', record_type=1,
-                                                        correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c='ABCD', record_type=2,
-                                                          correction_delete_indicatr=None)
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c='', record_type=2,
-                                                          correction_delete_indicatr='c')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c='ASM', record_type=1,
-                                                          correction_delete_indicatr='C')
+    fabs = FABSFactory(place_of_perform_country_c='xyz', record_type=1, correction_delete_indicatr='')
+    fabs_2 = FABSFactory(place_of_perform_country_c='ABCD', record_type=2, correction_delete_indicatr=None)
+    fabs_3 = FABSFactory(place_of_perform_country_c='', record_type=2, correction_delete_indicatr='c')
+    fabs_4 = FABSFactory(place_of_perform_country_c='ASM', record_type=1, correction_delete_indicatr='C')
 
-    errors = number_of_errors(_FILE, database, models=[cc_1, det_award, det_award_2, det_award_3, det_award_4])
+    errors = number_of_errors(_FILE, database, models=[cc_1, fabs, fabs_2, fabs_3, fabs_4])
     assert errors == 4

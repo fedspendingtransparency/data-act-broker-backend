@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs34_detached_award_financial_assistance_2'
@@ -15,18 +15,15 @@ def test_success(database):
     """ While they are optional fields, if either PeriodOfPerformanceCurrentEndDate or PeriodOfPerformanceStartDate is
         provided, both fields must be provided.
     """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(period_of_performance_star=None,
-                                                          period_of_performance_curr=None,
-                                                          correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(period_of_performance_star='20120724',
-                                                          period_of_performance_curr='20120724',
-                                                          correction_delete_indicatr='c')
+    fabs_1 = FABSFactory(period_of_performance_star=None, period_of_performance_curr=None,
+                         correction_delete_indicatr='')
+    fabs_2 = FABSFactory(period_of_performance_star='20120724', period_of_performance_curr='20120724',
+                         correction_delete_indicatr='c')
     # Ignore correction delete indicator of D
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(period_of_performance_star=None,
-                                                          period_of_performance_curr='20120724',
-                                                          correction_delete_indicatr='d')
+    fabs_3 = FABSFactory(period_of_performance_star=None, period_of_performance_curr='20120724',
+                         correction_delete_indicatr='d')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3])
     assert errors == 0
 
 
@@ -34,12 +31,10 @@ def test_failure(database):
     """ While they are optional fields, if either PeriodOfPerformanceCurrentEndDate or PeriodOfPerformanceStartDate is
         provided, both fields must be provided.
     """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(period_of_performance_star=None,
-                                                          period_of_performance_curr='20120724',
-                                                          correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(period_of_performance_star='20120725',
-                                                          period_of_performance_curr=None,
-                                                          correction_delete_indicatr='C')
+    fabs_1 = FABSFactory(period_of_performance_star=None, period_of_performance_curr='20120724',
+                         correction_delete_indicatr='')
+    fabs_2 = FABSFactory(period_of_performance_star='20120725', period_of_performance_curr=None,
+                         correction_delete_indicatr='C')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2

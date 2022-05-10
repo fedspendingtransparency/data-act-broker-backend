@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs44_detached_award_financial_assistance_2'
@@ -16,55 +16,30 @@ def test_success(database):
         provided for domestic and non-aggregate and PII-redacted non-aggregate records (RecordType = 2 or 3). This rule
         is ignored when CorrectionDeleteIndicator is D
     """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4='6789',
-                                                          legal_entity_congressional='01',
-                                                          legal_entity_country_code='USA', record_type=2,
-                                                          correction_delete_indicatr='C')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4='6789',
-                                                          legal_entity_congressional='',
-                                                          legal_entity_country_code='usa', record_type=3,
-                                                          correction_delete_indicatr='')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='', legal_entity_zip_last4='',
-                                                          legal_entity_congressional='',
-                                                          legal_entity_country_code='usa', record_type=2,
-                                                          correction_delete_indicatr=None)
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None,
-                                                          legal_entity_congressional='01',
-                                                          legal_entity_country_code='USA', record_type=3,
-                                                          correction_delete_indicatr='D')
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4='',
-                                                          legal_entity_congressional='01',
-                                                          legal_entity_country_code='USA', record_type=2,
-                                                          correction_delete_indicatr='C')
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4='6789',
-                                                          legal_entity_congressional=None,
-                                                          legal_entity_country_code='usa', record_type=3,
-                                                          correction_delete_indicatr='c')
-
-    det_award_7 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None,
-                                                          legal_entity_congressional=None,
-                                                          legal_entity_country_code='Another Country', record_type=2,
-                                                          correction_delete_indicatr='')
-
-    det_award_8 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4='',
-                                                          legal_entity_congressional='',
-                                                          legal_entity_country_code='Not USA', record_type=3,
-                                                          correction_delete_indicatr=None)
-
-    det_award_9 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None,
-                                                          legal_entity_congressional=None,
-                                                          legal_entity_country_code='USA', record_type=1,
-                                                          correction_delete_indicatr='')
+    fabs_1 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='6789', legal_entity_congressional='01',
+                         legal_entity_country_code='USA', record_type=2, correction_delete_indicatr='C')
+    fabs_2 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='6789', legal_entity_congressional='',
+                         legal_entity_country_code='usa', record_type=3, correction_delete_indicatr='')
+    fabs_3 = FABSFactory(legal_entity_zip5='', legal_entity_zip_last4='', legal_entity_congressional='',
+                         legal_entity_country_code='usa', record_type=2, correction_delete_indicatr=None)
+    fabs_4 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None, legal_entity_congressional='01',
+                         legal_entity_country_code='USA', record_type=3, correction_delete_indicatr='D')
+    fabs_5 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='', legal_entity_congressional='01',
+                         legal_entity_country_code='USA', record_type=2, correction_delete_indicatr='C')
+    fabs_6 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='6789', legal_entity_congressional=None,
+                         legal_entity_country_code='usa', record_type=3, correction_delete_indicatr='c')
+    fabs_7 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None, legal_entity_congressional=None,
+                         legal_entity_country_code='Another Country', record_type=2, correction_delete_indicatr='')
+    fabs_8 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='', legal_entity_congressional='',
+                         legal_entity_country_code='Not USA', record_type=3, correction_delete_indicatr=None)
+    fabs_9 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None, legal_entity_congressional=None,
+                         legal_entity_country_code='USA', record_type=1, correction_delete_indicatr='')
 
     # Ignored because of cdi of D
-    det_award_10 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4='',
-                                                           legal_entity_congressional='',
-                                                           legal_entity_country_code='USA', record_type=2,
-                                                           correction_delete_indicatr='d')
+    fabs_10 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='', legal_entity_congressional='', legal_entity_country_code='USA', record_type=2, correction_delete_indicatr='d')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, det_award_8, det_award_9,
-                                                       det_award_10])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8,
+                                                       fabs_9, fabs_10])
     assert errors == 0
 
 
@@ -72,22 +47,14 @@ def test_failure(database):
     """ Test failure if LegalEntityZIPLast4 is not provided and LegalEntityZIP5 is, LegalEntityCongressionalDistrict
         must be provided or domestic and non-aggregate and PII-redacted non-aggregate records (RecordType = 2 or 3)
     """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4='',
-                                                          legal_entity_congressional='',
-                                                          legal_entity_country_code='USA', record_type=2,
-                                                          correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None,
-                                                          legal_entity_congressional='',
-                                                          legal_entity_country_code='usa', record_type=3,
-                                                          correction_delete_indicatr='C')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4='',
-                                                          legal_entity_congressional=None,
-                                                          legal_entity_country_code='USA', record_type=2,
-                                                          correction_delete_indicatr='c')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None,
-                                                          legal_entity_congressional=None,
-                                                          legal_entity_country_code='usa', record_type=3,
-                                                          correction_delete_indicatr=None)
+    fabs_1 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='', legal_entity_congressional='',
+                         legal_entity_country_code='USA', record_type=2, correction_delete_indicatr='')
+    fabs_2 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None, legal_entity_congressional='',
+                         legal_entity_country_code='usa', record_type=3, correction_delete_indicatr='C')
+    fabs_3 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='', legal_entity_congressional=None,
+                         legal_entity_country_code='USA', record_type=2, correction_delete_indicatr='c')
+    fabs_4 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4=None, legal_entity_congressional=None,
+                         legal_entity_country_code='usa', record_type=3, correction_delete_indicatr=None)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4])
     assert errors == 4

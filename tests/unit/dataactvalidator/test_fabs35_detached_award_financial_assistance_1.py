@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs35_detached_award_financial_assistance_1'
@@ -12,27 +12,22 @@ def test_column_headers(database):
 
 def test_success(database):
     """ When provided, LegalEntityZIPLast4 must be in the format ####. """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip_last4='1234', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip_last4=None, correction_delete_indicatr='c')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip_last4='', correction_delete_indicatr=None)
+    fabs_1 = FABSFactory(legal_entity_zip_last4='1234', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(legal_entity_zip_last4=None, correction_delete_indicatr='c')
+    fabs_3 = FABSFactory(legal_entity_zip_last4='', correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip_last4='12345',
-                                                          correction_delete_indicatr='d')
+    fabs_4 = FABSFactory(legal_entity_zip_last4='12345', correction_delete_indicatr='d')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4])
     assert errors == 0
 
 
 def test_failure(database):
     """ When provided, LegalEntityZIPLast4 must be in the format ####. """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip_last4='123',
-                                                          correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip_last4='12345',
-                                                          correction_delete_indicatr=None)
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip_last4='ABCD',
-                                                          correction_delete_indicatr='c')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip_last4='123D',
-                                                          correction_delete_indicatr='C')
+    fabs_1 = FABSFactory(legal_entity_zip_last4='123', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(legal_entity_zip_last4='12345', correction_delete_indicatr=None)
+    fabs_3 = FABSFactory(legal_entity_zip_last4='ABCD', correction_delete_indicatr='c')
+    fabs_4 = FABSFactory(legal_entity_zip_last4='123D', correction_delete_indicatr='C')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4])
     assert errors == 4

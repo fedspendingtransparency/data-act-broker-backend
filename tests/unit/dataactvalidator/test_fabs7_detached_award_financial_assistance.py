@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs7_detached_award_financial_assistance'
@@ -12,20 +12,21 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Tests URI is a required field for aggregate records (i.e., when RecordType = 1). """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, uri='something', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=2, uri=None, correction_delete_indicatr='c')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=3, uri='', correction_delete_indicatr=None)
-    # Ignore correction delete indicator of D
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(record_type=1, uri='', correction_delete_indicatr='d')
+    fabs_1 = FABSFactory(record_type=1, uri='something', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(record_type=2, uri=None, correction_delete_indicatr='c')
+    fabs_3 = FABSFactory(record_type=3, uri='', correction_delete_indicatr=None)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    # Ignore correction delete indicator of D
+    fabs_4 = FABSFactory(record_type=1, uri='', correction_delete_indicatr='d')
+
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4])
     assert errors == 0
 
 
 def test_failure(database):
     """ Tests URI is not required field for non-aggregate records (i.e., when RecordType != 1). """
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, uri=None, correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=1, uri='', correction_delete_indicatr='C')
+    fabs_1 = FABSFactory(record_type=1, uri=None, correction_delete_indicatr='')
+    fabs_2 = FABSFactory(record_type=1, uri='', correction_delete_indicatr='C')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2

@@ -1,4 +1,4 @@
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs41_detached_award_financial_assistance_6'
@@ -14,20 +14,16 @@ def test_column_headers(database):
 def test_success(database):
     """ If PrimaryPlaceOfPerformanceCode is XX00000, PrimaryPlaceOfPerformanceZip4 must not be 'city-wide' """
 
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY00000',
-                                                          place_of_performance_zip4a='',
-                                                          correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny**123',
-                                                          place_of_performance_zip4a='city-wide',
-                                                          correction_delete_indicatr='c')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny**123',
-                                                          place_of_performance_zip4a='',
-                                                          correction_delete_indicatr=None)
+    fabs_1 = FABSFactory(place_of_performance_code='NY00000', place_of_performance_zip4a='',
+                         correction_delete_indicatr='')
+    fabs_2 = FABSFactory(place_of_performance_code='Ny**123', place_of_performance_zip4a='city-wide',
+                         correction_delete_indicatr='c')
+    fabs_3 = FABSFactory(place_of_performance_code='Ny**123', place_of_performance_zip4a='',
+                         correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY00000',
-                                                          place_of_performance_zip4a='city-wide',
-                                                          correction_delete_indicatr='d')
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    fabs_4 = FABSFactory(place_of_performance_code='NY00000', place_of_performance_zip4a='city-wide',
+                         correction_delete_indicatr='d')
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4])
     assert errors == 0
 
 
@@ -36,11 +32,9 @@ def test_failure(database):
         not be 'city-wide'
     """
 
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY00000',
-                                                          place_of_performance_zip4a='city-wide',
-                                                          correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='va00000',
-                                                          place_of_performance_zip4a='city-wide',
-                                                          correction_delete_indicatr='c')
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
+    fabs_1 = FABSFactory(place_of_performance_code='NY00000', place_of_performance_zip4a='city-wide',
+                         correction_delete_indicatr='')
+    fabs_2 = FABSFactory(place_of_performance_code='va00000', place_of_performance_zip4a='city-wide',
+                         correction_delete_indicatr='c')
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2
