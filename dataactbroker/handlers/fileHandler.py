@@ -40,7 +40,7 @@ from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME, FILE_TYPE_DICT_NAME_LETTER,
     SUBMISSION_FILENAMES)
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedFABS
+from dataactcore.models.stagingModels import FABS, PublishedFABS
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
 
@@ -678,19 +678,16 @@ class FileHandler:
         sess.commit()
 
         try:
-            # need to set the models to something because the names are too long and flake gets mad
-            dafa = DetachedAwardFinancialAssistance
-
             # Check to make sure no rows are currently publishing that collide with the rows in this submission
             # (in any way, including C or D)
-            valid_sub_rows = sess.query(dafa.afa_generated_unique).\
-                filter(dafa.submission_id == submission_id, dafa.is_valid.is_(True)).cte('valid_sub_rows')
-            publishing_subs = sess.query(dafa.submission_id).\
+            valid_sub_rows = sess.query(FABS.afa_generated_unique).\
+                filter(FABS.submission_id == submission_id, FABS.is_valid.is_(True)).cte('valid_sub_rows')
+            publishing_subs = sess.query(FABS.submission_id).\
                 join(valid_sub_rows,
-                     func.upper(valid_sub_rows.c.afa_generated_unique) == func.upper(dafa.afa_generated_unique)).\
-                join(Submission, Submission.submission_id == dafa.submission_id).\
-                filter(dafa.is_valid.is_(True),
-                       dafa.submission_id != submission_id,
+                     func.upper(valid_sub_rows.c.afa_generated_unique) == func.upper(FABS.afa_generated_unique)).\
+                join(Submission, Submission.submission_id == FABS.submission_id).\
+                filter(FABS.is_valid.is_(True),
+                       FABS.submission_id != submission_id,
                        Submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']).distinct().all()
             if publishing_subs:
                 sub_list = []
@@ -704,12 +701,12 @@ class FileHandler:
 
             # check to make sure no new entries have been published that collide with the new rows
             # (correction_delete_indicatr is not C or D)
-            colliding_rows = sess.query(dafa.afa_generated_unique). \
-                filter(dafa.is_valid.is_(True),
-                       dafa.submission_id == submission_id,
-                       func.coalesce(func.upper(dafa.correction_delete_indicatr), '').notin_(['C', 'D'])).\
+            colliding_rows = sess.query(FABS.afa_generated_unique). \
+                filter(FABS.is_valid.is_(True),
+                       FABS.submission_id == submission_id,
+                       func.coalesce(func.upper(FABS.correction_delete_indicatr), '').notin_(['C', 'D'])).\
                 join(PublishedFABS,
-                     and_(func.upper(dafa.afa_generated_unique) == func.upper(PublishedFABS.afa_generated_unique),
+                     and_(func.upper(FABS.afa_generated_unique) == func.upper(PublishedFABS.afa_generated_unique),
                           PublishedFABS.is_active.is_(True))).\
                 count()
             if colliding_rows > 0:
@@ -719,13 +716,12 @@ class FileHandler:
                                         'publish.',
                                         StatusCode.CLIENT_ERROR)
 
-            total_count = sess.query(DetachedAwardFinancialAssistance). \
-                filter_by(is_valid=True, submission_id=submission_id).count()
+            total_count = sess.query(FABS).filter_by(is_valid=True, submission_id=submission_id).count()
             log_derivation('Starting derivations for FABS submission (total count: {})'.format(total_count),
                            submission_id)
 
             # Insert all non-error, non-delete rows into published table
-            column_list = [col.key for col in DetachedAwardFinancialAssistance.__table__.columns]
+            column_list = [col.key for col in FABS.__table__.columns]
             remove_cols = ['created_at', 'updated_at', 'detached_award_financial_assistance_id', 'job_id', 'row_number',
                            'is_valid']
             for remove_col in remove_cols:
