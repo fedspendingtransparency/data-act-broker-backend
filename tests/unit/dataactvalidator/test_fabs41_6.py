@@ -1,7 +1,7 @@
 from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'fabs41_detached_award_financial_assistance_6'
+_FILE = 'fabs41_6'
 
 
 def test_column_headers(database):

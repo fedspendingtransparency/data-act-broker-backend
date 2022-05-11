@@ -3,7 +3,7 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
-_FILE = 'fabs4_detached_award_financial_assistance_3'
+_FILE = 'fabs4_3'
 
 
 def test_column_headers(database):
