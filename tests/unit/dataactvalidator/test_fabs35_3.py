@@ -2,7 +2,7 @@ from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactcore.factories.domain import ZipsFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'fabs35_detached_award_financial_assistance_3'
+_FILE = 'fabs35_3'
 
 
 def test_column_headers(database):
