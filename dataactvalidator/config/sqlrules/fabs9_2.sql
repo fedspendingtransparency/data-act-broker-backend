@@ -4,7 +4,7 @@ SELECT
     record_type,
     awardee_or_recipient_legal,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND record_type = 3
     AND UPPER(awardee_or_recipient_legal) <> 'REDACTED DUE TO PII'

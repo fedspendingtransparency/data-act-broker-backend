@@ -1,7 +1,7 @@
 -- AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record is an aggregate or
 -- PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
 -- (BusinessTypes includes 'P').
-WITH detached_award_financial_assistance_31_2_1_{0} AS
+WITH fabs31_2_1_{0} AS
     (SELECT unique_award_key,
     	row_number,
     	assistance_type,
@@ -10,7 +10,7 @@ WITH detached_award_financial_assistance_31_2_1_{0} AS
     	business_types,
     	record_type,
     	afa_generated_unique
-    FROM detached_award_financial_assistance
+    FROM fabs
     WHERE submission_id = {0}
         AND NOT (record_type IN (1, 3)
             OR UPPER(business_types) LIKE '%%P%%'
@@ -27,8 +27,8 @@ min_dates_{0} AS
     WHERE is_active IS TRUE
         AND EXISTS (
             SELECT 1
-            FROM detached_award_financial_assistance_31_2_1_{0} AS dafa
-            WHERE pf.unique_award_key = dafa.unique_award_key
+            FROM fabs31_2_1_{0} AS fabs
+            WHERE pf.unique_award_key = fabs.unique_award_key
         )
     GROUP BY unique_award_key)
 SELECT
@@ -39,9 +39,9 @@ SELECT
     business_types,
     record_type,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance_31_2_1_{0} AS dafa
+FROM fabs31_2_1_{0} AS fabs
 LEFT JOIN min_dates_{0} AS md
-    ON dafa.unique_award_key = md.unique_award_key
+    ON fabs.unique_award_key = md.unique_award_key
 WHERE NOT (
     COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11')
     AND CASE WHEN md.min_date IS NOT NULL

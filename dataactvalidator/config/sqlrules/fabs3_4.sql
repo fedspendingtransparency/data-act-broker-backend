@@ -5,7 +5,7 @@ SELECT
     record_type,
     correction_delete_indicatr,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(UPPER(correction_delete_indicatr), '') <> 'D'
     AND COALESCE(UPPER(action_type), '') = 'E'

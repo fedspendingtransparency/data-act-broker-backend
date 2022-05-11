@@ -722,8 +722,7 @@ class FileHandler:
 
             # Insert all non-error, non-delete rows into published table
             column_list = [col.key for col in FABS.__table__.columns]
-            remove_cols = ['created_at', 'updated_at', 'detached_award_financial_assistance_id', 'job_id', 'row_number',
-                           'is_valid']
+            remove_cols = ['created_at', 'updated_at', 'fabs_id', 'job_id', 'row_number', 'is_valid']
             for remove_col in remove_cols:
                 column_list.remove(remove_col)
             detached_col_string = ", ".join(column_list)
@@ -822,9 +821,9 @@ class FileHandler:
             insert_query = """
                 INSERT INTO tmp_fabs_{submission_id} ({cols})
                 SELECT {cols}
-                FROM detached_award_financial_assistance AS dafa
-                WHERE dafa.submission_id = {submission_id}
-                    AND dafa.is_valid IS TRUE
+                FROM fabs
+                WHERE fabs.submission_id = {submission_id}
+                    AND fabs.is_valid IS TRUE
                     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
             """
             sess.execute(insert_query.format(cols=detached_col_string, submission_id=submission_id))
@@ -849,9 +848,9 @@ class FileHandler:
             insert_query = """
                 INSERT INTO published_fabs (created_at, updated_at, {cols}, modified_at)
                 SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at
-                FROM detached_award_financial_assistance AS dafa
-                WHERE dafa.submission_id = {submission_id}
-                    AND dafa.is_valid IS TRUE
+                FROM fabs
+                WHERE fabs.submission_id = {submission_id}
+                    AND fabs.is_valid IS TRUE
                     AND UPPER(COALESCE(correction_delete_indicatr, '')) = 'D';
             """
             sess.execute(insert_query.format(cols=detached_col_string, submission_id=submission_id))

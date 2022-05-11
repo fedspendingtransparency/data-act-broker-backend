@@ -7,7 +7,7 @@ SELECT
     correction_delete_indicatr,
     action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(funding_office_code, '') = ''
     AND UPPER(COALESCE(action_type, '')) IN ('A', 'E')

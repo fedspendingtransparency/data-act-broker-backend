@@ -3,7 +3,7 @@ SELECT
     row_number,
     cfda_number,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance AS dafa
+FROM fabs
 WHERE submission_id = {0}
-    AND dafa.cfda_number !~ '^\d\d\.\d\d\d$'
+    AND cfda_number !~ '^\d\d\.\d\d\d$'
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

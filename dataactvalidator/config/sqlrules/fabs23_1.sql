@@ -3,12 +3,12 @@ SELECT
     row_number,
     awarding_sub_tier_agency_c,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance AS dafa
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(awarding_sub_tier_agency_c, '') <> ''
     AND NOT EXISTS (
         SELECT 1
         FROM sub_tier_agency AS sta
-        WHERE UPPER(sta.sub_tier_agency_code) = UPPER(dafa.awarding_sub_tier_agency_c)
+        WHERE UPPER(sta.sub_tier_agency_code) = UPPER(fabs.awarding_sub_tier_agency_c)
     )
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

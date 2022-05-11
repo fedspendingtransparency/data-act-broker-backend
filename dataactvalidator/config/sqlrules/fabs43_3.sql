@@ -5,7 +5,7 @@ SELECT
     place_of_performance_congr,
     record_type,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(place_of_performance_congr, '') <> ''
     AND record_type = 3

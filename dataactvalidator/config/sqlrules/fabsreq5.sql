@@ -4,7 +4,7 @@ SELECT
     legal_entity_country_code,
     correction_delete_indicatr,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(legal_entity_country_code, '') = ''
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

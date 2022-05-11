@@ -3,7 +3,7 @@ SELECT
     row_number,
     uei,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance AS dafa
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(uei, '') <> ''
     AND uei !~ '^[a-zA-Z\d]{{12}}$'

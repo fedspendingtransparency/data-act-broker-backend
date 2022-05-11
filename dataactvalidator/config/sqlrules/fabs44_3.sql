@@ -7,7 +7,7 @@ SELECT
     legal_entity_zip5,
     legal_entity_congressional,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance AS dafa
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(legal_entity_zip5, '') <> ''
     AND COALESCE(legal_entity_congressional, '') <> ''
@@ -17,6 +17,6 @@ WHERE submission_id = {0}
         FROM state_congressional AS sc
             INNER JOIN zips AS z
                 ON z.state_abbreviation = sc.state_code
-        WHERE sc.congressional_district_no = dafa.legal_entity_congressional
-            AND z.zip5 = dafa.legal_entity_zip5
+        WHERE sc.congressional_district_no = fabs.legal_entity_congressional
+            AND z.zip5 = fabs.legal_entity_zip5
             AND COALESCE(sc.census_year, 2010) >= 2000);

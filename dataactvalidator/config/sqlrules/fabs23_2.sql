@@ -11,13 +11,13 @@ WITH sub_tier_agency_codes_{0} AS
             ON cgac.cgac_id = sta.cgac_id
         INNER JOIN frec
             ON frec.frec_id = sta.frec_id),
-detached_award_financial_assistance_23_2_{0} AS
+fabs23_2_{0} AS
 	(SELECT row_number,
 		awarding_sub_tier_agency_c,
 		awarding_office_code,
 		correction_delete_indicatr,
 		afa_generated_unique
-	FROM detached_award_financial_assistance
+	FROM fabs
 	WHERE submission_id = {0}
 		AND COALESCE(awarding_sub_tier_agency_c, '') <> ''
 		AND COALESCE(awarding_office_code, '') <> ''),
@@ -30,21 +30,21 @@ sub_tier_offices_{0} AS
 		ON stac.agency_code = office.agency_code
 	WHERE EXISTS (
 	        SELECT 1
-		    FROM detached_award_financial_assistance_23_2_{0} AS dafa
-		    WHERE UPPER(dafa.awarding_sub_tier_agency_c) = UPPER(stac.sub_tier_code)
-			    AND UPPER(dafa.awarding_office_code) = UPPER(office.office_code)
+		    FROM fabs23_2_{0} AS fabs
+		    WHERE UPPER(fabs.awarding_sub_tier_agency_c) = UPPER(stac.sub_tier_code)
+			    AND UPPER(fabs.awarding_office_code) = UPPER(office.office_code)
 	))
 SELECT
     row_number,
     awarding_sub_tier_agency_c,
     awarding_office_code,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance_23_2_{0} AS dafa
+FROM fabs23_2_{0} AS fabs
 WHERE NOT EXISTS (
         -- Find all awarding sub tier agency and office codes that are not part of the valid pairings list
         SELECT 1
 	    FROM sub_tier_offices_{0} AS sto
-	    WHERE UPPER(sto.sub_tier_code) = UPPER(dafa.awarding_sub_tier_agency_c)
-		    AND UPPER(sto.office_code) = UPPER(dafa.awarding_office_code)
+	    WHERE UPPER(sto.sub_tier_code) = UPPER(fabs.awarding_sub_tier_agency_c)
+		    AND UPPER(sto.office_code) = UPPER(fabs.awarding_office_code)
 	)
 	AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

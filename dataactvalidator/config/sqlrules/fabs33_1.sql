@@ -3,7 +3,7 @@ SELECT
     row_number,
     period_of_performance_curr,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(period_of_performance_curr, '') <> ''
     AND CASE WHEN is_date(COALESCE(period_of_performance_curr, '0'))

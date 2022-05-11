@@ -4,7 +4,7 @@ SELECT
     indirect_federal_sharing,
     federal_action_obligation,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(indirect_federal_sharing, 0) <> 0
     AND federal_action_obligation IS NOT NULL

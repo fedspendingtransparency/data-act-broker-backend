@@ -6,15 +6,15 @@
 -- Assistance Funding Office (or both). If the code you are providing in this row is indeed accurate, please update the
 -- Federal Hierarchy to include it and flag it as an Assistance Funding Office. If it is not accurate, please correct
 -- the original award transaction to reference a valid Financial Assistance funding AAC/office code in the hierarchy.
-WITH detached_award_financial_assistance_38_2_2_{0} AS
+WITH fabs38_2_2_{0} AS
     (SELECT unique_award_key,
     	row_number,
     	funding_office_code,
     	award_modification_amendme,
     	afa_generated_unique
-    FROM detached_award_financial_assistance AS dafa
-    WHERE dafa.submission_id = {0}
-        AND UPPER(COALESCE(dafa.correction_delete_indicatr, '')) <> 'D'
+    FROM fabs
+    WHERE submission_id = {0}
+        AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
         AND COALESCE(funding_office_code, '') = ''),
 min_dates_{0} AS
     (SELECT unique_award_key,
@@ -23,8 +23,8 @@ min_dates_{0} AS
     WHERE is_active IS TRUE
         AND EXISTS (
             SELECT 1
-            FROM detached_award_financial_assistance_38_2_2_{0} AS dafa
-            WHERE pf.unique_award_key = dafa.unique_award_key)
+            FROM fabs38_2_2_{0} AS fabs
+            WHERE pf.unique_award_key = fabs.unique_award_key)
     GROUP BY unique_award_key),
 funding_codes_{0} AS
 	(SELECT pf.unique_award_key,
@@ -40,12 +40,12 @@ SELECT
     row_number,
     funding_office_code,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance_38_2_2_{0} AS dafa
+FROM fabs38_2_2_{0} AS fabs
 WHERE EXISTS (
 	SELECT 1
 	FROM funding_codes_{0} AS fc
-	WHERE dafa.unique_award_key = fc.unique_award_key
-		AND COALESCE(dafa.award_modification_amendme, '') <> COALESCE(fc.award_modification_amendme, '')
+	WHERE fabs.unique_award_key = fc.unique_award_key
+		AND COALESCE(fabs.award_modification_amendme, '') <> COALESCE(fc.award_modification_amendme, '')
 		AND NOT EXISTS (
 			SELECT 1
 			FROM office

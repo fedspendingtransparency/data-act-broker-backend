@@ -7,13 +7,13 @@ SELECT
     row_number,
     funding_office_code,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance AS dafa
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(funding_office_code, '') <> ''
     AND NOT EXISTS (
         SELECT 1
         FROM office
-        WHERE UPPER(office.office_code) = UPPER(dafa.funding_office_code)
+        WHERE UPPER(office.office_code) = UPPER(fabs.funding_office_code)
             AND (office.contract_funding_office = TRUE
                 OR office.financial_assistance_funding_office = TRUE)
     )

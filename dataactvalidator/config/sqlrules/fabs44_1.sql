@@ -4,7 +4,7 @@ SELECT
     legal_entity_country_code,
     legal_entity_congressional,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND UPPER(COALESCE(legal_entity_country_code, '')) <> 'USA'
     AND COALESCE(legal_entity_congressional, '') <> ''

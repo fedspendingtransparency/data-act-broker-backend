@@ -2,7 +2,7 @@
 -- This does not apply to correction records (those with CorrectionDeleteIndicator = C).
 -- Should not be active (action_date <= archived_date and when archived date exists)
 -- If the ActionDate is < published_date, should trigger a warning.
-WITH detached_award_financial_assistance_fabs37_2_{0} AS
+WITH fabs37_2_{0} AS
     (SELECT submission_id,
         row_number,
         cfda_number,
@@ -10,7 +10,7 @@ WITH detached_award_financial_assistance_fabs37_2_{0} AS
         correction_delete_indicatr,
         action_date,
         afa_generated_unique
-    FROM detached_award_financial_assistance
+    FROM fabs
     WHERE submission_id = {0})
 SELECT
     row_number,
@@ -19,16 +19,16 @@ SELECT
     correction_delete_indicatr,
     action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance_fabs37_2_{0} AS dafa
-WHERE UPPER(dafa.action_type) IN ('B', 'C', 'D')
+FROM fabs37_2_{0} AS fabs
+WHERE UPPER(fabs.action_type) IN ('B', 'C', 'D')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) NOT IN ('C', 'D')
-    AND dafa.row_number IN (
-        SELECT DISTINCT sub_dafa.row_number
-        FROM detached_award_financial_assistance_fabs37_2_{0} AS sub_dafa
+    AND fabs.row_number IN (
+        SELECT DISTINCT sub_fabs.row_number
+        FROM fabs37_2_{0} AS sub_fabs
             JOIN cfda_program AS cfda
-                ON sub_dafa.cfda_number = to_char(cfda.program_number, 'FM00.000')
-                AND (sub_dafa.action_date <= cfda.published_date
-                     OR (sub_dafa.action_date >= cfda.archived_date
+                ON sub_fabs.cfda_number = to_char(cfda.program_number, 'FM00.000')
+                AND (sub_fabs.action_date <= cfda.published_date
+                     OR (sub_fabs.action_date >= cfda.archived_date
                          AND cfda.archived_date <> ''
                      )
                 )

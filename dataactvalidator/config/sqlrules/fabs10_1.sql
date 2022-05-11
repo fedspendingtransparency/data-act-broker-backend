@@ -4,7 +4,7 @@ SELECT
     record_type,
     legal_entity_address_line1,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND record_type = 2
     AND (legal_entity_address_line1 = ''

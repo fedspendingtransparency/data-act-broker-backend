@@ -6,7 +6,7 @@ SELECT
     assistance_type,
     action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND indirect_federal_sharing IS NULL
     AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')

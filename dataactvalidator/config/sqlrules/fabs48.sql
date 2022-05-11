@@ -6,7 +6,7 @@ SELECT
     funding_opportunity_goals,
     assistance_type,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance
+FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(funding_opportunity_goals, '') <> ''
     AND COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11')

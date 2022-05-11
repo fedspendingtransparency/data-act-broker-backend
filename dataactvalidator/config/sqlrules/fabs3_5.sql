@@ -6,25 +6,25 @@
 -- AwardingSubTierAgencyCode when compared to currently published non-aggregate FABS records (RecordType = 2 or 3) of
 -- the same RecordType.
 SELECT
-    dafa.row_number,
-    dafa.fain,
-    dafa.uri,
-    dafa.awarding_sub_tier_agency_c,
-    dafa.action_type,
-    dafa.record_type,
-    dafa.correction_delete_indicatr,
-    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM detached_award_financial_assistance AS dafa
-WHERE dafa.submission_id = {0}
-    AND COALESCE(UPPER(dafa.correction_delete_indicatr), '') NOT IN ('C', 'D')
+    row_number,
+    fain,
+    uri,
+    awarding_sub_tier_agency_c,
+    action_type,
+    record_type,
+    correction_delete_indicatr,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
+FROM fabs
+WHERE submission_id = {0}
+    AND COALESCE(UPPER(correction_delete_indicatr), '') NOT IN ('C', 'D')
     AND NOT EXISTS (
         SELECT 1
         FROM published_fabs AS pf
-        WHERE dafa.unique_award_key = pf.unique_award_key
+        WHERE fabs.unique_award_key = pf.unique_award_key
             AND pf.is_active IS TRUE
     )
-    AND NOT ((COALESCE(UPPER(dafa.action_type), '') = 'E'
-            AND dafa.record_type = 1)
-            OR COALESCE(UPPER(dafa.action_type), '') = 'A'
+    AND NOT ((COALESCE(UPPER(action_type), '') = 'E'
+            AND record_type = 1)
+            OR COALESCE(UPPER(action_type), '') = 'A'
         );
 
