@@ -36,7 +36,8 @@ def test_success(database):
                          legal_entity_country_code='USA', record_type=1, correction_delete_indicatr='')
 
     # Ignored because of cdi of D
-    fabs_10 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='', legal_entity_congressional='', legal_entity_country_code='USA', record_type=2, correction_delete_indicatr='d')
+    fabs_10 = FABSFactory(legal_entity_zip5='12345', legal_entity_zip_last4='', legal_entity_congressional='',
+                          legal_entity_country_code='USA', record_type=2, correction_delete_indicatr='d')
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8,
                                                        fabs_9, fabs_10])

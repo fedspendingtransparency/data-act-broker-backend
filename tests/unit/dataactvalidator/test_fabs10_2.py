@@ -31,10 +31,8 @@ def test_failure(database):
     """ Test failure when LegalEntityAddressLine1 is not blank for aggregate and PII-redacted non-aggregate records
         (i.e., when RecordType = 1 or 3).
     """
-    fabs = FABSFactory(record_type=1, legal_entity_address_line1='12345 Test Address',
-                                                        correction_delete_indicatr='')
-    fabs_2 = FABSFactory(record_type=3, legal_entity_address_line1='1234 Test Address',
-                                                          correction_delete_indicatr='C')
+    fabs = FABSFactory(record_type=1, legal_entity_address_line1='12345 Test Address', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(record_type=3, legal_entity_address_line1='1234 Test Address', correction_delete_indicatr='C')
 
     errors = number_of_errors(_FILE, database, models=[fabs, fabs_2])
     assert errors == 2

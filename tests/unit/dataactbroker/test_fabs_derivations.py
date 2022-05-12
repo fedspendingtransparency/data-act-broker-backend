@@ -115,7 +115,8 @@ def initialize_db_values(db):
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zips_grouped_1, zips_grouped_2, zips_grouped_3,
                         zip_city, zip_city_2, zip_city_3, city_code, state, county, country_1, country_2, recipient_1,
                         recipient_2a, recipient_2b, recipient_3, cfda, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier,
-                        frec_sub_tier, valid_office, invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6])
+                        frec_sub_tier, valid_office, invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4,
+                        pub_fabs_5, pub_fabs_6])
     db.session.commit()
 
 
