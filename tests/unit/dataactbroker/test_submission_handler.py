@@ -27,7 +27,7 @@ from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
                                                   PublishHistoryFactory, RevalidationThresholdFactory,
                                                   SubmissionWindowScheduleFactory, CommentFactory)
-from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -241,12 +241,12 @@ def test_get_submission_metadata_published_fabs(database):
                             publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=True,
                             reporting_start_date=start_date, number_of_errors=0, number_of_warnings=2)
     # Data for FABS
-    dafa_1 = DetachedAwardFinancialAssistanceFactory(submission_id=sub.submission_id, is_valid=True)
-    dafa_2 = DetachedAwardFinancialAssistanceFactory(submission_id=sub.submission_id, is_valid=False)
+    fabs_1 = FABSFactory(submission_id=sub.submission_id, is_valid=True)
+    fabs_2 = FABSFactory(submission_id=sub.submission_id, is_valid=False)
     cert_hist = CertifyHistoryFactory(submission=sub, created_at=now_plus_10)
     pub_hist = PublishHistoryFactory(submission=sub, created_at=now_plus_10)
 
-    sess.add_all([cgac, frec_cgac, frec, sub, dafa_1, dafa_2, cert_hist, pub_hist])
+    sess.add_all([cgac, frec_cgac, frec, sub, fabs_1, fabs_2, cert_hist, pub_hist])
     sess.commit()
 
     expected_results = {

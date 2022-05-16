@@ -1,9 +1,9 @@
 from collections import OrderedDict
 from sqlalchemy import func, cast, Date
 
-from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import PublishedFABS
 
-file_model = PublishedAwardFinancialAssistance
+file_model = PublishedFABS
 
 mapping = OrderedDict([
     ('afa_generated_unique', ['AssistanceTransactionUniqueKey']),
@@ -133,7 +133,7 @@ def initial_query(session):
             session: The current DB session
 
         Returns:
-            The base query (a select from the PublishedAwardFinancialAssistance table with the specified columns).
+            The base query (a select from the PublishedFABS table with the specified columns).
     """
     return session.query(
         file_model.afa_generated_unique,

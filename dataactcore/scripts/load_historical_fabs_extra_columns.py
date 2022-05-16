@@ -14,7 +14,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
-from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import PublishedFABS
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data
@@ -55,8 +55,8 @@ def parse_fabs_file_new_columns(f, sess):
                 cdata = format_fabs_data(data)
                 if cdata is not None:
                     for _, row in cdata.iterrows():
-                        sess.query(PublishedAwardFinancialAssistance).\
-                            filter(func.upper(PublishedAwardFinancialAssistance.afa_generated_unique)
+                        sess.query(PublishedFABS).\
+                            filter(func.upper(PublishedFABS.afa_generated_unique)
                                    == row['afa_generated_unique'].upper()).\
                             update({"awarding_office_code": row['awarding_office_code'],
                                     "awarding_office_name": row['awarding_office_name'],
@@ -74,7 +74,7 @@ def parse_fabs_file_new_columns(f, sess):
 
             added_rows += nrows
             batch += 1
-            logger.info('%s PublishedAwardFinancialAssistance records updated', added_rows)
+            logger.info('%s PublishedFABS records updated', added_rows)
     sess.commit()
 
 
@@ -92,7 +92,7 @@ def format_fabs_data(data):
 
     cdata = clean_data(
         data,
-        PublishedAwardFinancialAssistance,
+        PublishedFABS,
         {
             "agency_code": "awarding_sub_tier_agency_c",
             "federal_award_mod": "award_modification_amendme",

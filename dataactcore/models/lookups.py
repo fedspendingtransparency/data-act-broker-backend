@@ -6,9 +6,8 @@
 
 from collections import namedtuple
 
-from dataactcore.models.stagingModels import (
-    AwardFinancialAssistance, AwardFinancial, Appropriation, ObjectClassProgramActivity, AwardProcurement,
-    DetachedAwardFinancialAssistance)
+from dataactcore.models.stagingModels import (AwardFinancialAssistance, AwardFinancial, Appropriation,
+                                              ObjectClassProgramActivity, AwardProcurement, FABS)
 
 LookupType = namedtuple('LookupType', ['id', 'name', 'desc'])
 LookupFileType = namedtuple('LookupFileType', ['id', 'name', 'desc', 'letter', 'order', 'crossfile', 'model'])
@@ -80,7 +79,7 @@ FILE_TYPE = [
     LookupFileType(5, 'award_procurement', '', 'D1', 5, True, AwardProcurement),
     LookupFileType(6, 'executive_compensation', '', 'E', None, False, None),
     LookupFileType(7, 'sub_award', '', 'F', None, False, None),
-    LookupFileType(8, 'fabs', '', 'FABS', None, False, DetachedAwardFinancialAssistance)
+    LookupFileType(8, 'fabs', '', 'FABS', None, False, FABS)
 ]
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
