@@ -5,8 +5,7 @@ from dataactbroker.helpers.generic_helper import fy
 from dataactcore.models.fsrs import Subaward
 from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
                                                    FSRSSubgrantFactory)
-from tests.unit.dataactcore.factories.staging import PublishedAwardFinancialAssistanceFactory, \
-    DetachedAwardProcurementFactory
+from tests.unit.dataactcore.factories.staging import PublishedFABSFactory, DetachedAwardProcurementFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.domain import SAMRecipientFactory, CountryCodeFactory
 
@@ -455,7 +454,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     # Setup - create awards, procurements, subcontracts
     sub = SubmissionFactory(submission_id=1)
     # D2 Non-aggregate award with federal_agency_id/awarding_sub_tier_agency_c populated
-    d2_non_pop_subtier = PublishedAwardFinancialAssistanceFactory(
+    d2_non_pop_subtier = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=2,
         unique_award_key='NON-POP-SUB',
@@ -464,7 +463,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         is_active=True,
         action_date='2020-01-01'
     )
-    d2_non_pop_subtier_2 = PublishedAwardFinancialAssistanceFactory(
+    d2_non_pop_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=2,
         unique_award_key='NON-POP-SUB',
@@ -492,7 +491,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         subaward_date=datetime.now()
     )
     # D2 Non-aggregate award with federal_agency_id NULL
-    d2_non_null_sub = PublishedAwardFinancialAssistanceFactory(
+    d2_non_null_sub = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=2,
         unique_award_key='NON-NULL-SUB',
@@ -501,7 +500,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         is_active=True,
         action_date='2020-01-01'
     )
-    d2_non_null_sub_2 = PublishedAwardFinancialAssistanceFactory(
+    d2_non_null_sub_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=2,
         unique_award_key='NON-NULL-SUB',
@@ -529,7 +528,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         subaward_date=datetime.now()
     )
     # D2 Aggregate award
-    d2_agg = PublishedAwardFinancialAssistanceFactory(
+    d2_agg = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=1,
         unique_award_key='AGG',
@@ -538,7 +537,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         is_active=True,
         action_date='2020-01-01'
     )
-    d2_agg_2 = PublishedAwardFinancialAssistanceFactory(
+    d2_agg_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=1,
         unique_award_key='AGG',
@@ -607,7 +606,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub = SubmissionFactory(submission_id=1)
     sub2 = SubmissionFactory(submission_id=2)
     sub3 = SubmissionFactory(submission_id=3)
-    d2_non_pop_subtier = PublishedAwardFinancialAssistanceFactory(
+    d2_non_pop_subtier = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='1234',
         record_type=2,
@@ -617,7 +616,7 @@ def test_fix_broken_links(database, monkeypatch):
         updated_at=award_updated_at,
         action_date='2020-01-01'
     )
-    d2_non_pop_subtier_2 = PublishedAwardFinancialAssistanceFactory(
+    d2_non_pop_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='1234',
         record_type=2,
@@ -645,7 +644,7 @@ def test_fix_broken_links(database, monkeypatch):
         uei_number=recipient.uei.lower(),
         subaward_date=datetime.now()
     )
-    d2_non_null_subtier = PublishedAwardFinancialAssistanceFactory(
+    d2_non_null_subtier = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='5678',
         record_type=2,
@@ -656,7 +655,7 @@ def test_fix_broken_links(database, monkeypatch):
         action_date='2020-01-01'
     )
 
-    d2_non_null_subtier_2 = PublishedAwardFinancialAssistanceFactory(
+    d2_non_null_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='5678',
         record_type=2,
@@ -684,7 +683,7 @@ def test_fix_broken_links(database, monkeypatch):
         uei_number=recipient.uei,
         subaward_date=datetime.now()
     )
-    d2_non_other = PublishedAwardFinancialAssistanceFactory(
+    d2_non_other = PublishedFABSFactory(
         submission_id=sub2.submission_id,
         awarding_sub_tier_agency_c='1357',
         record_type=2,
@@ -695,7 +694,7 @@ def test_fix_broken_links(database, monkeypatch):
         action_date='2020-01-01'
     )
 
-    d2_non_other_2 = PublishedAwardFinancialAssistanceFactory(
+    d2_non_other_2 = PublishedFABSFactory(
         submission_id=sub2.submission_id,
         awarding_sub_tier_agency_c='1357',
         record_type=2,
@@ -705,7 +704,7 @@ def test_fix_broken_links(database, monkeypatch):
         updated_at=award_updated_at,
         action_date='2020-01-02'
     )
-    d2_non_other_dup = PublishedAwardFinancialAssistanceFactory(
+    d2_non_other_dup = PublishedFABSFactory(
         submission_id=sub3.submission_id,
         awarding_sub_tier_agency_c='2468',
         record_type=2,
@@ -715,7 +714,7 @@ def test_fix_broken_links(database, monkeypatch):
         updated_at=award_updated_at,
         action_date='2020-01-01'
     )
-    d2_non_other_dup_2 = PublishedAwardFinancialAssistanceFactory(
+    d2_non_other_dup_2 = PublishedFABSFactory(
         submission_id=sub3.submission_id,
         awarding_sub_tier_agency_c='2468',
         record_type=2,
@@ -743,7 +742,7 @@ def test_fix_broken_links(database, monkeypatch):
         uei_number=recipient.uei,
         subaward_date=datetime.now()
     )
-    d2_agg = PublishedAwardFinancialAssistanceFactory(
+    d2_agg = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='1234',
         record_type=1,
@@ -753,7 +752,7 @@ def test_fix_broken_links(database, monkeypatch):
         updated_at=award_updated_at,
         action_date='2020-01-01'
     )
-    d2_agg_2 = PublishedAwardFinancialAssistanceFactory(
+    d2_agg_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='1234',
         record_type=1,

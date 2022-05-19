@@ -768,7 +768,7 @@ FPDS_UPDATE_SQL = """
 """
 
 FABS_UPDATE_SQL = """
-    UPDATE published_award_financial_assistance
+    UPDATE published_fabs
     SET business_categories = compile_fabs_business_categories(UPPER(business_types))
     WHERE is_active IS TRUE{};
 """

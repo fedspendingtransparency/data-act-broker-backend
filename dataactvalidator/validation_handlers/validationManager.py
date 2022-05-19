@@ -35,7 +35,7 @@ from dataactcore.models.domainModels import Office, concat_display_tas_dict, con
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField, TotalObligations
+from dataactcore.models.stagingModels import FABS, FlexField, TotalObligations
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.models.validationModels import RuleSql, ValidationLabel
@@ -300,9 +300,8 @@ class ValidationManager:
             # Update fabs is_valid rows where applicable
             # Update submission to include action dates where applicable
             if self.is_fabs:
-                sess.query(DetachedAwardFinancialAssistance). \
-                    filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
-                           DetachedAwardFinancialAssistance.submission_id == self.submission_id). \
+                sess.query(FABS). \
+                    filter(FABS.row_number.in_(error_rows_unique), FABS.submission_id == self.submission_id). \
                     update({'is_valid': False}, synchronize_session=False)
                 sess.commit()
                 min_action_date, max_action_date = get_action_dates(self.submission_id)

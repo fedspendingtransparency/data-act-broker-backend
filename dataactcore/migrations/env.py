@@ -77,7 +77,7 @@ def include_object(schema_obj, schema_obj_name, type_, reflected, compare_to):
     # Skipping the following indexes since alembic tries to drop these indexes
     # These fields are created and updated by the TimeStampMixin
     if type_ == 'index' and schema_obj_name in ['ix_detached_award_procurement_updated_at',
-                                                'ix_published_award_financial_assistance_created_at']:
+                                                'ix_published_fabs_created_at']:
         logger.info("Skipping schema migration for object {}".format(schema_obj_name))
         return False
 

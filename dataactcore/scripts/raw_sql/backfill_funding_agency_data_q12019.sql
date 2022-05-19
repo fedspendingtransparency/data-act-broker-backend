@@ -23,13 +23,13 @@ office_list AS
     FROM office
         INNER JOIN agency_list
             ON agency_list.sub_tier_code = office.sub_tier_code)
-UPDATE published_award_financial_assistance AS pafa
+UPDATE published_fabs AS pf
 SET funding_sub_tier_agency_co = office_list.sub_tier_code,
     funding_sub_tier_agency_na = office_list.sub_tier_name,
     funding_agency_code = office_list.agency_code,
     funding_agency_name = office_list.agency_name
 FROM office_list
-WHERE pafa.funding_office_code = office_list.office_code
-    AND cast_as_date(pafa.action_date) >= '2018/10/01'
-    AND pafa.funding_sub_tier_agency_co IS NULL
-    AND pafa.funding_office_code IS NOT NULL;
+WHERE pf.funding_office_code = office_list.office_code
+    AND cast_as_date(pf.action_date) >= '2018/10/01'
+    AND pf.funding_sub_tier_agency_co IS NULL
+    AND pf.funding_office_code IS NOT NULL;

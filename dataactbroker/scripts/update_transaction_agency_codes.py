@@ -16,7 +16,7 @@ def update_table(sess, agency_type, table, args):
             sess: the database connection
             agency_type: string indicating what agency type we're checking, either 'funding' or 'awarding'
             table: string indicating which table to update, either 'detached_award_procurement' or
-                'published_award_financial_assistance'
+                'published_fabs'
             args: object containing the arguments provided by the user
     """
     # Setting the type of update we are running on the procurement table for logging purposes
@@ -68,7 +68,7 @@ def set_update_condition(agency_type, table, suffix, sess, subtier_codes=None):
         Args:
             agency_type: string indicating what agency type we're checking, either 'funding' or 'awarding'
             table: string indicating which table to update, either 'detached_award_procurement' or
-                'published_award_financial_assistance'
+                'published_fabs'
             suffix: string to add an 'o' to a column name if it's a funding agency
             sess: the database connection
             subtier_codes: the list of sub tier codes to update if provided, otherwise None
@@ -97,7 +97,7 @@ def get_row_count(sql_statement, table, sess):
         Args:
             sql_statement: string containing the WHERE statement for the query
             table: string indicating which table to count from, either 'detached_award_procurement' or
-                'published_award_financial_assistance'
+                'published_fabs'
             sess: the database connection
 
         Returns:
@@ -150,8 +150,8 @@ def main():
         logger.info("Procurement Update Complete")
 
     if args.tables in ('fabs', 'both'):
-        update_table(sess, 'awarding', 'published_award_financial_assistance', args)
-        update_table(sess, 'funding', 'published_award_financial_assistance', args)
+        update_table(sess, 'awarding', 'published_fabs', args)
+        update_table(sess, 'funding', 'published_fabs', args)
         logger.info("Award Financial Assistance Update Complete")
 
 
