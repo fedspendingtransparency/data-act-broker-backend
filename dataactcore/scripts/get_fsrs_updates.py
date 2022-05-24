@@ -73,31 +73,31 @@ def main():
     results = sess.execute("""
     WITH base_transaction AS (
     SELECT fain,
-        MIN(pafa_b.action_date) as base_date,
-        MIN(pafa_b.period_of_performance_star) as earliest_start,
-        MAX(pafa_b.period_of_performance_curr) as latest_end,
-        MAX(pafa_b.modified_at) as max_mod,
-        SUM(CASE WHEN pafa_b.is_active = True
-                    THEN pafa_b.federal_action_obligation
+        MIN(pf_b.action_date) as base_date,
+        MIN(pf_b.period_of_performance_star) as earliest_start,
+        MAX(pf_b.period_of_performance_curr) as latest_end,
+        MAX(pf_b.modified_at) as max_mod,
+        SUM(CASE WHEN pf_b.is_active = True
+                    THEN pf_b.federal_action_obligation
                     ELSE 0
                     END) as obligation_sum,
         CASE WHEN EXISTS (SELECT 1
-                            FROM published_award_financial_assistance AS sub_pafa_b
+                            FROM published_fabs AS sub_pf_b
                             WHERE is_active = True
-                            AND pafa_b.fain = sub_pafa_b.fain)
+                            AND pf_b.fain = sub_pf_b.fain)
             THEN True
             ELSE False
             END AS currently_active
-    FROM published_award_financial_assistance AS pafa_b
+    FROM published_fabs AS pf_b
     WHERE assistance_type IN ('02', '03', '04', '05')
         AND record_type != 1
     GROUP BY fain),
-    only_base AS (SELECT pafa.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
-        FROM published_award_financial_assistance AS pafa
+    only_base AS (SELECT pf.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
+        FROM published_fabs AS pf
         JOIN base_transaction AS bt
-            ON bt.fain = pafa.fain
-            AND bt.max_mod = pafa.modified_at
-            AND pafa.record_type != 1)
+            ON bt.fain = pf.fain
+            AND bt.max_mod = pf.modified_at
+            AND pf.record_type != 1)
 
     SELECT
         ob.fain AS federal_award_id,

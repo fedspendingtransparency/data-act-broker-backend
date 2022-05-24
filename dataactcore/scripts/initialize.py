@@ -185,7 +185,7 @@ def main():
         load_location_codes(args.force)
         load_zip_codes()
         load_submission_schedule()
-        load_defc()
+        load_defc(args.force)
         return
 
     if args.setup_db:
@@ -238,7 +238,7 @@ def main():
         load_submission_schedule()
 
     if args.load_defc:
-        load_defc()
+        load_defc(args.force)
 
     if args.uncache_all_files:
         uncache_all_files()

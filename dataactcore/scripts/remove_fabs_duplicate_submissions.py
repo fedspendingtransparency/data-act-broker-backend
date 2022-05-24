@@ -27,7 +27,7 @@ if __name__ == '__main__':
         # Create a temporary table
         sess.execute("""CREATE TEMP TABLE duplicated_fabs AS
                             SELECT UPPER(afa_generated_unique) as afa_generated_unique, MAX(submission_id) AS max_id
-                            FROM published_award_financial_assistance
+                            FROM published_fabs
                             WHERE is_active IS TRUE
                             GROUP BY UPPER(afa_generated_unique)
                             HAVING COUNT(1) > 1""")
@@ -35,11 +35,11 @@ if __name__ == '__main__':
         logger.info("Table created, determining which submissions have been affected.")
         # Figure out exactly which submissions have been affected in any way
         executed = sess.execute(""" SELECT DISTINCT submission_id
-                                    FROM published_award_financial_assistance AS pafa
+                                    FROM published_fabs AS pf
                                     WHERE is_active IS TRUE
                                     AND EXISTS (SELECT 1
                                                 FROM duplicated_fabs AS df
-                                                WHERE df.afa_generated_unique = UPPER(pafa.afa_generated_unique))""")
+                                                WHERE df.afa_generated_unique = UPPER(pf.afa_generated_unique))""")
         affected_submissions = []
         for row in executed:
             affected_submissions.append(row['submission_id'])
@@ -51,21 +51,21 @@ if __name__ == '__main__':
 
         logger.info("Deleting duplicate records.")
         # Delete duplicates from the published FABS table, keeping the instance with the highest submission_id
-        executed = sess.execute(""" DELETE FROM published_award_financial_assistance AS pafa
+        executed = sess.execute(""" DELETE FROM published_fabs AS pf
                                     WHERE is_active IS TRUE
                                         AND EXISTS (SELECT 1
                                             FROM duplicated_fabs AS df
-                                            WHERE df.afa_generated_unique = UPPER(pafa.afa_generated_unique)
-                                                AND df.max_id != pafa.submission_id)""")
+                                            WHERE df.afa_generated_unique = UPPER(pf.afa_generated_unique)
+                                                AND df.max_id != pf.submission_id)""")
 
-        logger.info("Deleted {} duplicate rows from published_award_financial_assistance. Determining if any "
+        logger.info("Deleted {} duplicate rows from published_fabs. Determining if any "
                     "submissions have been completely invalidated by the deletes.".format(executed.rowcount))
 
         # Make a list of submissions that have had all published records deleted
         cleared_submissions = []
         for sub in affected_submissions:
             executed = sess.execute(""" SELECT COUNT(*) as result_count
-                                        FROM published_award_financial_assistance
+                                        FROM published_fabs
                                         WHERE submission_id = {}""".format(sub))
             if executed.fetchone()['result_count'] == 0:
                 cleared_submissions.append(sub)

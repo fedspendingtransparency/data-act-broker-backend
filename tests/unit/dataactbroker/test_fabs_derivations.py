@@ -1,13 +1,13 @@
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
-from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import PublishedFABS
 
 from tests.unit.dataactcore.factories.domain import (ZipCityFactory, ZipsFactory, ZipsGroupedFactory, CityCodeFactory,
                                                      SAMRecipientFactory, CFDAProgramFactory, CGACFactory, FRECFactory,
                                                      SubTierAgencyFactory, OfficeFactory, StatesFactory,
                                                      CountyCodeFactory, CountryCodeFactory)
-from tests.unit.dataactcore.factories.staging import PublishedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import PublishedFABSFactory
 
 
 def initialize_db_values(db):
@@ -88,38 +88,35 @@ def initialize_db_values(db):
     invalid_office = OfficeFactory(office_code='654321', office_name='Office', sub_tier_code='12Ab', agency_code='000',
                                    financial_assistance_awards_office=False, contract_funding_office=False,
                                    financial_assistance_funding_office=False)
-    # record type 2 pafas
-    pafa_1 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='12345', uri='123456',
-                                                      action_date='04/28/2000', funding_office_code=None,
-                                                      awarding_office_code='03aB03', is_active=True, record_type=2,
-                                                      award_modification_amendme='0', submission_id=1)
-    pafa_2 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='123456', uri='1234567',
-                                                      action_date='04/28/2000', funding_office_code='03aB03',
-                                                      awarding_office_code=None, is_active=True, record_type=2,
-                                                      award_modification_amendme=None, submission_id=1)
-    # record type 1 pafas
-    pafa_3 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='54321', uri='654321',
-                                                      action_date='04/28/2000', funding_office_code=None,
-                                                      awarding_office_code='03aB03', is_active=True, record_type=1,
-                                                      award_modification_amendme=None, submission_id=1)
-    pafa_4 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='654321', uri='7654321',
-                                                      action_date='04/28/2000', funding_office_code='03aB03',
-                                                      awarding_office_code=None, is_active=True, record_type=1,
-                                                      award_modification_amendme='0', submission_id=1)
-    # record type 1 base pafa with invalid office codes
-    pafa_5 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='abcd', uri='efg',
-                                                      action_date='04/28/2000', funding_office_code='123456',
-                                                      awarding_office_code='123456', is_active=True, record_type=1,
-                                                      award_modification_amendme='0', submission_id=1)
-    # record type 1 base pafa with valid office codes but they aren't grant or funding type
-    pafa_6 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='efg', uri='abcd',
-                                                      action_date='04/28/2000', funding_office_code='654321',
-                                                      awarding_office_code='654321', is_active=True, record_type=1,
-                                                      award_modification_amendme='0', submission_id=1)
+    # record type 2 pub_fabss
+    pub_fabs_1 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='12345', uri='123456',
+                                      action_date='04/28/2000', funding_office_code=None, awarding_office_code='03aB03',
+                                      is_active=True, record_type=2, award_modification_amendme='0', submission_id=1)
+    pub_fabs_2 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='123456', uri='1234567',
+                                      action_date='04/28/2000', funding_office_code='03aB03', awarding_office_code=None,
+                                      is_active=True, record_type=2, award_modification_amendme=None, submission_id=1)
+    # record type 1 pub_fabss
+    pub_fabs_3 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='54321', uri='654321',
+                                      action_date='04/28/2000', funding_office_code=None, awarding_office_code='03aB03',
+                                      is_active=True, record_type=1, award_modification_amendme=None, submission_id=1)
+    pub_fabs_4 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='654321', uri='7654321',
+                                      action_date='04/28/2000', funding_office_code='03aB03', awarding_office_code=None,
+                                      is_active=True, record_type=1, award_modification_amendme='0', submission_id=1)
+    # record type 1 base pub_fabs with invalid office codes
+    pub_fabs_5 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='abcd', uri='efg',
+                                      action_date='04/28/2000', funding_office_code='123456',
+                                      awarding_office_code='123456', is_active=True, record_type=1,
+                                      award_modification_amendme='0', submission_id=1)
+    # record type 1 base pub_fabs with valid office codes but they aren't grant or funding type
+    pub_fabs_6 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='efg', uri='abcd',
+                                      action_date='04/28/2000', funding_office_code='654321',
+                                      awarding_office_code='654321', is_active=True, record_type=1,
+                                      award_modification_amendme='0', submission_id=1)
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zips_grouped_1, zips_grouped_2, zips_grouped_3,
                         zip_city, zip_city_2, zip_city_3, city_code, state, county, country_1, country_2, recipient_1,
                         recipient_2a, recipient_2b, recipient_3, cfda, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier,
-                        frec_sub_tier, valid_office, invalid_office, pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
+                        frec_sub_tier, valid_office, invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4,
+                        pub_fabs_5, pub_fabs_6])
     db.session.commit()
 
 
@@ -135,9 +132,8 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
                         legal_foreign_city=None, action_type=None, assist_type=None, busi_type=None, busi_fund=None,
                         uei=None, submission_id=9999):
     """ Initialize the values in the object being run through the fabs_derivations function """
-    column_list = [col.key for col in PublishedAwardFinancialAssistance.__table__.columns]
-    remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active',
-                   'published_award_financial_assistance_id']
+    column_list = [col.key for col in PublishedFABS.__table__.columns]
+    remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active', 'published_fabs_id']
     for remove_col in remove_cols:
         column_list.remove(remove_col)
     col_string = ", ".join(column_list)
@@ -148,12 +144,12 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
         CREATE TABLE tmp_fabs_{submission_id}
         AS
             SELECT {cols}
-            FROM published_award_financial_assistance
+            FROM published_fabs
             WHERE false;
 
         TRUNCATE TABLE tmp_fabs_{submission_id};
 
-        ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_award_financial_assistance_id SERIAL PRIMARY KEY;
+        ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_fabs_id SERIAL PRIMARY KEY;
     """
     db.session.execute(create_query.format(submission_id=submission_id, cols=col_string))
 
@@ -204,7 +200,7 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
 def get_derived_fabs(db, submission_id):
     """ Retrieve the derived submission information. """
     res = db.session.execute('SELECT * FROM tmp_fabs_{submission_id}'.format(submission_id=submission_id))
-    # derived_fabs = db.session.query(PublishedAwardFinancialAssistance).filter_by(submission_id=submission_id).first()
+    # derived_fabs = db.session.query(PublishedFABS).filter_by(submission_id=submission_id).first()
     return res.fetchone()
 
 

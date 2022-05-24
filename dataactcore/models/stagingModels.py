@@ -1572,15 +1572,15 @@ Index("ix_dap_awarding_sub_tier_agency_c_upper", func.upper(DetachedAwardProcure
 Index("ix_dap_awardee_or_recipient_uei_upper", func.upper(DetachedAwardProcurement.awardee_or_recipient_uei))
 
 
-class DetachedAwardFinancialAssistance(Base):
-    """Model for D2-Award (Financial Assistance)."""
-    __tablename__ = "detached_award_financial_assistance"
+class FABS(Base):
+    """Model for FABS submission."""
+    __tablename__ = "fabs"
 
-    detached_award_financial_assistance_id = Column(Integer, primary_key=True)
+    fabs_id = Column(Integer, primary_key=True)
     afa_generated_unique = Column(Text, index=True, nullable=False)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_detached_award_financial_assistance_submission_id"),
+                                      name="fk_fabs_submission_id"),
                            nullable=False, index=True)
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
@@ -1636,18 +1636,18 @@ class DetachedAwardFinancialAssistance(Base):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(DetachedAwardFinancialAssistance, self).__init__(**clean_kwargs)
+        super(FABS, self).__init__(**clean_kwargs)
 
 
-Index("ix_dafa_afa_generated_unique_upper", func.upper(DetachedAwardFinancialAssistance.afa_generated_unique))
-Index("ix_dafa_uei_upper", func.upper(DetachedAwardFinancialAssistance.uei))
+Index("ix_fabs_afa_generated_unique_upper", func.upper(FABS.afa_generated_unique))
+Index("ix_fabs_uei_upper", func.upper(FABS.uei))
 
 
-class PublishedAwardFinancialAssistance(Base):
-    """Model for D2-Award (Financial Assistance)."""
-    __tablename__ = "published_award_financial_assistance"
+class PublishedFABS(Base):
+    """Model for published FABS."""
+    __tablename__ = "published_fabs"
 
-    published_award_financial_assistance_id = Column(Integer, primary_key=True)
+    published_fabs_id = Column(Integer, primary_key=True)
     afa_generated_unique = Column(Text, index=True, nullable=False)
     action_date = Column(Text, index=True)
     action_type = Column(Text, index=True)
@@ -1752,38 +1752,38 @@ class PublishedAwardFinancialAssistance(Base):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)
+        super(PublishedFABS, self).__init__(**clean_kwargs)
 
 
 Index(
-    'ix_published_award_financial_assistance_is_active',
-    PublishedAwardFinancialAssistance.is_active,
-    postgresql_where=(PublishedAwardFinancialAssistance.is_active.is_(True)))
+    'ix_published_fabs_is_active',
+    PublishedFABS.is_active,
+    postgresql_where=(PublishedFABS.is_active.is_(True)))
 
-Index("ix_pafa_fain_awarding_sub_tier_is_active",
-      PublishedAwardFinancialAssistance.fain,
-      PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
-      PublishedAwardFinancialAssistance.is_active,
+Index("ix_published_fabs_fain_awarding_sub_tier_is_active",
+      PublishedFABS.fain,
+      PublishedFABS.awarding_sub_tier_agency_c,
+      PublishedFABS.is_active,
       unique=False)
 
-Index("ix_pafa_fain_awarding_subtier_upper",
-      func.upper(PublishedAwardFinancialAssistance.fain),
-      func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c),
+Index("ix_published_fabs_fain_awarding_subtier_upper",
+      func.upper(PublishedFABS.fain),
+      func.upper(PublishedFABS.awarding_sub_tier_agency_c),
       unique=False)
 
-Index("ix_pafa_uri_awarding_sub_tier_is_active",
-      PublishedAwardFinancialAssistance.uri,
-      PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
-      PublishedAwardFinancialAssistance.is_active,
+Index("ix_published_fabs_uri_awarding_sub_tier_is_active",
+      PublishedFABS.uri,
+      PublishedFABS.awarding_sub_tier_agency_c,
+      PublishedFABS.is_active,
       unique=False)
 
-Index("ix_pafa_uri_awarding_subtier_upper",
-      func.upper(PublishedAwardFinancialAssistance.uri),
-      func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c),
+Index("ix_published_fabs_uri_awarding_subtier_upper",
+      func.upper(PublishedFABS.uri),
+      func.upper(PublishedFABS.awarding_sub_tier_agency_c),
       unique=False)
 
-Index("ix_pafa_fain_upper", func.upper(PublishedAwardFinancialAssistance.fain))
-Index("ix_pafa_uri_upper", func.upper(PublishedAwardFinancialAssistance.uri))
-Index("ix_pafa_awarding_subtier_c_upper", func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c))
-Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
-Index("ix_pafa_uei_upper", func.upper(PublishedAwardFinancialAssistance.uei))
+Index("ix_published_fabs_fain_upper", func.upper(PublishedFABS.fain))
+Index("ix_published_fabs_uri_upper", func.upper(PublishedFABS.uri))
+Index("ix_published_fabs_awarding_subtier_c_upper", func.upper(PublishedFABS.awarding_sub_tier_agency_c))
+Index("ix_published_fabs_afa_generated_unique_upper", func.upper(PublishedFABS.afa_generated_unique))
+Index("ix_published_fabs_uei_upper", func.upper(PublishedFABS.uei))

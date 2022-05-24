@@ -14,7 +14,7 @@ from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import (Job, Submission, JobDependency, PublishHistory, PublishedFilesHistory,
                                           SubmissionWindowSchedule)
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
+from dataactcore.models.stagingModels import FABS
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.views import SubmissionUpdatedView
@@ -390,7 +390,6 @@ def create_jobs(upload_files, submission, existing_submission=False):
             one()
         val_job.job_status_id = JOB_STATUS_DICT['waiting']
         submission.updated_at = time.strftime('%c')
-    # todo: add these back in for detached_d2 when we have actual validations
     elif not submission.d2_submission:
         # create cross-file validation job
         validation_job = Job(
@@ -664,10 +663,9 @@ def get_fabs_meta(submission_id):
     """Return the total rows, valid rows, publish date, and publish file for FABS submissions"""
     sess = GlobalDB.db().session
 
-    # get row counts from the DetachedAwardFinancialAssistance table
-    dafa = DetachedAwardFinancialAssistance
-    total_rows = sess.query(dafa).filter(dafa.submission_id == submission_id)
-    valid_rows = total_rows.filter(dafa.is_valid)
+    # get row counts from the FABS table
+    total_rows = sess.query(FABS).filter(FABS.submission_id == submission_id)
+    valid_rows = total_rows.filter(FABS.is_valid)
 
     # retrieve the published data and file
     submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
@@ -697,7 +695,7 @@ def get_fabs_meta(submission_id):
 
 
 def get_action_dates(submission_id):
-    """ Pull the earliest/latest action dates from the DetachedAwardFinancialAssistance table
+    """ Pull the earliest/latest action dates from the FABS table
 
         Args:
             submission_id: submission ID pull action dates from
@@ -708,10 +706,10 @@ def get_action_dates(submission_id):
     """
 
     sess = GlobalDB.db().session
-    return sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label('min_action_date'),
-                      func.max(DetachedAwardFinancialAssistance.action_date).label('max_action_date'))\
-        .filter(DetachedAwardFinancialAssistance.submission_id == submission_id,
-                DetachedAwardFinancialAssistance.is_valid.is_(True)).one()
+    return sess.query(func.min(FABS.action_date).label('min_action_date'),
+                      func.max(FABS.action_date).label('max_action_date'))\
+        .filter(FABS.submission_id == submission_id,
+                FABS.is_valid.is_(True)).one()
 
 
 def get_last_modified(submission_id):
