@@ -39,15 +39,15 @@ def copy_published_submission_flex_fields():
 
     # Delete the old ones so we don't have conflicts
     sess.execute(
-        """DELETE FROM certified_flex_field
+        """DELETE FROM published_flex_field
             USING submission
-            WHERE submission.submission_id = certified_flex_field.submission_id
+            WHERE submission.submission_id = published_flex_field.submission_id
                 AND publish_status_id = {}
         """.format(PUBLISH_STATUS_DICT['published']))
 
     # Insert all flex fields from submissions in the certified (not updated) status
     sess.execute(
-        """INSERT INTO certified_flex_field (created_at, updated_at, {})
+        """INSERT INTO published_flex_field (created_at, updated_at, {})
             SELECT NOW() AS created_at, NOW() AS updated_at, {}
             FROM flex_field
             JOIN submission ON submission.submission_id = flex_field.submission_id

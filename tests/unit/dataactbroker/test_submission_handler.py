@@ -548,9 +548,9 @@ def test_publish_and_certify_dabs_submission(database, monkeypatch):
         assert submission.publish_status_id == PUBLISH_STATUS_DICT['published']
         assert submission.certified is True
 
-        # Make sure certified comments are created
-        certified_comment = sess.query(CertifiedComment).filter_by(submission_id=submission.submission_id).one_or_none()
-        assert certified_comment is not None
+        # Make sure published comments are created
+        published_comment = sess.query(CertifiedComment).filter_by(submission_id=submission.submission_id).one_or_none()
+        assert published_comment is not None
 
         # Make sure certified flex fields are created
         certified_flex = sess.query(CertifiedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()

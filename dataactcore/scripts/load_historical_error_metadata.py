@@ -198,7 +198,7 @@ def move_updated_error_metadata(sess):
 
             # Transfer contents of file to certified error metadata
             insert_sql = """
-                INSERT INTO certified_error_metadata (
+                INSERT INTO published_error_metadata (
                     created_at,
                     updated_at,
                     job_id,

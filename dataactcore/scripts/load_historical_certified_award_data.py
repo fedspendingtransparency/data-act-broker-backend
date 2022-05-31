@@ -339,14 +339,14 @@ def main():
             'staging_table': AwardProcurement,
             'published_table': CertifiedAwardProcurement,
             'staging_id': 'award_procurement_id',
-            'published_id': 'certified_award_procurement_id',
+            'published_id': 'published_award_procurement_id',
             'file_type_id': FILE_TYPE_DICT['award_procurement']
         },
         'award_financial_assistance': {
             'staging_table': AwardFinancialAssistance,
             'published_table': CertifiedAwardFinancialAssistance,
             'staging_id': 'award_financial_assistance_id',
-            'published_id': 'certified_award_financial_assistance_id',
+            'published_id': 'published_award_financial_assistance_id',
             'file_type_id': FILE_TYPE_DICT['award']
         }
     }
