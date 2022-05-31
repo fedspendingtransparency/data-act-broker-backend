@@ -11,7 +11,7 @@ from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
+from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata
 from dataactcore.models.jobModels import Job, Submission, PublishHistory, PublishedFilesHistory
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
                                         ERROR_TYPE_DICT)
@@ -38,7 +38,7 @@ def move_published_error_metadata(sess):
         all()
 
     # Delete all current published entries to prevent duplicates
-    sess.query(CertifiedErrorMetadata).filter(CertifiedErrorMetadata.job_id.in_(published_job_list)).\
+    sess.query(PublishedErrorMetadata).filter(PublishedErrorMetadata.job_id.in_(published_job_list)).\
         delete(synchronize_session=False)
 
     # Create dict of error metadata
@@ -53,7 +53,7 @@ def move_published_error_metadata(sess):
         error_metadata_list.append(obj.__dict__)
 
     # Save all the objects in the certified error metadata table
-    sess.bulk_save_objects([CertifiedErrorMetadata(**error_metadata) for error_metadata in error_metadata_list])
+    sess.bulk_save_objects([PublishedErrorMetadata(**error_metadata) for error_metadata in error_metadata_list])
     sess.commit()
     logger.info('Published error metadata moved')
 
@@ -103,7 +103,7 @@ def move_updated_error_metadata(sess):
         all()
 
     # Delete all current updated entries to prevent duplicates
-    sess.query(CertifiedErrorMetadata).filter(CertifiedErrorMetadata.job_id.in_(updated_job_list)). \
+    sess.query(PublishedErrorMetadata).filter(PublishedErrorMetadata.job_id.in_(updated_job_list)). \
         delete(synchronize_session=False)
 
     # Create a CTE of the max publish history IDs for updated submissions (DABS only)

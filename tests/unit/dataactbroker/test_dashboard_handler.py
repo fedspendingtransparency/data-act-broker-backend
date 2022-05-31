@@ -12,7 +12,7 @@ from dataactcore.models.lookups import (PERMISSION_TYPE_DICT, PUBLISH_STATUS_DIC
                                         RULE_SEVERITY_DICT, RULE_IMPACT_DICT)
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import RuleSql, RuleSetting
-from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
+from dataactcore.models.errorModels import PublishedErrorMetadata, ErrorMetadata
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers import filters_helper
 from dataactbroker.handlers import dashboard_handler
@@ -240,28 +240,28 @@ def setup_submissions(sess, admin=False):
                        pub_month_sub_a1])
 
     # Setup certified error metadata
-    cert_sub1_a1 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
+    cert_sub1_a1 = PublishedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
                                           target_file_type_id=None, rule_failed='first rule')
-    cert_sub1_a2 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A2', occurrences=30,
+    cert_sub1_a2 = PublishedErrorMetadata(job=sub1_a, original_rule_label='A2', occurrences=30,
                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
                                           target_file_type_id=None, rule_failed='second rule')
-    cert_sub1_ab1 = CertifiedErrorMetadata(job=sub1_ab, original_rule_label='A3', occurrences=70,
+    cert_sub1_ab1 = PublishedErrorMetadata(job=sub1_ab, original_rule_label='A3', occurrences=70,
                                            file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
                                            target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                                            rule_failed='first cross rule')
-    cert_sub1_ab2 = CertifiedErrorMetadata(job=sub1_ab, original_rule_label='B1', occurrences=130,
+    cert_sub1_ab2 = PublishedErrorMetadata(job=sub1_ab, original_rule_label='B1', occurrences=130,
                                            file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                                            target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
                                            rule_failed='second cross rule')
-    cert_sub2_b1 = CertifiedErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
+    cert_sub2_b1 = PublishedErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                                           target_file_type_id=None, rule_failed='first B rule')
-    cert_sub2_bc1 = CertifiedErrorMetadata(job=sub2_bc, original_rule_label='B3', occurrences=120,
+    cert_sub2_bc1 = PublishedErrorMetadata(job=sub2_bc, original_rule_label='B3', occurrences=120,
                                            file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                                            target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
                                            rule_failed='another cross rule')
-    cert_pub_month_sub_a1 = CertifiedErrorMetadata(job=pub_month_sub_a, original_rule_label='A1', occurrences=75,
+    cert_pub_month_sub_a1 = PublishedErrorMetadata(job=pub_month_sub_a, original_rule_label='A1', occurrences=75,
                                                    file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
                                                    target_file_type_id=None, rule_failed='first rule')
     # no warnings for sub3

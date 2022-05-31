@@ -18,7 +18,7 @@ from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_li
 
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT, SUBMISSION_TYPE_DICT)
-from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
+from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, Banner, CertifyHistory,
                                           PublishHistory, RevalidationThreshold, SubmissionWindowSchedule, Comment,
@@ -719,7 +719,7 @@ def move_published_data(sess, submission_id, direction='publish'):
                    'award_procurement': [AwardProcurement, CertifiedAwardProcurement, 'submission'],
                    'award_financial_assistance': [AwardFinancialAssistance, CertifiedAwardFinancialAssistance,
                                                   'submission'],
-                   'error_metadata': [ErrorMetadata, CertifiedErrorMetadata, 'job'],
+                   'error_metadata': [ErrorMetadata, PublishedErrorMetadata, 'job'],
                    'comment': [Comment, CertifiedComment, 'submission'],
                    'flex_field': [FlexField, CertifiedFlexField, 'submission'],
                    'total_obligations': [TotalObligations, CertifiedTotalObligations, 'submission']}
@@ -1120,8 +1120,8 @@ def revert_to_certified(submission, file_manager):
     # Set errors/warnings for the submission
     submission.number_of_errors = 0
     submission.number_of_warnings =\
-        sess.query(func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).label('total_warnings')).\
-        join(Job, CertifiedErrorMetadata.job_id == Job.job_id).\
+        sess.query(func.coalesce(func.sum(PublishedErrorMetadata.occurrences), 0).label('total_warnings')).\
+        join(Job, PublishedErrorMetadata.job_id == Job.job_id).\
         filter(Job.submission_id == submission.submission_id).one().total_warnings
     submission.publishable = True
 
@@ -1159,7 +1159,7 @@ def revert_to_certified(submission, file_manager):
     }
     # Update the number of warnings for each job in the list
     for job in job_list:
-        job.number_of_warnings = sess.query(func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).
+        job.number_of_warnings = sess.query(func.coalesce(func.sum(PublishedErrorMetadata.occurrences), 0).
                                             label('total_warnings')). \
             filter_by(job_id=job.job_id).one().total_warnings
         # For non-cross-file jobs, also update the row count and file size

@@ -14,7 +14,7 @@ from dataactbroker.handlers.submission_handler import (
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
                                         FILE_STATUS_DICT)
-from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata, File
+from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata, File
 from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, CertifiedComment, Job, Submission,
                                           PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
@@ -1073,9 +1073,9 @@ def test_revert_submission(database, monkeypatch):
                                           submission_id=sub.submission_id, filename='old/test/file2.csv',
                                           file_type_id=FILE_TYPE_DICT['appropriations'],
                                           warning_filename='a/warning.csv')
-        cert_meta1 = CertifiedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
+        cert_meta1 = PublishedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
                                             target_file_type_id=None, occurrences=15)
-        cert_meta2 = CertifiedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
+        cert_meta2 = PublishedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
                                             target_file_type_id=None, occurrences=10)
         file_entry = File(file_id=FILE_TYPE_DICT['appropriations'], job_id=job.job_id,
                           file_status_id=FILE_STATUS_DICT['incomplete'], headers_missing='something')
@@ -1198,8 +1198,8 @@ def test_move_published_data(database):
         ocpa_query = sess.query(CertifiedObjectClassProgramActivity).filter_by(submission_id=sub_1.submission_id).all()
         award_query = sess.query(CertifiedAwardFinancial).filter_by(submission_id=sub_1.submission_id).all()
         # Query all job IDs but only one result should show up
-        error_query = sess.query(CertifiedErrorMetadata).\
-            filter(CertifiedErrorMetadata.job_id.in_([job_1.job_id, job_2.job_id])).all()
+        error_query = sess.query(PublishedErrorMetadata).\
+            filter(PublishedErrorMetadata.job_id.in_([job_1.job_id, job_2.job_id])).all()
         assert len(ocpa_query) == 1
         assert len(award_query) == 1
         assert len(error_query) == 1

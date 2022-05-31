@@ -8,7 +8,7 @@ from sqlalchemy import case, func, and_
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import get_time_period, get_certification_deadline
 from dataactcore.models.domainModels import CGAC, FREC, is_not_distinct_from
-from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
+from dataactcore.models.errorModels import PublishedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         FILE_TYPE_DICT_LETTER, RULE_IMPACT_DICT_ID)
 from dataactcore.models.jobModels import Submission, Job
@@ -193,10 +193,10 @@ def apply_historic_dabs_details_filters(query, filters):
     """
 
     if filters['files']:
-        query = file_filter(query, CertifiedErrorMetadata, filters['files'])
+        query = file_filter(query, PublishedErrorMetadata, filters['files'])
 
     if filters['rules']:
-        query = query.filter(CertifiedErrorMetadata.original_rule_label.in_(filters['rules']))
+        query = query.filter(PublishedErrorMetadata.original_rule_label.in_(filters['rules']))
 
     return query
 
@@ -263,27 +263,27 @@ def historic_dabs_warning_graphs(filters):
         # get metadata for subs/files
         error_metadata_query = sess.query(
             Job.submission_id,
-            CertifiedErrorMetadata.file_type_id,
-            CertifiedErrorMetadata.target_file_type_id,
-            CertifiedErrorMetadata.original_rule_label.label('label'),
-            CertifiedErrorMetadata.occurrences.label('instances')
-        ).join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
+            PublishedErrorMetadata.file_type_id,
+            PublishedErrorMetadata.target_file_type_id,
+            PublishedErrorMetadata.original_rule_label.label('label'),
+            PublishedErrorMetadata.occurrences.label('instances')
+        ).join(PublishedErrorMetadata, PublishedErrorMetadata.job_id == Job.job_id).\
             filter(Job.submission_id.in_(sub_ids))
 
         # Get the total number of warnings for each submission
         total_warnings_query = sess.query(
-            func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).label('total_instances'),
-            CertifiedErrorMetadata.file_type_id,
-            CertifiedErrorMetadata.target_file_type_id,
+            func.coalesce(func.sum(PublishedErrorMetadata.occurrences), 0).label('total_instances'),
+            PublishedErrorMetadata.file_type_id,
+            PublishedErrorMetadata.target_file_type_id,
             Job.submission_id
-        ).join(Job, Job.job_id == CertifiedErrorMetadata.job_id).filter(Job.submission_id.in_(sub_ids)).\
-            group_by(Job.submission_id, CertifiedErrorMetadata.file_type_id, CertifiedErrorMetadata.target_file_type_id)
+        ).join(Job, Job.job_id == PublishedErrorMetadata.job_id).filter(Job.submission_id.in_(sub_ids)).\
+            group_by(Job.submission_id, PublishedErrorMetadata.file_type_id, PublishedErrorMetadata.target_file_type_id)
 
         error_metadata_query = apply_historic_dabs_details_filters(error_metadata_query, filters)
-        total_warnings_query = file_filter(total_warnings_query, CertifiedErrorMetadata, filters['files'])
+        total_warnings_query = file_filter(total_warnings_query, PublishedErrorMetadata, filters['files'])
 
         # ordering warnings so they all come out in the same order
-        error_metadata_query = error_metadata_query.order_by(CertifiedErrorMetadata.original_rule_label)
+        error_metadata_query = error_metadata_query.order_by(PublishedErrorMetadata.original_rule_label)
 
         # Add warnings objects to results dict
         for query_result in error_metadata_query.all():
@@ -337,9 +337,9 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
     # Determine what to order by, default to "period"
     options = {
         'period': {'model': Submission, 'col': 'reporting_fiscal_year'},
-        'rule_label': {'model': CertifiedErrorMetadata, 'col': 'original_rule_label'},
-        'instances': {'model': CertifiedErrorMetadata, 'col': 'occurrences'},
-        'description': {'model': CertifiedErrorMetadata, 'col': 'rule_failed'},
+        'rule_label': {'model': PublishedErrorMetadata, 'col': 'original_rule_label'},
+        'instances': {'model': PublishedErrorMetadata, 'col': 'occurrences'},
+        'description': {'model': PublishedErrorMetadata, 'col': 'rule_failed'},
         'submission_id': {'model': Submission, 'col': 'submission_id'},
         'submitted_by': {'model': User, 'col': 'name'}
     }
@@ -357,13 +357,13 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
         Submission.is_quarter_format,
         User.name.label('certifier'),
         Job.file_type_id.label('job_file_type'),
-        CertifiedErrorMetadata.original_rule_label,
-        CertifiedErrorMetadata.occurrences,
-        CertifiedErrorMetadata.rule_failed,
-        CertifiedErrorMetadata.file_type_id.label('error_file_type'),
-        CertifiedErrorMetadata.target_file_type_id
+        PublishedErrorMetadata.original_rule_label,
+        PublishedErrorMetadata.occurrences,
+        PublishedErrorMetadata.rule_failed,
+        PublishedErrorMetadata.file_type_id.label('error_file_type'),
+        PublishedErrorMetadata.target_file_type_id
     ).join(Job, Job.submission_id == Submission.submission_id).\
-        join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
+        join(PublishedErrorMetadata, PublishedErrorMetadata.job_id == Job.job_id).\
         join(User, User.user_id == Submission.publishing_user_id). \
         filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])). \
         filter(Submission.d2_submission.is_(False))
@@ -381,7 +381,7 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
     if sort in ['submitted_by', 'rule_label', 'instances', 'description']:
         sort_order.append(Submission.submission_id)
     if sort in ['period', 'instances', 'submission_id', 'submitted_by']:
-        sort_order.append(CertifiedErrorMetadata.original_rule_label)
+        sort_order.append(PublishedErrorMetadata.original_rule_label)
 
     # Set the sort order
     if order == 'desc':
