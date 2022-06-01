@@ -15,7 +15,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
                                         FILE_STATUS_DICT)
 from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata, File
-from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, CertifiedComment, Job, Submission,
+from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, PublishedComment, Job, Submission,
                                           PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
@@ -549,7 +549,7 @@ def test_publish_and_certify_dabs_submission(database, monkeypatch):
         assert submission.certified is True
 
         # Make sure published comments are created
-        published_comment = sess.query(CertifiedComment).filter_by(submission_id=submission.submission_id).one_or_none()
+        published_comment = sess.query(PublishedComment).filter_by(submission_id=submission.submission_id).one_or_none()
         assert published_comment is not None
 
         # Make sure certified flex fields are created
@@ -827,7 +827,7 @@ def test_publish_checks_window_not_in_db(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_window_too_early(database):
-    """ Tests that a DABS submission that was last validated before the window start cannot be certified. """
+    """ Tests that a DABS submission that was last validated before the window start cannot be published. """
     now = datetime.datetime.utcnow()
     earlier = now - datetime.timedelta(days=1)
     sess = database.session
@@ -893,7 +893,7 @@ def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database
 
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_reverting(database):
-    """ Tests that a DABS submission cannot be certified while reverting. """
+    """ Tests that a DABS submission cannot be published while reverting. """
     now = datetime.datetime.utcnow()
     earlier = now - datetime.timedelta(days=1)
     sess = database.session
@@ -1047,7 +1047,7 @@ def test_process_dabs_certify_already_certified(database):
 @pytest.mark.usefixtures('error_constants')
 @pytest.mark.usefixtures('job_constants')
 def test_revert_submission(database, monkeypatch):
-    """ Tests reverting an updated DABS certification """
+    """ Tests reverting an updated DABS publication """
     with Flask('test-app').app_context():
         sess = database.session
 
@@ -1133,7 +1133,7 @@ def test_revert_submission_fabs_submission(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_revert_submission_not_updated_submission(database):
-    """ Tests reverting an updated DABS certification failure for non-updated submission """
+    """ Tests reverting an updated DABS publication failure for non-updated submission """
     sess = database.session
 
     sub1 = Submission(publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)

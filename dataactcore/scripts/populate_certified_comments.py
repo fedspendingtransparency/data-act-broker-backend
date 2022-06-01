@@ -4,7 +4,7 @@ from sqlalchemy import func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import Submission, PublishHistory, Comment, CertifiedComment
+from dataactcore.models.jobModels import Submission, PublishHistory, Comment, PublishedComment
 
 from dataactvalidator.health_check import create_app
 
@@ -48,11 +48,11 @@ if __name__ == '__main__':
                 submissions_list.append(tmp_obj['submission_id'])
 
         # Delete all comments from the submissions we're inserting for
-        sess.query(CertifiedComment).filter(CertifiedComment.submission_id.in_(submissions_list)).\
+        sess.query(PublishedComment).filter(PublishedComment.submission_id.in_(submissions_list)).\
             delete(synchronize_session=False)
 
-        # Save all the objects in the certified comment table
-        sess.bulk_save_objects([CertifiedComment(**comment) for comment in comments_list])
+        # Save all the objects in the published comment table
+        sess.bulk_save_objects([PublishedComment(**comment) for comment in comments_list])
         sess.commit()
 
         logger.info('Published comments moved')

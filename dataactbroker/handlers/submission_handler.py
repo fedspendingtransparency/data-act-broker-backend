@@ -22,7 +22,7 @@ from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, Banner, CertifyHistory,
                                           PublishHistory, RevalidationThreshold, SubmissionWindowSchedule, Comment,
-                                          CertifiedComment, PublishedFilesHistory)
+                                          PublishedComment, PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
@@ -595,7 +595,7 @@ def get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, re
             reporting_fiscal_period: the period in the year to check for
             is_quarter_format: whether the submission being checked is a quarterly or monthly submission
             submission_id: the submission ID to check against (used when checking if this submission is being
-                re-certified)
+                re-published)
 
         Returns:
             A JsonResponse containing a list of the published submissions for that period
@@ -627,7 +627,7 @@ def get_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, repor
             reporting_fiscal_period: the period in the year to check for
             is_quarter_format: whether the submission being checked is a quarterly or monthly submission
             submission_id: the submission ID to check against (used when checking if this submission is being
-                re-certified)
+                re-published)
             filter_published: whether to filter published/unpublished submissions
                        (options are: "mixed", "published" (default), and "unpublished")
 
@@ -656,7 +656,7 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
             reporting_fiscal_year: the year to check for
             reporting_fiscal_period: the period in the year to check for
             submission_id: the submission ID to check against (used when checking if this submission is being
-                re-certified)
+                re-published)
             filter_published: whether to filter published/unpublished submissions
                        (options are: "mixed", "published" (default), and "unpublished")
             filter_quarter: whether to include submissions in the same quarter (True) or period (False, default)
@@ -702,7 +702,7 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
 
 
 def move_published_data(sess, submission_id, direction='publish'):
-    """ Move data from the staging tables to the certified tables for a submission or do the reverse for a revert.
+    """ Move data from the staging tables to the published tables for a submission or do the reverse for a revert.
 
         Args:
             sess: the database connection
@@ -720,7 +720,7 @@ def move_published_data(sess, submission_id, direction='publish'):
                    'award_financial_assistance': [AwardFinancialAssistance, CertifiedAwardFinancialAssistance,
                                                   'submission'],
                    'error_metadata': [ErrorMetadata, PublishedErrorMetadata, 'job'],
-                   'comment': [Comment, CertifiedComment, 'submission'],
+                   'comment': [Comment, PublishedComment, 'submission'],
                    'flex_field': [FlexField, CertifiedFlexField, 'submission'],
                    'total_obligations': [TotalObligations, CertifiedTotalObligations, 'submission']}
 
@@ -876,7 +876,7 @@ def process_dabs_publish(submission, file_manager):
     publish_history = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id). \
         order_by(PublishHistory.created_at.desc()).first()
 
-    # Move the data to the certified table, deleting any old published data in the process
+    # Move the data to the published table, deleting any old published data in the process
     move_published_data(sess, submission.submission_id)
 
     # move files (locally we don't move but we still need to populate the published_files_history table)
