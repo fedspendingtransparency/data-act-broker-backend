@@ -24,8 +24,8 @@ from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffi
                                           PublishHistory, RevalidationThreshold, SubmissionWindowSchedule, Comment,
                                           PublishedComment, PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
-                                              CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial, FlexField, PublishedFlexField, AwardProcurement,
+                                              PublishedAppropriation, PublishedObjectClassProgramActivity,
+                                              PublishedAwardFinancial, FlexField, PublishedFlexField, AwardProcurement,
                                               AwardFinancialAssistance, CertifiedAwardProcurement,
                                               CertifiedAwardFinancialAssistance, TotalObligations,
                                               PublishedTotalObligations)
@@ -712,10 +712,10 @@ def move_published_data(sess, submission_id, direction='publish'):
         Raises:
             ResponseException if a value other than "publish" or "revert" is specified for the direction.
     """
-    table_types = {'appropriation': [Appropriation, CertifiedAppropriation, 'submission'],
-                   'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity,
+    table_types = {'appropriation': [Appropriation, PublishedAppropriation, 'submission'],
+                   'object_class_program_activity': [ObjectClassProgramActivity, PublishedObjectClassProgramActivity,
                                                      'submission'],
-                   'award_financial': [AwardFinancial, CertifiedAwardFinancial, 'submission'],
+                   'award_financial': [AwardFinancial, PublishedAwardFinancial, 'submission'],
                    'award_procurement': [AwardProcurement, CertifiedAwardProcurement, 'submission'],
                    'award_financial_assistance': [AwardFinancialAssistance, CertifiedAwardFinancialAssistance,
                                                   'submission'],
@@ -1151,9 +1151,9 @@ def revert_to_certified(submission, file_manager):
     sess.execute(update_string)
 
     file_type_mapping = {
-        FILE_TYPE_DICT['appropriations']: CertifiedAppropriation,
-        FILE_TYPE_DICT['program_activity']: CertifiedObjectClassProgramActivity,
-        FILE_TYPE_DICT['award_financial']: CertifiedAwardFinancial,
+        FILE_TYPE_DICT['appropriations']: PublishedAppropriation,
+        FILE_TYPE_DICT['program_activity']: PublishedObjectClassProgramActivity,
+        FILE_TYPE_DICT['award_financial']: PublishedAwardFinancial,
         FILE_TYPE_DICT['award']: CertifiedAwardFinancialAssistance,
         FILE_TYPE_DICT['award_procurement']: CertifiedAwardProcurement
     }

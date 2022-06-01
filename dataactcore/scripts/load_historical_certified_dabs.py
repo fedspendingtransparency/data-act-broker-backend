@@ -16,8 +16,8 @@ from dataactcore.models.jobModels import PublishedFilesHistory, Job
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT, JOB_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
-                                              CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial)
+                                              PublishedAppropriation, PublishedObjectClassProgramActivity,
+                                              PublishedAwardFinancial)
 from dataactcore.models.userModel import User # noqa
 from dataactcore.models.validationModels import FileColumn
 
@@ -28,14 +28,14 @@ from dataactvalidator.validation_handlers.validationManager import update_accoun
 logger = logging.getLogger(__name__)
 
 FTI_TABLENAME_DICT = {
-    FILE_TYPE_DICT['appropriations']: 'CertifiedAppropriation',
-    FILE_TYPE_DICT['program_activity']: 'CertifiedObjectClassProgramActivity',
-    FILE_TYPE_DICT['award_financial']: 'CertifiedAwardFinancial'
+    FILE_TYPE_DICT['appropriations']: 'PublishedAppropriation',
+    FILE_TYPE_DICT['program_activity']: 'PublishedObjectClassProgramActivity',
+    FILE_TYPE_DICT['award_financial']: 'PublishedAwardFinancial'
 }
 FTI_TABLE_DICT = {
-    FILE_TYPE_DICT['appropriations']: CertifiedAppropriation,
-    FILE_TYPE_DICT['program_activity']: CertifiedObjectClassProgramActivity,
-    FILE_TYPE_DICT['award_financial']: CertifiedAwardFinancial
+    FILE_TYPE_DICT['appropriations']: PublishedAppropriation,
+    FILE_TYPE_DICT['program_activity']: PublishedObjectClassProgramActivity,
+    FILE_TYPE_DICT['award_financial']: PublishedAwardFinancial
 }
 FTI_BASETABLE_DICT = {
     FILE_TYPE_DICT['appropriations']: Appropriation,

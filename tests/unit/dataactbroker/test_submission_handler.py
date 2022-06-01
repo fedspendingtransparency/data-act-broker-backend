@@ -18,8 +18,8 @@ from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata
 from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, PublishedComment, Job, Submission,
                                           PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
-                                              CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial, FlexField, PublishedFlexField, TotalObligations,
+                                              PublishedAppropriation, PublishedObjectClassProgramActivity,
+                                              PublishedAwardFinancial, FlexField, PublishedFlexField, TotalObligations,
                                               PublishedTotalObligations)
 from dataactcore.utils.responseException import ResponseException
 
@@ -1064,8 +1064,8 @@ def test_revert_submission(database, monkeypatch):
         sess.add_all([job, pub_history])
         sess.commit()
 
-        cert_approp = CertifiedAppropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
-                                             spending_authority_from_of_cpe=2, tas='test')
+        pub_approp = PublishedAppropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
+                                            spending_authority_from_of_cpe=2, tas='test')
         approp = Appropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
                                spending_authority_from_of_cpe=15, tas='test')
         pub_files = PublishedFilesHistory(publish_history_id=pub_history.publish_history_id,
@@ -1079,7 +1079,7 @@ def test_revert_submission(database, monkeypatch):
                                             target_file_type_id=None, occurrences=10)
         file_entry = File(file_id=FILE_TYPE_DICT['appropriations'], job_id=job.job_id,
                           file_status_id=FILE_STATUS_DICT['incomplete'], headers_missing='something')
-        sess.add_all([cert_approp, approp, pub_files, cert_meta1, cert_meta2, file_entry])
+        sess.add_all([pub_approp, approp, pub_files, cert_meta1, cert_meta2, file_entry])
         sess.commit()
 
         file_handler = fileHandler.FileHandler({}, is_local=True)
@@ -1190,13 +1190,13 @@ def test_move_published_data(database):
         move_published_data(sess, sub_1.submission_id)
 
         # There are 2 entries, we only want to move the 1 with the submission ID that matches
-        approp_query = sess.query(CertifiedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
+        approp_query = sess.query(PublishedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
         assert len(approp_query) == 1
         assert approp_query[0].spending_authority_from_of_cpe == 2
 
         # Make sure the others got moved as well
-        ocpa_query = sess.query(CertifiedObjectClassProgramActivity).filter_by(submission_id=sub_1.submission_id).all()
-        award_query = sess.query(CertifiedAwardFinancial).filter_by(submission_id=sub_1.submission_id).all()
+        ocpa_query = sess.query(PublishedObjectClassProgramActivity).filter_by(submission_id=sub_1.submission_id).all()
+        award_query = sess.query(PublishedAwardFinancial).filter_by(submission_id=sub_1.submission_id).all()
         # Query all job IDs but only one result should show up
         error_query = sess.query(PublishedErrorMetadata).\
             filter(PublishedErrorMetadata.job_id.in_([job_1.job_id, job_2.job_id])).all()
@@ -1210,6 +1210,6 @@ def test_move_published_data(database):
 
         # Move the data again (republish) and make sure we didn't add extras, just adjusted the one we had
         move_published_data(sess, sub_1.submission_id)
-        approp_query = sess.query(CertifiedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
+        approp_query = sess.query(PublishedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
         assert len(approp_query) == 1
         assert approp_query[0].spending_authority_from_of_cpe == 2
