@@ -250,7 +250,7 @@ def test_file_filter_wrong_file_model(database):
     base_query = sess.query(PublishedErrorMetadata)
 
     # should break cause
-    error_text = 'Invalid file model. Use one of the following instead: PublishedErrorMetadata, ErrorMetadata, ' \
+    error_text = 'Invalid file model. Use one of the following instead: ErrorMetadata, PublishedErrorMetadata, ' \
                  'RuleSetting, RuleSql.'
     with pytest.raises(ResponseException) as resp_except:
         filters_helper.file_filter(base_query, Submission, [])
