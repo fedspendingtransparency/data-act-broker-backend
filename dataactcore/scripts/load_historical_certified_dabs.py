@@ -101,7 +101,7 @@ def insert_from_table(file_type_id, submission_id):
     col_string = ", ".join(column_list)
 
     executed = sess.execute(
-        "INSERT INTO certified_{} (created_at, updated_at, {}) "
+        "INSERT INTO published_{} (created_at, updated_at, {}) "
         "SELECT NOW() AS created_at, NOW() AS updated_at, {} "
         "FROM {} "
         "WHERE submission_id={}".format(table_type, col_string, col_string, table_type, submission_id))

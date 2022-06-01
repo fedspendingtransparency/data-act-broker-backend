@@ -553,13 +553,13 @@ def get_latest_published_date(submission, is_fabs=False):
         last_published = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id).\
             order_by(PublishHistory.created_at.desc()).first()
 
-        certified_files = None
+        published_files = None
         if is_fabs:
-            certified_files = sess.query(PublishedFilesHistory).\
+            published_files = sess.query(PublishedFilesHistory).\
                 filter_by(publish_history_id=last_published.publish_history_id).first()
 
-        if last_published and certified_files:
-            return last_published.created_at, certified_files.filename
+        if last_published and published_files:
+            return last_published.created_at, published_files.filename
         elif last_published:
             return last_published.created_at
     return None
