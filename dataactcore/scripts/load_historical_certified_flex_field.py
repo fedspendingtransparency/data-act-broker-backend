@@ -15,7 +15,7 @@ from dataactcore.models.jobModels import PublishedFilesHistory, Job
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.userModel import User # noqa
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_ID
-from dataactcore.models.stagingModels import FlexField, CertifiedFlexField
+from dataactcore.models.stagingModels import FlexField, PublishedFlexField
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import insert_dataframe
@@ -45,7 +45,7 @@ def copy_published_submission_flex_fields():
                 AND publish_status_id = {}
         """.format(PUBLISH_STATUS_DICT['published']))
 
-    # Insert all flex fields from submissions in the certified (not updated) status
+    # Insert all flex fields from submissions in the published (not updated) status
     sess.execute(
         """INSERT INTO published_flex_field (created_at, updated_at, {})
             SELECT NOW() AS created_at, NOW() AS updated_at, {}
@@ -55,7 +55,7 @@ def copy_published_submission_flex_fields():
                 AND submission.d2_submission IS FALSE
         """.format(published_col_string, col_string, PUBLISH_STATUS_DICT['published']))
     sess.commit()
-    logger.info('Moved certified flex fields')
+    logger.info('Moved published flex fields')
 
 
 def clean_col(datum):
@@ -109,7 +109,7 @@ def load_updated_flex_fields():
     sess = GlobalDB.db().session
 
     # Get a list of all submissions with published flex fields
-    published_flex_subs = sess.query(CertifiedFlexField.submission_id).distinct().all()
+    published_flex_subs = sess.query(PublishedFlexField.submission_id).distinct().all()
 
     # We only want to go through updated submissions without flex fields already loaded
     updated_subs = sess.query(Submission.submission_id).\
@@ -165,7 +165,7 @@ def load_updated_flex_fields():
 
         # Process and insert the data
         flex_data = process_flex_data(data, flex_list, submission_id, job.job_id, file_type_id)
-        insert_dataframe(flex_data, CertifiedFlexField.__table__.name, sess.connection())
+        insert_dataframe(flex_data, PublishedFlexField.__table__.name, sess.connection())
         sess.commit()
 
     logger.info('Moved updated flex fields')

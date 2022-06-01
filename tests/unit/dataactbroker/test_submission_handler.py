@@ -19,8 +19,8 @@ from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, Publis
                                           PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField, TotalObligations,
-                                              CertifiedTotalObligations)
+                                              CertifiedAwardFinancial, FlexField, PublishedFlexField, TotalObligations,
+                                              PublishedTotalObligations)
 from dataactcore.utils.responseException import ResponseException
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
@@ -552,14 +552,14 @@ def test_publish_and_certify_dabs_submission(database, monkeypatch):
         published_comment = sess.query(PublishedComment).filter_by(submission_id=submission.submission_id).one_or_none()
         assert published_comment is not None
 
-        # Make sure certified flex fields are created
-        certified_flex = sess.query(CertifiedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()
-        assert certified_flex is not None
+        # Make sure published flex fields are created
+        published_flex = sess.query(PublishedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()
+        assert published_flex is not None
 
-        # Make sure certified total obligations are created
-        certified_obligations = sess.query(CertifiedTotalObligations).\
+        # Make sure published total obligations are created
+        published_obligations = sess.query(PublishedTotalObligations).\
             filter_by(submission_id=submission.submission_id).one_or_none()
-        assert certified_obligations is not None
+        assert published_obligations is not None
 
 
 @pytest.mark.usefixtures('job_constants')
