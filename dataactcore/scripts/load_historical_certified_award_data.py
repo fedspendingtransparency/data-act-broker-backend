@@ -16,7 +16,7 @@ from dataactcore.models.userModel import User # noqa
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_ID,
                                         FIELD_TYPE_DICT)
 from dataactcore.models.stagingModels import (AwardFinancialAssistance, AwardProcurement,
-                                              CertifiedAwardFinancialAssistance, CertifiedAwardProcurement)
+                                              PublishedAwardFinancialAssistance, PublishedAwardProcurement)
 from dataactbroker.helpers.validation_helper import clean_col
 
 from dataactvalidator.health_check import create_app
@@ -337,14 +337,14 @@ def main():
     aw_data_map = {
         'award_procurement': {
             'staging_table': AwardProcurement,
-            'published_table': CertifiedAwardProcurement,
+            'published_table': PublishedAwardProcurement,
             'staging_id': 'award_procurement_id',
             'published_id': 'published_award_procurement_id',
             'file_type_id': FILE_TYPE_DICT['award_procurement']
         },
         'award_financial_assistance': {
             'staging_table': AwardFinancialAssistance,
-            'published_table': CertifiedAwardFinancialAssistance,
+            'published_table': PublishedAwardFinancialAssistance,
             'staging_id': 'award_financial_assistance_id',
             'published_id': 'published_award_financial_assistance_id',
             'file_type_id': FILE_TYPE_DICT['award']

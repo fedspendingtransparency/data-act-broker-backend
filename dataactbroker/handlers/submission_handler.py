@@ -26,8 +26,8 @@ from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffi
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               PublishedAppropriation, PublishedObjectClassProgramActivity,
                                               PublishedAwardFinancial, FlexField, PublishedFlexField, AwardProcurement,
-                                              AwardFinancialAssistance, CertifiedAwardProcurement,
-                                              CertifiedAwardFinancialAssistance, TotalObligations,
+                                              AwardFinancialAssistance, PublishedAwardProcurement,
+                                              PublishedAwardFinancialAssistance, TotalObligations,
                                               PublishedTotalObligations)
 from dataactcore.models.errorModels import File
 
@@ -716,8 +716,8 @@ def move_published_data(sess, submission_id, direction='publish'):
                    'object_class_program_activity': [ObjectClassProgramActivity, PublishedObjectClassProgramActivity,
                                                      'submission'],
                    'award_financial': [AwardFinancial, PublishedAwardFinancial, 'submission'],
-                   'award_procurement': [AwardProcurement, CertifiedAwardProcurement, 'submission'],
-                   'award_financial_assistance': [AwardFinancialAssistance, CertifiedAwardFinancialAssistance,
+                   'award_procurement': [AwardProcurement, PublishedAwardProcurement, 'submission'],
+                   'award_financial_assistance': [AwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                                   'submission'],
                    'error_metadata': [ErrorMetadata, PublishedErrorMetadata, 'job'],
                    'comment': [Comment, PublishedComment, 'submission'],
@@ -1154,8 +1154,8 @@ def revert_to_certified(submission, file_manager):
         FILE_TYPE_DICT['appropriations']: PublishedAppropriation,
         FILE_TYPE_DICT['program_activity']: PublishedObjectClassProgramActivity,
         FILE_TYPE_DICT['award_financial']: PublishedAwardFinancial,
-        FILE_TYPE_DICT['award']: CertifiedAwardFinancialAssistance,
-        FILE_TYPE_DICT['award_procurement']: CertifiedAwardProcurement
+        FILE_TYPE_DICT['award']: PublishedAwardFinancialAssistance,
+        FILE_TYPE_DICT['award_procurement']: PublishedAwardProcurement
     }
     # Update the number of warnings for each job in the list
     for job in job_list:
