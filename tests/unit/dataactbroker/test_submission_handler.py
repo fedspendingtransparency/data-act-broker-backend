@@ -9,7 +9,7 @@ from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (
     publish_checks, process_dabs_publish, process_dabs_certify, publish_dabs_submission,
     publish_and_certify_dabs_submission, get_submission_metadata, get_revalidation_threshold, get_submission_data,
-    move_published_data, get_latest_publication_period, revert_to_certified)
+    move_published_data, get_latest_publication_period, revert_to_published)
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
@@ -1084,7 +1084,7 @@ def test_revert_submission(database, monkeypatch):
 
         file_handler = fileHandler.FileHandler({}, is_local=True)
         monkeypatch.setattr(file_handler, 'revert_published_error_comment_files', Mock())
-        revert_to_certified(sub, file_handler)
+        revert_to_published(sub, file_handler)
 
         # Test that published data is moved back
         approp_query = sess.query(Appropriation).filter_by(submission_id=sub.submission_id).all()
@@ -1116,7 +1116,7 @@ def test_revert_submission(database, monkeypatch):
 
 @pytest.mark.usefixtures('job_constants')
 def test_revert_submission_fabs_submission(database):
-    """ Tests reverting an updated DABS certification failure for FABS submission """
+    """ Tests reverting an updated DABS publication failure for FABS submission """
     sess = database.session
 
     sub = Submission(d2_submission=True)
@@ -1125,7 +1125,7 @@ def test_revert_submission_fabs_submission(database):
 
     file_handler = fileHandler.FileHandler({}, is_local=True)
     with pytest.raises(ResponseException) as resp_except:
-        revert_to_certified(sub, file_handler)
+        revert_to_published(sub, file_handler)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission must be a DABS submission.'
@@ -1144,14 +1144,14 @@ def test_revert_submission_not_updated_submission(database):
     file_handler = fileHandler.FileHandler({}, is_local=True)
     # Published submission
     with pytest.raises(ResponseException) as resp_except:
-        revert_to_certified(sub1, file_handler)
+        revert_to_published(sub1, file_handler)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission has not been published or has not been updated since publication.'
 
     # Unpublished submission
     with pytest.raises(ResponseException) as resp_except:
-        revert_to_certified(sub2, file_handler)
+        revert_to_published(sub2, file_handler)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission has not been published or has not been updated since publication.'

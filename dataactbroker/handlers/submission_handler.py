@@ -694,7 +694,7 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
     elif filter_sub_type == 'quarterly':
         submission_query = submission_query.filter(Submission.is_quarter_format.is_(True))
 
-    # Filter out the submission we are potentially re-certifying if one is provided
+    # Filter out the submission we are potentially re-publishing if one is provided
     if submission_id:
         submission_query = submission_query.filter(Submission.submission_id != submission_id)
 
@@ -832,7 +832,7 @@ def publish_checks(submission):
                          ' submission window ({}). Please revalidate before publishing.'.
                          format(sub_schedule.period_start.strftime('%m/%d/%Y')))
 
-    # Make sure neither A nor B is blank before allowing certification
+    # Make sure neither A nor B is blank before allowing publication
     blank_files = sess.query(Job). \
         filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity']]),
                Job.number_of_rows_valid == 0, Job.job_type_id == JOB_TYPE_DICT['csv_record_validation'],
@@ -1037,7 +1037,7 @@ def publish_and_certify_dabs_submission(submission, file_manager):
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
-def revert_to_certified(submission, file_manager):
+def revert_to_published(submission, file_manager):
     """ Revert an updated DABS submission to its last published state
 
         Args:
