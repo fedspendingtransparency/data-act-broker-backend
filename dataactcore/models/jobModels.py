@@ -108,7 +108,7 @@ class Submission(Base):
     publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
-    d2_submission = Column(Boolean, nullable=False, default=False, server_default="False")
+    is_fabs = Column(Boolean, nullable=False, default=False, server_default="False")
     publishing_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL",
                                                     name="fk_submission_publishing_user"),
                                 nullable=True)
