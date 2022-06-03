@@ -294,8 +294,8 @@ def add_file_routes(app, is_local, server_path):
     @requires_submission_perms('writer', check_fabs='editfabs')
     @use_kwargs({'d2_submission': webargs_fields.Bool(missing=False)})
     def restart_validation(submission, **kwargs):
-        d2_submission = kwargs.get('d2_submission')
-        return FileHandler.restart_validation(submission, d2_submission)
+        is_fabs = kwargs.get('d2_submission')
+        return FileHandler.restart_validation(submission, is_fabs)
 
     @app.route("/v1/revert_submission/", methods=['POST'])
     @convert_to_submission_id

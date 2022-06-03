@@ -30,9 +30,9 @@ def add_user_routes(app, system_email, bcrypt):
     @use_kwargs({
         'd2_submission': webargs_fields.Bool(missing=False)
     })
-    def list_submission_users_route(d2_submission):
+    def list_submission_users_route(is_fabs):
         """ List all users with submissions that the requesting user has permissions for """
-        return list_submission_users(d2_submission)
+        return list_submission_users(is_fabs)
 
     @app.route("/v1/active_user/", methods=["GET"])
     @requires_login

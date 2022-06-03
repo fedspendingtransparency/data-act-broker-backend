@@ -133,7 +133,7 @@ def get_submission_metadata(submission):
     last_validated = get_last_validated_date(submission.submission_id)
 
     # Get metadata for FABS submissions
-    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
+    fabs_meta = get_fabs_meta(submission.submission_id) if submission.is_fabs else None
 
     # We need to ignore one row from each job for the header
     number_of_rows = sess.query(func.sum(case([(Job.number_of_rows > 0, Job.number_of_rows - 1)], else_=0))).\
@@ -169,7 +169,7 @@ def get_submission_metadata(submission):
         'published_submission_ids': submission.published_submission_ids,
         'certified': submission.certified,
         'certification_deadline': str(certification_deadline) if certification_deadline else '',
-        'fabs_submission': submission.d2_submission,
+        'fabs_submission': submission.is_fabs,
         'fabs_meta': fabs_meta
     }
 
@@ -192,7 +192,7 @@ def get_submission_data(submission, file_type=''):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type'), StatusCode.CLIENT_ERROR)
 
     # Make sure the file type provided is valid for the submission type
-    is_fabs = submission.d2_submission
+    is_fabs = submission.is_fabs
     if file_type and (is_fabs and file_type != 'fabs') or (not is_fabs and file_type == 'fabs'):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type for this submission'),
                                   StatusCode.CLIENT_ERROR)
@@ -513,7 +513,7 @@ def check_current_submission_page(submission):
 
     # /FABSaddData
     # FABS
-    if submission.d2_submission:
+    if submission.is_fabs:
         data = {
             'message': 'This submission is currently on the /FABSaddData page.',
             'step': '6'
@@ -671,7 +671,7 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
     submission_query = sess.query(Submission).filter(
         (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
         Submission.reporting_fiscal_year == reporting_fiscal_year,
-        Submission.d2_submission.is_(False))
+        Submission.is_fabs.is_(False))
 
     if filter_published not in ('published', 'unpublished', 'mixed'):
         raise ValueError('Published param must be one of the following: "published", "unpublished", or "mixed"')
@@ -1051,7 +1051,7 @@ def revert_to_published(submission, file_manager):
             ResponseException: if submission provided is a FABS submission or is not in an "updated" status
     """
 
-    if submission.d2_submission:
+    if submission.is_fabs:
         raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     if submission.publish_status_id != PUBLISH_STATUS_DICT['updated']:

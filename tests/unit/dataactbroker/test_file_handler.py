@@ -395,8 +395,7 @@ def test_list_submissions_success(database, monkeypatch):
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, d2_submission=True,
-                            reporting_start_date=None)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, is_fabs=True, reporting_start_date=None)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['ready'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
@@ -408,8 +407,8 @@ def test_list_submissions_success(database, monkeypatch):
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=2, d2_submission=True,
-                            reporting_start_date=None, certified=False)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=2, is_fabs=True, reporting_start_date=None,
+                            certified=False)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
@@ -421,8 +420,8 @@ def test_list_submissions_success(database, monkeypatch):
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=2, d2_submission=True,
-                            reporting_start_date=None, certified=True)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=2, is_fabs=True, reporting_start_date=None,
+                            certified=True)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
@@ -434,8 +433,8 @@ def test_list_submissions_success(database, monkeypatch):
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=3, d2_submission=True,
-                            reporting_start_date=None, certified=True)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=3, is_fabs=True, reporting_start_date=None,
+                            certified=True)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
@@ -486,7 +485,7 @@ def test_list_submissions_failure(database, monkeypatch):
 def test_list_submissions_detached(database, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    d2_sub = SubmissionFactory(user_id=1, submission_id=2, d2_submission=True, publish_status_id=1)
+    d2_sub = SubmissionFactory(user_id=1, submission_id=2, is_fabs=True, publish_status_id=1)
     add_models(database, [user, sub, d2_sub])
 
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
@@ -647,7 +646,7 @@ def test_get_comments_file(database):
 @pytest.mark.usefixtures('job_constants', 'broker_files_tmp_dir')
 def test_get_submission_zip(database):
     """ Test that the submission's zip is successfully generated """
-    pub_dabs_sub = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+    pub_dabs_sub = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False,
                                      reporting_fiscal_year='2022', reporting_fiscal_period='4')
     pub_1, pub_2 = PublishHistoryFactory(submission=pub_dabs_sub), PublishHistoryFactory(submission=pub_dabs_sub)
     cert = CertifyHistoryFactory(submission=pub_dabs_sub)
@@ -801,10 +800,9 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
 def test_submission_report_url_local(monkeypatch, tmpdir, database):
     format_name_change = FormatChangeDate(name='DAIMS 2.0', change_date='2020-07-13 21:53:00')
     dev_8325_change = FormatChangeDate(name='DEV-8325', change_date='2022-01-26 00:00:00')
-    sub1 = SubmissionFactory(submission_id=4, d2_submission=False)
-    sub2 = SubmissionFactory(submission_id=5, d2_submission=False)
-    sub3 = SubmissionFactory(submission_id=6, d2_submission=False, reporting_fiscal_year='2022',
-                             reporting_fiscal_period='2')
+    sub1 = SubmissionFactory(submission_id=4, is_fabs=False)
+    sub2 = SubmissionFactory(submission_id=5, is_fabs=False)
+    sub3 = SubmissionFactory(submission_id=6, is_fabs=False, reporting_fiscal_year='2022', reporting_fiscal_period='2')
     job1 = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
                       job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
                       updated_at='2017-01-01')
@@ -837,10 +835,9 @@ def test_submission_report_url_local(monkeypatch, tmpdir, database):
 def test_submission_report_url_s3(monkeypatch, database):
     daims_change = FormatChangeDate(name='DAIMS 2.0', change_date='2020-07-13 21:53:00')
     dev_8325_change = FormatChangeDate(name='DEV-8325', change_date='2022-01-26 00:00:00')
-    sub1 = SubmissionFactory(submission_id=4, d2_submission=False)
-    sub2 = SubmissionFactory(submission_id=5, d2_submission=False)
-    sub3 = SubmissionFactory(submission_id=6, d2_submission=False, reporting_fiscal_year='2022',
-                             reporting_fiscal_period='2')
+    sub1 = SubmissionFactory(submission_id=4, is_fabs=False)
+    sub2 = SubmissionFactory(submission_id=5, is_fabs=False)
+    sub3 = SubmissionFactory(submission_id=6, is_fabs=False, reporting_fiscal_year='2022', reporting_fiscal_period='2')
     job1 = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
                       job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                       file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2017-01-01')
@@ -933,7 +930,7 @@ def test_get_upload_file_url_local(database, monkeypatch, tmpdir):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True, 'broker_files': file_path})
 
     # create and insert submission/job
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename='a/path/to/some_file.csv')
@@ -948,8 +945,8 @@ def test_get_upload_file_url_invalid_for_type(database):
     """ Test that a proper error is thrown when a file type that doesn't match the submission is provided to
         get_upload_file_url.
     """
-    sub_1 = SubmissionFactory(submission_id=1, d2_submission=False)
-    sub_2 = SubmissionFactory(submission_id=2, d2_submission=True)
+    sub_1 = SubmissionFactory(submission_id=1, is_fabs=False)
+    sub_2 = SubmissionFactory(submission_id=2, is_fabs=True)
     add_models(database, [sub_1, sub_2])
     json_response = fileHandler.get_upload_file_url(sub_2, 'A')
 
@@ -970,7 +967,7 @@ def test_get_upload_file_url_no_file(database):
     """ Test that a proper error is thrown when an upload job doesn't have a file associated with it
         get_upload_file_url.
     """
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename=None)
@@ -991,7 +988,7 @@ def test_get_upload_file_url_s3(database, monkeypatch):
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
 
     # create and insert submission/job
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename='1/some_file.csv')
@@ -1012,11 +1009,11 @@ def test_move_published_files(database, monkeypatch):
     cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
     qtr_sub = SubmissionFactory(submission_id=1, cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
                                 reporting_fiscal_year=2017, reporting_fiscal_period=6, is_quarter_format=True,
-                                d2_submission=False)
+                                is_fabs=False)
     mon_sub = SubmissionFactory(submission_id=2, cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
                                 reporting_fiscal_year=2017, reporting_fiscal_period=2, is_quarter_format=False,
-                                d2_submission=False)
-    fabs_sub = SubmissionFactory(submission_id=3, d2_submission=True, cgac_code='zyxwv')
+                                is_fabs=False)
+    fabs_sub = SubmissionFactory(submission_id=3, is_fabs=True, cgac_code='zyxwv')
     database.session.add_all([cgac, qtr_sub, mon_sub, fabs_sub])
     database.session.commit()
 
@@ -1428,8 +1425,8 @@ def test_file_history_url(database, monkeypatch):
 
 def test_get_status_invalid_type(database):
     """ Test get status function for all versions of an "invalid" file type """
-    sub_1 = SubmissionFactory(submission_id=1, d2_submission=False)
-    sub_2 = SubmissionFactory(submission_id=2, d2_submission=True)
+    sub_1 = SubmissionFactory(submission_id=1, is_fabs=False)
+    sub_2 = SubmissionFactory(submission_id=2, is_fabs=True)
 
     database.session.add_all([sub_1, sub_2])
     database.session.commit()
@@ -1459,7 +1456,7 @@ def test_get_status_fabs(database):
     sess = database.session
     now = datetime.now()
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=True)
+    sub = SubmissionFactory(submission_id=1, is_fabs=True)
     job_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
                         file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
                         number_of_errors=0, number_of_warnings=0, original_filename='test_file.csv')
@@ -1485,7 +1482,7 @@ def test_get_status_dabs(database):
     sess = database.session
     now = datetime.now()
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     upload_job = JOB_TYPE_DICT['file_upload']
     validation_job = JOB_TYPE_DICT['csv_record_validation']
     finished_status = JOB_STATUS_DICT['finished']

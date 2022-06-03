@@ -146,7 +146,7 @@ def requires_submission_perms(perm, check_owner=True, check_fabs=None):
                 # @todo - why don't we use 404s?
                 raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
 
-            permission = check_fabs if check_fabs and submission.d2_submission else perm
+            permission = check_fabs if check_fabs and submission.is_fabs else perm
             if not active_user_can_on_submission(permission, submission, check_owner):
                 raise ResponseException("User does not have permission to access that submission",
                                         StatusCode.PERMISSION_DENIED)

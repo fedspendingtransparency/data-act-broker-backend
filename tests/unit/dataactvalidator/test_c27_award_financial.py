@@ -29,7 +29,7 @@ def test_success(database):
     populate_publish_status(database)
     # Base submission
     sub_1 = SubmissionFactory(submission_id=1, cgac_code='test', reporting_fiscal_year=2020, reporting_fiscal_period=3,
-                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
+                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False)
     paf_fain = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='aBcD', uri=None,
                                               piid=None, parent_award_id=None, disaster_emergency_fund_code='N',
                                               program_activity_code=None, program_activity_name=None,
@@ -96,7 +96,7 @@ def test_success(database):
 
     # quarterly submission with each of the previous values (one of them is 0 now)
     sub_q = SubmissionFactory(submission_id=2, reporting_fiscal_year=2020, reporting_fiscal_period=6, cgac_code='test',
-                              frec_code=None, is_quarter_format=True, d2_submission=False)
+                              frec_code=None, is_quarter_format=True, is_fabs=False)
     af_fain = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='abcd', uri=None, piid=None,
                                     parent_award_id=None, disaster_emergency_fund_code='n',
                                     program_activity_code=None, program_activity_name=None, object_class=None,
@@ -159,7 +159,7 @@ def test_success(database):
 
     # period submission with each of the previous values
     sub_p = SubmissionFactory(submission_id=3, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
-                              frec_code=None, is_quarter_format=True, d2_submission=False)
+                              frec_code=None, is_quarter_format=True, is_fabs=False)
     af_fain = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='abcd', uri=None, piid=None,
                                     parent_award_id=None, disaster_emergency_fund_code='n',
                                     program_activity_code=None, program_activity_name=None, object_class=None,
@@ -223,7 +223,7 @@ def test_success(database):
 
     # submission missing the values that were 0 and NULL the previous quarter does not throw errors
     sub_4 = SubmissionFactory(submission_id=4, reporting_fiscal_year=2020, reporting_fiscal_period=6, cgac_code='test',
-                              frec_code=None, is_quarter_format=True, d2_submission=False)
+                              frec_code=None, is_quarter_format=True, is_fabs=False)
     af_fain = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None, piid=None,
                                     parent_award_id=None, disaster_emergency_fund_code='n',
                                     program_activity_code=None, program_activity_name=None, object_class=None,
@@ -292,7 +292,7 @@ def test_failure(database):
     populate_publish_status(database)
     # Base submission
     sub_1 = SubmissionFactory(submission_id=1, cgac_code='test', reporting_fiscal_year=2020, reporting_fiscal_period=3,
-                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
+                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False)
     paf_fain = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd', uri=None,
                                               piid=None, parent_award_id=None, disaster_emergency_fund_code='N',
                                               program_activity_code=None, program_activity_name=None,
@@ -313,14 +313,14 @@ def test_failure(database):
 
     # submission missing previous period value, missing value of 9 still registers an error
     sub_2 = SubmissionFactory(submission_id=2, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
-                              frec_code=None, is_quarter_format=False, d2_submission=False)
+                              frec_code=None, is_quarter_format=False, is_fabs=False)
 
     errors = number_of_errors(_FILE, database, models=[], submission=sub_2)
     assert errors == 3
 
     # submission with a row that has similar but not exact values (has a uri when the original didn't)
     sub_3 = SubmissionFactory(submission_id=3, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
-                              frec_code=None, is_quarter_format=False, d2_submission=False)
+                              frec_code=None, is_quarter_format=False, is_fabs=False)
     af_other = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri='efgh',
                                      piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                      program_activity_code=None, program_activity_name=None, object_class=None,
@@ -339,7 +339,7 @@ def test_failure(database):
 
     # submission with a row that matches but has gross outlay of NULL
     sub_4 = SubmissionFactory(submission_id=4, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
-                              frec_code=None, is_quarter_format=False, d2_submission=False)
+                              frec_code=None, is_quarter_format=False, is_fabs=False)
     af_null = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
                                     piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
                                     program_activity_code=None, program_activity_name=None, object_class=None,

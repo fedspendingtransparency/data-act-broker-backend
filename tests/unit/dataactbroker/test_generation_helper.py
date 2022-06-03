@@ -527,7 +527,7 @@ def test_check_generation_prereqs_ef_valid(database):
     """
     sess = database.session
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
                            file_type_id=None, job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=0,
                            number_of_warnings=1, error_message=None)
@@ -543,7 +543,7 @@ def test_check_generation_prereqs_ef_not_finished(database):
     """ Tests a set of conditions that has cross-file still waiting, fail the generation check for E/F files. """
     sess = database.session
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
                            job_status_id=JOB_STATUS_DICT['waiting'], number_of_errors=0, number_of_warnings=0,
                            error_message=None)
@@ -559,7 +559,7 @@ def test_check_generation_prereqs_ef_has_errors(database):
     """ Tests a set of conditions that has an error in cross-file, fail the generation check for E/F files. """
     sess = database.session
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
                            job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=1, number_of_warnings=0,
                            error_message=None)
@@ -577,7 +577,7 @@ def test_check_generation_prereqs_d_valid(database):
     """
     sess = database.session
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
@@ -599,7 +599,7 @@ def test_check_generation_prereqs_d_not_finished(database):
     """ Tests a set of conditions that has one of the A,B,C files incomplete, prevent D file generation. """
     sess = database.session
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
@@ -621,7 +621,7 @@ def test_check_generation_prereqs_d_has_errors(database):
     """ Tests a set of conditions that has an error in one of the A,B,C files, prevent D file generation. """
     sess = database.session
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
     job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=1, number_of_warnings=0, error_message=None)

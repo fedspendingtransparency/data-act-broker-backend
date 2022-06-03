@@ -52,7 +52,7 @@ def copy_published_submission_flex_fields():
             FROM flex_field
             JOIN submission ON submission.submission_id = flex_field.submission_id
             WHERE submission.publish_status_id = {}
-                AND submission.d2_submission IS FALSE
+                AND submission.is_fabs IS FALSE
         """.format(published_col_string, col_string, PUBLISH_STATUS_DICT['published']))
     sess.commit()
     logger.info('Moved published flex fields')
@@ -114,7 +114,7 @@ def load_updated_flex_fields():
     # We only want to go through updated submissions without flex fields already loaded
     updated_subs = sess.query(Submission.submission_id).\
         filter(~Submission.submission_id.in_(published_flex_subs),
-               Submission.d2_submission.is_(False),
+               Submission.is_fabs.is_(False),
                Submission.publish_status_id == PUBLISH_STATUS_DICT['updated']).all()
 
     published_ids = sess. \
