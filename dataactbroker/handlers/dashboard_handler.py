@@ -230,7 +230,7 @@ def historic_dabs_warning_graphs(filters):
     ).outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code).\
         outerjoin(FREC, FREC.frec_code == Submission.frec_code).\
         filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
-        filter(Submission.d2_submission.is_(False)).order_by(Submission.submission_id)
+        filter(Submission.is_fabs.is_(False)).order_by(Submission.submission_id)
 
     subs_query = apply_historic_dabs_filters(sess, subs_query, filters)
 
@@ -366,7 +366,7 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
         join(PublishedErrorMetadata, PublishedErrorMetadata.job_id == Job.job_id).\
         join(User, User.user_id == Submission.publishing_user_id). \
         filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])). \
-        filter(Submission.d2_submission.is_(False))
+        filter(Submission.is_fabs.is_(False))
 
     # Apply filters
     table_query = apply_historic_dabs_filters(sess, table_query, filters)
@@ -448,7 +448,7 @@ def active_submission_overview(submission, file, error_level):
         Raises:
             ResponseException if submission provided is a FABS submission.
     """
-    if submission.d2_submission:
+    if submission.is_fabs:
         raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     # Basic data that can be gathered from just the submission and passed filters
@@ -526,7 +526,7 @@ def get_impact_counts(submission, file, error_level):
             Raises:
                 ResponseException if submission provided is a FABS submission.
         """
-    if submission.d2_submission:
+    if submission.is_fabs:
         raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     # Basic data that can be gathered from just the submission and passed filters
@@ -587,7 +587,7 @@ def get_significance_counts(submission, file, error_level):
             Raises:
                 ResponseException if submission provided is a FABS submission.
         """
-    if submission.d2_submission:
+    if submission.is_fabs:
         raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     # Basic data that can be gathered from just the submission and passed filters
@@ -654,7 +654,7 @@ def active_submission_table(submission, file, error_level, page=1, limit=5, sort
         Raises:
             ResponseException if submission provided is a FABS submission.
     """
-    if submission.d2_submission:
+    if submission.is_fabs:
         raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     # Basic information that is provided by the user and defaults for the rest

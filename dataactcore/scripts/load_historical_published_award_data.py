@@ -180,7 +180,7 @@ def copy_published_submission_award_data(staging_table, published_table, staging
         FROM {staging_table}
         JOIN submission ON submission.submission_id = {staging_table}.submission_id
         WHERE submission.publish_status_id = {publish_status}
-            AND submission.d2_submission IS FALSE
+            AND submission.is_fabs IS FALSE
     """.format(staging_table=staging_table_name, published_table=published_table_name,
                pub_col_string=published_col_string, col_string=col_string,
                publish_status=PUBLISH_STATUS_DICT['published'])
@@ -276,7 +276,7 @@ def load_updated_award_data(staging_table, published_table, file_type_id, intern
     # We only want to go through updated submissions without award data already loaded
     updated_subs = sess.query(Submission.submission_id).\
         filter(~Submission.submission_id.in_(published_award_subs),
-               Submission.d2_submission.is_(False),
+               Submission.is_fabs.is_(False),
                Submission.publish_status_id == PUBLISH_STATUS_DICT['updated']).all()
 
     published_ids = sess. \

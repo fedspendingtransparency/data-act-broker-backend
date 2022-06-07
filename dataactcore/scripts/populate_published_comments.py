@@ -24,7 +24,7 @@ if __name__ == '__main__':
         max_publish_history = sess.query(func.max(PublishHistory.updated_at).label('max_updated_at'),
                                          PublishHistory.submission_id.label('submission_id')). \
             join(Submission, PublishHistory.submission_id == Submission.submission_id). \
-            filter(Submission.d2_submission.is_(False)). \
+            filter(Submission.is_fabs.is_(False)). \
             group_by(PublishHistory.submission_id).cte('max_publish_history')
 
         # Get all comments that were written before the latest publication for all published/updated submissions

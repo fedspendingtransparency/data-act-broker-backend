@@ -26,7 +26,7 @@ def report_file_name(submission_id, warning, file_type, cross_type=None):
         'cross_type': cross_type,
         'cross_letter': FILE_TYPE_DICT_NAME_LETTER[cross_type] if cross_type else '',
         'report_type': 'warning' if warning else 'error',
-        'FYP': '_{}'.format(filename_fyp_sub_format(sub)) if not sub.d2_submission else ''
+        'FYP': '_{}'.format(filename_fyp_sub_format(sub)) if not sub.is_fabs else ''
     }
 
     if cross_type:

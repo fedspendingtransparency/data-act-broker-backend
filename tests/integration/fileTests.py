@@ -1086,7 +1086,7 @@ class FileTests(BaseTestAPI):
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(response.json['message'], 'Success')
 
-        post_json = {'submission_id': self.test_fabs_submission_id, 'd2_submission': True}
+        post_json = {'submission_id': self.test_fabs_submission_id, 'is_fabs': True}
         response = self.app.post_json('/v1/restart_validation/', post_json,
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(response.json['message'], 'Success')

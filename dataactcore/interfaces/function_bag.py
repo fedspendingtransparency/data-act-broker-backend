@@ -380,7 +380,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
 
     # once single-file upload/validation jobs are created, create the cross-file
     # validation job and dependencies
-    if existing_submission and not submission.d2_submission:
+    if existing_submission and not submission.is_fabs:
         # find cross-file jobs and mark them as waiting
         # (note: job_type of 'validation' is a cross-file job)
         val_job = sess.query(Job).\
@@ -390,7 +390,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
             one()
         val_job.job_status_id = JOB_STATUS_DICT['waiting']
         submission.updated_at = time.strftime('%c')
-    elif not submission.d2_submission:
+    elif not submission.is_fabs:
         # create cross-file validation job
         validation_job = Job(
             job_status_id=JOB_STATUS_DICT['waiting'],
@@ -576,7 +576,7 @@ def get_certification_deadline(submission):
     """
     sess = GlobalDB.db().session
     cert_deadline = None
-    if not submission.d2_submission:
+    if not submission.is_fabs:
         sub_period = submission.reporting_fiscal_period
         sub_year = submission.reporting_fiscal_year
         sub_window = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).\
@@ -594,7 +594,7 @@ def get_time_period(submission):
         Returns:
             the time period of the submission
     """
-    if not submission.d2_submission and submission.is_quarter_format:
+    if not submission.is_fabs and submission.is_quarter_format:
         sub_quarter = submission.reporting_fiscal_period // 3
         sub_year = submission.reporting_fiscal_year
         time_period = 'FY {} / Q{}'.format(str(sub_year)[2:], sub_quarter)
