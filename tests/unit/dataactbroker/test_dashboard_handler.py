@@ -239,34 +239,34 @@ def setup_submissions(sess, admin=False):
     db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub1_b1, sub2_b1, sub2_bc1, sub3_c1, sub3_c2,
                        pub_month_sub_a1])
 
-    # Setup certified error metadata
-    cert_sub1_a1 = PublishedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
+    # Setup published error metadata
+    pub_sub1_a1 = PublishedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
+                                         file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                         target_file_type_id=None, rule_failed='first rule')
+    pub_sub1_a2 = PublishedErrorMetadata(job=sub1_a, original_rule_label='A2', occurrences=30,
+                                         file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                         target_file_type_id=None, rule_failed='second rule')
+    pub_sub1_ab1 = PublishedErrorMetadata(job=sub1_ab, original_rule_label='A3', occurrences=70,
                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                          target_file_type_id=None, rule_failed='first rule')
-    cert_sub1_a2 = PublishedErrorMetadata(job=sub1_a, original_rule_label='A2', occurrences=30,
-                                          file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                          target_file_type_id=None, rule_failed='second rule')
-    cert_sub1_ab1 = PublishedErrorMetadata(job=sub1_ab, original_rule_label='A3', occurrences=70,
-                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                           rule_failed='first cross rule')
-    cert_sub1_ab2 = PublishedErrorMetadata(job=sub1_ab, original_rule_label='B1', occurrences=130,
-                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                           rule_failed='second cross rule')
-    cert_sub2_b1 = PublishedErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                          rule_failed='first cross rule')
+    pub_sub1_ab2 = PublishedErrorMetadata(job=sub1_ab, original_rule_label='B1', occurrences=130,
                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                          target_file_type_id=None, rule_failed='first B rule')
-    cert_sub2_bc1 = PublishedErrorMetadata(job=sub2_bc, original_rule_label='B3', occurrences=120,
-                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
-                                           rule_failed='another cross rule')
-    cert_pub_month_sub_a1 = PublishedErrorMetadata(job=pub_month_sub_a, original_rule_label='A1', occurrences=75,
-                                                   file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                                   target_file_type_id=None, rule_failed='first rule')
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                          rule_failed='second cross rule')
+    pub_sub2_b1 = PublishedErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
+                                         file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                         target_file_type_id=None, rule_failed='first B rule')
+    pub_sub2_bc1 = PublishedErrorMetadata(job=sub2_bc, original_rule_label='B3', occurrences=120,
+                                          file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
+                                          rule_failed='another cross rule')
+    pub_month_sub_a1 = PublishedErrorMetadata(job=pub_month_sub_a, original_rule_label='A1', occurrences=75,
+                                              file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                              target_file_type_id=None, rule_failed='first rule')
     # no warnings for sub3
-    db_objects.extend([cert_sub1_a1, cert_sub1_a2, cert_sub1_ab1, cert_sub1_ab2, cert_sub2_b1, cert_sub2_bc1,
-                       cert_pub_month_sub_a1])
+    db_objects.extend([pub_sub1_a1, pub_sub1_a2, pub_sub1_ab1, pub_sub1_ab2, pub_sub2_b1, pub_sub2_bc1,
+                       pub_month_sub_a1])
 
     # Setup submission window schedule
     today = datetime.now().date()

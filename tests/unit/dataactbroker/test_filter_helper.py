@@ -197,27 +197,27 @@ def test_file_filter_rulesql(database):
 
 @pytest.mark.usefixtures('job_constants')
 @pytest.mark.usefixtures('validation_constants')
-def test_file_filter_cert_error_metadata(database):
+def test_file_filter_pub_error_metadata(database):
     sess = database.session
 
     # Setup PublishedErrorMetadata
-    cem_a = PublishedErrorMetadata(original_rule_label='A1', file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+    pem_a = PublishedErrorMetadata(original_rule_label='A1', file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
                                    severity_id=RULE_SEVERITY_DICT['fatal'], target_file_type_id=None)
-    cem_b = PublishedErrorMetadata(original_rule_label='B2', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+    pem_b = PublishedErrorMetadata(original_rule_label='B2', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                                    severity_id=RULE_SEVERITY_DICT['fatal'], target_file_type_id=None)
-    cem_c = PublishedErrorMetadata(original_rule_label='C3', file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
+    pem_c = PublishedErrorMetadata(original_rule_label='C3', file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
                                    severity_id=RULE_SEVERITY_DICT['fatal'], target_file_type_id=None)
-    cem_cross_ab = PublishedErrorMetadata(original_rule_label='A4', file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+    pem_cross_ab = PublishedErrorMetadata(original_rule_label='A4', file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
                                           severity_id=RULE_SEVERITY_DICT['fatal'],
                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'])
-    cem_cross_ba = PublishedErrorMetadata(original_rule_label='B5', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+    pem_cross_ba = PublishedErrorMetadata(original_rule_label='B5', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                                           severity_id=RULE_SEVERITY_DICT['fatal'],
                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'])
-    cem_cross_bc = PublishedErrorMetadata(original_rule_label='B6', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+    pem_cross_bc = PublishedErrorMetadata(original_rule_label='B6', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                                           severity_id=RULE_SEVERITY_DICT['fatal'],
                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'])
-    all_cems = [cem_a, cem_b, cem_c, cem_cross_ab, cem_cross_ba, cem_cross_bc]
-    sess.add_all(all_cems)
+    all_pems = [pem_a, pem_b, pem_c, pem_cross_ab, pem_cross_ba, pem_cross_bc]
+    sess.add_all(all_pems)
     sess.commit()
 
     base_query = sess.query(PublishedErrorMetadata)
@@ -225,21 +225,21 @@ def test_file_filter_cert_error_metadata(database):
     # no file list, no filtering
     files = []
     query = filters_helper.file_filter(base_query, PublishedErrorMetadata, files)
-    expected_results = all_cems
+    expected_results = all_pems
     results = query.all()
     assert set(results) == set(expected_results)
 
     # filter by single file
     files = ['A', 'C']
     query = filters_helper.file_filter(base_query, PublishedErrorMetadata, files)
-    expected_results = [cem_a, cem_c]
+    expected_results = [pem_a, pem_c]
     results = query.all()
     assert set(results) == set(expected_results)
 
     # filter by cross file
     files = ['cross-AB']
     query = filters_helper.file_filter(base_query, PublishedErrorMetadata, files)
-    expected_results = [cem_cross_ab, cem_cross_ba]
+    expected_results = [pem_cross_ab, pem_cross_ba]
     results = query.all()
     assert set(results) == set(expected_results)
 
