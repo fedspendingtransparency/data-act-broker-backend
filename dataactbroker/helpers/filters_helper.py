@@ -3,7 +3,7 @@ from flask import g
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT
 
 from dataactcore.models.domainModels import CGAC, FREC
-from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
+from dataactcore.models.errorModels import PublishedErrorMetadata, ErrorMetadata
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import RuleSql, RuleSetting
 from dataactcore.utils.responseException import ResponseException
@@ -88,7 +88,7 @@ def file_filter(query, file_model, files):
             the same queryset provided with file filters included
     """
     model_file_type_id = {
-        CertifiedErrorMetadata: 'file_type_id',
+        PublishedErrorMetadata: 'file_type_id',
         ErrorMetadata: 'file_type_id',
         RuleSql: 'file_id',
         RuleSetting: 'file_id'

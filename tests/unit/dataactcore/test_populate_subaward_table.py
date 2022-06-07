@@ -283,31 +283,31 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
                                     int_country, created_at, updated_at) is True
 
 
-def compare_grant_results(sub, d2, grant, sub_grant, parent_recipient, recipient, dom_country, int_country, created_at,
-                          updated_at, debug=False):
+def compare_grant_results(sub, fabs, grant, sub_grant, parent_recipient, recipient, dom_country, int_country,
+                          created_at, updated_at, debug=False):
     """ Helper function for grant results """
     attr = {
         'created_at': created_at,
         'updated_at': updated_at,
         'id': sub.id,
 
-        'unique_award_key': d2.unique_award_key if d2 else None,
+        'unique_award_key': fabs.unique_award_key if fabs else None,
         'parent_award_id': None,
         'award_amount': grant.total_fed_funding_amount,
         'action_date': str(grant.obligation_date),
         'fy': 'FY{}'.format(fy(grant.obligation_date)),
-        'awarding_agency_code': d2.awarding_agency_code if d2 else None,
-        'awarding_agency_name': d2.awarding_agency_name if d2 else None,
+        'awarding_agency_code': fabs.awarding_agency_code if fabs else None,
+        'awarding_agency_name': fabs.awarding_agency_name if fabs else None,
         'awarding_sub_tier_agency_c': grant.federal_agency_id,
-        'awarding_sub_tier_agency_n': d2.awarding_sub_tier_agency_n if d2 else None,
-        'awarding_office_code': d2.awarding_office_code if d2 else None,
-        'awarding_office_name': d2.awarding_office_name if d2 else None,
-        'funding_agency_code': d2.funding_agency_code if d2 else None,
-        'funding_agency_name': d2.funding_agency_name if d2 else None,
-        'funding_sub_tier_agency_co': d2.funding_sub_tier_agency_co if d2 else None,
-        'funding_sub_tier_agency_na': d2.funding_sub_tier_agency_na if d2 else None,
-        'funding_office_code': d2.funding_office_code if d2 else None,
-        'funding_office_name': d2.funding_office_name if d2 else None,
+        'awarding_sub_tier_agency_n': fabs.awarding_sub_tier_agency_n if fabs else None,
+        'awarding_office_code': fabs.awarding_office_code if fabs else None,
+        'awarding_office_name': fabs.awarding_office_name if fabs else None,
+        'funding_agency_code': fabs.funding_agency_code if fabs else None,
+        'funding_agency_name': fabs.funding_agency_name if fabs else None,
+        'funding_sub_tier_agency_co': fabs.funding_sub_tier_agency_co if fabs else None,
+        'funding_sub_tier_agency_na': fabs.funding_sub_tier_agency_na if fabs else None,
+        'funding_office_code': fabs.funding_office_code if fabs else None,
+        'funding_office_name': fabs.funding_office_name if fabs else None,
         'awardee_or_recipient_uniqu': grant.duns,
         'awardee_or_recipient_uei': grant.uei_number,
         'awardee_or_recipient_legal': grant.awardee_name,
@@ -323,7 +323,7 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_recipient, recipient
         'legal_entity_zip': None,
         'legal_entity_congressional': grant.awardee_address_district,
         'legal_entity_foreign_posta': grant.awardee_address_zip,
-        'business_types': d2.business_types_desc if d2 else None,
+        'business_types': fabs.business_types_desc if fabs else None,
         'place_of_perform_city_name': grant.principle_place_city,
         'place_of_perform_state_code': grant.principle_place_state,
         'place_of_perform_state_name': grant.principle_place_state_name,
@@ -453,8 +453,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
 
     # Setup - create awards, procurements, subcontracts
     sub = SubmissionFactory(submission_id=1)
-    # D2 Non-aggregate award with federal_agency_id/awarding_sub_tier_agency_c populated
-    d2_non_pop_subtier = PublishedFABSFactory(
+    # FABS Non-aggregate award with federal_agency_id/awarding_sub_tier_agency_c populated
+    fabs_non_pop_subtier = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=2,
         unique_award_key='NON-POP-SUB',
@@ -463,7 +463,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         is_active=True,
         action_date='2020-01-01'
     )
-    d2_non_pop_subtier_2 = PublishedFABSFactory(
+    fabs_non_pop_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=2,
         unique_award_key='NON-POP-SUB',
@@ -473,7 +473,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         action_date='2020-01-02'
     )
     grant_non_pop_subtier = FSRSGrantFactory(
-        fain=d2_non_pop_subtier.fain.replace('-', ''),
+        fain=fabs_non_pop_subtier.fain.replace('-', ''),
         federal_agency_id='1234',
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
@@ -490,8 +490,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei_number=recipient.uei,
         subaward_date=datetime.now()
     )
-    # D2 Non-aggregate award with federal_agency_id NULL
-    d2_non_null_sub = PublishedFABSFactory(
+    # FABS Non-aggregate award with federal_agency_id NULL
+    fabs_non_null_sub = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=2,
         unique_award_key='NON-NULL-SUB',
@@ -500,7 +500,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         is_active=True,
         action_date='2020-01-01'
     )
-    d2_non_null_sub_2 = PublishedFABSFactory(
+    fabs_non_null_sub_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=2,
         unique_award_key='NON-NULL-SUB',
@@ -510,7 +510,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         action_date='2020-01-02'
     )
     grant_non_null_sub = FSRSGrantFactory(
-        fain=d2_non_null_sub.fain.replace('-', ''),
+        fain=fabs_non_null_sub.fain.replace('-', ''),
         federal_agency_id=None,
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
@@ -527,8 +527,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei_number=recipient.uei,
         subaward_date=datetime.now()
     )
-    # D2 Aggregate award
-    d2_agg = PublishedFABSFactory(
+    # FABS Aggregate award
+    fabs_agg = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=1,
         unique_award_key='AGG',
@@ -537,7 +537,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         is_active=True,
         action_date='2020-01-01'
     )
-    d2_agg_2 = PublishedFABSFactory(
+    fabs_agg_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         record_type=1,
         unique_award_key='AGG',
@@ -547,7 +547,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         action_date='2020-01-02'
     )
     grant_agg = FSRSGrantFactory(
-        fain=d2_agg.fain.replace('-', ''),
+        fain=fabs_agg.fain.replace('-', ''),
         federal_agency_id='1234',
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
@@ -564,9 +564,9 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei_number=recipient.uei,
         subaward_date=datetime.now()
     )
-    sess.add_all([sub, d2_non_pop_subtier, d2_non_pop_subtier_2, grant_non_pop_subtier, sub_grant_non_pop_subtier,
-                  d2_non_null_sub, d2_non_null_sub_2, grant_non_null_sub, sub_grant_non_null_sub, d2_agg, d2_agg_2,
-                  grant_agg, sub_grant_agg])
+    sess.add_all([sub, fabs_non_pop_subtier, fabs_non_pop_subtier_2, grant_non_pop_subtier, sub_grant_non_pop_subtier,
+                  fabs_non_null_sub, fabs_non_null_sub_2, grant_non_null_sub, sub_grant_non_null_sub, fabs_agg,
+                  fabs_agg_2, grant_agg, sub_grant_agg])
     sess.commit()
 
     # Gather the sql
@@ -580,12 +580,12 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
 
     # Expected Results
     # Note: Aggregates should not be linked
-    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_recipient, recipient,
+    assert compare_grant_results(grants_results[0], fabs_agg, grant_agg, sub_grant_agg, parent_recipient, recipient,
                                  dom_country, int_country, created_at, updated_at) is False
     # Note: If federal_agency_id is blank, no link should happen and FSRS data needs to be updated
-    assert compare_grant_results(grants_results[1], d2_non_null_sub, grant_non_null_sub, sub_grant_non_null_sub,
+    assert compare_grant_results(grants_results[1], fabs_non_null_sub, grant_non_null_sub, sub_grant_non_null_sub,
                                  parent_recipient, recipient, dom_country, int_country, created_at, updated_at) is False
-    assert compare_grant_results(grants_results[2], d2_non_pop_subtier, grant_non_pop_subtier,
+    assert compare_grant_results(grants_results[2], fabs_non_pop_subtier, grant_non_pop_subtier,
                                  sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country, int_country,
                                  created_at, updated_at) is True
 
@@ -606,7 +606,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub = SubmissionFactory(submission_id=1)
     sub2 = SubmissionFactory(submission_id=2)
     sub3 = SubmissionFactory(submission_id=3)
-    d2_non_pop_subtier = PublishedFABSFactory(
+    fabs_non_pop_subtier = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='1234',
         record_type=2,
@@ -616,7 +616,7 @@ def test_fix_broken_links(database, monkeypatch):
         updated_at=award_updated_at,
         action_date='2020-01-01'
     )
-    d2_non_pop_subtier_2 = PublishedFABSFactory(
+    fabs_non_pop_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='1234',
         record_type=2,
@@ -627,7 +627,7 @@ def test_fix_broken_links(database, monkeypatch):
         action_date='2020-01-02'
     )
     grant_non_pop_subtier = FSRSGrantFactory(
-        fain=d2_non_pop_subtier.fain.replace('-', ''),
+        fain=fabs_non_pop_subtier.fain.replace('-', ''),
         federal_agency_id='1234',
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
@@ -644,7 +644,7 @@ def test_fix_broken_links(database, monkeypatch):
         uei_number=recipient.uei.lower(),
         subaward_date=datetime.now()
     )
-    d2_non_null_subtier = PublishedFABSFactory(
+    fabs_non_null_subtier = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='5678',
         record_type=2,
@@ -655,7 +655,7 @@ def test_fix_broken_links(database, monkeypatch):
         action_date='2020-01-01'
     )
 
-    d2_non_null_subtier_2 = PublishedFABSFactory(
+    fabs_non_null_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='5678',
         record_type=2,
@@ -666,7 +666,7 @@ def test_fix_broken_links(database, monkeypatch):
         action_date='2020-01-02'
     )
     grant_non_null_subtier = FSRSGrantFactory(
-        fain=d2_non_null_subtier.fain.replace('-', ''),
+        fain=fabs_non_null_subtier.fain.replace('-', ''),
         federal_agency_id=None,
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
@@ -683,7 +683,7 @@ def test_fix_broken_links(database, monkeypatch):
         uei_number=recipient.uei,
         subaward_date=datetime.now()
     )
-    d2_non_other = PublishedFABSFactory(
+    fabs_non_other = PublishedFABSFactory(
         submission_id=sub2.submission_id,
         awarding_sub_tier_agency_c='1357',
         record_type=2,
@@ -694,7 +694,7 @@ def test_fix_broken_links(database, monkeypatch):
         action_date='2020-01-01'
     )
 
-    d2_non_other_2 = PublishedFABSFactory(
+    fabs_non_other_2 = PublishedFABSFactory(
         submission_id=sub2.submission_id,
         awarding_sub_tier_agency_c='1357',
         record_type=2,
@@ -704,7 +704,7 @@ def test_fix_broken_links(database, monkeypatch):
         updated_at=award_updated_at,
         action_date='2020-01-02'
     )
-    d2_non_other_dup = PublishedFABSFactory(
+    fabs_non_other_dup = PublishedFABSFactory(
         submission_id=sub3.submission_id,
         awarding_sub_tier_agency_c='2468',
         record_type=2,
@@ -714,7 +714,7 @@ def test_fix_broken_links(database, monkeypatch):
         updated_at=award_updated_at,
         action_date='2020-01-01'
     )
-    d2_non_other_dup_2 = PublishedFABSFactory(
+    fabs_non_other_dup_2 = PublishedFABSFactory(
         submission_id=sub3.submission_id,
         awarding_sub_tier_agency_c='2468',
         record_type=2,
@@ -725,7 +725,7 @@ def test_fix_broken_links(database, monkeypatch):
         action_date='2020-01-02'
     )
     grant_non_other = FSRSGrantFactory(
-        fain=d2_non_other.fain.replace('-', ''),
+        fain=fabs_non_other.fain.replace('-', ''),
         federal_agency_id=None,
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
@@ -742,7 +742,7 @@ def test_fix_broken_links(database, monkeypatch):
         uei_number=recipient.uei,
         subaward_date=datetime.now()
     )
-    d2_agg = PublishedFABSFactory(
+    fabs_agg = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='1234',
         record_type=1,
@@ -752,7 +752,7 @@ def test_fix_broken_links(database, monkeypatch):
         updated_at=award_updated_at,
         action_date='2020-01-01'
     )
-    d2_agg_2 = PublishedFABSFactory(
+    fabs_agg_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
         awarding_sub_tier_agency_c='1234',
         record_type=1,
@@ -763,7 +763,7 @@ def test_fix_broken_links(database, monkeypatch):
         action_date='2020-01-02'
     )
     grant_agg = FSRSGrantFactory(
-        fain=d2_agg.fain.replace('-', ''),
+        fain=fabs_agg.fain.replace('-', ''),
         federal_agency_id='1234',
         awardee_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
@@ -851,7 +851,7 @@ def test_fix_broken_links(database, monkeypatch):
         subcontract_date=datetime.now()
     )
 
-    # Note: not including d1/d2 data
+    # Note: not including d1/fabs data
     sess.add_all([sub, contract_awd, sub_contract_awd, contract_idv, sub_contract_idv])
     sess.add_all([sub, grant_non_pop_subtier, sub_grant_non_pop_subtier, grant_non_null_subtier,
                   sub_grant_non_null_subtier, grant_non_other, sub_grant_non_other, grant_agg, sub_grant_agg])
@@ -876,22 +876,22 @@ def test_fix_broken_links(database, monkeypatch):
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
                                     int_country, contract_created_at, contract_updated_at) is False
 
-    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_recipient, recipient,
+    assert compare_grant_results(grants_results[0], fabs_agg, grant_agg, sub_grant_agg, parent_recipient, recipient,
                                  dom_country, int_country, grant_created_at, grant_updated_at) is False
-    assert compare_grant_results(grants_results[1], d2_non_other, grant_non_other, sub_grant_non_other,
+    assert compare_grant_results(grants_results[1], fabs_non_other, grant_non_other, sub_grant_non_other,
                                  parent_recipient, recipient, dom_country, int_country, grant_created_at,
                                  grant_updated_at) is False
-    assert compare_grant_results(grants_results[2], d2_non_null_subtier, grant_non_null_subtier,
+    assert compare_grant_results(grants_results[2], fabs_non_null_subtier, grant_non_null_subtier,
                                  sub_grant_non_null_subtier, parent_recipient, recipient, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
-    assert compare_grant_results(grants_results[3], d2_non_pop_subtier, grant_non_pop_subtier,
+    assert compare_grant_results(grants_results[3], fabs_non_pop_subtier, grant_non_pop_subtier,
                                  sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
 
     # now add the awards and fix the broken links
-    sess.add_all([d1_awd, d1_awd_2, d1_idv, d1_idv_2, d2_non_null_subtier, d2_non_null_subtier_2, d2_non_pop_subtier,
-                  d2_non_pop_subtier_2, d2_non_other, d2_non_other_2, d2_non_other_dup, d2_non_other_dup_2, d2_agg,
-                  d2_agg_2])
+    sess.add_all([d1_awd, d1_awd_2, d1_idv, d1_idv_2, fabs_non_null_subtier, fabs_non_null_subtier_2,
+                  fabs_non_pop_subtier, fabs_non_pop_subtier_2, fabs_non_other, fabs_non_other_2, fabs_non_other_dup,
+                  fabs_non_other_dup_2, fabs_agg, fabs_agg_2])
     sess.commit()
 
     updated_proc_count = fix_broken_links(sess, 'procurement_service', min_date=min_date)
@@ -917,15 +917,15 @@ def test_fix_broken_links(database, monkeypatch):
                                     int_country, contract_created_at, contract_updated_at) is True
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
                                     int_country, contract_created_at, contract_updated_at) is True
-    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_recipient, recipient,
+    assert compare_grant_results(grants_results[0], fabs_agg, grant_agg, sub_grant_agg, parent_recipient, recipient,
                                  dom_country, int_country, grant_created_at, grant_updated_at) is False
-    assert compare_grant_results(grants_results[1], d2_non_null_subtier, grant_non_null_subtier,
+    assert compare_grant_results(grants_results[1], fabs_non_null_subtier, grant_non_null_subtier,
                                  sub_grant_non_null_subtier, parent_recipient, recipient, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
-    assert compare_grant_results(grants_results[2], d2_non_other, grant_non_other, sub_grant_non_other,
+    assert compare_grant_results(grants_results[2], fabs_non_other, grant_non_other, sub_grant_non_other,
                                  parent_recipient, recipient, dom_country, int_country, grant_created_at,
                                  grant_updated_at) is False
-    assert compare_grant_results(grants_results[3], d2_non_pop_subtier, grant_non_pop_subtier,
+    assert compare_grant_results(grants_results[3], fabs_non_pop_subtier, grant_non_pop_subtier,
                                  sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is True
 

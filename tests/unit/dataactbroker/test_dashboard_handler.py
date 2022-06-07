@@ -12,7 +12,7 @@ from dataactcore.models.lookups import (PERMISSION_TYPE_DICT, PUBLISH_STATUS_DIC
                                         RULE_SEVERITY_DICT, RULE_IMPACT_DICT)
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import RuleSql, RuleSetting
-from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
+from dataactcore.models.errorModels import PublishedErrorMetadata, ErrorMetadata
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers import filters_helper
 from dataactbroker.handlers import dashboard_handler
@@ -135,40 +135,40 @@ def setup_submissions(sess, admin=False):
     # Setup submissions
     sub1 = SubmissionFactory(submission_id=1, reporting_fiscal_period=9, reporting_fiscal_year=2017,
                              publishing_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
-                             publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False,
+                             publish_status_id=PUBLISH_STATUS_DICT['updated'], is_fabs=False,
                              user_id=agency_user.user_id, is_quarter_format=True, test_submission=False)
     sub2 = SubmissionFactory(submission_id=2, reporting_fiscal_period=3, reporting_fiscal_year=2019,
                              publishing_user_id=admin_user.user_id, cgac_code=None,
                              frec_code=frec.frec_code, publish_status_id=PUBLISH_STATUS_DICT['published'],
-                             d2_submission=False, user_id=admin_user.user_id, is_quarter_format=True,
+                             is_fabs=False, user_id=admin_user.user_id, is_quarter_format=True,
                              test_submission=False)
     sub3 = SubmissionFactory(submission_id=3, reporting_fiscal_period=3, reporting_fiscal_year=2019,
                              publishing_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'],
-                             d2_submission=False, user_id=agency_user.user_id, is_quarter_format=True,
+                             is_fabs=False, user_id=agency_user.user_id, is_quarter_format=True,
                              test_submission=False)
     sub4 = SubmissionFactory(submission_id=4, reporting_fiscal_period=6, reporting_fiscal_year=2018,
                              publishing_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                             d2_submission=False, user_id=agency_user.user_id, is_quarter_format=True,
+                             is_fabs=False, user_id=agency_user.user_id, is_quarter_format=True,
                              test_submission=False)
     fabs_sub = SubmissionFactory(submission_id=5, reporting_fiscal_period=3, reporting_fiscal_year=2019,
                                  publishing_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                                  frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'],
-                                 d2_submission=True, user_id=agency_user.user_id, is_quarter_format=False,
+                                 is_fabs=True, user_id=agency_user.user_id, is_quarter_format=False,
                                  test_submission=False)
     monthly_sub = SubmissionFactory(submission_id=6, reporting_fiscal_period=9, reporting_fiscal_year=2017,
                                     publishing_user_id=None, cgac_code=cgac1.cgac_code, frec_code=None,
-                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
+                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'], is_fabs=False,
                                     user_id=agency_user.user_id, is_quarter_format=False,
                                     reporting_start_date=datetime(2017, 6, 1), test_submission=False)
     test_sub = SubmissionFactory(submission_id=7, reporting_fiscal_period=9, reporting_fiscal_year=2017,
                                  publishing_user_id=None, cgac_code=cgac1.cgac_code, frec_code=None,
-                                 publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
+                                 publish_status_id=PUBLISH_STATUS_DICT['unpublished'], is_fabs=False,
                                  user_id=agency_user.user_id, is_quarter_format=True, test_submission=True)
     pub_month_sub = SubmissionFactory(submission_id=8, reporting_fiscal_period=8, reporting_fiscal_year=2017,
                                       publishing_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
-                                      publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                      publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False,
                                       user_id=agency_user.user_id, is_quarter_format=False,
                                       reporting_start_date=datetime(2017, 6, 1), test_submission=False)
     db_objects.extend([sub1, sub2, sub3, sub4, fabs_sub, monthly_sub, test_sub, pub_month_sub])
@@ -239,34 +239,34 @@ def setup_submissions(sess, admin=False):
     db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub1_b1, sub2_b1, sub2_bc1, sub3_c1, sub3_c2,
                        pub_month_sub_a1])
 
-    # Setup certified error metadata
-    cert_sub1_a1 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
+    # Setup published error metadata
+    pub_sub1_a1 = PublishedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
+                                         file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                         target_file_type_id=None, rule_failed='first rule')
+    pub_sub1_a2 = PublishedErrorMetadata(job=sub1_a, original_rule_label='A2', occurrences=30,
+                                         file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                         target_file_type_id=None, rule_failed='second rule')
+    pub_sub1_ab1 = PublishedErrorMetadata(job=sub1_ab, original_rule_label='A3', occurrences=70,
                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                          target_file_type_id=None, rule_failed='first rule')
-    cert_sub1_a2 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A2', occurrences=30,
-                                          file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                          target_file_type_id=None, rule_failed='second rule')
-    cert_sub1_ab1 = CertifiedErrorMetadata(job=sub1_ab, original_rule_label='A3', occurrences=70,
-                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                           rule_failed='first cross rule')
-    cert_sub1_ab2 = CertifiedErrorMetadata(job=sub1_ab, original_rule_label='B1', occurrences=130,
-                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                           rule_failed='second cross rule')
-    cert_sub2_b1 = CertifiedErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                          rule_failed='first cross rule')
+    pub_sub1_ab2 = PublishedErrorMetadata(job=sub1_ab, original_rule_label='B1', occurrences=130,
                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                          target_file_type_id=None, rule_failed='first B rule')
-    cert_sub2_bc1 = CertifiedErrorMetadata(job=sub2_bc, original_rule_label='B3', occurrences=120,
-                                           file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                           target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
-                                           rule_failed='another cross rule')
-    cert_pub_month_sub_a1 = CertifiedErrorMetadata(job=pub_month_sub_a, original_rule_label='A1', occurrences=75,
-                                                   file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                                   target_file_type_id=None, rule_failed='first rule')
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                          rule_failed='second cross rule')
+    pub_sub2_b1 = PublishedErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
+                                         file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                         target_file_type_id=None, rule_failed='first B rule')
+    pub_sub2_bc1 = PublishedErrorMetadata(job=sub2_bc, original_rule_label='B3', occurrences=120,
+                                          file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
+                                          rule_failed='another cross rule')
+    pub_month_sub_a1 = PublishedErrorMetadata(job=pub_month_sub_a, original_rule_label='A1', occurrences=75,
+                                              file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                              target_file_type_id=None, rule_failed='first rule')
     # no warnings for sub3
-    db_objects.extend([cert_sub1_a1, cert_sub1_a2, cert_sub1_ab1, cert_sub1_ab2, cert_sub2_b1, cert_sub2_bc1,
-                       cert_pub_month_sub_a1])
+    db_objects.extend([pub_sub1_a1, pub_sub1_a2, pub_sub1_ab1, pub_sub1_ab2, pub_sub2_b1, pub_sub2_bc1,
+                       pub_month_sub_a1])
 
     # Setup submission window schedule
     today = datetime.now().date()
@@ -942,14 +942,14 @@ def test_active_submission_overview(database, monkeypatch):
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
 
     # FABS submissions should throw an error
-    fabs_sub = sess.query(Submission).filter(Submission.d2_submission.is_(True)).first()
+    fabs_sub = sess.query(Submission).filter(Submission.is_fabs.is_(True)).first()
     expected_error = 'Submission must be a DABS submission.'
     with pytest.raises(ResponseException) as resp_except:
         dashboard_handler.active_submission_overview(fabs_sub, 'B', 'warning')
     assert str(resp_except.value) == expected_error
 
     # Monthly submission
-    monthly_sub = sess.query(Submission).filter(Submission.d2_submission.is_(False),
+    monthly_sub = sess.query(Submission).filter(Submission.is_fabs.is_(False),
                                                 Submission.is_quarter_format.is_(False)).first()
     expected_response = {
         'submission_id': monthly_sub.submission_id,
@@ -1054,14 +1054,14 @@ def test_get_impact_counts(database, monkeypatch):
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
 
     # FABS submissions should throw an error
-    fabs_sub = sess.query(Submission).filter(Submission.d2_submission.is_(True)).first()
+    fabs_sub = sess.query(Submission).filter(Submission.is_fabs.is_(True)).first()
     expected_error = 'Submission must be a DABS submission.'
     with pytest.raises(ResponseException) as resp_except:
         dashboard_handler.get_impact_counts(fabs_sub, 'B', 'warning')
     assert str(resp_except.value) == expected_error
 
     # No occurrences of rules that have settings
-    monthly_sub = sess.query(Submission).filter(Submission.d2_submission.is_(False),
+    monthly_sub = sess.query(Submission).filter(Submission.is_fabs.is_(False),
                                                 Submission.is_quarter_format.is_(False)).first()
     expected_response = {
         'low': {
@@ -1151,14 +1151,14 @@ def test_get_significance_counts(database, monkeypatch):
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
 
     # FABS submissions should throw an error
-    fabs_sub = sess.query(Submission).filter(Submission.d2_submission.is_(True)).first()
+    fabs_sub = sess.query(Submission).filter(Submission.is_fabs.is_(True)).first()
     expected_error = 'Submission must be a DABS submission.'
     with pytest.raises(ResponseException) as resp_except:
         dashboard_handler.get_significance_counts(fabs_sub, 'B', 'warning')
     assert str(resp_except.value) == expected_error
 
     # No occurrences of rules that have settings
-    monthly_sub = sess.query(Submission).filter(Submission.d2_submission.is_(False),
+    monthly_sub = sess.query(Submission).filter(Submission.is_fabs.is_(False),
                                                 Submission.is_quarter_format.is_(False)).first()
     expected_response = {
         'total_instances': 0,
@@ -1265,14 +1265,14 @@ def test_active_submission_table(database, monkeypatch):
     }
 
     # FABS submissions should throw an error
-    fabs_sub = sess.query(Submission).filter(Submission.d2_submission.is_(True)).first()
+    fabs_sub = sess.query(Submission).filter(Submission.is_fabs.is_(True)).first()
     expected_error = 'Submission must be a DABS submission.'
     with pytest.raises(ResponseException) as resp_except:
         dashboard_handler.active_submission_table(fabs_sub, 'B', 'warning')
     assert str(resp_except.value) == expected_error
 
     # all defaults, no results
-    monthly_sub = sess.query(Submission).filter(Submission.d2_submission.is_(False),
+    monthly_sub = sess.query(Submission).filter(Submission.is_fabs.is_(False),
                                                 Submission.is_quarter_format.is_(False)).first()
     expected_response = {
         'page_metadata': {

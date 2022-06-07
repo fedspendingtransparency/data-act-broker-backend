@@ -16,7 +16,7 @@ from dataactcore.models.userModel import User # noqa
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_ID,
                                         FIELD_TYPE_DICT)
 from dataactcore.models.stagingModels import (AwardFinancialAssistance, AwardProcurement,
-                                              CertifiedAwardFinancialAssistance, CertifiedAwardProcurement)
+                                              PublishedAwardFinancialAssistance, PublishedAwardProcurement)
 from dataactbroker.helpers.validation_helper import clean_col
 
 from dataactvalidator.health_check import create_app
@@ -180,7 +180,7 @@ def copy_published_submission_award_data(staging_table, published_table, staging
         FROM {staging_table}
         JOIN submission ON submission.submission_id = {staging_table}.submission_id
         WHERE submission.publish_status_id = {publish_status}
-            AND submission.d2_submission IS FALSE
+            AND submission.is_fabs IS FALSE
     """.format(staging_table=staging_table_name, published_table=published_table_name,
                pub_col_string=published_col_string, col_string=col_string,
                publish_status=PUBLISH_STATUS_DICT['published'])
@@ -276,7 +276,7 @@ def load_updated_award_data(staging_table, published_table, file_type_id, intern
     # We only want to go through updated submissions without award data already loaded
     updated_subs = sess.query(Submission.submission_id).\
         filter(~Submission.submission_id.in_(published_award_subs),
-               Submission.d2_submission.is_(False),
+               Submission.is_fabs.is_(False),
                Submission.publish_status_id == PUBLISH_STATUS_DICT['updated']).all()
 
     published_ids = sess. \
@@ -337,16 +337,16 @@ def main():
     aw_data_map = {
         'award_procurement': {
             'staging_table': AwardProcurement,
-            'published_table': CertifiedAwardProcurement,
+            'published_table': PublishedAwardProcurement,
             'staging_id': 'award_procurement_id',
-            'published_id': 'certified_award_procurement_id',
+            'published_id': 'published_award_procurement_id',
             'file_type_id': FILE_TYPE_DICT['award_procurement']
         },
         'award_financial_assistance': {
             'staging_table': AwardFinancialAssistance,
-            'published_table': CertifiedAwardFinancialAssistance,
+            'published_table': PublishedAwardFinancialAssistance,
             'staging_id': 'award_financial_assistance_id',
-            'published_id': 'certified_award_financial_assistance_id',
+            'published_id': 'published_award_financial_assistance_id',
             'file_type_id': FILE_TYPE_DICT['award']
         }
     }

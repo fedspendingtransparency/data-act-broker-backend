@@ -32,7 +32,7 @@ if __name__ == '__main__':
         logger.info('Starting display_tas backfill script.')
 
         table_list = ['sf_133', 'appropriation', 'object_class_program_activity', 'award_financial',
-                      'certified_appropriation', 'certified_object_class_program_activity', 'certified_award_financial']
+                      'published_appropriation', 'published_object_class_program_activity', 'published_award_financial']
         for table in table_list:
             logger.info('Backfilling empty display_tas values in the {} table.'.format(table))
             executed = sess.execute(BACKFILL_DISPLAYTAS_SF133_SQL.format(table))

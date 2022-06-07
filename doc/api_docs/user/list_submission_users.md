@@ -2,10 +2,10 @@
 This endpoint lists all users with submissions that the requesting user can view, sorted by user name.
 
 ## Sample Request
-`/v1/list_submission_users/?d2_submission=False`
+`/v1/list_submission_users/?is_fabs=False`
 
 ## Request Params
-- `d2_submission`: (boolean) if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `is_fabs`: (boolean) if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 
 ## Response (JSON)
 

@@ -1,4 +1,5 @@
--- AdjustmentsToUnobligatedBalanceBroughtForward_CPE = CPE aggregate value for GTAS SF-133 line #1010 through 1042
+-- AdjustmentsToUnobligatedBalanceBroughtForward_CPE= CPE aggregate value for GTAS SF-133 line #1010 through 1066
+-- (periods prior to FY21 will continue to SUM lines 1010 through 1042)
 WITH appropriation_a12_{0} AS
     (SELECT submission_id,
         row_number,
@@ -10,7 +11,7 @@ WITH appropriation_a12_{0} AS
 SELECT
     approp.row_number,
     approp.adjustments_to_unobligated_cpe,
-    SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1010 through 1065",
+    SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1010 through 1066",
     approp.adjustments_to_unobligated_cpe - SUM(sf.amount) AS "difference",
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a12_{0} AS approp
@@ -24,7 +25,7 @@ WHERE sf.line >= 1010
     AND ((sf.line <= 1042
             AND sf.fiscal_year <= 2020
         )
-        OR (sf.line <= 1065
+        OR (sf.line <= 1066
             AND sf.fiscal_year > 2020
         )
     )

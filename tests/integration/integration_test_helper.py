@@ -33,7 +33,7 @@ def insert_submission(sess, submission_user_id, cgac_code=None, frec_code=None, 
                      number_of_errors=number_of_errors,
                      publish_status_id=publish_status_id,
                      publishable=publishable,
-                     d2_submission=is_fabs,
+                     is_fabs=is_fabs,
                      test_submission=test_submission,
                      published_submission_ids=published_submission_ids,
                      certified=certified)
