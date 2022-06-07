@@ -52,7 +52,7 @@ def move_published_error_metadata(sess):
         tmp_obj.pop('error_metadata_id')
         error_metadata_list.append(obj.__dict__)
 
-    # Save all the objects in the published error metadata table
+    # Save all the objects in the certified error metadata table
     sess.bulk_save_objects([PublishedErrorMetadata(**error_metadata) for error_metadata in error_metadata_list])
     sess.commit()
     logger.info('Published error metadata moved')
@@ -196,7 +196,7 @@ def move_updated_error_metadata(sess):
             insert_dataframe(warning_df, 'temp_error_file', sess.connection())
             sess.commit()
 
-            # Transfer contents of file to published error metadata
+            # Transfer contents of file to certified error metadata
             insert_sql = """
                 INSERT INTO published_error_metadata (
                     created_at,
