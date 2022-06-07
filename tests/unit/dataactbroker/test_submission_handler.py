@@ -800,7 +800,7 @@ def test_publish_checks_test_submission(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_window_not_in_db(database):
-    """ Tests that a DABS submission that doesnt have its year/period in the system won't be able to certify. """
+    """ Tests that a DABS submission that doesnt have its year/period in the system won't be able to publish. """
     now = datetime.datetime.utcnow()
     sess = database.session
 
