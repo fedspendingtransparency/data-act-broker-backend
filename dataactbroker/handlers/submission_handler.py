@@ -18,17 +18,17 @@ from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_li
 
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT, SUBMISSION_TYPE_DICT)
-from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
+from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, Banner, CertifyHistory,
                                           PublishHistory, RevalidationThreshold, SubmissionWindowSchedule, Comment,
-                                          CertifiedComment, PublishedFilesHistory)
+                                          PublishedComment, PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
-                                              CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
-                                              AwardFinancialAssistance, CertifiedAwardProcurement,
-                                              CertifiedAwardFinancialAssistance, TotalObligations,
-                                              CertifiedTotalObligations)
+                                              PublishedAppropriation, PublishedObjectClassProgramActivity,
+                                              PublishedAwardFinancial, FlexField, PublishedFlexField, AwardProcurement,
+                                              AwardFinancialAssistance, PublishedAwardProcurement,
+                                              PublishedAwardFinancialAssistance, TotalObligations,
+                                              PublishedTotalObligations)
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -133,7 +133,7 @@ def get_submission_metadata(submission):
     last_validated = get_last_validated_date(submission.submission_id)
 
     # Get metadata for FABS submissions
-    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
+    fabs_meta = get_fabs_meta(submission.submission_id) if submission.is_fabs else None
 
     # We need to ignore one row from each job for the header
     number_of_rows = sess.query(func.sum(case([(Job.number_of_rows > 0, Job.number_of_rows - 1)], else_=0))).\
@@ -169,7 +169,7 @@ def get_submission_metadata(submission):
         'published_submission_ids': submission.published_submission_ids,
         'certified': submission.certified,
         'certification_deadline': str(certification_deadline) if certification_deadline else '',
-        'fabs_submission': submission.d2_submission,
+        'fabs_submission': submission.is_fabs,
         'fabs_meta': fabs_meta
     }
 
@@ -192,7 +192,7 @@ def get_submission_data(submission, file_type=''):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type'), StatusCode.CLIENT_ERROR)
 
     # Make sure the file type provided is valid for the submission type
-    is_fabs = submission.d2_submission
+    is_fabs = submission.is_fabs
     if file_type and (is_fabs and file_type != 'fabs') or (not is_fabs and file_type == 'fabs'):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type for this submission'),
                                   StatusCode.CLIENT_ERROR)
@@ -513,7 +513,7 @@ def check_current_submission_page(submission):
 
     # /FABSaddData
     # FABS
-    if submission.d2_submission:
+    if submission.is_fabs:
         data = {
             'message': 'This submission is currently on the /FABSaddData page.',
             'step': '6'
@@ -595,7 +595,7 @@ def get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, re
             reporting_fiscal_period: the period in the year to check for
             is_quarter_format: whether the submission being checked is a quarterly or monthly submission
             submission_id: the submission ID to check against (used when checking if this submission is being
-                re-certified)
+                re-published)
 
         Returns:
             A JsonResponse containing a list of the published submissions for that period
@@ -627,7 +627,7 @@ def get_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, repor
             reporting_fiscal_period: the period in the year to check for
             is_quarter_format: whether the submission being checked is a quarterly or monthly submission
             submission_id: the submission ID to check against (used when checking if this submission is being
-                re-certified)
+                re-published)
             filter_published: whether to filter published/unpublished submissions
                        (options are: "mixed", "published" (default), and "unpublished")
 
@@ -656,7 +656,7 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
             reporting_fiscal_year: the year to check for
             reporting_fiscal_period: the period in the year to check for
             submission_id: the submission ID to check against (used when checking if this submission is being
-                re-certified)
+                re-published)
             filter_published: whether to filter published/unpublished submissions
                        (options are: "mixed", "published" (default), and "unpublished")
             filter_quarter: whether to include submissions in the same quarter (True) or period (False, default)
@@ -671,7 +671,7 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
     submission_query = sess.query(Submission).filter(
         (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
         Submission.reporting_fiscal_year == reporting_fiscal_year,
-        Submission.d2_submission.is_(False))
+        Submission.is_fabs.is_(False))
 
     if filter_published not in ('published', 'unpublished', 'mixed'):
         raise ValueError('Published param must be one of the following: "published", "unpublished", or "mixed"')
@@ -694,7 +694,7 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
     elif filter_sub_type == 'quarterly':
         submission_query = submission_query.filter(Submission.is_quarter_format.is_(True))
 
-    # Filter out the submission we are potentially re-certifying if one is provided
+    # Filter out the submission we are potentially re-publishing if one is provided
     if submission_id:
         submission_query = submission_query.filter(Submission.submission_id != submission_id)
 
@@ -702,7 +702,7 @@ def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fi
 
 
 def move_published_data(sess, submission_id, direction='publish'):
-    """ Move data from the staging tables to the certified tables for a submission or do the reverse for a revert.
+    """ Move data from the staging tables to the published tables for a submission or do the reverse for a revert.
 
         Args:
             sess: the database connection
@@ -712,17 +712,17 @@ def move_published_data(sess, submission_id, direction='publish'):
         Raises:
             ResponseException if a value other than "publish" or "revert" is specified for the direction.
     """
-    table_types = {'appropriation': [Appropriation, CertifiedAppropriation, 'submission'],
-                   'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity,
+    table_types = {'appropriation': [Appropriation, PublishedAppropriation, 'submission'],
+                   'object_class_program_activity': [ObjectClassProgramActivity, PublishedObjectClassProgramActivity,
                                                      'submission'],
-                   'award_financial': [AwardFinancial, CertifiedAwardFinancial, 'submission'],
-                   'award_procurement': [AwardProcurement, CertifiedAwardProcurement, 'submission'],
-                   'award_financial_assistance': [AwardFinancialAssistance, CertifiedAwardFinancialAssistance,
+                   'award_financial': [AwardFinancial, PublishedAwardFinancial, 'submission'],
+                   'award_procurement': [AwardProcurement, PublishedAwardProcurement, 'submission'],
+                   'award_financial_assistance': [AwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                                   'submission'],
-                   'error_metadata': [ErrorMetadata, CertifiedErrorMetadata, 'job'],
-                   'comment': [Comment, CertifiedComment, 'submission'],
-                   'flex_field': [FlexField, CertifiedFlexField, 'submission'],
-                   'total_obligations': [TotalObligations, CertifiedTotalObligations, 'submission']}
+                   'error_metadata': [ErrorMetadata, PublishedErrorMetadata, 'job'],
+                   'comment': [Comment, PublishedComment, 'submission'],
+                   'flex_field': [FlexField, PublishedFlexField, 'submission'],
+                   'total_obligations': [TotalObligations, PublishedTotalObligations, 'submission']}
 
     # Get list of jobs so we can use them for filtering
     job_list = sess.query(Job.job_id).filter_by(submission_id=submission_id).all()
@@ -832,7 +832,7 @@ def publish_checks(submission):
                          ' submission window ({}). Please revalidate before publishing.'.
                          format(sub_schedule.period_start.strftime('%m/%d/%Y')))
 
-    # Make sure neither A nor B is blank before allowing certification
+    # Make sure neither A nor B is blank before allowing publication
     blank_files = sess.query(Job). \
         filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity']]),
                Job.number_of_rows_valid == 0, Job.job_type_id == JOB_TYPE_DICT['csv_record_validation'],
@@ -876,7 +876,7 @@ def process_dabs_publish(submission, file_manager):
     publish_history = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id). \
         order_by(PublishHistory.created_at.desc()).first()
 
-    # Move the data to the certified table, deleting any old published data in the process
+    # Move the data to the published table, deleting any old published data in the process
     move_published_data(sess, submission.submission_id)
 
     # move files (locally we don't move but we still need to populate the published_files_history table)
@@ -1037,7 +1037,7 @@ def publish_and_certify_dabs_submission(submission, file_manager):
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
-def revert_to_certified(submission, file_manager):
+def revert_to_published(submission, file_manager):
     """ Revert an updated DABS submission to its last published state
 
         Args:
@@ -1051,7 +1051,7 @@ def revert_to_certified(submission, file_manager):
             ResponseException: if submission provided is a FABS submission or is not in an "updated" status
     """
 
-    if submission.d2_submission:
+    if submission.is_fabs:
         raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     if submission.publish_status_id != PUBLISH_STATUS_DICT['updated']:
@@ -1120,8 +1120,8 @@ def revert_to_certified(submission, file_manager):
     # Set errors/warnings for the submission
     submission.number_of_errors = 0
     submission.number_of_warnings =\
-        sess.query(func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).label('total_warnings')).\
-        join(Job, CertifiedErrorMetadata.job_id == Job.job_id).\
+        sess.query(func.coalesce(func.sum(PublishedErrorMetadata.occurrences), 0).label('total_warnings')).\
+        join(Job, PublishedErrorMetadata.job_id == Job.job_id).\
         filter(Job.submission_id == submission.submission_id).one().total_warnings
     submission.publishable = True
 
@@ -1151,15 +1151,15 @@ def revert_to_certified(submission, file_manager):
     sess.execute(update_string)
 
     file_type_mapping = {
-        FILE_TYPE_DICT['appropriations']: CertifiedAppropriation,
-        FILE_TYPE_DICT['program_activity']: CertifiedObjectClassProgramActivity,
-        FILE_TYPE_DICT['award_financial']: CertifiedAwardFinancial,
-        FILE_TYPE_DICT['award']: CertifiedAwardFinancialAssistance,
-        FILE_TYPE_DICT['award_procurement']: CertifiedAwardProcurement
+        FILE_TYPE_DICT['appropriations']: PublishedAppropriation,
+        FILE_TYPE_DICT['program_activity']: PublishedObjectClassProgramActivity,
+        FILE_TYPE_DICT['award_financial']: PublishedAwardFinancial,
+        FILE_TYPE_DICT['award']: PublishedAwardFinancialAssistance,
+        FILE_TYPE_DICT['award_procurement']: PublishedAwardProcurement
     }
     # Update the number of warnings for each job in the list
     for job in job_list:
-        job.number_of_warnings = sess.query(func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).
+        job.number_of_warnings = sess.query(func.coalesce(func.sum(PublishedErrorMetadata.occurrences), 0).
                                             label('total_warnings')). \
             filter_by(job_id=job.job_id).one().total_warnings
         # For non-cross-file jobs, also update the row count and file size

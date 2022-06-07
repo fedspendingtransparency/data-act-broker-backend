@@ -13,14 +13,14 @@ WITH c27_prev_sub_{0} AS
         AND sub_p.reporting_fiscal_period = sub.reporting_fiscal_period - 1
         AND COALESCE(sub_p.cgac_code, sub_p.frec_code) = COALESCE(sub.cgac_code, sub.frec_code)
         AND sub_p.publish_status_id != 1
-        AND sub_p.d2_submission IS FALSE
+        AND sub_p.is_fabs IS FALSE
     LEFT JOIN submission AS sub_q
         ON sub_q.reporting_fiscal_year = sub.reporting_fiscal_year
         AND sub_q.reporting_fiscal_period = sub.reporting_fiscal_period - 3
         AND COALESCE(sub_q.cgac_code, sub_q.frec_code) = COALESCE(sub.cgac_code, sub.frec_code)
         AND sub_q.publish_status_id != 1
-        AND sub_q.d2_submission IS FALSE
-    WHERE sub.d2_submission IS FALSE
+        AND sub_q.is_fabs IS FALSE
+    WHERE sub.is_fabs IS FALSE
         AND sub.submission_id = {0}),
 c27_prev_outlays_{0} AS (
     SELECT tas,
@@ -34,9 +34,9 @@ c27_prev_outlays_{0} AS (
         piid,
         parent_award_id,
         gross_outlay_amount_by_awa_cpe
-    FROM certified_award_financial AS caf
+    FROM published_award_financial AS paf
     JOIN c27_prev_sub_{0} AS sub
-        ON sub.submission_id = caf.submission_id
+        ON sub.submission_id = paf.submission_id
     WHERE COALESCE(gross_outlay_amount_by_awa_cpe, 0) <> 0)
 SELECT
     NULL AS "row_number",

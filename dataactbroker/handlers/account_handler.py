@@ -461,11 +461,11 @@ def list_user_emails():
     return JsonResponse.create(StatusCode.OK, {"users": user_info})
 
 
-def list_submission_users(d2_submission):
+def list_submission_users(is_fabs):
     """ List user IDs and names that have submissions that the requesting user can see.
 
         Arguments:
-            d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+            is_fabs: boolean indicating whether it is a DABS or FABS submission (True if FABS)
 
         Returns:
             A JsonResponse containing a list of users that have submissions that the requesting user can see
@@ -474,7 +474,7 @@ def list_submission_users(d2_submission):
     sess = GlobalDB.db().session
     # subquery to create the EXISTS portion of the query
     exists_query = sess.query(Submission).filter(Submission.user_id == User.user_id,
-                                                 Submission.d2_submission.is_(d2_submission))
+                                                 Submission.is_fabs.is_(is_fabs))
 
     # if user is not an admin, we have to adjust the exists query to limit submissions
     if not g.user.website_admin:
@@ -483,7 +483,7 @@ def list_submission_users(d2_submission):
         frec_affiliations = [aff for aff in g.user.affiliations if aff.frec]
 
         # Don't list FABS permissions users if the user only has DABS permissions
-        if not d2_submission:
+        if not is_fabs:
             cgac_affiliations = [aff for aff in cgac_affiliations if aff.permission_type_id in DABS_PERMISSION_ID_LIST]
             frec_affiliations = [aff for aff in frec_affiliations if aff.permission_type_id in DABS_PERMISSION_ID_LIST]
 

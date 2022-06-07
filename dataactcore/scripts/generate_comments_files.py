@@ -7,7 +7,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import filename_fyp_sub_format
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import (Comment, CertifiedComment, FileType, CertifyHistory, PublishHistory,
+from dataactcore.models.jobModels import (Comment, PublishedComment, FileType, CertifyHistory, PublishHistory,
                                           PublishedFilesHistory, Submission)
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
@@ -50,10 +50,10 @@ if __name__ == '__main__':
 
         # Published comments files
         logger.info('Copying published comments files')
-        commented_cert_submissions = sess.query(CertifiedComment.submission_id).distinct()
+        commented_pub_submissions = sess.query(PublishedComment.submission_id).distinct()
 
-        for certified_submission in commented_cert_submissions:
-            submission_id = certified_submission.submission_id
+        for published_submission in commented_pub_submissions:
+            submission_id = published_submission.submission_id
             submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
             filename = 'SubID-{}_comments_{}.csv'.format(str(submission_id), filename_fyp_sub_format(submission))
 

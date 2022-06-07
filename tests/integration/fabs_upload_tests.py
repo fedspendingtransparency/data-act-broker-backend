@@ -32,11 +32,11 @@ class FABSUploadTests(BaseTestAPI):
             cls.editfabs_email = editfabs_user.email
 
             # setup submission/jobs data for test_check_status
-            cls.d2_submission = cls.insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
-                                                      start_date="10/2015", end_date="12/2015", is_quarter=True)
-
-            cls.d2_submission_2 = cls.insert_submission(sess, cls.agency_user_id, cgac_code="SYS",
+            cls.fabs_submission = cls.insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                         start_date="10/2015", end_date="12/2015", is_quarter=True)
+
+            cls.fabs_submission_2 = cls.insert_submission(sess, cls.agency_user_id, cgac_code="SYS",
+                                                          start_date="10/2015", end_date="12/2015", is_quarter=True)
 
             cls.published_submission = cls.insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                              start_date="10/2015", end_date="12/2015", is_quarter=True,
@@ -44,7 +44,7 @@ class FABSUploadTests(BaseTestAPI):
 
             cls.other_submission = cls.insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                          start_date="07/2015", end_date="09/2015",
-                                                         is_quarter=True, d2_submission=False)
+                                                         is_quarter=True, is_fabs=False)
 
             cls.running_submission = cls.insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                            start_date="10/2015", end_date="12/2015", is_quarter=True)
@@ -53,7 +53,7 @@ class FABSUploadTests(BaseTestAPI):
 
             cls.test_agency_user_submission_id = cls.insert_submission(sess, cls.agency_user_id, cgac_code="NOT",
                                                                        start_date="10/2015", end_date="12/2015",
-                                                                       is_quarter=True, d2_submission=True)
+                                                                       is_quarter=True, is_fabs=True)
             cls.insert_agency_user_submission_data(sess, cls.test_agency_user_submission_id)
 
     def setUp(self):
@@ -63,7 +63,7 @@ class FABSUploadTests(BaseTestAPI):
 
     def test_successful_publish_fabs_file(self):
         """ Test a successful publish """
-        submission = {"submission_id": self.d2_submission}
+        submission = {"submission_id": self.fabs_submission}
         response = self.app.post_json("/v1/publish_fabs_file/", submission,
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
@@ -72,7 +72,7 @@ class FABSUploadTests(BaseTestAPI):
         """ Test a publish failure despite being the owner of the submission because no permissions """
         self.logout()
         self.login_user()
-        submission = {"submission_id": self.d2_submission_2}
+        submission = {"submission_id": self.fabs_submission_2}
         response = self.app.post_json("/v1/publish_fabs_file/", submission,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 403)
@@ -174,12 +174,12 @@ class FABSUploadTests(BaseTestAPI):
         """ Test file submissions for when the job is already running """
         # Mark a job as already running
         self.session.add(Job(file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['running'],
-                             job_type_id=JOB_TYPE_DICT['file_upload'], submission_id=str(self.d2_submission_2),
+                             job_type_id=JOB_TYPE_DICT['file_upload'], submission_id=str(self.fabs_submission_2),
                              original_filename=None, file_size=None, number_of_rows=None))
         self.session.commit()
 
         response = self.app.post("/v1/upload_fabs_file/",
-                                 {"existing_submission_id": str(self.d2_submission_2)},
+                                 {"existing_submission_id": str(self.fabs_submission_2)},
                                  upload_files=[('fabs', 'fabs.csv',
                                                 open('tests/integration/data/fabs.csv', 'rb').read())],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
@@ -199,7 +199,7 @@ class FABSUploadTests(BaseTestAPI):
 
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
-                          is_quarter=False, publish_status_id=1, d2_submission=True):
+                          is_quarter=False, publish_status_id=1, is_fabs=True):
         """ Insert one submission into job tracker and get submission ID back.
 
             Args:
@@ -210,7 +210,7 @@ class FABSUploadTests(BaseTestAPI):
                 end_date: the reporting start date of the submission, default None
                 is_quarter: boolean indicating if the submission is a quarterly (false is monthly), default False
                 publish_status_id: the publish status of the submission, default 1 (unpublished)
-                d2_submission: boolean indicating if the submission is FABS or DABS (true for FABS), default True
+                is_fabs: boolean indicating if the submission is FABS or DABS (true for FABS), default True
 
             Returns:
                 the submission ID of the created submission
@@ -222,7 +222,7 @@ class FABSUploadTests(BaseTestAPI):
                          reporting_end_date=datetime.strptime(end_date, '%m/%Y'),
                          is_quarter_format=is_quarter,
                          publish_status_id=publish_status_id,
-                         d2_submission=d2_submission)
+                         is_fabs=is_fabs)
         sess.add(sub)
         sess.commit()
         return sub.submission_id

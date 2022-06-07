@@ -75,4 +75,4 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         duplicate_removal('error_metadata')
-        duplicate_removal('certified_error_metadata')
+        duplicate_removal('published_error_metadata')

@@ -11,7 +11,7 @@ from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_banners, check_current_submission_page,
     publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, get_published_submission_ids,
     get_submission_metadata, get_submission_data, get_revalidation_threshold, get_latest_publication_period,
-    revert_to_certified)
+    revert_to_published)
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
                                        requires_sub_agency_perms)
@@ -292,15 +292,15 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('writer', check_fabs='editfabs')
-    @use_kwargs({'d2_submission': webargs_fields.Bool(missing=False)})
+    @use_kwargs({'is_fabs': webargs_fields.Bool(missing=False)})
     def restart_validation(submission, **kwargs):
-        d2_submission = kwargs.get('d2_submission')
-        return FileHandler.restart_validation(submission, d2_submission)
+        is_fabs = kwargs.get('is_fabs')
+        return FileHandler.restart_validation(submission, is_fabs)
 
     @app.route("/v1/revert_submission/", methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('submitter')
     def revert_submission(submission):
-        """ Revert an updated DABS submission to the state it was when it was last certified """
+        """ Revert an updated DABS submission to the state it was when it was last published """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return revert_to_certified(submission, file_manager)
+        return revert_to_published(submission, file_manager)
