@@ -485,8 +485,8 @@ def test_list_submissions_failure(database, monkeypatch):
 def test_list_submissions_detached(database, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    d2_sub = SubmissionFactory(user_id=1, submission_id=2, is_fabs=True, publish_status_id=1)
-    add_models(database, [user, sub, d2_sub])
+    fabs_sub = SubmissionFactory(user_id=1, submission_id=2, is_fabs=True, publish_status_id=1)
+    add_models(database, [user, sub, fabs_sub])
 
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
     result = list_submissions_result()
@@ -495,8 +495,8 @@ def test_list_submissions_detached(database, monkeypatch):
     assert result['total'] == 1
     assert result['submissions'][0]['submission_id'] == sub.submission_id
     assert fabs_result['total'] == 1
-    assert fabs_result['submissions'][0]['submission_id'] == d2_sub.submission_id
-    delete_models(database, [user, sub, d2_sub])
+    assert fabs_result['submissions'][0]['submission_id'] == fabs_sub.submission_id
+    delete_models(database, [user, sub, fabs_sub])
 
 
 @pytest.mark.usefixtures('user_constants')
