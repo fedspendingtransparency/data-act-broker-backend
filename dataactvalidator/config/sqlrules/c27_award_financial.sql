@@ -34,9 +34,9 @@ c27_prev_outlays_{0} AS (
         piid,
         parent_award_id,
         gross_outlay_amount_by_awa_cpe
-    FROM certified_award_financial AS caf
+    FROM published_award_financial AS paf
     JOIN c27_prev_sub_{0} AS sub
-        ON sub.submission_id = caf.submission_id
+        ON sub.submission_id = paf.submission_id
     WHERE COALESCE(gross_outlay_amount_by_awa_cpe, 0) <> 0)
 SELECT
     NULL AS "row_number",

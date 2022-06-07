@@ -205,19 +205,21 @@ class Comment(Base):
     __table_args__ = (UniqueConstraint('submission_id', 'file_type_id', name='uniq_submission_file_type'),)
 
 
-class CertifiedComment(Base):
-    __tablename__ = "certified_comment"
+class PublishedComment(Base):
+    __tablename__ = "published_comment"
 
-    certified_comment_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission", ondelete="CASCADE"),
+    published_comment_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_published_comment_submission_id",
+                                               ondelete="CASCADE"),
                            nullable=False)
     submission = relationship(Submission, uselist=False, cascade="delete")
     # Note: a null file_type_id is a submission comment
-    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=True)
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_published_comment_file_type_id"),
+                          nullable=True)
     file_type = relationship(FileType, uselist=False)
     comment = Column(Text, nullable=False)
 
-    __table_args__ = (UniqueConstraint('submission_id', 'file_type_id', name='uniq_cert_comment_submission_file_type'),)
+    __table_args__ = (UniqueConstraint('submission_id', 'file_type_id', name='uniq_pub_comment_submission_file_type'),)
 
 
 class SubmissionSubTierAffiliation(Base):
