@@ -32,7 +32,7 @@ def generate_file(submission, file_type, start, end, agency_type, file_format):
     """
     error_message = None
     # submission is a FABS submission
-    if submission.d2_submission:
+    if submission.is_fabs:
         error_message = 'Cannot generate files for FABS submissions.'
 
     elif file_type in ['D1', 'D2']:

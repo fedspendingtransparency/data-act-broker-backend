@@ -108,11 +108,11 @@ class TotalObligationsFactory(factory.Factory):
     total_asst_obligations = fuzzy.FuzzyDecimal(9999)
 
 
-class CertifiedAwardFinancialFactory(factory.Factory):
+class PublishedAwardFinancialFactory(factory.Factory):
     class Meta:
-        model = stagingModels.CertifiedAwardFinancial
+        model = stagingModels.PublishedAwardFinancial
 
-    certified_award_financial_id = None
+    published_award_financial_id = None
     submission_id = fuzzy.FuzzyInteger(9999)
     job_id = fuzzy.FuzzyInteger(9999)
     row_number = fuzzy.FuzzyInteger(9999)

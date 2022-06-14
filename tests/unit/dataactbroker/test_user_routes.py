@@ -56,7 +56,7 @@ def test_list_submission_users_admin(database):
     database.session.add_all(cgacs + [admin_user, other_user])
     database.session.commit()
 
-    sub_1 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=other_user.user_id, d2_submission=False)
+    sub_1 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=other_user.user_id, is_fabs=False)
     database.session.add(sub_1)
     database.session.commit()
 
@@ -81,8 +81,8 @@ def test_list_submission_users_cgac_affil(database):
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
-    sub_1 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=first_user.user_id, d2_submission=False)
-    sub_2 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=other_user.user_id, d2_submission=False)
+    sub_1 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=first_user.user_id, is_fabs=False)
+    sub_2 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=other_user.user_id, is_fabs=False)
     database.session.add_all([sub_1, sub_2])
     database.session.commit()
 
@@ -121,9 +121,9 @@ def test_list_submission_users_frec_affil(database):
     database.session.add_all(cgacs + frecs + [first_user, other_user])
     database.session.commit()
 
-    sub_1 = SubmissionFactory(frec_code=frecs[0].frec_code, user_id=first_user.user_id, d2_submission=False)
-    sub_2 = SubmissionFactory(cgac_code=cgacs[1].cgac_code, user_id=other_user.user_id, d2_submission=False)
-    sub_3 = SubmissionFactory(frec_code=frecs[1].frec_code, user_id=other_user.user_id, d2_submission=False)
+    sub_1 = SubmissionFactory(frec_code=frecs[0].frec_code, user_id=first_user.user_id, is_fabs=False)
+    sub_2 = SubmissionFactory(cgac_code=cgacs[1].cgac_code, user_id=other_user.user_id, is_fabs=False)
+    sub_3 = SubmissionFactory(frec_code=frecs[1].frec_code, user_id=other_user.user_id, is_fabs=False)
     database.session.add_all([sub_1, sub_2, sub_3])
     database.session.commit()
 
@@ -154,9 +154,9 @@ def test_list_submission_users_cgac_frec_affil(database):
     database.session.commit()
 
     # Third user now has cgac 111 and frec 0000
-    sub_1 = SubmissionFactory(frec_code=frecs[0].frec_code, user_id=first_user.user_id, d2_submission=False)
-    sub_2 = SubmissionFactory(cgac_code=cgacs[1].cgac_code, user_id=other_user.user_id, d2_submission=False)
-    sub_3 = SubmissionFactory(frec_code=frecs[1].frec_code, user_id=other_user.user_id, d2_submission=False)
+    sub_1 = SubmissionFactory(frec_code=frecs[0].frec_code, user_id=first_user.user_id, is_fabs=False)
+    sub_2 = SubmissionFactory(cgac_code=cgacs[1].cgac_code, user_id=other_user.user_id, is_fabs=False)
+    sub_3 = SubmissionFactory(frec_code=frecs[1].frec_code, user_id=other_user.user_id, is_fabs=False)
     database.session.add_all([sub_1, sub_2, sub_3])
     database.session.commit()
 
@@ -181,7 +181,7 @@ def test_list_submission_users_owned(database):
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
-    sub_1 = SubmissionFactory(cgac_code=cgacs[1].cgac_code, user_id=other_user.user_id, d2_submission=False)
+    sub_1 = SubmissionFactory(cgac_code=cgacs[1].cgac_code, user_id=other_user.user_id, is_fabs=False)
     database.session.add(sub_1)
     database.session.commit()
 
@@ -213,8 +213,8 @@ def test_list_submission_users_fabs_dabs(database):
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
-    sub_1 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=first_user.user_id, d2_submission=False)
-    sub_2 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=other_user.user_id, d2_submission=True)
+    sub_1 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=first_user.user_id, is_fabs=False)
+    sub_2 = SubmissionFactory(cgac_code=cgacs[0].cgac_code, user_id=other_user.user_id, is_fabs=True)
     database.session.add_all([sub_1, sub_2])
     database.session.commit()
 

@@ -35,7 +35,7 @@ def clean_expired_submissions(fy17q1_subs=False):
     if fy17q1_subs:
         expired_submissions = sess.query(Submission).filter(
             Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'],
-            Submission.d2_submission.is_(False),
+            Submission.is_fabs.is_(False),
             Submission.reporting_fiscal_year == 2017,
             Submission.reporting_fiscal_period == 3
         ).all()

@@ -257,13 +257,13 @@ class TotalObligations(Base):
     total_asst_obligations = Column(Numeric)
 
 
-class CertifiedTotalObligations(Base):
-    """ Model keeping track of the certified total obligations from the AwardFinancial (C file) table. """
-    __tablename__ = "certified_total_obligations"
+class PublishedTotalObligations(Base):
+    """ Model keeping track of the published total obligations from the AwardFinancial (C file) table. """
+    __tablename__ = "published_total_obligations"
 
-    certified_total_obligations_id = Column(Integer, primary_key=True)
+    published_total_obligations_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_certified_total_obligations_submission_id"),
+                                               name="fk_published_total_obligations_submission_id"),
                            nullable=False, unique=True, index=True)
     submission = relationship("Submission", uselist=False, cascade="delete")
     total_obligations = Column(Numeric)
@@ -271,14 +271,14 @@ class CertifiedTotalObligations(Base):
     total_asst_obligations = Column(Numeric)
 
 
-class CertifiedFlexField(Base):
-    """ Model for the certified flex field table. """
-    __tablename__ = "certified_flex_field"
+class PublishedFlexField(Base):
+    """ Model for the published flex field table. """
+    __tablename__ = "published_flex_field"
 
-    certified_flex_field_id = Column(Integer, primary_key=True)
+    published_flex_field_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_certified_flex_field_submission_id"),
+                                      name="fk_published_flex_field_submission_id"),
                            nullable=False, index=True)
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
@@ -288,13 +288,13 @@ class CertifiedFlexField(Base):
     file_type_id = Column(Integer)
 
 
-class CertifiedAppropriation(Base):
-    """Model for the certified data from the Appropriation (A file) table."""
-    __tablename__ = "certified_appropriation"
+class PublishedAppropriation(Base):
+    """Model for the published data from the Appropriation (A file) table."""
+    __tablename__ = "published_appropriation"
 
-    certified_appropriation_id = Column(Integer, primary_key=True)
+    published_appropriation_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_certified_appropriation_submission_id"),
+                                               name="fk_published_appropriation_submission_id"),
                            nullable=False, index=True)
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
@@ -327,16 +327,16 @@ class CertifiedAppropriation(Base):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(CertifiedAppropriation, self).__init__(**clean_kwargs)
+        super(PublishedAppropriation, self).__init__(**clean_kwargs)
 
 
-class CertifiedObjectClassProgramActivity(Base):
-    """Model for the certified data from the ObjectClassProgramActivity (B file) table."""
-    __tablename__ = "certified_object_class_program_activity"
+class PublishedObjectClassProgramActivity(Base):
+    """Model for the published data from the ObjectClassProgramActivity (B file) table."""
+    __tablename__ = "published_object_class_program_activity"
 
-    certified_object_class_program_activity_id = Column(Integer, primary_key=True)
+    published_object_class_program_activity_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_certified_object_class_program_activity_submission_id"),
+                                               name="fk_published_object_class_program_activity_submission_id"),
                            nullable=False, index=True)
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
@@ -393,16 +393,16 @@ class CertifiedObjectClassProgramActivity(Base):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(CertifiedObjectClassProgramActivity, self).__init__(**clean_kwargs)
+        super(PublishedObjectClassProgramActivity, self).__init__(**clean_kwargs)
 
 
-class CertifiedAwardFinancial(Base):
-    """Model for the certified data from the AwardFinancial (C file) table."""
-    __tablename__ = "certified_award_financial"
+class PublishedAwardFinancial(Base):
+    """Model for the published data from the AwardFinancial (C file) table."""
+    __tablename__ = "published_award_financial"
 
-    certified_award_financial_id = Column(Integer, primary_key=True)
+    published_award_financial_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_certified_award_financial_submission_id"),
+                                               name="fk_published_award_financial_submission_id"),
                            nullable=False, index=True)
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
@@ -465,7 +465,7 @@ class CertifiedAwardFinancial(Base):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(CertifiedAwardFinancial, self).__init__(**clean_kwargs)
+        super(PublishedAwardFinancial, self).__init__(**clean_kwargs)
 
 
 class AwardFinancialAssistance(Base):
@@ -863,16 +863,16 @@ Index("ix_ap_parent_award_id_upper", func.upper(AwardProcurement.parent_award_id
 Index("ix_ap_awarding_sub_tier_agency_c_upper", func.upper(AwardProcurement.awarding_sub_tier_agency_c))
 
 
-class CertifiedAwardFinancialAssistance(Base):
-    """ Model for Certified D2-Award (Financial Assistance). """
-    __tablename__ = 'certified_award_financial_assistance'
+class PublishedAwardFinancialAssistance(Base):
+    """ Model for Published D2-Award (Financial Assistance). """
+    __tablename__ = 'published_award_financial_assistance'
 
-    certified_award_financial_assistance_id = Column(Integer, primary_key=True)
+    published_award_financial_assistance_id = Column(Integer, primary_key=True)
     afa_generated_unique = Column(Text)
     unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey('submission.submission_id', ondelete='CASCADE',
-                                      name='fk_award_financial_assistance_submission_id'),
+                                      name='fk_published_award_financial_assistance_submission_id'),
                            nullable=False, index=True)
     submission = relationship('Submission', uselist=False, cascade='delete')
     job_id = Column(Integer)
@@ -959,19 +959,19 @@ class CertifiedAwardFinancialAssistance(Base):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(CertifiedAwardFinancialAssistance, self).__init__(**clean_kwargs)
+        super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)
 
 
-class CertifiedAwardProcurement(Base):
-    """ Model for Certified D1-Award (Procurement). """
-    __tablename__ = 'certified_award_procurement'
+class PublishedAwardProcurement(Base):
+    """ Model for Published D1-Award (Procurement). """
+    __tablename__ = 'published_award_procurement'
 
-    certified_award_procurement_id = Column(Integer, primary_key=True)
+    published_award_procurement_id = Column(Integer, primary_key=True)
     detached_award_proc_unique = Column(Text)
     unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey('submission.submission_id', ondelete='CASCADE',
-                                      name='fk_award_procurement_submission_id'),
+                                      name='fk_published_award_procurement_submission_id'),
                            nullable=False, index=True)
     submission = relationship('Submission', uselist=False, cascade='delete')
     job_id = Column(Integer)
@@ -1248,7 +1248,7 @@ class CertifiedAwardProcurement(Base):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(CertifiedAwardProcurement, self).__init__(**clean_kwargs)
+        super(PublishedAwardProcurement, self).__init__(**clean_kwargs)
 
 
 class DetachedAwardProcurement(Base):

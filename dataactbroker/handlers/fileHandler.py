@@ -212,7 +212,7 @@ class FileHandler:
                 existing_submission = True
                 existing_submission_obj = sess.query(Submission).filter_by(submission_id=existing_submission_id).one()
                 # If the existing submission is a FABS submission, stop everything
-                if existing_submission_obj.d2_submission:
+                if existing_submission_obj.is_fabs:
                     raise ResponseException('Existing submission must be a DABS submission', StatusCode.CLIENT_ERROR)
                 if existing_submission_obj.publish_status_id in (PUBLISH_STATUS_DICT['publishing'],
                                                                  PUBLISH_STATUS_DICT['reverting']):
@@ -473,8 +473,8 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-            if (submission.d2_submission and not active_user_can_on_submission('editfabs', submission)) or \
-                    (not submission.d2_submission and not active_user_can_on_submission('writer', submission)):
+            if (submission.is_fabs and not active_user_can_on_submission('editfabs', submission)) or \
+                    (not submission.is_fabs and not active_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
                 raise ResponseException('Cannot finalize a job for a different agency', StatusCode.CLIENT_ERROR)
             # Change job status to finished
@@ -538,7 +538,7 @@ class FileHandler:
                     filter_by(submission_id=existing_submission_id).\
                     one()
                 # If the existing submission is a DABS submission, stop everything
-                if not existing_submission_obj.d2_submission:
+                if not existing_submission_obj.is_fabs:
                     raise ResponseException('Existing submission must be a FABS submission', StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 if existing_submission_obj.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
@@ -567,7 +567,7 @@ class FileHandler:
             # get the cgac code associated with this sub tier agency
             job_data['cgac_code'] = cgac_code
             job_data['frec_code'] = frec_code
-            job_data['d2_submission'] = True
+            job_data['is_fabs'] = True
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
@@ -651,7 +651,7 @@ class FileHandler:
                     already in the process of being published, or the submission has already been published
         """
         # Check to make sure it's a valid d2 submission who hasn't already started a publish process
-        if not submission.d2_submission:
+        if not submission.is_fabs:
             raise ResponseException('Submission is not a FABS submission', StatusCode.CLIENT_ERROR)
         if submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']:
             raise ResponseException('Submission is already publishing', StatusCode.CLIENT_ERROR)
@@ -990,7 +990,7 @@ class FileHandler:
                     'timestamp': get_timestamp(),
                     'ext': split_file_name[1]
                 }
-                if not submission.d2_submission:
+                if not submission.is_fabs:
                     fillin_vals['FYP'] = filename_fyp_sub_format(submission)
                 upload_filename = SUBMISSION_FILENAMES[FILE_TYPE_DICT_NAME_LETTER[file_type]].format(**fillin_vals)
                 if not self.is_local:
@@ -1108,7 +1108,7 @@ class FileHandler:
             'message': 'Starting move_published_files',
             'message_type': 'BrokerDebug',
             'submission_id': submission_id,
-            'submission_type': 'FABS' if submission.d2_submission else 'DABS'
+            'submission_type': 'FABS' if submission.is_fabs else 'DABS'
         }
         logger.debug(log_data)
 
@@ -1125,7 +1125,7 @@ class FileHandler:
                                   FILE_TYPE_DICT['award_financial']]
 
         # set the route within the bucket
-        if submission.d2_submission:
+        if submission.is_fabs:
             created_at_date = publish_history.created_at
             route_vars = ['FABS', agency_code, created_at_date.year, '{:02d}'.format(created_at_date.month)]
         else:
@@ -1160,7 +1160,7 @@ class FileHandler:
                                                                                            job.file_type.name)
 
             comment = None
-            if submission.d2_submission:
+            if submission.is_fabs:
                 # FABS published submission, create the FABS published rows file
                 log_data['message'] = 'Generating published FABS file from publishable rows'
                 logger.info(log_data)
@@ -1187,7 +1187,7 @@ class FileHandler:
             sess.add(file_history)
 
         # FABS submissions don't have cross-file validations or comments
-        if not submission.d2_submission:
+        if not submission.is_fabs:
             # Adding cross-file warnings
             cross_list = {'B': 'A', 'C': 'B', 'D1': 'C', 'D2': 'C'}
             for key, value in cross_list.items():
@@ -1214,13 +1214,13 @@ class FileHandler:
                 sess.add(file_history)
 
             # Only move the file if we have any published comments
-            # Note: we are basing this off the original Comment table as the only difference between CertifiedComment
+            # Note: we are basing this off the original Comment table as the only difference between PublishedComment
             #       and Comment is the created_at/updated_at times. The Comment table indicates when the latest file was
             #       generated.
-            cert_comments = sess.query(Comment).filter_by(submission_id=submission_id)
-            if cert_comments.count() > 0:
+            pub_comments = sess.query(Comment).filter_by(submission_id=submission_id)
+            if pub_comments.count() > 0:
                 format_change = sess.query(FormatChangeDate.change_date).filter_by(name='DEV-8325').one_or_none()
-                created_at = cert_comments[0].created_at
+                created_at = pub_comments[0].created_at
                 if format_change and created_at < format_change.change_date:
                     filename = 'submission_{}_comments.csv'.format(submission.submission_id)
                 else:
@@ -1510,7 +1510,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
         raise ValueError('A publish_history_id or certify_history_id is required.')
 
     # Ensure we're just zipping up DABS submissions
-    if submission.d2_submission or submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished']:
+    if submission.is_fabs or submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished']:
         raise ValueError('Only published DABS submissions can be zipped.')
 
     # Get a list of the files to zip
@@ -1608,7 +1608,7 @@ def get_status(submission, file_type=''):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type'), StatusCode.CLIENT_ERROR)
 
     # Make sure the file type provided is valid for the submission type
-    is_fabs = submission.d2_submission
+    is_fabs = submission.is_fabs
     if file_type and (is_fabs and file_type != 'fabs') or (not is_fabs and file_type == 'fabs'):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type for this submission'),
                                   StatusCode.CLIENT_ERROR)
@@ -1858,7 +1858,7 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
 
     # List of all the columns to gather
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
-                          Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
+                          Submission.publish_status_id, Submission.is_fabs, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.publishing_user_id,
                           Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
@@ -1889,10 +1889,10 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         outerjoin(pub_query, Submission.submission_id == pub_query.c.submission_id).\
-        filter(Submission.d2_submission.is_(is_fabs))
+        filter(Submission.is_fabs.is_(is_fabs))
     min_mod_query = sess.query(func.min(submission_updated_view.updated_at).label('min_last_mod_date')). \
         join(Submission, submission_updated_view.submission_id == Submission.submission_id).\
-        filter(Submission.d2_submission.is_(is_fabs))
+        filter(Submission.is_fabs.is_(is_fabs))
 
     # Limit the data coming back to only what the given user is allowed to see
     query = permissions_filter(query)
@@ -2053,8 +2053,7 @@ def list_history(submission):
             A JsonResponse containing a dictionary with the submission ID and a list of publications and certifications
             or a JsonResponse error containing details of what went wrong.
     """
-    # TODO: Split this into published and certified lists, probably can leave it as one endpoint
-    if submission.d2_submission:
+    if submission.is_fabs:
         return JsonResponse.error(ValueError('FABS submissions do not have a publication history'),
                                   StatusCode.CLIENT_ERROR)
 
@@ -2178,7 +2177,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 (FREC.agency_name.isnot(None), FREC.agency_name),
                 (CGAC.agency_name.isnot(None), CGAC.agency_name)
             ]).label('agency_name')]
-        filters += [Submission.d2_submission == (sub_type == 'fabs')]
+        filters += [Submission.is_fabs == (sub_type == 'fabs')]
         order_by = [selects[1]]
     if 'agency' in filters_provided:
         selects = [Submission.reporting_fiscal_year if sub_type == 'dabs'
@@ -2385,7 +2384,7 @@ def get_upload_file_url(submission, file_type):
             Error response if the wrong file type for the submission is given
     """
     # check for proper file type
-    if (submission.d2_submission and file_type != 'FABS') or (not submission.d2_submission and file_type == 'FABS'):
+    if (submission.is_fabs and file_type != 'FABS') or (not submission.is_fabs and file_type == 'FABS'):
         return JsonResponse.error(ValueError('Invalid file type for this submission'), StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session

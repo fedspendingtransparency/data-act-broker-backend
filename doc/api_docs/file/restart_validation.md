@@ -6,14 +6,14 @@ This route alters a submission's jobs' statuses so they are no longer complete (
 ```
 {
   "submission_id": 1,
-  "d2_submission": True
+  "is_fabs": True
 }
 ```
 
 ## Body Description
 
 - `submission_id`: (required, integer) the ID of the submission for which the validations should be restarted.
-- `d2_submission`: (boolean) indicates whether this is a DABS or FABS submission (True for FABS), defaults to False when not provided
+- `is_fabs`: (boolean) indicates whether this is a DABS or FABS submission (True for FABS), defaults to False when not provided
 
 ## Response (JSON)
 

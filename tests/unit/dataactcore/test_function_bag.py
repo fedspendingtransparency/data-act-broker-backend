@@ -106,32 +106,32 @@ def test_get_certification_deadline(database):
     """ Tests get_certification_deadline with subs """
     sess = database.session
     quart_sub = SubmissionFactory(submission_id=1, reporting_fiscal_year=2020, reporting_fiscal_period=6,
-                                  d2_submission=False, is_quarter_format=True)
+                                  is_fabs=False, is_quarter_format=True)
     month_sub = SubmissionFactory(submission_id=2, reporting_fiscal_year=2020, reporting_fiscal_period=10,
-                                  d2_submission=False, is_quarter_format=False)
+                                  is_fabs=False, is_quarter_format=False)
     fail_sub = SubmissionFactory(submission_id=3, reporting_fiscal_year=2020, reporting_fiscal_period=9,
-                                 d2_submission=False, is_quarter_format=False)
-    d2_sub = SubmissionFactory(submission_id=4, reporting_fiscal_year=2020, reporting_fiscal_period=6,
-                               d2_submission=True, is_quarter_format=False)
+                                 is_fabs=False, is_quarter_format=False)
+    fabs_sub = SubmissionFactory(submission_id=4, reporting_fiscal_year=2020, reporting_fiscal_period=6,
+                                 is_fabs=True, is_quarter_format=False)
     q2 = SubmissionWindowScheduleFactory(period=6, year=2020)
     p10 = SubmissionWindowScheduleFactory(period=10, year=2020)
-    sess.add_all([quart_sub, month_sub, fail_sub, d2_sub, q2, p10])
+    sess.add_all([quart_sub, month_sub, fail_sub, fabs_sub, q2, p10])
 
     # Pass cases
     assert get_certification_deadline(quart_sub) == q2.certification_deadline.date()
     assert get_certification_deadline(month_sub) == p10.certification_deadline.date()
     # Fail cases
     assert get_certification_deadline(fail_sub) is None
-    assert get_certification_deadline(d2_sub) is None
+    assert get_certification_deadline(fabs_sub) is None
 
 
 def test_get_time_period(database):
     """ Tests get_time_period with subs """
     sess = database.session
     quart_sub = SubmissionFactory(submission_id=1, reporting_fiscal_year=2020, reporting_fiscal_period=6,
-                                  d2_submission=False, is_quarter_format=True)
+                                  is_fabs=False, is_quarter_format=True)
     month_sub = SubmissionFactory(submission_id=2, reporting_start_date=datetime.datetime(2020, 9, 10),
-                                  d2_submission=False, is_quarter_format=False)
+                                  is_fabs=False, is_quarter_format=False)
     sess.add_all([quart_sub, month_sub])
 
     # Pass cases
@@ -154,9 +154,9 @@ def test_get_last_modified(database):
     now = datetime.datetime.now()
     sess = database.session
     sub_1 = SubmissionFactory(submission_id=1, reporting_fiscal_year=2020, reporting_fiscal_period=6,
-                              d2_submission=False, is_quarter_format=True, updated_at=now)
+                              is_fabs=False, is_quarter_format=True, updated_at=now)
     sub_2 = SubmissionFactory(submission_id=2, reporting_fiscal_year=2020, reporting_fiscal_period=6,
-                              d2_submission=False, is_quarter_format=True, updated_at=now)
+                              is_fabs=False, is_quarter_format=True, updated_at=now)
     job = JobFactory(submission_id=sub_2.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
                      updated_at=now + datetime.timedelta(days=1))

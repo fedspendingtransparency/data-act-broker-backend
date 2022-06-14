@@ -9,18 +9,18 @@ from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (
     publish_checks, process_dabs_publish, process_dabs_certify, publish_dabs_submission,
     publish_and_certify_dabs_submission, get_submission_metadata, get_revalidation_threshold, get_submission_data,
-    move_published_data, get_latest_publication_period, revert_to_certified)
+    move_published_data, get_latest_publication_period, revert_to_published)
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
                                         FILE_STATUS_DICT)
-from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata, File
-from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, CertifiedComment, Job, Submission,
+from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata, File
+from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, PublishedComment, Job, Submission,
                                           PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
-                                              CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField, TotalObligations,
-                                              CertifiedTotalObligations)
+                                              PublishedAppropriation, PublishedObjectClassProgramActivity,
+                                              PublishedAwardFinancial, FlexField, PublishedFlexField, TotalObligations,
+                                              PublishedTotalObligations)
 from dataactcore.utils.responseException import ResponseException
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
@@ -44,7 +44,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
 
     sub = SubmissionFactory(submission_id=1, created_at=now, updated_at=now_plus_10, cgac_code=cgac.cgac_code,
                             reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
-                            publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False, number_of_errors=40,
+                            publish_status_id=PUBLISH_STATUS_DICT['updated'], is_fabs=False, number_of_errors=40,
                             number_of_warnings=200)
     # Job for submission
     job = JobFactory(submission_id=sub.submission_id, last_validated=now_plus_10,
@@ -97,7 +97,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
 
     sub = SubmissionFactory(submission_id=2, created_at=now, updated_at=now, cgac_code=None, frec_code=frec.frec_code,
                             reporting_fiscal_period=6, reporting_fiscal_year=2010, is_quarter_format=True,
-                            publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False, number_of_errors=0,
+                            publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False, number_of_errors=0,
                             number_of_warnings=0, certified=True)
 
     sess.add_all([frec_cgac, frec, sub])
@@ -143,7 +143,7 @@ def test_get_submission_metadata_monthly_dabs(database):
 
     sub = SubmissionFactory(submission_id=3, created_at=now, updated_at=now_plus_10, cgac_code=cgac.cgac_code,
                             reporting_fiscal_period=4, reporting_fiscal_year=2016, is_quarter_format=False,
-                            publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
+                            publish_status_id=PUBLISH_STATUS_DICT['unpublished'], is_fabs=False,
                             reporting_start_date=start_date, number_of_errors=20, number_of_warnings=0)
 
     sess.add_all([cgac, sub])
@@ -190,7 +190,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
 
     sub = SubmissionFactory(submission_id=4, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                             reporting_fiscal_period=2, reporting_fiscal_year=2015, is_quarter_format=False,
-                            publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=True,
+                            publish_status_id=PUBLISH_STATUS_DICT['unpublished'], is_fabs=True,
                             reporting_start_date=start_date, number_of_errors=4, number_of_warnings=1)
 
     sess.add_all([cgac, frec_cgac, frec, sub])
@@ -238,7 +238,7 @@ def test_get_submission_metadata_published_fabs(database):
 
     sub = SubmissionFactory(submission_id=5, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                             reporting_fiscal_period=5, reporting_fiscal_year=2010, is_quarter_format=False,
-                            publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=True,
+                            publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=True,
                             reporting_start_date=start_date, number_of_errors=0, number_of_warnings=2)
     # Data for FABS
     fabs_1 = FABSFactory(submission_id=sub.submission_id, is_valid=True)
@@ -292,11 +292,11 @@ def test_get_submission_metadata_test_submission(database):
 
     sub1 = SubmissionFactory(submission_id=1, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                              reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
-                             publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False, number_of_errors=40,
+                             publish_status_id=PUBLISH_STATUS_DICT['updated'], is_fabs=False, number_of_errors=40,
                              number_of_warnings=200)
     sub2 = SubmissionFactory(submission_id=2, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                              reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
-                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
+                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], is_fabs=False,
                              number_of_errors=40, number_of_warnings=200, test_submission=True,
                              published_submission_ids=[sub1.submission_id])
 
@@ -384,8 +384,8 @@ def test_get_submission_data_dabs(database):
 
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
 
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    sub_2 = SubmissionFactory(submission_id=2, d2_submission=False)
+    sub = SubmissionFactory(submission_id=1, is_fabs=False)
+    sub_2 = SubmissionFactory(submission_id=2, is_fabs=False)
 
     # Job for submission
     job = JobFactory(updated_at=now, job_id=1, submission_id=sub.submission_id,
@@ -510,7 +510,7 @@ def test_publish_and_certify_dabs_submission(database, monkeypatch):
         submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                        reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
                                        publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                       d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                       is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                        publishing_user_id=None)
         sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now - datetime.timedelta(days=1))
         sess.add_all([user, cgac, submission, sub_window])
@@ -548,18 +548,18 @@ def test_publish_and_certify_dabs_submission(database, monkeypatch):
         assert submission.publish_status_id == PUBLISH_STATUS_DICT['published']
         assert submission.certified is True
 
-        # Make sure certified comments are created
-        certified_comment = sess.query(CertifiedComment).filter_by(submission_id=submission.submission_id).one_or_none()
-        assert certified_comment is not None
+        # Make sure published comments are created
+        published_comment = sess.query(PublishedComment).filter_by(submission_id=submission.submission_id).one_or_none()
+        assert published_comment is not None
 
-        # Make sure certified flex fields are created
-        certified_flex = sess.query(CertifiedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()
-        assert certified_flex is not None
+        # Make sure published flex fields are created
+        published_flex = sess.query(PublishedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()
+        assert published_flex is not None
 
-        # Make sure certified total obligations are created
-        certified_obligations = sess.query(CertifiedTotalObligations).\
+        # Make sure published total obligations are created
+        published_obligations = sess.query(PublishedTotalObligations).\
             filter_by(submission_id=submission.submission_id).one_or_none()
-        assert certified_obligations is not None
+        assert published_obligations is not None
 
 
 @pytest.mark.usefixtures('job_constants')
@@ -577,37 +577,37 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
                                                 reporting_fiscal_period=1, reporting_fiscal_year=2017,
                                                 is_quarter_format=False, publishable=True,
                                                 publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                 publishing_user_id=None)
         pub_mon2_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                 reporting_fiscal_period=2, reporting_fiscal_year=2017,
                                                 is_quarter_format=False, publishable=True,
                                                 publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                 publishing_user_id=None)
         non_pub_same_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=1, reporting_fiscal_year=2017,
                                                         is_quarter_format=False, publishable=True,
                                                         publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         non_pub_diff_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                                         is_quarter_format=False, publishable=True,
                                                         publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         non_pub_same_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                                         is_quarter_format=True, publishable=True,
                                                         publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         non_pub_diff_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=6, reporting_fiscal_year=2017,
                                                         is_quarter_format=True, publishable=True,
                                                         publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         sub_window1 = SubmissionWindowScheduleFactory(year=2017, period=1,
                                                       period_start=now - datetime.timedelta(days=1))
@@ -676,31 +676,31 @@ def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
                                                reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                                is_quarter_format=True, publishable=True,
                                                publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                               d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                               is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                publishing_user_id=None)
         non_pub_same_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=1, reporting_fiscal_year=2017,
                                                         is_quarter_format=False, publishable=True,
                                                         publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         non_pub_diff_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=4, reporting_fiscal_year=2017,
                                                         is_quarter_format=False, publishable=True,
                                                         publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         non_pub_same_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                                         is_quarter_format=True, publishable=True,
                                                         publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         non_pub_diff_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=6, reporting_fiscal_year=2017,
                                                         is_quarter_format=True, publishable=True,
                                                         publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now - datetime.timedelta(days=1))
         sess.add_all([user, cgac, pub_qtr_submission, non_pub_same_mon_submission, non_pub_diff_mon_submission,
@@ -751,7 +751,7 @@ def test_publish_checks_revalidation_needed(database):
     submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
                                    reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
                                    publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                   d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                   is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                    publishing_user_id=None)
     reval = RevalidationThresholdFactory(revalidation_date=now)
     sess.add_all([cgac, submission, reval])
@@ -780,7 +780,7 @@ def test_publish_checks_test_submission(database):
     submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
                                    reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
                                    publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                   d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                   is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                    publishing_user_id=None)
     reval = RevalidationThresholdFactory(revalidation_date=now)
     sess.add_all([cgac, submission, reval])
@@ -800,7 +800,7 @@ def test_publish_checks_test_submission(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_window_not_in_db(database):
-    """ Tests that a DABS submission that doesnt have its year/period in the system won't be able to certify. """
+    """ Tests that a DABS submission that doesnt have its year/period in the system won't be able to publish. """
     now = datetime.datetime.utcnow()
     sess = database.session
 
@@ -808,7 +808,7 @@ def test_publish_checks_window_not_in_db(database):
     submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                    reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
                                    publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                   d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                   is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                    publishing_user_id=None)
     sess.add_all([cgac, submission])
     sess.commit()
@@ -827,7 +827,7 @@ def test_publish_checks_window_not_in_db(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_window_too_early(database):
-    """ Tests that a DABS submission that was last validated before the window start cannot be certified. """
+    """ Tests that a DABS submission that was last validated before the window start cannot be published. """
     now = datetime.datetime.utcnow()
     earlier = now - datetime.timedelta(days=1)
     sess = database.session
@@ -836,7 +836,7 @@ def test_publish_checks_window_too_early(database):
     submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
                                    reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
                                    publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                   d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                   is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                    publishing_user_id=None)
     sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now)
     sess.add_all([cgac, submission, sub_window])
@@ -870,7 +870,7 @@ def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database
         submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
                                        reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                        reporting_start_date='2016-10-01', is_quarter_format=True, publishable=True,
-                                       publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
+                                       publish_status_id=PUBLISH_STATUS_DICT['unpublished'], is_fabs=False,
                                        number_of_errors=0, number_of_warnings=200, publishing_user_id=None)
         sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=earlier)
         sub_window_2 = SubmissionWindowScheduleFactory(year=2017, period=6,
@@ -893,7 +893,7 @@ def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database
 
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_reverting(database):
-    """ Tests that a DABS submission cannot be certified while reverting. """
+    """ Tests that a DABS submission cannot be published while reverting. """
     now = datetime.datetime.utcnow()
     earlier = now - datetime.timedelta(days=1)
     sess = database.session
@@ -903,7 +903,7 @@ def test_publish_checks_reverting(database):
     submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
                                    reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                    reporting_start_date='2016-10-01', is_quarter_format=True, publishable=True,
-                                   publish_status_id=PUBLISH_STATUS_DICT['reverting'], d2_submission=False,
+                                   publish_status_id=PUBLISH_STATUS_DICT['reverting'], is_fabs=False,
                                    number_of_errors=0, number_of_warnings=200, publishing_user_id=None)
     sess.add_all([user, cgac, submission])
     sess.commit()
@@ -924,7 +924,7 @@ def test_publish_dabs_submission_past_due(database):
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
     submission = SubmissionFactory(cgac_code=cgac.cgac_code, reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                    reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
-                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
+                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'], is_fabs=False,
                                    number_of_errors=0, number_of_warnings=200, publishing_user_id=None)
     sched = SubmissionWindowScheduleFactory(period=3, year=2017, period_start=now - datetime.timedelta(5),
                                             certification_deadline=now - datetime.timedelta(1))
@@ -955,7 +955,7 @@ def test_process_dabs_certify_success(database):
         submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
                                        reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                        reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
-                                       publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                       publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False,
                                        number_of_errors=0, number_of_warnings=200, publishing_user_id=None)
         sess.add_all([user, cgac, submission])
         sess.commit()
@@ -992,7 +992,7 @@ def test_process_dabs_certify_no_publish_data(database):
         submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
                                        reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                        reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
-                                       publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                       publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False,
                                        number_of_errors=0, number_of_warnings=200, publishing_user_id=None)
         sess.add_all([user, cgac, submission])
         sess.commit()
@@ -1018,7 +1018,7 @@ def test_process_dabs_certify_already_certified(database):
         submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
                                        reporting_fiscal_period=3, reporting_fiscal_year=2017,
                                        reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
-                                       publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                       publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False,
                                        number_of_errors=0, number_of_warnings=200, publishing_user_id=None)
         sess.add_all([user, cgac, submission])
         sess.commit()
@@ -1047,11 +1047,11 @@ def test_process_dabs_certify_already_certified(database):
 @pytest.mark.usefixtures('error_constants')
 @pytest.mark.usefixtures('job_constants')
 def test_revert_submission(database, monkeypatch):
-    """ Tests reverting an updated DABS certification """
+    """ Tests reverting an updated DABS publication """
     with Flask('test-app').app_context():
         sess = database.session
 
-        sub = Submission(publish_status_id=PUBLISH_STATUS_DICT['updated'], is_quarter_format=True, d2_submission=False,
+        sub = Submission(publish_status_id=PUBLISH_STATUS_DICT['updated'], is_quarter_format=True, is_fabs=False,
                          publishable=False, number_of_errors=20, number_of_warnings=15)
         sess.add(sub)
         sess.commit()
@@ -1064,8 +1064,8 @@ def test_revert_submission(database, monkeypatch):
         sess.add_all([job, pub_history])
         sess.commit()
 
-        cert_approp = CertifiedAppropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
-                                             spending_authority_from_of_cpe=2, tas='test')
+        pub_approp = PublishedAppropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
+                                            spending_authority_from_of_cpe=2, tas='test')
         approp = Appropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
                                spending_authority_from_of_cpe=15, tas='test')
         pub_files = PublishedFilesHistory(publish_history_id=pub_history.publish_history_id,
@@ -1073,18 +1073,18 @@ def test_revert_submission(database, monkeypatch):
                                           submission_id=sub.submission_id, filename='old/test/file2.csv',
                                           file_type_id=FILE_TYPE_DICT['appropriations'],
                                           warning_filename='a/warning.csv')
-        cert_meta1 = CertifiedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
+        cert_meta1 = PublishedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
                                             target_file_type_id=None, occurrences=15)
-        cert_meta2 = CertifiedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
+        cert_meta2 = PublishedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
                                             target_file_type_id=None, occurrences=10)
         file_entry = File(file_id=FILE_TYPE_DICT['appropriations'], job_id=job.job_id,
                           file_status_id=FILE_STATUS_DICT['incomplete'], headers_missing='something')
-        sess.add_all([cert_approp, approp, pub_files, cert_meta1, cert_meta2, file_entry])
+        sess.add_all([pub_approp, approp, pub_files, cert_meta1, cert_meta2, file_entry])
         sess.commit()
 
         file_handler = fileHandler.FileHandler({}, is_local=True)
         monkeypatch.setattr(file_handler, 'revert_published_error_comment_files', Mock())
-        revert_to_certified(sub, file_handler)
+        revert_to_published(sub, file_handler)
 
         # Test that published data is moved back
         approp_query = sess.query(Appropriation).filter_by(submission_id=sub.submission_id).all()
@@ -1116,16 +1116,16 @@ def test_revert_submission(database, monkeypatch):
 
 @pytest.mark.usefixtures('job_constants')
 def test_revert_submission_fabs_submission(database):
-    """ Tests reverting an updated DABS certification failure for FABS submission """
+    """ Tests reverting an updated DABS publication failure for FABS submission """
     sess = database.session
 
-    sub = Submission(d2_submission=True)
+    sub = Submission(is_fabs=True)
     sess.add(sub)
     sess.commit()
 
     file_handler = fileHandler.FileHandler({}, is_local=True)
     with pytest.raises(ResponseException) as resp_except:
-        revert_to_certified(sub, file_handler)
+        revert_to_published(sub, file_handler)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission must be a DABS submission.'
@@ -1133,25 +1133,25 @@ def test_revert_submission_fabs_submission(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_revert_submission_not_updated_submission(database):
-    """ Tests reverting an updated DABS certification failure for non-updated submission """
+    """ Tests reverting an updated DABS publication failure for non-updated submission """
     sess = database.session
 
-    sub1 = Submission(publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
-    sub2 = Submission(publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False)
+    sub1 = Submission(publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False)
+    sub2 = Submission(publish_status_id=PUBLISH_STATUS_DICT['unpublished'], is_fabs=False)
     sess.add_all([sub1, sub2])
     sess.commit()
 
     file_handler = fileHandler.FileHandler({}, is_local=True)
     # Published submission
     with pytest.raises(ResponseException) as resp_except:
-        revert_to_certified(sub1, file_handler)
+        revert_to_published(sub1, file_handler)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission has not been published or has not been updated since publication.'
 
     # Unpublished submission
     with pytest.raises(ResponseException) as resp_except:
-        revert_to_certified(sub2, file_handler)
+        revert_to_published(sub2, file_handler)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission has not been published or has not been updated since publication.'
@@ -1190,16 +1190,16 @@ def test_move_published_data(database):
         move_published_data(sess, sub_1.submission_id)
 
         # There are 2 entries, we only want to move the 1 with the submission ID that matches
-        approp_query = sess.query(CertifiedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
+        approp_query = sess.query(PublishedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
         assert len(approp_query) == 1
         assert approp_query[0].spending_authority_from_of_cpe == 2
 
         # Make sure the others got moved as well
-        ocpa_query = sess.query(CertifiedObjectClassProgramActivity).filter_by(submission_id=sub_1.submission_id).all()
-        award_query = sess.query(CertifiedAwardFinancial).filter_by(submission_id=sub_1.submission_id).all()
+        ocpa_query = sess.query(PublishedObjectClassProgramActivity).filter_by(submission_id=sub_1.submission_id).all()
+        award_query = sess.query(PublishedAwardFinancial).filter_by(submission_id=sub_1.submission_id).all()
         # Query all job IDs but only one result should show up
-        error_query = sess.query(CertifiedErrorMetadata).\
-            filter(CertifiedErrorMetadata.job_id.in_([job_1.job_id, job_2.job_id])).all()
+        error_query = sess.query(PublishedErrorMetadata).\
+            filter(PublishedErrorMetadata.job_id.in_([job_1.job_id, job_2.job_id])).all()
         assert len(ocpa_query) == 1
         assert len(award_query) == 1
         assert len(error_query) == 1
@@ -1210,6 +1210,6 @@ def test_move_published_data(database):
 
         # Move the data again (republish) and make sure we didn't add extras, just adjusted the one we had
         move_published_data(sess, sub_1.submission_id)
-        approp_query = sess.query(CertifiedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
+        approp_query = sess.query(PublishedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
         assert len(approp_query) == 1
         assert approp_query[0].spending_authority_from_of_cpe == 2

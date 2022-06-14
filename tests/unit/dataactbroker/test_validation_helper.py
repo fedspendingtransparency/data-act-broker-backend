@@ -528,7 +528,7 @@ def test_simple_file_scan():
 def test_update_val_progress(database):
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    fabs_sub = SubmissionFactory(submission_id=2, d2_submission=True)
+    fabs_sub = SubmissionFactory(submission_id=2, is_fabs=True)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
                      progress=32.4)
