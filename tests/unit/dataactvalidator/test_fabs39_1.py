@@ -28,12 +28,14 @@ def test_success(database):
     fabs_6 = FABSFactory(place_of_performance_code='NY**123', record_type=1, correction_delete_indicatr='')
     fabs_7 = FABSFactory(place_of_performance_code='NY12345', record_type=2, correction_delete_indicatr='')
     fabs_8 = FABSFactory(place_of_performance_code='NY1234R', record_type=2, correction_delete_indicatr='')
+    fabs_9 = FABSFactory(place_of_performance_code='NY1234t', record_type=1, correction_delete_indicatr='')
+    fabs_10 = FABSFactory(place_of_performance_code='NYTs123', record_type=2, correction_delete_indicatr='')
     # Ignored for record type 3
-    fabs_9 = FABSFactory(place_of_performance_code='AB12345', record_type=3, correction_delete_indicatr='')
+    fabs_11 = FABSFactory(place_of_performance_code='AB12345', record_type=3, correction_delete_indicatr='')
     # Ignore correction delete indicator of D
-    fabs_10 = FABSFactory(place_of_performance_code='001****', record_type=1, correction_delete_indicatr='d')
+    fabs_12 = FABSFactory(place_of_performance_code='001****', record_type=1, correction_delete_indicatr='d')
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8,
-                                                       fabs_9, fabs_10, state_code])
+                                                       fabs_9, fabs_10, fabs_11, fabs_12, state_code])
     assert errors == 0
 
 
