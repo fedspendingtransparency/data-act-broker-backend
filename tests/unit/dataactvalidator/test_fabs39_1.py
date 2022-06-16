@@ -14,8 +14,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """ PrimaryPlaceOfPerformanceCode is a required field for aggregate and non-aggregate records (RecordType = 1 or 2),
-        and must be in 00FORGN, 00*****, XX*****, XX**###, XX#####, or XX####R formats, where XX is a valid
-        two-character state code, # are numerals, and 'R' is that letter.
+        and must be in 00FORGN, 00*****, XX*****, XX**###, XX#####, XX00000, XXTS###, XX####T, or XX####R formats, where
+        XX is a valid two-character state code, # are numerals, and 'TS' and 'R' are those letters.
     """
 
     state_code = States(state_code='NY')
@@ -41,8 +41,9 @@ def test_success(database):
 
 def test_failure(database):
     """ Test failure PrimaryPlaceOfPerformanceCode is a required field for aggregate and non-aggregate records
-        (RecordType = 1 or 2), and must be in 00FORGN, 00*****, XX*****, XX**###, XX#####, or XX####R formats, where
-        XX is a valid two-character state code, # are numerals, and 'R' is that letter.
+        (RecordType = 1 or 2), and must be in 00FORGN, 00*****, XX*****, XX**###, XX#####, XX00000, XXTS###, XX####T, or
+        XX####R formats, where XX is a valid two-character state code, # are numerals, and 'TS' and 'R' are those
+        letters.
     """
 
     state_code = States(state_code='NY')
