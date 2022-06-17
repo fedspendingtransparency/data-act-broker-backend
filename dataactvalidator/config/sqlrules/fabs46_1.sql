@@ -7,6 +7,6 @@ SELECT
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs
 WHERE submission_id = {0}
-    AND indirect_federal_sharing IS NOT NULL
+    AND COALESCE(indirect_federal_sharing, 0) <> 0
     AND COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
