@@ -20,7 +20,7 @@ class SQSMockQueue:
 
     @staticmethod
     def send_message(MessageBody, MessageAttributes=None):  # noqa
-        sess = GlobalDB.db().session
+        sess = GlobalDB.db().session  # noqa
         sess.add(SQS(message=int(MessageBody), attributes=str(MessageAttributes) if MessageAttributes else None))
         sess.commit()
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
@@ -57,7 +57,7 @@ class SQSMockDeadLetterQueue:
 
     @staticmethod
     def send_message(MessageBody, MessageAttributes=None):  # noqa
-        SQSMockDeadLetterQueue.logger.debug("executing SQSMockDeadLetterQueue.send_message({}, {})".format(
+        SQSMockDeadLetterQueue.logger.debug("executing SQSMockDeadLetterQueue.send_message({}, {})".format( # noqa
             MessageBody, MessageAttributes))
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
