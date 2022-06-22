@@ -1,6 +1,6 @@
 -- PrimaryPlaceOfPerformanceCode is a required field for aggregate and non-aggregate records (RecordType = 1 or 2), and
--- must be in 00FORGN, 00*****, XX*****, XX**###, XX#####, or XX####R formats, where XX is a valid two-character state
--- code, # are numerals, and 'R' is that letter.
+-- must be in 00FORGN, 00*****, XX*****, XX**###, XX#####, XX00000, XXTS###, XX####T, or XX####R formats, where XX is a
+-- valid two-character state code, # are numerals, and 'TS' and 'R' are those letters.
 WITH fabs39_1_{0} AS
     (SELECT submission_id,
         row_number,
@@ -22,7 +22,8 @@ WHERE fabs.record_type IN (1, 2)
             AND UPPER(fabs.place_of_performance_code) <> '00FORGN'
             AND UPPER(fabs.place_of_performance_code) !~ '^[A-Z][A-Z]\*\*\*\*\*$'
             AND UPPER(fabs.place_of_performance_code) !~ '^[A-Z][A-Z]\*\*\d\d\d$'
-            AND UPPER(fabs.place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\d[\dR]$')
+            AND UPPER(fabs.place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\d[\dRT]$'
+            AND UPPER(fabs.place_of_performance_code) !~ '^[A-Z][A-Z]TS\d\d\d$')
         OR (fabs.place_of_performance_code <> '00*****'
             AND UPPER(fabs.place_of_performance_code) <> '00FORGN'
             AND fabs.row_number NOT IN (

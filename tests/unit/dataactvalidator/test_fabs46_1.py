@@ -17,18 +17,19 @@ def test_success(database):
     """
 
     fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type='09')
+    fabs_2 = FABSFactory(indirect_federal_sharing=0, assistance_type='09')
 
     # Doesn't care about other assistance types
-    fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type='02')
-    fabs_3 = FABSFactory(indirect_federal_sharing=456, assistance_type='')
+    fabs_3 = FABSFactory(indirect_federal_sharing=123, assistance_type='02')
+    fabs_4 = FABSFactory(indirect_federal_sharing=456, assistance_type='')
 
     # Still doesn't trigger when blank for other assistance types
-    fabs_4 = FABSFactory(indirect_federal_sharing=None, assistance_type='03')
+    fabs_5 = FABSFactory(indirect_federal_sharing=None, assistance_type='03')
 
     # Ignore when CorrectionDeleteIndicator is D
-    fabs_5 = FABSFactory(indirect_federal_sharing=123, assistance_type='09', correction_delete_indicatr='d')
+    fabs_6 = FABSFactory(indirect_federal_sharing=123, assistance_type='09', correction_delete_indicatr='d')
 
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6])
     assert errors == 0
 
 
