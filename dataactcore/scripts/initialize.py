@@ -25,6 +25,7 @@ from dataactvalidator.scripts.load_object_class import load_object_class
 from dataactvalidator.scripts.load_country_codes import load_country_codes
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.load_tas import load_tas
+from dataactvalidator.scripts.load_tas_failing_edits import load_all_tas_failing_edits
 from dataactvalidator.scripts.load_location_data import load_location_data
 from dataactvalidator.scripts.read_zips import read_zips
 from dataactvalidator.scripts.load_agencies import load_agency_data
@@ -64,6 +65,12 @@ def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
     logger.info('Loading TAS')
     load_tas()
+
+
+def load_failed_tas():
+    """Load/update the TAS table to reflect the latest list."""
+    logger.info('Loading TAS Failing Edits')
+    load_all_tas_failing_edits()
 
 
 def load_sql_rules():
@@ -162,6 +169,8 @@ def main():
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
     parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
+    parser.add_argument('-tfe', '--update_failed_tas', help='Update broker TAS failed validations list',
+                        action='store_true')
     parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
@@ -181,6 +190,7 @@ def main():
         load_agency_data(validator_config_path, args.force)
         load_tas_lookup()
         load_sf133()
+        load_failed_tas()
         load_validator_schema()
         load_location_codes(args.force)
         load_zip_codes()
@@ -223,6 +233,9 @@ def main():
 
     if args.update_sf133:
         load_sf133()
+
+    if args.update_failed_tas:
+        load_failed_tas()
 
     if args.update_validator:
         load_validator_schema()

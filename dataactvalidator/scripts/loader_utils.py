@@ -19,7 +19,7 @@ FAILURE_THRESHOLD_PERCENTAGE = .01
 def clean_col_names(field):
     """Define some data-munging functions that can be applied to pandas
     dataframes as necessary"""
-    return str(field).lower().strip().replace(" ", "_").replace(",", "_")
+    return str(field).lower().strip().replace(" ", "_").replace(",", "_").replace("/", "_")
 
 
 def pad_function(field, pad_to, keep_null):
