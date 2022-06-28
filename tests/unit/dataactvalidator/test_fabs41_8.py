@@ -12,23 +12,29 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ When PrimaryPlaceOfPerformanceCode is in XX##### or XX####R format, PrimaryPlaceOfPerformanceZIP+4 must not be
-        blank (containing either a zip code or 'city-wide'). """
+    """ When PrimaryPlaceOfPerformanceCode is in XX#####, XXTS###, XX####T, or XX####R format,
+        PrimaryPlaceOfPerformanceZIP+4 must not be blank (containing either a zip code or ‘city-wide’).
+    """
     fabs = FABSFactory(place_of_performance_code='Ny12345', place_of_performance_zip4a='not blank')
     fabs_2 = FABSFactory(place_of_performance_code='nY1234R', place_of_performance_zip4a='12345')
-    fabs_3 = FABSFactory(place_of_performance_code='wrong format', place_of_performance_zip4a='city-wide')
-    fabs_4 = FABSFactory(place_of_performance_code='wrong format', place_of_performance_zip4a=None)
+    fabs_3 = FABSFactory(place_of_performance_code='nY1234t', place_of_performance_zip4a='12345')
+    fabs_4 = FABSFactory(place_of_performance_code='nYtS123', place_of_performance_zip4a='12345')
+    fabs_5 = FABSFactory(place_of_performance_code='wrong format', place_of_performance_zip4a='city-wide')
+    fabs_6 = FABSFactory(place_of_performance_code='wrong format', place_of_performance_zip4a=None)
 
-    errors = number_of_errors(_FILE, database, models=[fabs, fabs_2, fabs_3, fabs_4])
+    errors = number_of_errors(_FILE, database, models=[fabs, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test fail When PrimaryPlaceOfPerformanceCode is in XX##### or XX####R format, PrimaryPlaceOfPerformanceZIP+4
-        must not be blank (containing either a zip code or 'city-wide'). """
+    """ Test fail When PrimaryPlaceOfPerformanceCode is in XX#####, XXTS###, XX####T, or XX####R format,
+        PrimaryPlaceOfPerformanceZIP+4 must not be blank (containing either a zip code or ‘city-wide’).
+    """
 
     fabs = FABSFactory(place_of_performance_code='Ny12345', place_of_performance_zip4a=None)
     fabs_2 = FABSFactory(place_of_performance_code='nY1234R', place_of_performance_zip4a=None)
+    fabs_3 = FABSFactory(place_of_performance_code='nY1234t', place_of_performance_zip4a=None)
+    fabs_4 = FABSFactory(place_of_performance_code='nYtS123', place_of_performance_zip4a=None)
 
-    errors = number_of_errors(_FILE, database, models=[fabs, fabs_2])
-    assert errors == 2
+    errors = number_of_errors(_FILE, database, models=[fabs, fabs_2, fabs_3, fabs_4])
+    assert errors == 4

@@ -337,8 +337,9 @@ def derive_ppop_location_data(sess, submission_id):
             place_of_performance_city = feature_name
         FROM city_code AS cc
         WHERE place_of_performance_zip5 IS NULL
-            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d\d$'
-            AND cc.city_code = RIGHT(place_of_performance_code, 5)
+            AND (UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dRT]$'
+                  OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]TS\d\d\d$')
+            AND cc.city_code = UPPER(RIGHT(place_of_performance_code, 5))
             AND cc.state_code = place_of_perfor_state_code;
     """
     res = sess.execute(query.format(submission_id=submission_id))
@@ -387,7 +388,8 @@ def derive_ppop_scope(sess, submission_id):
                                               ELSE NULL
                                          END
         WHERE COALESCE(place_of_performance_zip4a, '') <> ''
-            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dR]$';
+            AND (UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dRT]$'
+                  OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]TS\d\d\d$');
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation('Completed ppop scope with non-null zip derivation, '
@@ -398,7 +400,8 @@ def derive_ppop_scope(sess, submission_id):
     # When zip is null
     query = """
         UPDATE tmp_fabs_{submission_id}
-        SET place_of_performance_scope = CASE WHEN UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dR]$'
+        SET place_of_performance_scope = CASE WHEN (UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dRT]$'
+                                                      OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]TS\d\d\d$')
                                               THEN 'City-wide'
                                               WHEN UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
                                               THEN 'County-wide'
