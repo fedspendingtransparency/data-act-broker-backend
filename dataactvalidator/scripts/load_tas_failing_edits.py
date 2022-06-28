@@ -58,7 +58,7 @@ def clean_failing_tas_data(filename):
     return data
 
 
-def get_tas_failing_edits_file_list(sess, failed_tas_path, aws_prefix='GTAS_FE_DA'):
+def get_tas_failing_edits_file_list(failed_tas_path, aws_prefix='GTAS_FE_DA'):
     """ Get the list of SF133 files to load
 
         Args:
@@ -152,7 +152,7 @@ def load_all_tas_failing_edits(failed_tas_path=None, force_load=False, aws_prefi
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        failed_tas_list = get_tas_failing_edits_file_list(sess, failed_tas_path, aws_prefix)
+        failed_tas_list = get_tas_failing_edits_file_list(failed_tas_path, aws_prefix)
 
         tas_re = re.compile(r'GTAS_FE_DA_(?P<year>\d{4})(?P<period>\d{2})\.csv')
         for failed_tas in failed_tas_list:
