@@ -1,5 +1,5 @@
 from collections import namedtuple
-from datetime import date, datetime
+from datetime import datetime
 import glob
 import logging
 import os
@@ -10,15 +10,11 @@ import argparse
 import boto3
 import pandas as pd
 
-from dataactbroker.helpers.generic_helper import format_internal_tas
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import (matching_cars_subquery, SF133, TASLookup, TAS_COMPONENTS,
-                                             concat_tas_dict_vectorized, concat_display_tas_dict, TASFailedEdits,
-                                             ExternalDataLoadDate)
-from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
+from dataactcore.models.domainModels import concat_tas_dict_vectorized, concat_display_tas_dict, TASFailedEdits
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
