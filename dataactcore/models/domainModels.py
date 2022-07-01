@@ -282,6 +282,29 @@ Index("ix_sf_133_tas_group",
       unique=True)
 
 
+class TASFailedEdits(Base):
+    __tablename__ = "tas_failed_edits"
+    tas_failed_edits_id = Column(Integer, primary_key=True)
+    agency_identifier = Column(Text)
+    allocation_transfer_agency = Column(Text)
+    availability_type_code = Column(Text)
+    beginning_period_of_availa = Column(Text)
+    ending_period_of_availabil = Column(Text)
+    main_account_code = Column(Text)
+    sub_account_code = Column(Text)
+    tas = Column(Text, nullable=False, default=concat_tas, index=True)
+    display_tas = Column(Text, nullable=False, default=concat_display_tas, index=True)
+    fiscal_year = Column(Integer, nullable=False, index=True)
+    period = Column(Integer, nullable=False, index=True)
+    fr_entity_type = Column(Text)
+    fr_entity_description = Column(Text)
+    edit_number = Column(Text)
+    edit_id = Column(Text)
+    severity = Column(Text)
+    atb_submission_status = Column(Text)
+    approved_override_exists = Column(Boolean)
+
+
 class ProgramActivity(Base):
     __tablename__ = "program_activity"
     program_activity_id = Column(Integer, primary_key=True)
