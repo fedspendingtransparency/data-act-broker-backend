@@ -102,7 +102,10 @@ def load_tas_failing_edits_file(sess, filename, fiscal_year, fiscal_period, forc
             metrics: an object containing information for the metrics file
     """
     if not metrics:
-        metrics = {}
+        metrics = {
+            'records_inserted': 0,
+            'records_deleted': 0
+        }
 
     existing_records = sess.query(TASFailedEdits).filter(TASFailedEdits.fiscal_year == fiscal_year,
                                                          TASFailedEdits.period == fiscal_period)
