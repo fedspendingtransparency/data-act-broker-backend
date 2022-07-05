@@ -152,7 +152,10 @@ def load_sf133(sess, filename, fiscal_year, fiscal_period, force_sf133_load=Fals
             metrics: an object containing information for the metrics file
     """
     if not metrics:
-        metrics = {}
+        metrics = {
+            'records_inserted': 0,
+            'records_deleted': 0
+        }
 
     existing_records = sess.query(SF133).filter(SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
     if force_sf133_load:
