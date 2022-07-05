@@ -78,7 +78,7 @@ def test_load_sf133_local(database):
 
     load_sf133.load_sf133(sess, sf133_path, 2021, 5)
 
-    # We should have loaded eight rows
+    # We should have loaded twelve rows and the duplicated Q/QQQ rows should have been combined
     assert sess.query(SF133).count() == 12
 
     # Picking one of the lines to do spot checks on
@@ -94,3 +94,10 @@ def test_load_sf133_local(database):
     assert single_check.amount == 0
     assert single_check.fiscal_year == 2021
     assert single_check.period == 5
+
+    # Checking on duplicate DEFC (one Q and one QQQ for TAS being equal). For now takes an average, should be sum
+    # Have to use "round" because Decimals do stupid things
+    dupe_check = sess.query(SF133).filter_by(line=1070, disaster_emergency_fund_code='Q').one()
+    # TODO: Uncomment this check once the fix is in, this is the actual sum total
+    # assert round(dupe_check.amount, 2) == Decimal('62631744.02')
+    assert round(dupe_check.amount, 2) == Decimal('31315872.01')
