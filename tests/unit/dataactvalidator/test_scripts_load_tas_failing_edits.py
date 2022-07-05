@@ -1,5 +1,4 @@
 import os
-from decimal import Decimal
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import TASFailedEdits
