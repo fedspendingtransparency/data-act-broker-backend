@@ -45,7 +45,7 @@ def clean_failing_tas_data(filename):
          "fr_entity_title": "fr_entity_description",
          "edit_number": "edit_number",
          "edit_id": "edit_id",
-         "fatal_proposed": "severity",
+         "fatal/proposed": "severity",
          "atb_submission_status": "atb_submission_status",
          "approved_edit_override_exists": "approved_override_exists"},
         {"allocation_transfer_agency": {"pad_to_length": 3, "keep_null": True},
