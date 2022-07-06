@@ -307,6 +307,15 @@ def test_generate_a_after_2020(database, monkeypatch):
     # check body
     sf = sess.query(SF133).filter_by(tas=tas_str).first()
     expected = []
+    core_cols = [
+        'allocation_transfer_agency',
+        'agency_identifier',
+        'beginning_period_of_availa',
+        'ending_period_of_availabil',
+        'availability_type_code',
+        'main_account_code',
+        'sub_account_code'
+    ]
     sum_cols = [
         'total_budgetary_resources_cpe',
         'budget_authority_appropria_cpe',
@@ -327,10 +336,12 @@ def test_generate_a_after_2020(database, monkeypatch):
     expected_sum_cols['adjustments_to_unobligated_cpe'] = '8.00'
     for value in file_generation_manager.fileA.db_columns:
         # loop through all values and format date columns
-        if value in sf1.__dict__:
+        if value in core_cols:
             expected.append(str(sf.__dict__[value] or ''))
         elif value in expected_sum_cols:
             expected.append(expected_sum_cols[value])
+    print(file_rows)
+    print(expected)
 
     assert expected in file_rows
 
