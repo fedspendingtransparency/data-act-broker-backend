@@ -98,6 +98,4 @@ def test_load_sf133_local(database):
     # Checking on duplicate DEFC (one Q and one QQQ for TAS being equal). For now takes an average, should be sum
     # Have to use "round" because Decimals do stupid things
     dupe_check = sess.query(SF133).filter_by(line=1070, disaster_emergency_fund_code='Q').one()
-    # TODO: Uncomment this check once the fix is in, this is the actual sum total
-    # assert round(dupe_check.amount, 2) == Decimal('62631744.02')
-    assert round(dupe_check.amount, 2) == Decimal('31315872.01')
+    assert dupe_check.amount == Decimal('62631744.02')
