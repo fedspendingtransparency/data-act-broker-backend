@@ -255,6 +255,31 @@ def clean_sf133_data(filename, sf133_data):
     data['display_tas'] = ''
     data['amount'] = data['amount'].astype(float)
 
+    # Grouping by a single column that contains a unique identifier to combine Q/QQQ dupe rows
+    data['group_by_col'] = data['tas'] + '_' + data['line'] + '_' + data['disaster_emergency_fund_code']
+
+    data = data.groupby('group_by_col').agg({
+        'allocation_transfer_agency': 'max',
+        'agency_identifier': 'max',
+        'availability_type_code': 'max',
+        'beginning_period_of_availa': 'max',
+        'ending_period_of_availabil': 'max',
+        'main_account_code': 'max',
+        'sub_account_code': 'max',
+        'fiscal_year': 'max',
+        'period': 'max',
+        'line': 'max',
+        'disaster_emergency_fund_code': 'max',
+        'created_at': 'max',
+        'updated_at': 'max',
+        'tas': 'max',
+        'display_tas': 'max',
+        'amount': 'sum'
+    })
+
+    # Need to round to 2 decimal places now that we've done a sum because floats are weird
+    data['amount'] = round(data['amount'], 2)
+
     data = fill_blank_sf133_lines(data)
 
     return data
