@@ -327,7 +327,7 @@ def test_generate_a_after_2020(database, monkeypatch):
     expected_sum_cols['adjustments_to_unobligated_cpe'] = '8.00'
     for value in file_generation_manager.fileA.db_columns:
         # loop through all values and format date columns
-        if value in sf1.__dict__:
+        if value in sf.__dict__:
             expected.append(str(sf.__dict__[value] or ''))
         elif value in expected_sum_cols:
             expected.append(expected_sum_cols[value])

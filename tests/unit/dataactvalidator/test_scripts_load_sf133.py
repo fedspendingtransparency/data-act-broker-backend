@@ -1,7 +1,11 @@
+import os
 from datetime import date
+from decimal import Decimal
 
 import pandas as pd
 
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.domainModels import SF133
 from dataactvalidator.scripts import load_sf133
 from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
 
@@ -25,7 +29,7 @@ def test_fill_blank_sf133_lines_types():
 
 
 def test_fill_blank_sf133_lines():
-    """This function should fill in missing data if line numbers (i.e. rows) of the input are missing"""
+    """ This function should fill in missing data if line numbers (i.e. rows) of the input are missing """
     data = pd.DataFrame(
         # Using the letters of 'FINGERPRINTXX' to indicate how to group SF133 rows.
         # FINGERPRINT1 has rows for line numbers 1 and 2, while FINGERPRINT2 has rows for line numbers 2 and 3.
@@ -65,3 +69,33 @@ def test_update_account_nums_fiscal_year(database):
     load_sf133.update_account_num(2011, 1)
     sess.refresh(sf_133)
     assert sf_133.account_num == tas.account_num
+
+
+def test_load_sf133_local(database):
+    """ This function loads the data from a local file to the database """
+    sess = database.session
+    sf133_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'sf_133_2021_05.csv')
+
+    load_sf133.load_sf133(sess, sf133_path, 2021, 5)
+
+    # We should have loaded twelve rows and the duplicated Q/QQQ rows should have been combined
+    assert sess.query(SF133).count() == 12
+
+    # Picking one of the lines to do spot checks on
+    single_check = sess.query(SF133).filter_by(line=1021, disaster_emergency_fund_code='Q').one()
+    assert single_check.display_tas == '005-X-0107-000'
+    assert single_check.amount == Decimal('97515.05')
+    assert single_check.fiscal_year == 2021
+    assert single_check.period == 5
+
+    # Checking that DEFC that wasn't listed for one line got filled in with a 0
+    single_check = sess.query(SF133).filter_by(line=1021, disaster_emergency_fund_code='E').one()
+    assert single_check.display_tas == '005-X-0107-000'
+    assert single_check.amount == 0
+    assert single_check.fiscal_year == 2021
+    assert single_check.period == 5
+
+    # Checking on duplicate DEFC (one Q and one QQQ for TAS being equal). For now takes an average, should be sum
+    # Have to use "round" because Decimals do stupid things
+    dupe_check = sess.query(SF133).filter_by(line=1070, disaster_emergency_fund_code='Q').one()
+    assert dupe_check.amount == Decimal('62631744.02')
