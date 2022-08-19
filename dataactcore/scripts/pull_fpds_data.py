@@ -978,6 +978,10 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
                         obj['awarding_sub_tier_agency_c'], obj['awarding_sub_tier_agency_n'])
             obj['awarding_agency_code'] = '999'
             obj['awarding_agency_name'] = None
+            # writing this error file to easily parse/manage this status
+            with open("cgacKeyErrors.txt","a") as f:
+                f.write('MissingSubtierCGAC: subtier_code: ' + obj['awarding_sub_tier_agency_c'] + '; agency name: ' 
+                + obj['awarding_sub_tier_agency_n'] + '\n')
 
     # calculate funding agency codes/names based on funding sub tier agency codes
     if obj['funding_sub_tier_agency_co']:
