@@ -156,4 +156,12 @@ def test_failure(database):
                                      program_activity_code='1', program_activity_name='n',
                                      by_direct_reimbursable_fun='r', disaster_emergency_fund_code='N')
 
-    assert number_of_errors(_FILE, database, models=[op1, op2]) == 1
+    # object class with extra trailing zeroes treated the same as without
+    op3 = ObjectClassProgramActivity(job_id=1, row_number=1, beginning_period_of_availa='1',
+                                     ending_period_of_availabil='1', agency_identifier='1',
+                                     allocation_transfer_agency='1', availability_type_code='1',
+                                     main_account_code='1', sub_account_code='1', object_class='10',
+                                     program_activity_code='1', program_activity_name='n',
+                                     by_direct_reimbursable_fun='r', disaster_emergency_fund_code='N')
+
+    assert number_of_errors(_FILE, database, models=[op1, op2, op3]) == 2
