@@ -45,7 +45,7 @@ FROM (
             UPPER(op.availability_type_code),
             op.main_account_code,
             op.sub_account_code,
-            op.object_class,
+            RPAD(op.object_class, 4 ,'0'),
             op.program_activity_code,
             UPPER(op.program_activity_name),
             UPPER(op.by_direct_reimbursable_fun),
