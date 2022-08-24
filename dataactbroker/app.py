@@ -23,7 +23,7 @@ from dataactbroker.routes.settings_routes import add_settings_routes
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.userModel import User
 
 from dataactcore.utils.jsonResponse import JsonResponse

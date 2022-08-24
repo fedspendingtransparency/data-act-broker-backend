@@ -1,7 +1,7 @@
 import csv
 import pandas as pd
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID
 from dataactcore.models.validationModels import FileColumn

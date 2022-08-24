@@ -19,7 +19,7 @@ from distutils.util import strtobool
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 
 from sqlalchemy.dialects.postgresql import insert

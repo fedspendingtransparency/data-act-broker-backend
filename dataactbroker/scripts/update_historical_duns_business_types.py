@@ -1,7 +1,7 @@
 import logging
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import HistoricDUNS
 from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
 

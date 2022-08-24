@@ -5,7 +5,7 @@ import pandas as pd
 
 from datetime import datetime, timedelta
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.jobModels import SubmissionWindowSchedule

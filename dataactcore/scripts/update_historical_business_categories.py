@@ -3,7 +3,7 @@ import argparse
 from datetime import datetime
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactvalidator.health_check import create_app
 
 
