@@ -1952,7 +1952,7 @@ def main():
         json.dump(metrics_json, metrics_file)
 
     # writing MissingSubtierCGAC error file to easily parse/manage these errors
-    if cgacErrors != {}:
+    if cgacErrors:
         with open("cgacKeyErrors.txt", "w") as f:
             for key in cgacErrors:
                 f.write('MissingSubtierCGAC: subtier_code: ' + key + '; agency name: ' + cgacErrors[key] + '\n')
