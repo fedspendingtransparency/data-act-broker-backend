@@ -3,7 +3,7 @@ import os
 import logging
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.jobModels import FileType
 from dataactcore.models.validationModels import FileColumn, FieldType
 from dataactvalidator.health_check import create_app

@@ -6,7 +6,7 @@ import os
 
 from webtest import TestApp
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password

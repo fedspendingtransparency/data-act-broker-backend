@@ -11,7 +11,7 @@ import boto3
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import TASLookup, concat_tas_dict_vectorized, concat_display_tas_dict
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data

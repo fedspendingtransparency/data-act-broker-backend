@@ -6,7 +6,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import filename_fyp_sub_format
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.jobModels import (Comment, PublishedComment, FileType, CertifyHistory, PublishHistory,
                                           PublishedFilesHistory, Submission)
 

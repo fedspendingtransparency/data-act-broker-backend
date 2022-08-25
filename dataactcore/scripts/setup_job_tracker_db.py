@@ -2,7 +2,7 @@ import logging
 from sqlalchemy import or_
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.jobModels import JobStatus, JobType, FileType, PublishStatus
 from dataactvalidator.health_check import create_app

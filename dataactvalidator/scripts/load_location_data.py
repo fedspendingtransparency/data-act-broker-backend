@@ -9,7 +9,7 @@ import urllib.request
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.config import CONFIG_BROKER

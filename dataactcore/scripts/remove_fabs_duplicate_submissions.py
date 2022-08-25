@@ -1,7 +1,7 @@
 import logging
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 
 from dataactcore.models.jobModels import PublishedFilesHistory, CertifyHistory, PublishHistory, Submission
 from dataactcore.models.userModel import User  # noqa

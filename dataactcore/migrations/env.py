@@ -13,7 +13,7 @@ from dataactcore.models import (baseModel, domainModels, fsrs, errorModels, jobM
                                 userModel, validationModels)
 from dataactcore.config import CONFIG_DB
 from dataactcore.interfaces.db import db_uri
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 
 USE_TWOPHASE = False
 

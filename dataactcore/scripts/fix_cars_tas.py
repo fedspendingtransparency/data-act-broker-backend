@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactvalidator.health_check import create_app
 
 

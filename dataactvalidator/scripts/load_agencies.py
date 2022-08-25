@@ -9,7 +9,7 @@ from datetime import datetime
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import CGAC, SubTierAgency, FREC
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data
