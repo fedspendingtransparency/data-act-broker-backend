@@ -15,7 +15,7 @@ from io import BytesIO
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa

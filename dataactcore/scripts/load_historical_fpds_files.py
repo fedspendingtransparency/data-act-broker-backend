@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 
 from dataactcore.models.domainModels import SubTierAgency
 from dataactcore.models.stagingModels import DetachedAwardProcurement

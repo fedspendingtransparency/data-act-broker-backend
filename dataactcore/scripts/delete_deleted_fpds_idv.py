@@ -7,7 +7,7 @@ import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa

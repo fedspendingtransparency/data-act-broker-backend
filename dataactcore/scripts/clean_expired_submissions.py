@@ -5,7 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 
 from dataactbroker.handlers.submission_handler import delete_all_submission_data
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT

@@ -10,7 +10,7 @@ from dataactbroker.handlers.settings_handler import load_default_rule_settings
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import FileGeneration
 from dataactcore.models.validationModels import RuleSetting

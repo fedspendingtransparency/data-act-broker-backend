@@ -11,7 +11,7 @@ import requests
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import SAMRecipient
 from dataactcore.utils.sam_recipient import (parse_sam_recipient_file, update_sam_recipient, parse_exec_comp_file,
                                              update_missing_parent_names, request_sam_csv_api,
