@@ -1,5 +1,5 @@
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.domainModels import ExternalDataType
 from dataactcore.models.jobModels import Submission # noqa

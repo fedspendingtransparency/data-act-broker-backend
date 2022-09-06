@@ -14,7 +14,7 @@ from dataactbroker.helpers.generic_helper import format_internal_tas
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import (matching_cars_subquery, SF133, TASLookup, TAS_COMPONENTS,
                                              concat_display_tas_dict)
 from dataactvalidator.health_check import create_app

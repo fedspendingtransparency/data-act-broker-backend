@@ -7,7 +7,7 @@ import boto3
 import datetime
 import json
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.health_check import create_app

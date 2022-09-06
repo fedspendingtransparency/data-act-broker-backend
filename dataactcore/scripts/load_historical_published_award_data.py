@@ -8,7 +8,7 @@ from sqlalchemy import func
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.jobModels import PublishedFilesHistory, Job
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import FileColumn

@@ -3,7 +3,7 @@ import logging
 import os
 
 from dataactcore.config import CONFIG_DB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.scripts.database_setup import create_database, run_migrations
 from dataactcore.scripts.setup_error_db import setup_error_db
 from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db

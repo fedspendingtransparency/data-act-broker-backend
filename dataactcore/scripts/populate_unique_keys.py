@@ -5,7 +5,7 @@ import datetime
 from sqlalchemy.sql import func
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.stagingModels import DetachedAwardProcurement, FABS, PublishedFABS
 from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa

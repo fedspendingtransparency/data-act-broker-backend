@@ -15,7 +15,7 @@ from requests.packages.urllib3.exceptions import ReadTimeoutError
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import Office, SubTierAgency, CGAC, FREC, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 
