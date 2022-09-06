@@ -11,7 +11,7 @@ from dataactbroker.helpers.generic_helper import format_internal_tas
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.jobModels import PublishedFilesHistory, Job
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT, JOB_TYPE_DICT, PUBLISH_STATUS_DICT

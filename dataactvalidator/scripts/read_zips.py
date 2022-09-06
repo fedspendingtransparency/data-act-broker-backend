@@ -11,7 +11,7 @@ import pandas as pd
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date

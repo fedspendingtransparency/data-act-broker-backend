@@ -1,5 +1,5 @@
 from dataactcore.config import CONFIG_DB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.scripts.database_setup import create_database
 
 

@@ -3,7 +3,7 @@ import logging
 import re
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import CountryCode, States, CountyCode, CityCode, Zips
 from dataactcore.models.stagingModels import PublishedFABS, DetachedAwardProcurement
 

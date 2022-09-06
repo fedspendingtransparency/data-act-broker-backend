@@ -19,7 +19,7 @@ from distutils.util import strtobool
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 
 from sqlalchemy.dialects.postgresql import insert
@@ -52,6 +52,9 @@ FPDS_NAMESPACES = {'http://www.fpdsng.com/FPDS': None,
 # Used for asyncio get requests against the ATOM feed
 MAX_ENTRIES = 10
 MAX_REQUESTS_AT_ONCE = 100
+
+# Used for tracking cgac errors for output later
+cgacErrors = {}
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -978,6 +981,8 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
                         obj['awarding_sub_tier_agency_c'], obj['awarding_sub_tier_agency_n'])
             obj['awarding_agency_code'] = '999'
             obj['awarding_agency_name'] = None
+            # Add objects to dictionary for writing to file later
+            cgacErrors[obj['awarding_sub_tier_agency_c']] = obj['awarding_sub_tier_agency_n']
 
     # calculate funding agency codes/names based on funding sub tier agency codes
     if obj['funding_sub_tier_agency_co']:
@@ -994,6 +999,8 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
                         obj['funding_sub_tier_agency_co'], obj['funding_sub_tier_agency_na'])
             obj['funding_agency_code'] = '999'
             obj['funding_agency_name'] = None
+            # Add objects to dictionary for writing to file later
+            cgacErrors[obj['funding_sub_tier_agency_co']] = obj['funding_sub_tier_agency_na']
 
     # do place of performance calculations only if we have SOME country code
     if obj['place_of_perform_country_c']:
@@ -1943,6 +1950,12 @@ def main():
 
     with open('pull_fpds_data_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
+
+    # writing MissingSubtierCGAC error file to easily parse/manage these errors
+    if cgacErrors:
+        with open("cgacKeyErrors.txt", "w") as f:
+            for key in cgacErrors:
+                f.write('MissingSubtierCGAC: subtier_code: ' + key + '; agency name: ' + cgacErrors[key] + '\n')
 
     # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing

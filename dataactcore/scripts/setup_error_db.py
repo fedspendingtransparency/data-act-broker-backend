@@ -1,5 +1,5 @@
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.errorModels import FileStatus, ErrorType
 from dataactcore.models import lookups
 from dataactvalidator.health_check import create_app

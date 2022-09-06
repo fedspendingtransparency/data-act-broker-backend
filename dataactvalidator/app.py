@@ -13,7 +13,7 @@ from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status, write_file_error
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.models.jobModels import Job, FileGeneration
 from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.responseException import ResponseException

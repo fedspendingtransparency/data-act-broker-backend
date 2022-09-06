@@ -9,7 +9,7 @@ import sys
 import pandas as pd
 from sqlalchemy import func
 
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission # noqa

@@ -1,7 +1,7 @@
 import logging
 from flask import Flask
 from dataactcore.config import CONFIG_SERVICES
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.utils.jsonResponse import JsonResponse
 
 logger = logging.getLogger(__name__)

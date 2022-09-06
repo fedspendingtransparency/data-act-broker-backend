@@ -8,7 +8,7 @@ from dataactbroker.handlers.submission_handler import delete_submission_files
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 
 from dataactvalidator.health_check import create_app
 

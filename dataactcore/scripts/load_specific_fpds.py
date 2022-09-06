@@ -7,7 +7,7 @@ import pandas as pd
 from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
+from dataactcore.broker_logging import configure_logging
 from dataactcore.scripts.pull_fpds_data import create_lookups, get_data
 
 from dataactvalidator.health_check import create_app
