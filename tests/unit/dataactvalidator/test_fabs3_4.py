@@ -12,7 +12,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ ActionType = E is only valid for mixed aggregate records (RecordType = 1.) """
+    """ ActionType = E is only valid for mixed aggregate records (RecordType = 1). """
     fabs_1 = FABSFactory(record_type=1, action_type='E', correction_delete_indicatr=None)
     fabs_2 = FABSFactory(record_type=1, action_type='e', correction_delete_indicatr='C')
 
@@ -30,7 +30,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Fail ActionType = E is only valid for mixed aggregate records (RecordType = 1.) """
+    """ Fail ActionType = E is only valid for mixed aggregate records (RecordType = 1). """
 
     fabs_1 = FABSFactory(record_type=2, action_type='e', correction_delete_indicatr='c')
 

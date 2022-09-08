@@ -1,4 +1,4 @@
--- ActionType = E is only valid for mixed aggregate records (RecordType = 1.)
+-- ActionType = E is only valid for mixed aggregate records (RecordType = 1).
 SELECT
     row_number,
     action_type,
