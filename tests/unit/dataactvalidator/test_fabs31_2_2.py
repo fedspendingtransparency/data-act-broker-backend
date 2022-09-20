@@ -23,7 +23,7 @@ def test_success(database):
     #       FABS 31.2.1 *will not* trigger when these apply.
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key='before_key', action_date='20091001', is_active=True)
-    pub_fabs_2 = PublishedFABSFactory(unique_award_key='after_key', action_date='20230404', is_active=True)
+    pub_fabs_2 = PublishedFABSFactory(unique_award_key='after_key', action_date='20330404', is_active=True)
     pub_fabs_3 = PublishedFABSFactory(unique_award_key='inactive_key', action_date='20091001', is_active=False)
     models = [pub_fabs_1, pub_fabs_2, pub_fabs_3]
 
@@ -50,9 +50,9 @@ def test_success(database):
     # Ensuring that this rule gets ignored when the base actiondate case doesn't apply
     fabs_8 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='10/02/2010', assistance_type='06',
                          correction_delete_indicatr='', unique_award_key='after_key')
-    fabs_9 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='04/05/2023', assistance_type='06',
+    fabs_9 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='04/05/2033', assistance_type='06',
                          correction_delete_indicatr='', unique_award_key='inactive_key')
-    fabs_10 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='04/05/2023', assistance_type='06',
+    fabs_10 = FABSFactory(record_type=2, business_types='AbC', uei='', action_date='04/05/2033', assistance_type='06',
                           correction_delete_indicatr='', unique_award_key='new_key')
     models += [fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8, fabs_9, fabs_10]
 
@@ -64,11 +64,11 @@ def test_failure(database):
     """ Test failure for AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record
         is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
         (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, or 11, if the base award (the earliest
-        record with the same unique award key) has an ActionDate prior to October 1, 2022, this will produce a warning
+        record with the same unique award key) has an ActionDate prior to October 1, 2032, this will produce a warning
         rather than a fatal error.
     """
     # Note: for FABS 31.2.2, we're setting assistance types to 06, 07, 08, 09, 10, or 11 and having the base
-    #       actiondate be less than October 1, 2022. This rule will not trigger if those *do* apply.
+    #       actiondate be less than October 1, 2032. This rule will not trigger if those *do* apply.
     #       FABS 31.2.1 *will not* trigger when these apply.
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key='before_key', action_date='20091001', is_active=True)
