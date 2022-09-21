@@ -49,6 +49,6 @@ WHERE (
          THEN min_date < CAST('10/01/2022' AS DATE)
          ELSE (CASE WHEN is_date(COALESCE(action_date, '0'))
                THEN CAST(action_date AS DATE)
-               END) < CAST('10/01/2022' AS DATE)
+               END) < CAST('10/01/2032' AS DATE)
     END
 );
