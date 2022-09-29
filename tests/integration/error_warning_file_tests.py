@@ -575,8 +575,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe, obligationsincurredtotalbytas_cpe,'
                               ' unobligatedbalance_cpe',
-                'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE'
-                                ' + UnobligatedBalance_CPE',
+                'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE +'
+                                ' UnobligatedBalance_CPE.',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: , obligationsincurredtotalbytas_cpe: 8.08,'
                                   ' unobligatedbalance_cpe: 2.02',
                 'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal the sum of these elements:'
@@ -592,7 +592,7 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe',
-                'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
+                'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE.',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: , totalbudgetaryresources_cpe: 10.1',
                 'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal TotalBudgetaryResources_CPE. The'
                                   ' Broker cannot distinguish which side of the equation is correct for this rule.'
@@ -628,8 +628,8 @@ class ErrorWarningTests(BaseTestValidator):
                               ' GTAS SF133 Line 1902',
                 'Rule Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +'
                                 ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
-                                ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
-                                ' OtherBudgetaryResourcesAmount_CPE + SF 133 Line 1902',
+                                ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE'
+                                ' + GTAS SF 133 Line 1902.',
                 'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01,'
                                   ' budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,'
                                   ' adjustmentstounobligatedbalancebroughtforward_cpe: 2.02,'
@@ -704,8 +704,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
                 'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the'
                                 ' sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the'
-                                ' award financial file (B). {This value is the sum of all Gross Outlay Amounts reported'
-                                ' in file B, to indicate year-to-date activity by TAS/Subaccount.}',
+                                ' award financial file (B) (this value is the sum of all Gross Outlay Amounts reported'
+                                ' in file B, to indicate year-to-date activity by TAS/Subaccount).',
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
@@ -756,8 +756,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
                 'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the'
                                 ' sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the'
-                                ' award financial file (B). {This value is the sum of all Gross Outlay Amounts reported'
-                                ' in file B, to indicate year-to-date activity by TAS/Subaccount.}',
+                                ' award financial file (B) (this value is the sum of all Gross Outlay Amounts reported'
+                                ' in file B, to indicate year-to-date activity by TAS/Subaccount).',
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
@@ -808,8 +808,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
                 'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the'
                                 ' sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the'
-                                ' award financial file (B). {This value is the sum of all Gross Outlay Amounts reported'
-                                ' in file B, to indicate year-to-date activity by TAS/Subaccount.}',
+                                ' award financial file (B) (this value is the sum of all Gross Outlay Amounts reported'
+                                ' in file B, to indicate year-to-date activity by TAS/Subaccount).',
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
@@ -898,8 +898,8 @@ class ErrorWarningTests(BaseTestValidator):
                                      ' availabilitytypecode, mainaccountcode, subaccountcode',
                 'Target File': 'program_activity',
                 'Target Field Name': '',
-                'Rule Message': 'All TAS values in File A (appropriations) should exist in File B'
-                                ' (object class program activity)',
+                'Rule Message': 'All TAS values in File A (appropriations) must exist in File B'
+                                ' (object class program activity).',
                 'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
                                          ' beginningperiodofavailability: , endingperiodofavailability: ,'
                                          ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
@@ -917,8 +917,8 @@ class ErrorWarningTests(BaseTestValidator):
                                      ' availabilitytypecode, mainaccountcode, subaccountcode',
                 'Target File': 'program_activity',
                 'Target Field Name': '',
-                'Rule Message': 'All TAS values in File A (appropriations) should exist in File B'
-                                ' (object class program activity)',
+                'Rule Message': 'All TAS values in File A (appropriations) must exist in File B'
+                                ' (object class program activity).',
                 'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
                                          ' beginningperiodofavailability: , endingperiodofavailability: ,'
                                          ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
@@ -936,8 +936,8 @@ class ErrorWarningTests(BaseTestValidator):
                                      ' availabilitytypecode, mainaccountcode, subaccountcode',
                 'Target File': 'program_activity',
                 'Target Field Name': '',
-                'Rule Message': 'All TAS values in File A (appropriations) should exist in File B'
-                                ' (object class program activity)',
+                'Rule Message': 'All TAS values in File A (appropriations) must exist in File B'
+                                ' (object class program activity).',
                 'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
                                          ' beginningperiodofavailability: , endingperiodofavailability: ,'
                                          ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
