@@ -329,23 +329,9 @@ class ErrorWarningTests(BaseTestValidator):
                                                                   severity_id=RULE_SEVERITY_DICT['warning']).count()
         assert self.validator.job.number_of_rows == 11
         assert self.validator.job.number_of_rows_valid == 9
-        assert error_count == 1
+        assert error_count == 0
         assert report_headers == self.validator.report_headers
-        expected_values = [
-            {
-                'Unique ID': 'TAS: 028-2010/2011-0406-000',
-                'Field Name': 'budgetauthorityunobligatedbalancebroughtforward_fyb',
-                'Rule Message': 'All the elements that have FYB in file A are expected in the first submission'
-                                ' for a fiscal year',
-                'Value Provided': 'budgetauthorityunobligatedbalancebroughtforward_fyb: ',
-                'Expected Value': 'If the reporting period is Quarter 1, a non-null amount should be submitted for the'
-                                  ' following elements: BudgetAuthorityUnobligatedBalanceBroughtForward_FYB',
-                'Difference': '',
-                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
-                'Row Number': '5',
-                'Rule Label': 'A16.1'
-            }
-        ]
+        expected_values = []
         assert report_content == expected_values
         self.cleanup()
 
