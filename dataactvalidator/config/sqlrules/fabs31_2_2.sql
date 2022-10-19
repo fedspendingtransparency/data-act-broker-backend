@@ -46,7 +46,7 @@ LEFT JOIN min_dates_{0} AS md
 WHERE (
     COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11')
     AND CASE WHEN md.min_date IS NOT NULL
-         THEN min_date < CAST('10/01/2022' AS DATE)
+         THEN min_date < CAST('10/01/2032' AS DATE)
          ELSE (CASE WHEN is_date(COALESCE(action_date, '0'))
                THEN CAST(action_date AS DATE)
                END) < CAST('10/01/2032' AS DATE)
