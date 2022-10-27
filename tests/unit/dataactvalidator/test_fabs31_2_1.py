@@ -17,11 +17,11 @@ def test_success(database):
         (BusinessTypes includes 'P').
     """
     # Note: for FABS 31.2.1, we're setting assistance types to NOT 06, 07, 08, 09, 10, or 11 or having the base
-    #       actiondate NOT be less than April 4, 2023. This rule will not trigger if those *don't* apply.
+    #       actiondate NOT be less than October 1, 2033. This rule will not trigger if those *don't* apply.
     #       FABS 31.2.2 *will* trigger when these apply.
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key='before_key', action_date='20091001', is_active=True)
-    pub_fabs_2 = PublishedFABSFactory(unique_award_key='after_key', action_date='20230404', is_active=True)
+    pub_fabs_2 = PublishedFABSFactory(unique_award_key='after_key', action_date='20330404', is_active=True)
     pub_fabs_3 = PublishedFABSFactory(unique_award_key='inactive_key', action_date='20091001', is_active=False)
     models = [pub_fabs_1, pub_fabs_2, pub_fabs_3]
 
@@ -68,7 +68,7 @@ def test_failure(database):
     #       FABS 31.2.2 *will* trigger when these apply.
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key='before_key', action_date='20091001', is_active=True)
-    pub_fabs_2 = PublishedFABSFactory(unique_award_key='after_key', action_date='20230404', is_active=True)
+    pub_fabs_2 = PublishedFABSFactory(unique_award_key='after_key', action_date='20330404', is_active=True)
     pub_fabs_3 = PublishedFABSFactory(unique_award_key='inactive_key', action_date='20091001', is_active=False)
     models = [pub_fabs_1, pub_fabs_2, pub_fabs_3]
 
@@ -76,9 +76,9 @@ def test_failure(database):
                          correction_delete_indicatr='', unique_award_key='before_key')
     fabs_2 = FABSFactory(record_type=5, business_types='aBc', uei=None, action_date='10/02/2010', assistance_type='06',
                          correction_delete_indicatr='C', unique_award_key='after_key')
-    fabs_3 = FABSFactory(record_type=4, business_types='AbC', uei='', action_date='04/05/2023', assistance_type='07',
+    fabs_3 = FABSFactory(record_type=4, business_types='AbC', uei='', action_date='04/05/2033', assistance_type='07',
                          correction_delete_indicatr='c', unique_award_key='new_key')
-    fabs_4 = FABSFactory(record_type=5, business_types='aBc', uei='', action_date='04/05/2023', assistance_type='08',
+    fabs_4 = FABSFactory(record_type=5, business_types='aBc', uei='', action_date='04/05/2033', assistance_type='08',
                          correction_delete_indicatr=None, unique_award_key='inactive_key')
     models += [fabs_1, fabs_2, fabs_3, fabs_4]
 

@@ -19,7 +19,7 @@ def test_success(database):
         rather than a fatal error.
     """
     # Note: for FABS 31.2.2, we're setting assistance types to 06, 07, 08, 09, 10, or 11 and having the base
-    #       actiondate be less than October 1, 2022. This rule will not trigger if those *do* apply.
+    #       actiondate be less than October 1, 2032. This rule will not trigger if those *do* apply.
     #       FABS 31.2.1 *will not* trigger when these apply.
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key='before_key', action_date='20091001', is_active=True)
