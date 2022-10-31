@@ -1,12 +1,17 @@
-from collections import OrderedDict
-from sqlalchemy import or_, and_, func
-from sqlalchemy.orm import outerjoin
-from sqlalchemy.sql.expression import case
+import datetime
 
-from dataactcore.models.domainModels import SF133, TASLookup, CGAC, FREC
+from collections import OrderedDict
+from sqlalchemy import or_, and_, func, null
+from sqlalchemy.orm import outerjoin
+from sqlalchemy.sql.expression import case, literal_column
+from dataactbroker.helpers.generic_helper import generate_raw_quoted_query
+
+from dataactcore.models.domainModels import SF133, TASLookup, CGAC, FREC, TASFailedEdits
+from dataactcore.models.jobModels import SubmissionWindowSchedule
 
 gtas_model = SF133
 tas_model = TASLookup
+fail_model = TASFailedEdits
 
 mapping = OrderedDict([
     ('allocation_transfer_agency', ['AllocationTransferAgencyIdentifier']),
@@ -28,7 +33,8 @@ mapping = OrderedDict([
     ('obligations_incurred_total_cpe', ['ObligationsIncurredTotalByTAS_CPE']),
     ('gross_outlay_amount_by_tas_cpe', ['GrossOutlayAmountByTAS_CPE']),
     ('unobligated_balance_cpe', ['UnobligatedBalance_CPE']),
-    ('deobligations_recoveries_r_cpe', ['DeobligationsRecoveriesRefundsByTAS_CPE'])
+    ('deobligations_recoveries_r_cpe', ['DeobligationsRecoveriesRefundsByTAS_CPE']),
+    ('gtas_status', ['GTASStatus'])
 ])
 db_columns = [key for key in mapping]
 
@@ -48,6 +54,7 @@ def query_data(session, agency_code, period, year):
     # set a boolean to determine if the original agency code is frec or cgac
     frec_provided = len(agency_code) == 4
     tas_gtas = tas_gtas_combo(session, period, year)
+    tas_gtas_fail = failed_edits_details(session, tas_gtas, period, year)
     # Make a list of FRECs to compare to for 011 AID entries
     frec_list = []
     if not frec_provided:
@@ -76,41 +83,42 @@ def query_data(session, agency_code, period, year):
     # Save the ATA filter
     agency_filters = []
     if not agency_array:
-        agency_filters.append(tas_gtas.c.allocation_transfer_agency == agency_code)
+        agency_filters.append(tas_gtas_fail.c.allocation_transfer_agency == agency_code)
     else:
-        agency_filters.append(tas_gtas.c.allocation_transfer_agency.in_(agency_array))
+        agency_filters.append(tas_gtas_fail.c.allocation_transfer_agency.in_(agency_array))
 
     # Save the AID filter
     if agency_code in ['097', '020', '077', '089']:
-        agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas.c.agency_identifier.in_(agency_array)))
+        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
+                                   tas_gtas_fail.c.agency_identifier.in_(agency_array)))
     elif agency_code == '1100':
-        agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
-                                   or_(tas_gtas.c.agency_identifier == '256',
-                                       tas_gtas.c.fr_entity_type == '1100')))
+        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
+                                   or_(tas_gtas_fail.c.agency_identifier == '256',
+                                       tas_gtas_fail.c.fr_entity_type == '1100')))
     elif not frec_provided:
-        agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas.c.agency_identifier == agency_code))
+        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
+                                   tas_gtas_fail.c.agency_identifier == agency_code))
     else:
-        agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas.c.fr_entity_type == agency_code))
+        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
+                                   tas_gtas_fail.c.fr_entity_type == agency_code))
 
     # If we're checking a CGAC, we want to filter on all of the related FRECs for AID 011
     if frec_list:
-        agency_filters.append(and_(tas_gtas.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas.c.agency_identifier == '011',
-                                   tas_gtas.c.fr_entity_type.in_(frec_list)))
+        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
+                                   tas_gtas_fail.c.agency_identifier == '011',
+                                   tas_gtas_fail.c.fr_entity_type.in_(frec_list)))
 
-    rows = initial_query(session, tas_gtas.c, year).\
-        filter(func.coalesce(tas_gtas.c.financial_indicator2, '') != 'F').\
+    rows = initial_query(session, tas_gtas_fail.c, year).\
+        filter(func.coalesce(tas_gtas_fail.c.financial_indicator2, '') != 'F').\
         filter(or_(*agency_filters)).\
-        group_by(tas_gtas.c.allocation_transfer_agency,
-                 tas_gtas.c.agency_identifier,
-                 tas_gtas.c.beginning_period_of_availa,
-                 tas_gtas.c.ending_period_of_availabil,
-                 tas_gtas.c.availability_type_code,
-                 tas_gtas.c.main_account_code,
-                 tas_gtas.c.sub_account_code)
+        group_by(tas_gtas_fail.c.allocation_transfer_agency,
+                 tas_gtas_fail.c.agency_identifier,
+                 tas_gtas_fail.c.beginning_period_of_availa,
+                 tas_gtas_fail.c.ending_period_of_availabil,
+                 tas_gtas_fail.c.availability_type_code,
+                 tas_gtas_fail.c.main_account_code,
+                 tas_gtas_fail.c.sub_account_code,
+                 tas_gtas_fail.c.gtas_status)
 
     return rows
 
@@ -137,17 +145,66 @@ def tas_gtas_combo(session, period, year):
         gtas_model.amount.label('amount'),
         gtas_model.line.label('line'),
         tas_model.financial_indicator2.label('financial_indicator2'),
-        tas_model.fr_entity_type.label('fr_entity_type')).\
-        join(tas_model, gtas_model.tas == func.concat(func.coalesce(tas_model.allocation_transfer_agency, '000'),
-                                                      func.coalesce(tas_model.agency_identifier, '000'),
-                                                      func.coalesce(tas_model.beginning_period_of_availa, '0000'),
-                                                      func.coalesce(tas_model.ending_period_of_availabil, '0000'),
-                                                      func.coalesce(tas_model.availability_type_code, ' '),
-                                                      func.coalesce(tas_model.main_account_code, '0000'),
-                                                      func.coalesce(tas_model.sub_account_code, '000'))).\
+        tas_model.fr_entity_type.label('fr_entity_type'),
+        gtas_model.tas.label('tas')).\
+        join(tas_model, gtas_model.tas == tas_model.tas).\
         filter(gtas_model.period == period).\
         filter(gtas_model.fiscal_year == year)
     return query.cte('tas_gtas')
+
+
+def failed_edits_details(session, tas_gtas, period, year):
+    """ Creates a combined list of tas_failed_edits details
+
+        Args:
+            session: DB session
+            tas_gtas: A CTE containing the filtered tas_gtas models
+            period: The period for which to get GTAS data
+            year: The year for which to get GTAS data
+
+        Returns:
+            A WITH clause to use with other queries
+    """
+    submission_period = session.query(SubmissionWindowSchedule).filter_by(period=period, year=year).one_or_none()
+    # If submission period doesn't exist, the gtas_status will always be blank
+    if not submission_period:
+        query = session.query(tas_gtas, null().label('gtas_status'))
+    elif submission_period.period_start > datetime.datetime.utcnow():
+        query = session.query(tas_gtas, literal_column("'GTAS window open'").label('gtas_status'))
+    else:
+        has_period = session.query(fail_model).filter_by(period=period, fiscal_year=year).first() is not None
+        # if the period doesn't exist in the TASFailingEdits model but does exist in our list, leave it blank
+        if not has_period:
+            query = session.query(tas_gtas, null().label('gtas_status'))
+        else:
+            query = session.query(
+                    tas_gtas,
+                    case([
+                        (and_(fail_model.severity == 'fatal', fail_model.approved_override_exists.is_(False)),
+                            literal_column("'failed fatal edit - no override'")),
+                        (and_(fail_model.atb_submission_status == 'F',
+                              fail_model.severity == 'fatal',
+                              fail_model.approved_override_exists.is_(True)),
+                            literal_column("'failed fatal edit - override'")),
+                        (and_(fail_model.atb_submission_status == 'E',
+                              fail_model.severity == 'fatal',
+                              fail_model.approved_override_exists.is_(True)),
+                            literal_column("'passed required edits - override'")),
+                        (and_(fail_model.atb_submission_status == 'P',
+                              fail_model.severity == 'fatal',
+                              fail_model.approved_override_exists.is_(True)),
+                            literal_column("'pending certification - override'")),
+                        (and_(fail_model.atb_submission_status == 'C',
+                              fail_model.severity == 'fatal',
+                              fail_model.approved_override_exists.is_(True)),
+                            literal_column("'certified - override'")),
+                        (fail_model.edit_id.isnot(None), literal_column("'passed required edits - override'"))
+                        ],
+                        else_=literal_column("'passed required edits'")).label('gtas_status')).\
+                join(fail_model, and_(tas_gtas.c.tas == fail_model.tas,
+                                      fail_model.fiscal_year == year,
+                                      fail_model.period == period), isouter=True)
+    return query.cte('tas_gtas_fail')
 
 
 def initial_query(session, model, year):
@@ -185,4 +242,5 @@ def initial_query(session, model, year):
         func.sum(case([(model.line == 2190, model.amount)], else_=0)).label('obligations_incurred_total_cpe'),
         func.sum(case([(model.line == 3020, model.amount)], else_=0)).label('gross_outlay_amount_by_tas_cpe'),
         func.sum(case([(model.line == 2490, model.amount)], else_=0)).label('unobligated_balance_cpe'),
-        func.sum(case([(model.line.in_([1021, 1033]), model.amount)], else_=0)).label('deobligations_recoveries_r_cpe'))
+        func.sum(case([(model.line.in_([1021, 1033]), model.amount)], else_=0)).label('deobligations_recoveries_r_cpe'),
+        model.gtas_status.label('gtas_status'))
