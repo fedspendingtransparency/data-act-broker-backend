@@ -4,7 +4,6 @@ from collections import OrderedDict
 from sqlalchemy import or_, and_, func, null
 from sqlalchemy.orm import outerjoin
 from sqlalchemy.sql.expression import case, literal_column
-from dataactbroker.helpers.generic_helper import generate_raw_quoted_query
 
 from dataactcore.models.domainModels import SF133, TASLookup, CGAC, FREC, TASFailedEdits
 from dataactcore.models.jobModels import SubmissionWindowSchedule
@@ -177,33 +176,47 @@ def failed_edits_details(session, tas_gtas, period, year):
         if not has_period:
             query = session.query(tas_gtas, null().label('gtas_status'))
         else:
+            # We need this subquery to select only the highest "tier" of each failure
+            subquery = session.query(fail_model.severity, fail_model.approved_override_exists,
+                                     fail_model.atb_submission_status, fail_model.tas,
+                                     func.row_number().over(fail_model.tas,
+                                                            order_by=case([
+                                                                (fail_model.atb_submission_status == 'F', 1),
+                                                                (fail_model.atb_submission_status == 'E', 2),
+                                                                (fail_model.atb_submission_status == 'P', 3),
+                                                                (fail_model.atb_submission_status == 'C', 4),
+                                                            ], else_=5)).label('row')).\
+                filter(func.upper(fail_model.severity) == 'FATAL',
+                       fail_model.period == period,
+                       fail_model.fiscal_year == year).subquery()
+            grouped_fail = session.query(subquery).filter(subquery.c.row == 1).cte('grouped_fail')
+
             query = session.query(
                     tas_gtas,
                     case([
-                        (and_(fail_model.severity == 'fatal', fail_model.approved_override_exists.is_(False)),
+                        (and_(func.upper(grouped_fail.c.severity) == 'FATAL',
+                              grouped_fail.c.approved_override_exists.is_(False)),
                             literal_column("'failed fatal edit - no override'")),
-                        (and_(fail_model.atb_submission_status == 'F',
-                              fail_model.severity == 'fatal',
-                              fail_model.approved_override_exists.is_(True)),
+                        (and_(grouped_fail.c.atb_submission_status == 'F',
+                              func.upper(grouped_fail.c.severity) == 'FATAL',
+                              grouped_fail.c.approved_override_exists.is_(True)),
                             literal_column("'failed fatal edit - override'")),
-                        (and_(fail_model.atb_submission_status == 'E',
-                              fail_model.severity == 'fatal',
-                              fail_model.approved_override_exists.is_(True)),
+                        (and_(grouped_fail.c.atb_submission_status == 'E',
+                              func.upper(grouped_fail.c.severity) == 'FATAL',
+                              grouped_fail.c.approved_override_exists.is_(True)),
                             literal_column("'passed required edits - override'")),
-                        (and_(fail_model.atb_submission_status == 'P',
-                              fail_model.severity == 'fatal',
-                              fail_model.approved_override_exists.is_(True)),
+                        (and_(grouped_fail.c.atb_submission_status == 'P',
+                              func.upper(grouped_fail.c.severity) == 'FATAL',
+                              grouped_fail.c.approved_override_exists.is_(True)),
                             literal_column("'pending certification - override'")),
-                        (and_(fail_model.atb_submission_status == 'C',
-                              fail_model.severity == 'fatal',
-                              fail_model.approved_override_exists.is_(True)),
+                        (and_(grouped_fail.c.atb_submission_status == 'C',
+                              func.upper(grouped_fail.c.severity) == 'FATAL',
+                              grouped_fail.c.approved_override_exists.is_(True)),
                             literal_column("'certified - override'")),
-                        (fail_model.edit_id.isnot(None), literal_column("'passed required edits - override'"))
+                        (grouped_fail.c.severity.isnot(None), literal_column("'passed required edits - override'"))
                         ],
                         else_=literal_column("'passed required edits'")).label('gtas_status')).\
-                join(fail_model, and_(tas_gtas.c.tas == fail_model.tas,
-                                      fail_model.fiscal_year == year,
-                                      fail_model.period == period), isouter=True)
+                join(grouped_fail, and_(tas_gtas.c.tas == grouped_fail.c.tas), isouter=True)
     return query.cte('tas_gtas_fail')
 
 

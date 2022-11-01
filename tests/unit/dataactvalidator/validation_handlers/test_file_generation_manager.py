@@ -549,17 +549,18 @@ def test_generate_a_gtas_status(database, monkeypatch):
     tas_5 = TASFactory(financial_indicator2=' ', **tas_5_dict)
     tas_6 = TASFactory(financial_indicator2=' ', **tas_6_dict)
     tas_7 = TASFactory(financial_indicator2=' ', **tas_7_dict)
-    fail_1 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_1_str, severity='fatal',
+    fail_1 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_1_str, severity='Fatal',
                                    approved_override_exists=False)
-    fail_2 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_2_str, severity='fatal',
+    fail_2 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_2_str, severity='Fatal',
                                    approved_override_exists=True, atb_submission_status='F')
-    fail_3 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_3_str, severity='fatal',
+    fail_3 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_3_str, severity='Fatal',
                                    approved_override_exists=True, atb_submission_status='E')
-    fail_4 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_4_str, severity='fatal',
+    fail_4 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_4_str, severity='Fatal',
                                    approved_override_exists=True, atb_submission_status='P')
-    fail_5 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_5_str, severity='fatal',
+    fail_5 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_5_str, severity='Fatal',
                                    approved_override_exists=True, atb_submission_status='C')
-    fail_6 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_6_str, edit_id='1')
+    fail_6 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_6_str, severity='Fatal',
+                                   approved_override_exists=True)
     # Submission with no fail data available
     sub_window_no_fail = SubmissionWindowScheduleFactory(period=5, year=2021,
                                                          period_start=datetime.now().date() - timedelta(days=2))
