@@ -64,6 +64,31 @@ class TASFactory(factory.Factory):
     internal_end_date = None
 
 
+class TASFailedEditsFactory(factory.Factory):
+    class Meta:
+        model = domainModels.TASFailedEdits
+
+    tas_failed_edits_id = None
+    allocation_transfer_agency = fuzzy.FuzzyText()
+    agency_identifier = fuzzy.FuzzyText()
+    beginning_period_of_availa = fuzzy.FuzzyText()
+    ending_period_of_availabil = fuzzy.FuzzyText()
+    availability_type_code = fuzzy.FuzzyText()
+    fr_entity_description = fuzzy.FuzzyText()
+    fr_entity_type = fuzzy.FuzzyText()
+    main_account_code = fuzzy.FuzzyText()
+    sub_account_code = fuzzy.FuzzyText()
+    tas = fuzzy.FuzzyText()
+    display_tas = fuzzy.FuzzyText()
+    fiscal_year = fuzzy.FuzzyInteger(2010, 2040)
+    period = fuzzy.FuzzyInteger(1, 12)
+    edit_number = fuzzy.FuzzyInteger(1, 10)
+    edit_id = fuzzy.FuzzyInteger(1, 10)
+    severity = fuzzy.FuzzyText()
+    atb_submission_status = fuzzy.FuzzyText()
+    approved_override_exists = fuzzy.FuzzyChoice((False, True))
+
+
 class ProgramActivityFactory(factory.Factory):
     class Meta:
         model = domainModels.ProgramActivity

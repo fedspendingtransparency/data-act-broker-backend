@@ -3,7 +3,7 @@ import os
 import re
 import pytest
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 from dataactbroker.helpers import generation_helper
@@ -16,9 +16,10 @@ from dataactcore.models.domainModels import SF133, concat_tas_dict, concat_displ
 from dataactvalidator.validation_handlers import file_generation_manager
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
 
-from tests.unit.dataactcore.factories.job import JobFactory, FileGenerationFactory, SubmissionFactory
+from tests.unit.dataactcore.factories.job import (JobFactory, FileGenerationFactory, SubmissionFactory,
+                                                  SubmissionWindowScheduleFactory)
 from tests.unit.dataactcore.factories.domain import (TASFactory, SF133Factory, SAMRecipientFactory, CGACFactory,
-                                                     FRECFactory)
+                                                     FRECFactory, TASFailedEditsFactory)
 from tests.unit.dataactcore.factories.staging import (AwardFinancialAssistanceFactory, AwardProcurementFactory,
                                                       DetachedAwardProcurementFactory, PublishedFABSFactory)
 
@@ -260,6 +261,9 @@ def test_generate_a(database, monkeypatch):
         elif value in expected1_sum_cols:
             expected1.append(expected1_sum_cols[value])
             expected2.append(expected2_sum_cols[value])
+        elif value == 'gtas_status':
+            expected1.append('')
+            expected2.append('')
 
     assert expected1 in file_rows
     assert expected2 in file_rows
@@ -331,6 +335,8 @@ def test_generate_a_after_2020(database, monkeypatch):
             expected.append(str(sf.__dict__[value] or ''))
         elif value in expected_sum_cols:
             expected.append(expected_sum_cols[value])
+        elif value == 'gtas_status':
+            expected.append('')
 
     assert expected in file_rows
 
@@ -431,9 +437,266 @@ def test_generate_a_null_ata(database, monkeypatch):
         elif value in expected1_sum_cols:
             expected1.append(expected1_sum_cols[value])
             expected2.append(expected2_sum_cols[value])
+        elif value == 'gtas_status':
+            expected1.append('')
+            expected2.append('')
 
     assert expected1 in file_rows
     assert expected2 in file_rows
+
+
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
+def test_generate_a_gtas_status(database, monkeypatch):
+    sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
+    agency_cgac = '097'
+    year = 2021
+
+    tas_1_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2021',
+        'ending_period_of_availabil': '2021',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas_1_str = concat_tas_dict(tas_1_dict)
+
+    tas_2_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2021',
+        'ending_period_of_availabil': '2021',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '002'
+    }
+    tas_2_str = concat_tas_dict(tas_2_dict)
+
+    tas_3_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2021',
+        'ending_period_of_availabil': '2021',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '003'
+    }
+    tas_3_str = concat_tas_dict(tas_3_dict)
+
+    tas_4_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2021',
+        'ending_period_of_availabil': '2021',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '004'
+    }
+    tas_4_str = concat_tas_dict(tas_4_dict)
+
+    tas_5_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2021',
+        'ending_period_of_availabil': '2021',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '005'
+    }
+    tas_5_str = concat_tas_dict(tas_5_dict)
+
+    tas_6_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2021',
+        'ending_period_of_availabil': '2021',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '006'
+    }
+    tas_6_str = concat_tas_dict(tas_6_dict)
+
+    tas_7_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2021',
+        'ending_period_of_availabil': '2021',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '007'
+    }
+    tas_7_str = concat_tas_dict(tas_7_dict)
+
+    sf_1 = SF133Factory(period=6, fiscal_year=year, tas=tas_1_str, line=1042, amount='4.00', **tas_1_dict)
+    sf_2 = SF133Factory(period=6, fiscal_year=year, tas=tas_2_str, line=1042, amount='4.00', **tas_2_dict)
+    sf_3 = SF133Factory(period=6, fiscal_year=year, tas=tas_3_str, line=1042, amount='4.00', **tas_3_dict)
+    sf_4 = SF133Factory(period=6, fiscal_year=year, tas=tas_4_str, line=1042, amount='4.00', **tas_4_dict)
+    sf_5 = SF133Factory(period=6, fiscal_year=year, tas=tas_5_str, line=1042, amount='4.00', **tas_5_dict)
+    sf_6 = SF133Factory(period=6, fiscal_year=year, tas=tas_6_str, line=1042, amount='4.00', **tas_6_dict)
+    # This one isn't in the "failed" list but does exist in file A and the period exists
+    sf_7 = SF133Factory(period=6, fiscal_year=year, tas=tas_7_str, line=1042, amount='4.00', **tas_7_dict)
+    # These are ones that don't even have the period in the failed list
+    sf_8 = SF133Factory(period=9, fiscal_year=year, tas=tas_1_str, line=1042, amount='4.00', **tas_1_dict)
+    sf_9 = SF133Factory(period=7, fiscal_year=year, tas=tas_1_str, line=1042, amount='4.00', **tas_1_dict)
+    sf_10 = SF133Factory(period=5, fiscal_year=year, tas=tas_1_str, line=1042, amount='4.00', **tas_1_dict)
+    tas_1 = TASFactory(financial_indicator2=' ', **tas_1_dict)
+    tas_2 = TASFactory(financial_indicator2=' ', **tas_2_dict)
+    tas_3 = TASFactory(financial_indicator2=' ', **tas_3_dict)
+    tas_4 = TASFactory(financial_indicator2=' ', **tas_4_dict)
+    tas_5 = TASFactory(financial_indicator2=' ', **tas_5_dict)
+    tas_6 = TASFactory(financial_indicator2=' ', **tas_6_dict)
+    tas_7 = TASFactory(financial_indicator2=' ', **tas_7_dict)
+    fail_1 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_1_str, severity='fatal',
+                                   approved_override_exists=False)
+    fail_2 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_2_str, severity='fatal',
+                                   approved_override_exists=True, atb_submission_status='F')
+    fail_3 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_3_str, severity='fatal',
+                                   approved_override_exists=True, atb_submission_status='E')
+    fail_4 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_4_str, severity='fatal',
+                                   approved_override_exists=True, atb_submission_status='P')
+    fail_5 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_5_str, severity='fatal',
+                                   approved_override_exists=True, atb_submission_status='C')
+    fail_6 = TASFailedEditsFactory(period=6, fiscal_year=year, tas=tas_6_str, edit_id='1')
+    # Submission with no fail data available
+    sub_window_no_fail = SubmissionWindowScheduleFactory(period=5, year=2021,
+                                                         period_start=datetime.now().date() - timedelta(days=2))
+    # Submission window that has started (GTAS window closed)
+    sub_window_over = SubmissionWindowScheduleFactory(period=6, year=2021,
+                                                      period_start=datetime.now().date() - timedelta(days=2))
+    # Submission window that hasn't started (GTAS window still open)
+    sub_window_progress = SubmissionWindowScheduleFactory(period=7, year=2021,
+                                                          period_start=datetime.now().date() + timedelta(days=2))
+    # Valid job with a closed GTAS window
+    job_1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                       file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
+                       end_date='03/31/2021', submission_id=None)
+    # Job with no associated submission period
+    job_2 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                       file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
+                       end_date='06/30/2021', submission_id=None)
+    # Job with GTAS window still open
+    job_3 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                       file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
+                       end_date='04/30/2021', submission_id=None)
+    # Job with no fail data in the database
+    job_4 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                       file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
+                       end_date='02/28/2021', submission_id=None)
+    sess.add_all([sf_1, sf_2, sf_3, sf_4, sf_5, sf_6, sf_7, sf_8, sf_9, sf_10, tas_1, tas_2, tas_3, tas_4, tas_5, tas_6,
+                  tas_7, fail_1, fail_2, fail_3, fail_4, fail_5, fail_6, sub_window_no_fail, sub_window_over,
+                  sub_window_progress, job_1, job_2, job_3, job_4])
+    sess.commit()
+
+    # First job, has failed edits to compare to
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job_1)
+    # providing agency code here as it will be passed via SQS and detached file jobs don't store agency code
+    file_gen_manager.generate_file(agency_cgac)
+
+    # Second job, no submission period available
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job_2)
+    file_gen_manager.generate_file(agency_cgac)
+
+    # Third job, submission window still open
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job_3)
+    file_gen_manager.generate_file(agency_cgac)
+
+    # Fourth job, no fail data
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job_4)
+    file_gen_manager.generate_file(agency_cgac)
+
+    file_rows_1 = read_file_rows(job_1.filename)
+    file_rows_2 = read_file_rows(job_2.filename)
+    file_rows_3 = read_file_rows(job_3.filename)
+    file_rows_4 = read_file_rows(job_4.filename)
+
+    # check body
+    sf_1 = sess.query(SF133).filter_by(tas=tas_1_str).first()
+    sf_2 = sess.query(SF133).filter_by(tas=tas_2_str).first()
+    sf_3 = sess.query(SF133).filter_by(tas=tas_3_str).first()
+    sf_4 = sess.query(SF133).filter_by(tas=tas_4_str).first()
+    sf_5 = sess.query(SF133).filter_by(tas=tas_5_str).first()
+    sf_6 = sess.query(SF133).filter_by(tas=tas_6_str).first()
+    sf_7 = sess.query(SF133).filter_by(tas=tas_7_str).first()
+    expected_1 = []
+    expected_2 = []
+    expected_3 = []
+    expected_4 = []
+    expected_5 = []
+    expected_6 = []
+    expected_7 = []
+    # Start of checks with no failed entries
+    expected_8 = []
+    expected_9 = []
+    expected_10 = []
+    sum_cols = [
+        'total_budgetary_resources_cpe',
+        'budget_authority_appropria_cpe',
+        'budget_authority_unobligat_fyb',
+        'adjustments_to_unobligated_cpe',
+        'other_budgetary_resources_cpe',
+        'contract_authority_amount_cpe',
+        'borrowing_authority_amount_cpe',
+        'spending_authority_from_of_cpe',
+        'status_of_budgetary_resour_cpe',
+        'obligations_incurred_total_cpe',
+        'gross_outlay_amount_by_tas_cpe',
+        'unobligated_balance_cpe',
+        'deobligations_recoveries_r_cpe'
+    ]
+    zero_sum_cols = {sum_col: '0' for sum_col in sum_cols}
+    expected_sum_cols = zero_sum_cols.copy()
+    expected_sum_cols['adjustments_to_unobligated_cpe'] = '4.00'
+    for value in file_generation_manager.fileA.db_columns:
+        # loop through all values and format date columns
+        if value in sf_1.__dict__:
+            expected_1.append(str(sf_1.__dict__[value] or ''))
+            expected_2.append(str(sf_2.__dict__[value] or ''))
+            expected_3.append(str(sf_3.__dict__[value] or ''))
+            expected_4.append(str(sf_4.__dict__[value] or ''))
+            expected_5.append(str(sf_5.__dict__[value] or ''))
+            expected_6.append(str(sf_6.__dict__[value] or ''))
+            expected_7.append(str(sf_7.__dict__[value] or ''))
+            expected_8.append(str(sf_1.__dict__[value] or ''))
+            expected_9.append(str(sf_1.__dict__[value] or ''))
+            expected_10.append(str(sf_1.__dict__[value] or ''))
+        elif value in expected_sum_cols:
+            expected_1.append(expected_sum_cols[value])
+            expected_2.append(expected_sum_cols[value])
+            expected_3.append(expected_sum_cols[value])
+            expected_4.append(expected_sum_cols[value])
+            expected_5.append(expected_sum_cols[value])
+            expected_6.append(expected_sum_cols[value])
+            expected_7.append(expected_sum_cols[value])
+            expected_8.append(expected_sum_cols[value])
+            expected_9.append(expected_sum_cols[value])
+            expected_10.append(expected_sum_cols[value])
+        elif value == 'gtas_status':
+            expected_1.append('failed fatal edit - no override')
+            expected_2.append('failed fatal edit - override')
+            expected_3.append('passed required edits - override')
+            expected_4.append('pending certification - override')
+            expected_5.append('certified - override')
+            expected_6.append('passed required edits - override')
+            expected_7.append('passed required edits')
+            expected_8.append('')
+            expected_9.append('GTAS window open')
+            expected_10.append('')
+
+    print(file_rows_1)
+
+    assert expected_1 in file_rows_1
+    assert expected_2 in file_rows_1
+    assert expected_3 in file_rows_1
+    assert expected_4 in file_rows_1
+    assert expected_5 in file_rows_1
+    assert expected_6 in file_rows_1
+    assert expected_7 in file_rows_1
+    assert expected_8 in file_rows_2
+    assert expected_9 in file_rows_3
+    assert expected_10 in file_rows_4
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
