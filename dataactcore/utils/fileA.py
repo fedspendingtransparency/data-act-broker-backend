@@ -192,30 +192,29 @@ def failed_edits_details(session, tas_gtas, period, year):
             grouped_fail = session.query(subquery).filter(subquery.c.row == 1).cte('grouped_fail')
 
             query = session.query(
-                    tas_gtas,
-                    case([
-                        (and_(func.upper(grouped_fail.c.severity) == 'FATAL',
-                              grouped_fail.c.approved_override_exists.is_(False)),
-                            literal_column("'failed fatal edit - no override'")),
-                        (and_(grouped_fail.c.atb_submission_status == 'F',
-                              func.upper(grouped_fail.c.severity) == 'FATAL',
-                              grouped_fail.c.approved_override_exists.is_(True)),
-                            literal_column("'failed fatal edit - override'")),
-                        (and_(grouped_fail.c.atb_submission_status == 'E',
-                              func.upper(grouped_fail.c.severity) == 'FATAL',
-                              grouped_fail.c.approved_override_exists.is_(True)),
-                            literal_column("'passed required edits - override'")),
-                        (and_(grouped_fail.c.atb_submission_status == 'P',
-                              func.upper(grouped_fail.c.severity) == 'FATAL',
-                              grouped_fail.c.approved_override_exists.is_(True)),
-                            literal_column("'pending certification - override'")),
-                        (and_(grouped_fail.c.atb_submission_status == 'C',
-                              func.upper(grouped_fail.c.severity) == 'FATAL',
-                              grouped_fail.c.approved_override_exists.is_(True)),
-                            literal_column("'certified - override'")),
-                        (grouped_fail.c.severity.isnot(None), literal_column("'passed required edits - override'"))
-                        ],
-                        else_=literal_column("'passed required edits'")).label('gtas_status')).\
+                tas_gtas,
+                case([
+                    (and_(func.upper(grouped_fail.c.severity) == 'FATAL',
+                          grouped_fail.c.approved_override_exists.is_(False)),
+                        literal_column("'failed fatal edit - no override'")),
+                    (and_(grouped_fail.c.atb_submission_status == 'F',
+                          func.upper(grouped_fail.c.severity) == 'FATAL',
+                          grouped_fail.c.approved_override_exists.is_(True)),
+                        literal_column("'failed fatal edit - override'")),
+                    (and_(grouped_fail.c.atb_submission_status == 'E',
+                          func.upper(grouped_fail.c.severity) == 'FATAL',
+                          grouped_fail.c.approved_override_exists.is_(True)),
+                        literal_column("'passed required edits - override'")),
+                    (and_(grouped_fail.c.atb_submission_status == 'P',
+                          func.upper(grouped_fail.c.severity) == 'FATAL',
+                          grouped_fail.c.approved_override_exists.is_(True)),
+                        literal_column("'pending certification - override'")),
+                    (and_(grouped_fail.c.atb_submission_status == 'C',
+                          func.upper(grouped_fail.c.severity) == 'FATAL',
+                          grouped_fail.c.approved_override_exists.is_(True)),
+                        literal_column("'certified - override'")),
+                    (grouped_fail.c.severity.isnot(None), literal_column("'passed required edits - override'"))
+                ], else_=literal_column("'passed required edits'")).label('gtas_status')).\
                 join(grouped_fail, and_(tas_gtas.c.tas == grouped_fail.c.tas), isouter=True)
     return query.cte('tas_gtas_fail')
 
