@@ -4,10 +4,20 @@
 -- the Parent agency, and the AllocationTransferAgencyIdentifier listed should match the Common Government-wide
 -- Accounting Classification (CGAC) of the submitting agency.
 WITH limited_lines_sf_133_b21_{0} AS
-    (SELECT *
-    FROM sf_133
+    (SELECT sf.*
+    FROM sf_133 AS sf
+    JOIN submission AS sub
+        ON sf.period = sub.reporting_fiscal_period
+        AND sf.fiscal_year = sub.reporting_fiscal_year
+        AND ((sf.agency_identifier = sub.cgac_code
+                AND sf.allocation_transfer_agency IS NULL
+            )
+            OR sf.allocation_transfer_agency = sub.cgac_code
+        )
     WHERE line IN (2190, 3020)
-        AND amount <> 0)
+        AND amount <> 0
+        AND sub.submission_id = {0}
+        AND sub.is_quarter_format IS FALSE)
 SELECT DISTINCT
     NULL AS row_number,
     sf.allocation_transfer_agency,
@@ -21,19 +31,9 @@ SELECT DISTINCT
     sf.display_tas AS "uniqueid_TAS",
     sf.disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM limited_lines_sf_133_b21_{0} AS sf
-    JOIN submission AS sub
-        ON sf.period = sub.reporting_fiscal_period
-        AND sf.fiscal_year = sub.reporting_fiscal_year
-        AND ((sf.agency_identifier = sub.cgac_code
-                AND sf.allocation_transfer_agency IS NULL
-            )
-            OR sf.allocation_transfer_agency = sub.cgac_code
-        )
     LEFT JOIN tas_lookup
         ON tas_lookup.account_num = sf.account_num
-WHERE sub.submission_id = {0}
-    AND sub.is_quarter_format IS FALSE
-    AND NOT EXISTS (
+WHERE NOT EXISTS (
         SELECT 1
         FROM object_class_program_activity AS op
         WHERE sf.tas IS NOT DISTINCT FROM op.tas
