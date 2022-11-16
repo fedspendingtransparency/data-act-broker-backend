@@ -488,6 +488,25 @@ Index("ix_zips_zip5_state_abbreviation_county_number",
       unique=False)
 
 
+class ZipsHistorical(Base):
+    """ Previous census zip and other address data for validation """
+    __tablename__ = "zips_historical"
+
+    zips_historical_id = Column(Integer, primary_key=True)
+    zip5 = Column(Text, index=True)
+    zip_last4 = Column(Text, index=True)
+    state_abbreviation = Column(Text, index=True)
+    county_number = Column(Text, index=True)
+    congressional_district_no = Column(Text, index=True)
+
+
+Index("ix_zips_historical_zip5_state_abbreviation_county_number",
+      ZipsHistorical.zip5,
+      ZipsHistorical.state_abbreviation,
+      ZipsHistorical.county_number,
+      unique=False)
+
+
 class ZipsGrouped(Base):
     """ Zip and other address data without the final 4 digits for derivation """
     __tablename__ = "zips_grouped"

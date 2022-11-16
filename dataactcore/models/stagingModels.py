@@ -1073,7 +1073,7 @@ class PublishedAwardProcurement(Base):
     extent_competed = Column(Text)
     extent_compete_description = Column(Text)
     contract_opp_notice = Column(Text)
-    contract_opp_notice_description = Column(Text)
+    contract_opp_notice_desc = Column(Text)
     foreign_funding = Column(Text)
     foreign_funding_desc = Column(Text)
     government_furnished_prope = Column(Text)
