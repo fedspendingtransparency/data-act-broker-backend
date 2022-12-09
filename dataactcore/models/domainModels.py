@@ -518,6 +518,17 @@ class ZipsGrouped(Base):
     congressional_district_no = Column(Text)
 
 
+class ZipsGroupedHistorical(Base):
+    """ Previous census zip and other address data without the final 4 digits for derivation """
+    __tablename__ = "zips_grouped_historical"
+
+    zips_grouped_historical_id = Column(Integer, primary_key=True)
+    zip5 = Column(Text, index=True)
+    state_abbreviation = Column(Text)
+    county_number = Column(Text)
+    congressional_district_no = Column(Text)
+
+
 class CityCode(Base):
     """ City code data and other useful, identifying location data """
     __tablename__ = "city_code"
