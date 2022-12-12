@@ -249,7 +249,7 @@ def derive_ppop_location_data(sess, submission_id):
 
         Args:
             sess: the current DB session
-            submission_id: The ID of the submission derivations are being run for
+            submission_id: The ID of the submission derivations are being run for.
     """
     start_time = datetime.now()
     log_derivation('Beginning place of performance location derivation', submission_id)
