@@ -28,4 +28,4 @@ WHERE sf.line = 2190
 GROUP BY op.display_tas,
     UPPER(op.disaster_emergency_fund_code),
     sf.amount
-HAVING SUM(COALESCE(op.obligations_incurred_by_pr_cpe, 0)) <> sf.amount;
+HAVING SUM(COALESCE(op.obligations_incurred_by_pr_cpe, 0)) <> (-1 * sf.amount);
