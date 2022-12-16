@@ -246,6 +246,7 @@ def split_ppop_zip(sess, submission_id):
 
 def derive_ppop_location_data(sess, submission_id):
     """ Deriving place of performance location values from zip4
+        See zips_historical.md for information on zips_historical and zips_grouped_historical.
 
         Args:
             sess: the current DB session
@@ -476,6 +477,7 @@ def derive_ppop_scope(sess, submission_id):
 
 def derive_le_location_data(sess, submission_id):
     """ Deriving place of performance location values
+        See zips_historical.md for information on zips_historical and zips_grouped_historical.
 
         Args:
             sess: the current DB session
