@@ -169,11 +169,34 @@ class ZipsFactory(factory.Factory):
     congressional_district_no = fuzzy.FuzzyText()
 
 
+class ZipsHistoricalFactory(factory.Factory):
+    class Meta:
+        model = domainModels.ZipsHistorical
+
+    zips_historical_id = None
+    zip5 = fuzzy.FuzzyText()
+    zip_last4 = fuzzy.FuzzyText()
+    state_abbreviation = fuzzy.FuzzyText()
+    county_number = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
+
+
 class ZipsGroupedFactory(factory.Factory):
     class Meta:
         model = domainModels.ZipsGrouped
 
     zips_grouped_id = None
+    zip5 = fuzzy.FuzzyText()
+    state_abbreviation = fuzzy.FuzzyText()
+    county_number = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
+
+
+class ZipsGroupedHistoricalFactory(factory.Factory):
+    class Meta:
+        model = domainModels.ZipsGroupedHistorical
+
+    zips_grouped_historical_id = None
     zip5 = fuzzy.FuzzyText()
     state_abbreviation = fuzzy.FuzzyText()
     county_number = fuzzy.FuzzyText()
