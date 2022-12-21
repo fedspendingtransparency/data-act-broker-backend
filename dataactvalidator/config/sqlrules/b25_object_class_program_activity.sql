@@ -13,7 +13,7 @@ SELECT
     NULL AS "row_number",
     SUM(COALESCE(op.obligations_incurred_by_pr_cpe, 0)) AS "obligations_incurred_by_pr_cpe_sum",
     sf.amount AS "expected_value_GTAS SF133 Line 2190",
-    SUM(COALESCE(op.obligations_incurred_by_pr_cpe, 0)) - sf.amount AS "difference",
+    SUM(COALESCE(op.obligations_incurred_by_pr_cpe, 0)) + sf.amount AS "difference",
     op.display_tas AS "uniqueid_TAS",
     UPPER(op.disaster_emergency_fund_code) AS "uniqueid_DisasterEmergencyFundCode"
 FROM object_class_program_activity_b25_{0} AS op
