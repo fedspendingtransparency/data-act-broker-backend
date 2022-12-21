@@ -499,6 +499,8 @@ class ZipsHistorical(Base):
     county_number = Column(Text, index=True)
     congressional_district_no = Column(Text, index=True)
 
+    __table_args__ = (UniqueConstraint('zip5', 'zip_last4', name='uniq_hist_zip5_zip_last4'),)
+
 
 Index("ix_zips_historical_zip5_state_abbreviation_county_number",
       ZipsHistorical.zip5,
