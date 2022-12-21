@@ -1,5 +1,5 @@
 -- ObligationsIncurredByProgramObjectClass_CPE = value for GTAS SF 133 line #2190 for the same reporting period for the
--- TAS and DEFC combination
+-- TAS and DEFC combination.
 WITH object_class_program_activity_b25_{0} AS
     (SELECT submission_id,
         row_number,
