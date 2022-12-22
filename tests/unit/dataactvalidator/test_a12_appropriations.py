@@ -9,7 +9,7 @@ _TAS = 'a12_appropriations_tas'
 
 def test_column_headers(database):
     expected_subset = {'uniqueid_TAS', 'row_number', 'adjustments_to_unobligated_cpe',
-                       'expected_value_SUM of GTAS SF133 Lines 1010 through 1066', 'difference'}
+                       'expected_value_SUM of GTAS SF133 Lines 1010 through 1067', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
@@ -37,7 +37,7 @@ def test_success(database):
 
 
 def test_success_post_2020(database):
-    """ Tests that SF 133 amount sum for lines 1010 through 1066 matches Appropriation adjustments_to_unobligated_cpe
+    """ Tests that SF 133 amount sum for lines 1010 through 1067 matches Appropriation adjustments_to_unobligated_cpe
         for the specified fiscal year and period if the year is over 2020
     """
     tas = "".join([_TAS, "_success"])
@@ -48,7 +48,7 @@ def test_success_post_2020(database):
                  main_account_code="000", sub_account_code="000")
     sf_3 = SF133(line=1040, tas=tas, period=1, fiscal_year=2021, amount=1, agency_identifier="sys",
                  main_account_code="000", sub_account_code="000")
-    sf_4 = SF133(line=1060, tas=tas, period=1, fiscal_year=2021, amount=1, agency_identifier="sys",
+    sf_4 = SF133(line=1067, tas=tas, period=1, fiscal_year=2021, amount=1, agency_identifier="sys",
                  main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, adjustments_to_unobligated_cpe=4)
 
