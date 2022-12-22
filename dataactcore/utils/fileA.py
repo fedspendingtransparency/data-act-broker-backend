@@ -230,7 +230,7 @@ def initial_query(session, model, year):
         Returns:
             The base query (a select from the tas/gtas tables with the specified columns).
     """
-    budget_authority_line_max = 1042 if year <= 2020 else 1066
+    budget_authority_line_max = 1042 if year <= 2020 else 1067
     return session.query(
         model.allocation_transfer_agency,
         model.agency_identifier,

@@ -208,7 +208,7 @@ def test_generate_a(database, monkeypatch):
     sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1180, amount='2.00', **tas1_dict)
     sf3 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1000, amount='4.00', **tas2_dict)
     sf4 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1042, amount='4.00', **tas2_dict)
-    sf5 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1066, amount='4.00', **tas2_dict)
+    sf5 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1067, amount='4.00', **tas2_dict)
     tas1 = TASFactory(financial_indicator2=' ', **tas1_dict)
     tas2 = TASFactory(financial_indicator2=' ', **tas2_dict)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
@@ -289,7 +289,7 @@ def test_generate_a_after_2020(database, monkeypatch):
     tas_str = concat_tas_dict(tas_dict)
 
     sf1 = SF133Factory(period=6, fiscal_year=year, tas=tas_str, line=1042, amount='4.00', **tas_dict)
-    sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas_str, line=1066, amount='4.00', **tas_dict)
+    sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas_str, line=1067, amount='4.00', **tas_dict)
     tas = TASFactory(financial_indicator2=' ', **tas_dict)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
@@ -384,7 +384,7 @@ def test_generate_a_null_ata(database, monkeypatch):
     sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1180, amount='2.00', **tas1_dict)
     sf3 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1000, amount='4.00', **tas2_dict)
     sf4 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1042, amount='4.00', **tas2_dict)
-    sf5 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1066, amount='4.00', **tas2_dict)
+    sf5 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1067, amount='4.00', **tas2_dict)
     tas1 = TASFactory(financial_indicator2=' ', fr_entity_type=agency_frec, **tas1_dict)
     tas2 = TASFactory(financial_indicator2=' ', fr_entity_type=agency_frec, **tas2_dict)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
