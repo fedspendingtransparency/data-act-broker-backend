@@ -54,7 +54,7 @@ PrimaryPlaceOfPerformanceStateCode,primaryplaceofperformancestatecode,place_of_p
 PrimaryPlaceOfPerformanceCountryCode,primaryplaceofperformancecountrycode,place_of_perform_country_c,FALSE,str,,
 IDV_Type,idv_type,idv_type,FALSE,str,,
 IDV_Type Description Tag,idv_type_description_tag,idv_type_description,FALSE,str,,
-Entity Doing As Business Name,entity_doing_as_business_name,entity_doing_as_business_n,FALSE,str,,
+Entity Doing Business As Name,entity_doing_business_as_name,entity_doing_business_as_n,FALSE,str,,
 Entity Phone Number,entity_phone_number,entity_phone_number,FALSE,str,,
 Entity Fax Number,entity_fax_number,entity_fax_number,FALSE,str,,
 Multiple or Single Award IDV,multiple_or_single_award_idv,multiple_or_single_award_i,FALSE,str,,
