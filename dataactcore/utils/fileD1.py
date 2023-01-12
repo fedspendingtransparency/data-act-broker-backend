@@ -45,7 +45,7 @@ mapping = OrderedDict([
     ('sam_exception_description', ['SAM Exception Description Tag', 'SAM Exception Description Tag ()']),
     ('awardee_or_recipient_uei', ['AwardeeOrRecipientUEI', 'AwardeeOrRecipientUEI (9M)']),
     ('awardee_or_recipient_legal', ['AwardeeOrRecipientLegalEntityName', 'AwardeeOrRecipientLegalEntityName (13GG)']),
-    ('vendor_doing_as_business_n', ['Entity Doing As Business Name', 'Entity Doing As Business Name (13HH)']),
+    ('vendor_doing_as_business_n', ['Entity Doing Business As Name', 'Entity Doing Business As Name (13HH)']),
     ('cage_code', ['CAGE Code', 'CAGE Code (9L)']),
     ('ultimate_parent_uei', ['UltimateParentUEI', 'UltimateParentUEI ()']),
     ('ultimate_parent_legal_enti', ['UltimateParentLegalEntityName', 'UltimateParentLegalEntityName ()']),
