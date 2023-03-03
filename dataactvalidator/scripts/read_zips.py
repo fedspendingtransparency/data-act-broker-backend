@@ -293,7 +293,7 @@ def parse_zip4_file(f, sess):
                     congressional_district = curr_row[162:164]
 
                 # certain states require specific CDs
-                if state in ["AK", "DE", "MT", "ND", "SD", "VT", "WY"]:
+                if state in ["AK", "DE", "ND", "SD", "VT", "WY"]:
                     congressional_district = "00"
                 elif state in ["AS", "DC", "GU", "MP", "PR", "VI"]:
                     congressional_district = "98"
