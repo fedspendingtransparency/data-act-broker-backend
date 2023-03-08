@@ -1,20 +1,62 @@
 WITH aw_dap AS
-    (SELECT DISTINCT ON (
-            UPPER(dap.piid),
-            UPPER(dap.parent_award_id),
-            UPPER(dap.awarding_sub_tier_agency_c)
-        )
-        dap.unique_award_key AS unique_award_key,
+    (SELECT dap.unique_award_key AS unique_award_key,
         dap.piid AS piid,
         dap.idv_type AS idv_type,
         dap.parent_award_id AS parent_award_id,
         dap.award_description as award_description,
         dap.awarding_sub_tier_agency_c AS awarding_sub_tier_agency_c,
+        dap.awarding_sub_tier_agency_n AS awarding_sub_tier_agency_n,
+        dap.naics AS naics,
         dap.naics_description AS naics_description,
         dap.awarding_agency_code AS awarding_agency_code,
         dap.awarding_agency_name AS awarding_agency_name,
         dap.funding_agency_code AS funding_agency_code,
-        dap.funding_agency_name AS funding_agency_name
+        dap.funding_agency_name AS funding_agency_name,
+        dap.awarding_office_code AS awarding_office_code,
+        dap.awarding_office_name AS awarding_office_name,
+        dap.funding_sub_tier_agency_co AS funding_sub_tier_agency_co,
+        dap.funding_sub_tier_agency_na AS funding_sub_tier_agency_na,
+        dap.funding_office_code AS funding_office_code,
+        dap.funding_office_name AS funding_office_name,
+        dap.awardee_or_recipient_uei AS awardee_or_recipient_uei,
+        dap.awardee_or_recipient_legal AS awardee_or_recipient_legal,
+        dap.ultimate_parent_unique_ide AS ultimate_parent_unique_ide,
+        dap.ultimate_parent_uei AS ultimate_parent_uei,
+        dap.ultimate_parent_legal_enti AS ultimate_parent_legal_enti,
+        dap.legal_entity_address_line1 AS legal_entity_address_line1,
+        dap.legal_entity_city_name AS legal_entity_city_name,
+        dap.legal_entity_state_code AS legal_entity_state_code,
+        dap.legal_entity_state_descrip AS legal_entity_state_descrip,
+        dap.legal_entity_country_code AS legal_entity_country_code,
+        dap.legal_entity_country_name AS legal_entity_country_name,
+        dap.legal_entity_zip4 AS legal_entity_zip4,
+        dap.legal_entity_congressional AS legal_entity_congressional,
+        dap.place_of_perform_city_name AS place_of_perform_city_name,
+        dap.place_of_performance_state AS place_of_performance_state,
+        dap.place_of_perfor_state_desc AS place_of_perfor_state_desc,
+        dap.place_of_performance_zip4a AS place_of_performance_zip4a,
+        dap.place_of_performance_congr AS place_of_performance_congr,
+        dap.place_of_perform_country_c AS place_of_perform_country_c,
+        dap.place_of_perf_country_desc AS place_of_perf_country_desc,
+        dap.high_comp_officer1_full_na AS high_comp_officer1_full_na,
+        dap.high_comp_officer1_amount AS high_comp_officer1_amount,
+        dap.high_comp_officer2_full_na AS high_comp_officer2_full_na,
+        dap.high_comp_officer2_amount AS high_comp_officer2_amount,
+        dap.high_comp_officer3_full_na AS high_comp_officer3_full_na,
+        dap.high_comp_officer3_amount AS high_comp_officer3_amount,
+        dap.high_comp_officer4_full_na AS high_comp_officer4_full_na,
+        dap.high_comp_officer4_amount AS high_comp_officer4_amount,
+        dap.high_comp_officer5_full_na AS high_comp_officer5_full_na,
+        dap.high_comp_officer5_amount AS high_comp_officer5_amount,
+        dap.total_obligated_amount AS total_obligated_amount,
+        dap.vendor_doing_as_business_n AS vendor_doing_as_business_n,
+        dap.action_date AS action_date,
+        CASE WHEN COALESCE(action_type, '') = '' THEN 1
+            ELSE 2
+        END AS action_type_sort,
+        CASE WHEN COALESCE(award_modification_amendme, '') = '' THEN '0'
+            ELSE award_modification_amendme
+        END AS mod_num_sort
     FROM detached_award_procurement AS dap
     WHERE EXISTS (
         SELECT 1
@@ -24,7 +66,82 @@ WITH aw_dap AS
             AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
             AND fsrs_procurement.id {0} {1}
     )
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date)
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date),
+base_aw_dap AS
+    (SELECT DISTINCT ON (
+            UPPER(dap.piid),
+            UPPER(dap.parent_award_id),
+            UPPER(dap.awarding_sub_tier_agency_c)
+        )
+        dap.unique_award_key AS unique_award_key,
+        dap.piid AS piid,
+        dap.parent_award_id AS parent_award_id,
+        dap.awarding_sub_tier_agency_c AS awarding_sub_tier_agency_c,
+        dap.idv_type AS idv_type,
+        dap.award_description as award_description,
+        cast_as_date(dap.action_date) AS action_date
+    FROM aw_dap AS dap
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort),
+latest_aw_dap AS
+    (SELECT DISTINCT ON (
+            UPPER(dap.piid),
+            UPPER(dap.parent_award_id),
+            UPPER(dap.awarding_sub_tier_agency_c)
+        )
+        dap.unique_award_key AS unique_award_key,
+        dap.piid AS piid,
+        dap.parent_award_id AS parent_award_id,
+        dap.awarding_sub_tier_agency_c AS awarding_sub_tier_agency_c,
+        dap.awarding_sub_tier_agency_n AS awarding_sub_tier_agency_n,
+        dap.idv_type AS idv_type,
+        dap.awarding_agency_code AS awarding_agency_code,
+        dap.awarding_agency_name AS awarding_agency_name,
+        dap.funding_agency_code AS funding_agency_code,
+        dap.funding_agency_name AS funding_agency_name,
+        dap.awarding_office_code AS awarding_office_code,
+        dap.awarding_office_name AS awarding_office_name,
+        dap.funding_sub_tier_agency_co AS funding_sub_tier_agency_co,
+        dap.funding_sub_tier_agency_na AS funding_sub_tier_agency_na,
+        dap.funding_office_code AS funding_office_code,
+        dap.funding_office_name AS funding_office_name,
+        dap.awardee_or_recipient_uei AS awardee_or_recipient_uei,
+        dap.awardee_or_recipient_legal AS awardee_or_recipient_legal,
+        dap.ultimate_parent_unique_ide AS ultimate_parent_unique_ide,
+        dap.ultimate_parent_uei AS ultimate_parent_uei,
+        dap.ultimate_parent_legal_enti AS ultimate_parent_legal_enti,
+        dap.legal_entity_address_line1 AS legal_entity_address_line1,
+        dap.legal_entity_city_name AS legal_entity_city_name,
+        dap.legal_entity_state_code AS legal_entity_state_code,
+        dap.legal_entity_state_descrip AS legal_entity_state_descrip,
+        dap.legal_entity_country_code AS legal_entity_country_code,
+        dap.legal_entity_country_name AS legal_entity_country_name,
+        dap.legal_entity_zip4 AS legal_entity_zip4,
+        dap.legal_entity_congressional AS legal_entity_congressional,
+        dap.place_of_perform_city_name AS place_of_perform_city_name,
+        dap.place_of_performance_state AS place_of_performance_state,
+        dap.place_of_perfor_state_desc AS place_of_perfor_state_desc,
+        dap.place_of_performance_zip4a AS place_of_performance_zip4a,
+        dap.place_of_performance_congr AS place_of_performance_congr,
+        dap.place_of_perform_country_c AS place_of_perform_country_c,
+        dap.place_of_perf_country_desc AS place_of_perf_country_desc,
+        dap.high_comp_officer1_full_na AS high_comp_officer1_full_na,
+        dap.high_comp_officer1_amount AS high_comp_officer1_amount,
+        dap.high_comp_officer2_full_na AS high_comp_officer2_full_na,
+        dap.high_comp_officer2_amount AS high_comp_officer2_amount,
+        dap.high_comp_officer3_full_na AS high_comp_officer3_full_na,
+        dap.high_comp_officer3_amount AS high_comp_officer3_amount,
+        dap.high_comp_officer4_full_na AS high_comp_officer4_full_na,
+        dap.high_comp_officer4_amount AS high_comp_officer4_amount,
+        dap.high_comp_officer5_full_na AS high_comp_officer5_full_na,
+        dap.high_comp_officer5_amount AS high_comp_officer5_amount,
+        dap.total_obligated_amount AS total_obligated_amount,
+        dap.vendor_doing_as_business_n AS vendor_doing_as_business_n,
+        dap.action_date AS action_date,
+        dap.naics AS naics,
+        dap.naics_description AS naics_description,
+        cast_as_date(dap.action_date) AS action_date
+    FROM aw_dap AS dap
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC)
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -163,57 +280,57 @@ INSERT INTO subaward (
     "updated_at"
 )
 SELECT
-    aw_dap.unique_award_key AS "unique_award_key",
-    fsrs_procurement.contract_number AS "award_id",
-    fsrs_procurement.idv_reference_number AS "parent_award_id",
-    fsrs_procurement.dollar_obligated AS "award_amount",
-    fsrs_procurement.date_signed AS "action_date",
-    'FY' || fy(fsrs_procurement.date_signed) AS "fy",
-    aw_dap.awarding_agency_code AS "awarding_agency_code",
-    aw_dap.awarding_agency_name AS "awarding_agency_name",
-    fsrs_procurement.contracting_office_aid AS "awarding_sub_tier_agency_c",
-    fsrs_procurement.contracting_office_aname AS "awarding_sub_tier_agency_n",
-    fsrs_procurement.contracting_office_id AS "awarding_office_code",
-    fsrs_procurement.contracting_office_name AS "awarding_office_name",
-    aw_dap.funding_agency_code AS "funding_agency_code",
-    aw_dap.funding_agency_name AS "funding_agency_name",
-    fsrs_procurement.funding_agency_id AS "funding_sub_tier_agency_co",
-    fsrs_procurement.funding_agency_name AS "funding_sub_tier_agency_na",
-    fsrs_procurement.funding_office_id AS "funding_office_code",
-    fsrs_procurement.funding_office_name AS "funding_office_name",
+    ldap.unique_award_key AS "unique_award_key",
+    ldap.piid AS "award_id",
+    ldap.parent_award_id AS "parent_award_id",
+    ldap.total_obligated_amount AS "award_amount",
+    bdap.action_date AS "action_date",
+    'FY' || fy(bdap.action_date) AS "fy",
+    ldap.awarding_agency_code AS "awarding_agency_code",
+    ldap.awarding_agency_name AS "awarding_agency_name",
+    ldap.awarding_sub_tier_agency_c AS "awarding_sub_tier_agency_c",
+    ldap.awarding_sub_tier_agency_n AS "awarding_sub_tier_agency_n",
+    ldap.awarding_office_code AS "awarding_office_code",
+    ldap.awarding_office_name AS "awarding_office_name",
+    ldap.funding_agency_code AS "funding_agency_code",
+    ldap.funding_agency_name AS "funding_agency_name",
+    ldap.funding_sub_tier_agency_co AS "funding_sub_tier_agency_co",
+    ldap.funding_sub_tier_agency_na AS "funding_sub_tier_agency_na",
+    ldap.funding_office_code AS "funding_office_code",
+    ldap.funding_office_name AS "funding_office_name",
     fsrs_procurement.duns AS "awardee_or_recipient_uniqu",
-    fsrs_procurement.uei_number AS "awardee_or_recipient_uei",
-    fsrs_procurement.company_name AS "awardee_or_recipient_legal",
-    fsrs_procurement.dba_name AS "dba_name",
-    fsrs_procurement.parent_duns AS "ultimate_parent_unique_ide",
-    fsrs_procurement.parent_uei AS "ultimate_parent_uei",
-    fsrs_procurement.parent_company_name AS "ultimate_parent_legal_enti",
-    le_country.country_code AS "legal_entity_country_code",
-    le_country.country_name AS "legal_entity_country_name",
-    fsrs_procurement.company_address_street AS "legal_entity_address_line1",
-    fsrs_procurement.company_address_city AS "legal_entity_city_name",
-    fsrs_procurement.company_address_state AS "legal_entity_state_code",
-    fsrs_procurement.company_address_state_name AS "legal_entity_state_name",
-    CASE WHEN fsrs_procurement.company_address_country = 'USA'
-         THEN fsrs_procurement.company_address_zip
+    ldap.awardee_or_recipient_uei AS "awardee_or_recipient_uei",
+    ldap.awardee_or_recipient_legal AS "awardee_or_recipient_legal",
+    ldap.vendor_doing_as_business_n AS "dba_name",
+    ldap.ultimate_parent_unique_ide AS "ultimate_parent_unique_ide",
+    ldap.ultimate_parent_uei AS "ultimate_parent_uei",
+    ldap.ultimate_parent_legal_enti AS "ultimate_parent_legal_enti",
+    ldap.legal_entity_country_code AS "legal_entity_country_code",
+    ldap.legal_entity_country_name AS "legal_entity_country_name",
+    ldap.legal_entity_address_line1 AS "legal_entity_address_line1",
+    ldap.legal_entity_city_name AS "legal_entity_city_name",
+    ldap.legal_entity_state_code AS "legal_entity_state_code",
+    ldap.legal_entity_state_descrip AS "legal_entity_state_name",
+    CASE WHEN ldap.legal_entity_country_code = 'USA'
+         THEN ldap.legal_entity_zip4
          ELSE NULL
     END AS "legal_entity_zip",
-    fsrs_procurement.company_address_district AS "legal_entity_congressional",
-    CASE WHEN fsrs_procurement.company_address_country <> 'USA'
-         THEN fsrs_procurement.company_address_zip
+    ldap.legal_entity_congressional AS "legal_entity_congressional",
+    CASE WHEN ldap.legal_entity_country_code <> 'USA'
+         THEN ldap.legal_entity_zip4
          ELSE NULL
     END AS "legal_entity_foreign_posta",
     fsrs_procurement.bus_types AS "business_types",
-    fsrs_procurement.principle_place_city AS "place_of_perform_city_name",
-    fsrs_procurement.principle_place_state AS "place_of_perform_state_code",
-    fsrs_procurement.principle_place_state_name AS "place_of_perform_state_name",
-    fsrs_procurement.principle_place_zip AS "place_of_performance_zip",
-    fsrs_procurement.principle_place_district AS "place_of_perform_congressio",
-    ppop_country.country_code AS "place_of_perform_country_co",
-    ppop_country.country_name AS "place_of_perform_country_na",
-    aw_dap.award_description AS "award_description",
-    fsrs_procurement.naics AS "naics",
-    aw_dap.naics_description AS "naics_description",
+    ldap.place_of_perform_city_name AS "place_of_perform_city_name",
+    ldap.place_of_performance_state AS "place_of_perform_state_code",
+    ldap.place_of_perfor_state_desc AS "place_of_perform_state_name",
+    ldap.place_of_performance_zip4a AS "place_of_performance_zip",
+    ldap.place_of_performance_congr AS "place_of_perform_congressio",
+    ldap.place_of_perform_country_c AS "place_of_perform_country_co",
+    ldap.place_of_perf_country_desc AS "place_of_perform_country_na",
+    bdap.award_description AS "award_description",
+    ldap.naics AS "naics",
+    ldap.naics_description AS "naics_description",
     NULL AS "cfda_numbers",
     NULL AS "cfda_titles",
 
@@ -284,16 +401,16 @@ SELECT
     fsrs_procurement.recovery_model_q2 AS "recovery_model_q2",
     NULL AS "compensation_q1",
     NULL AS "compensation_q2",
-    fsrs_procurement.top_paid_fullname_1 AS "high_comp_officer1_full_na",
-    fsrs_procurement.top_paid_amount_1 AS "high_comp_officer1_amount",
-    fsrs_procurement.top_paid_fullname_2 AS "high_comp_officer2_full_na",
-    fsrs_procurement.top_paid_amount_2 AS "high_comp_officer2_amount",
-    fsrs_procurement.top_paid_fullname_3 AS "high_comp_officer3_full_na",
-    fsrs_procurement.top_paid_amount_3 AS "high_comp_officer3_amount",
-    fsrs_procurement.top_paid_fullname_4 AS "high_comp_officer4_full_na",
-    fsrs_procurement.top_paid_amount_4 AS "high_comp_officer4_amount",
-    fsrs_procurement.top_paid_fullname_5 AS "high_comp_officer5_full_na",
-    fsrs_procurement.top_paid_amount_5 AS "high_comp_officer5_amount",
+    ldap.high_comp_officer1_full_na AS "high_comp_officer1_full_na",
+    ldap.high_comp_officer1_amount AS "high_comp_officer1_amount",
+    ldap.high_comp_officer2_full_na AS "high_comp_officer2_full_na",
+    ldap.high_comp_officer2_amount AS "high_comp_officer2_amount",
+    ldap.high_comp_officer3_full_na AS "high_comp_officer3_full_na",
+    ldap.high_comp_officer3_amount AS "high_comp_officer3_amount",
+    ldap.high_comp_officer4_full_na AS "high_comp_officer4_full_na",
+    ldap.high_comp_officer4_amount AS "high_comp_officer4_amount",
+    ldap.high_comp_officer5_full_na AS "high_comp_officer5_full_na",
+    ldap.high_comp_officer5_amount AS "high_comp_officer5_amount",
     fsrs_procurement.principle_place_street AS "place_of_perform_street",
 
     -- File F Subawards
@@ -321,16 +438,14 @@ SELECT
 FROM fsrs_procurement
     JOIN fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
-    LEFT OUTER JOIN aw_dap
-        ON UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(aw_dap.piid, '-', ''))
-        AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(aw_dap.parent_award_id, '-', ''))
-        AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(aw_dap.awarding_sub_tier_agency_c)
-    LEFT OUTER JOIN country_code AS le_country
-        ON (UPPER(fsrs_procurement.company_address_country) = UPPER(le_country.country_code)
-            OR UPPER(fsrs_procurement.company_address_country) = UPPER(le_country.country_code_2_char))
-    LEFT OUTER JOIN country_code AS ppop_country
-        ON (UPPER(fsrs_procurement.principle_place_country) = UPPER(ppop_country.country_code)
-            OR UPPER(fsrs_procurement.principle_place_country) = UPPER(ppop_country.country_code_2_char))
+    LEFT OUTER JOIN base_aw_dap AS bdap
+        ON UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(bdap.piid, '-', ''))
+        AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(bdap.parent_award_id, '-', ''))
+        AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(bdap.awarding_sub_tier_agency_c)
+    LEFT OUTER JOIN latest_aw_dap AS ldap
+        ON UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(ldap.piid, '-', ''))
+        AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(ldap.parent_award_id, '-', ''))
+        AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(ldap.awarding_sub_tier_agency_c)
     LEFT OUTER JOIN country_code AS sub_le_country
         ON (UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code)
             OR UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code_2_char))

@@ -53,7 +53,7 @@ WITH aw_pf AS
             WHEN UPPER(action_type) = 'E' THEN 2
             ELSE 3
         END AS action_type_sort,
-        CASE WHEN award_modification_amendme IS NULL THEN '0'
+        CASE WHEN COALESCE(award_modification_amendme, '') = '' THEN '0'
             ELSE award_modification_amendme
         END AS mod_num_sort
     FROM published_fabs AS pf
