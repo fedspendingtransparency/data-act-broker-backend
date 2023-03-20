@@ -10,9 +10,9 @@ WITH agency_list AS
         sta.is_frec,
         sta.sub_tier_agency_code
     FROM sub_tier_agency AS sta
-        LEFT OUTER JOIN cgac
+        INNER JOIN cgac
             ON cgac.cgac_id = sta.cgac_id
-        LEFT OUTER JOIN frec
+        INNER JOIN frec
             ON frec.frec_id = sta.frec_id)
 SELECT
     row_number,
