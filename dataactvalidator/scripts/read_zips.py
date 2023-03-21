@@ -380,7 +380,7 @@ def parse_citystate_file(f, sess):
                         county = curr_row[101:104]
 
                     # certain states require specific CDs
-                    if state in ["AK", "DE", "MT", "ND", "SD", "VT", "WY"]:
+                    if state in ["AK", "DE", "ND", "SD", "VT", "WY"]:
                         congressional_district = "00"
                     elif state in ["AS", "DC", "GU", "MP", "PR", "VI"]:
                         congressional_district = "98"
