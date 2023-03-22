@@ -187,6 +187,7 @@ SET
     awardee_or_recipient_uniqu = lap.awardee_or_recipient_uniqu,
     awardee_or_recipient_uei = lap.uei,
     awardee_or_recipient_legal = lap.awardee_or_recipient_legal,
+    dba_name = grant_uei.dba_name,
     ultimate_parent_unique_ide = lap.ultimate_parent_unique_ide,
     ultimate_parent_uei = lap.ultimate_parent_uei,
     ultimate_parent_legal_enti = lap.ultimate_parent_legal_enti,
