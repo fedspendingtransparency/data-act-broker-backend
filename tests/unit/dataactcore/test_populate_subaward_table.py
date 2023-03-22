@@ -977,20 +977,20 @@ def test_fix_broken_links(database, monkeypatch):
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
                                     int_country, contract_created_at, contract_updated_at) is False
 
-    # assert compare_grant_results(grants_results[0], fabs_agg, fabs_agg_2, fabs_grouped[fabs_agg.fain], grant_agg,
-    #                              sub_grant_agg, parent_recipient, recipient, dom_country, int_country, grant_created_at,
-    #                              grant_updated_at) is False
-    # assert compare_grant_results(grants_results[1], fabs_non_other, fabs_non_other_2, fabs_grouped[fabs_non_other.fain],
-    #                              grant_non_other, sub_grant_non_other, parent_recipient, recipient, dom_country,
-    #                              int_country, grant_created_at, grant_updated_at) is False
-    # assert compare_grant_results(grants_results[2], fabs_non_null_subtier, fabs_non_null_subtier_2,
-    #                              fabs_grouped[fabs_non_null_subtier.fain], grant_non_null_subtier,
-    #                              sub_grant_non_null_subtier, parent_recipient, recipient, dom_country, int_country,
-    #                              grant_created_at, grant_updated_at) is False
-    # assert compare_grant_results(grants_results[3], fabs_non_pop_subtier, fabs_non_pop_subtier_2,
-    #                              fabs_grouped[fabs_non_pop_subtier.fain], grant_non_pop_subtier,
-    #                              sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country, int_country,
-    #                              grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[0], fabs_agg, fabs_agg_2, fabs_grouped[fabs_agg.fain], grant_agg,
+                                 sub_grant_agg, parent_recipient, recipient, dom_country, int_country, grant_created_at,
+                                 grant_updated_at) is False
+    assert compare_grant_results(grants_results[1], fabs_non_other, fabs_non_other_2, fabs_grouped[fabs_non_other.fain],
+                                 grant_non_other, sub_grant_non_other, parent_recipient, recipient, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[2], fabs_non_null_subtier, fabs_non_null_subtier_2,
+                                 fabs_grouped[fabs_non_null_subtier.fain], grant_non_null_subtier,
+                                 sub_grant_non_null_subtier, parent_recipient, recipient, dom_country, int_country,
+                                 grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[3], fabs_non_pop_subtier, fabs_non_pop_subtier_2,
+                                 fabs_grouped[fabs_non_pop_subtier.fain], grant_non_pop_subtier,
+                                 sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country, int_country,
+                                 grant_created_at, grant_updated_at) is False
 
     # now add the awards and fix the broken links
     sess.add_all([d1_awd, d1_awd_2, d1_idv, d1_idv_2, fabs_non_null_subtier, fabs_non_null_subtier_2,
@@ -1021,16 +1021,16 @@ def test_fix_broken_links(database, monkeypatch):
                                     int_country, contract_created_at, contract_updated_at) is True
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
                                     int_country, contract_created_at, contract_updated_at) is True
-    # assert compare_grant_results(grants_results[0], fabs_agg, fabs_agg_2, fabs_grouped[fabs_agg.fain], grant_agg,
-    #                              sub_grant_agg, parent_recipient, recipient, dom_country, int_country, grant_created_at,
-    #                              grant_updated_at) is False
-    # assert compare_grant_results(grants_results[1], fabs_non_null_subtier, fabs_non_null_subtier_2,
-    #                              fabs_grouped[fabs_non_null_subtier.fain], grant_non_null_subtier,
-    #                              sub_grant_non_null_subtier, parent_recipient, recipient, dom_country,
-    #                              int_country, grant_created_at, grant_updated_at) is False
-    # assert compare_grant_results(grants_results[2], fabs_non_other, fabs_non_other_2, fabs_grouped[fabs_non_other.fain],
-    #                              grant_non_other, sub_grant_non_other, parent_recipient, recipient, dom_country,
-    #                              int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[0], fabs_agg, fabs_agg_2, fabs_grouped[fabs_agg.fain], grant_agg,
+                                 sub_grant_agg, parent_recipient, recipient, dom_country, int_country, grant_created_at,
+                                 grant_updated_at) is False
+    assert compare_grant_results(grants_results[1], fabs_non_null_subtier, fabs_non_null_subtier_2,
+                                 fabs_grouped[fabs_non_null_subtier.fain], grant_non_null_subtier,
+                                 sub_grant_non_null_subtier, parent_recipient, recipient, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[2], fabs_non_other, fabs_non_other_2, fabs_grouped[fabs_non_other.fain],
+                                 grant_non_other, sub_grant_non_other, parent_recipient, recipient, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[3], fabs_non_pop_subtier, fabs_non_pop_subtier_2,
                                  fabs_grouped[fabs_non_pop_subtier.fain], grant_non_pop_subtier,
                                  sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country,
