@@ -281,14 +281,14 @@ INSERT INTO subaward (
 )
 SELECT
     ldap.unique_award_key AS "unique_award_key",
-    ldap.piid AS "award_id",
-    ldap.parent_award_id AS "parent_award_id",
+    fsrs_procurement.contract_number AS "award_id",
+    fsrs_procurement.idv_reference_number AS "parent_award_id",
     ldap.total_obligated_amount AS "award_amount",
     bdap.action_date AS "action_date",
     'FY' || fy(bdap.action_date) AS "fy",
     ldap.awarding_agency_code AS "awarding_agency_code",
     ldap.awarding_agency_name AS "awarding_agency_name",
-    ldap.awarding_sub_tier_agency_c AS "awarding_sub_tier_agency_c",
+    fsrs_procurement.contracting_office_aid AS "awarding_sub_tier_agency_c",
     ldap.awarding_sub_tier_agency_n AS "awarding_sub_tier_agency_n",
     ldap.awarding_office_code AS "awarding_office_code",
     ldap.awarding_office_name AS "awarding_office_name",
