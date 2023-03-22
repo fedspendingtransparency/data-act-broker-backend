@@ -76,7 +76,7 @@ aw_dap AS
             AND UPPER(TRANSLATE(unlinked_subs.parent_award_id, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(dap.parent_award_id, '-', ''))
             AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(dap.awarding_sub_tier_agency_c)
     )
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date),
+    {0}),
 base_aw_dap AS
     (SELECT DISTINCT ON (
             UPPER(dap.piid),

@@ -329,14 +329,14 @@ INSERT INTO subaward (
 SELECT
     -- File F Prime Awards
     lap.unique_award_key AS "unique_award_key",
-    lap.fain AS "award_id",
+    fsrs_grant.fain AS "award_id",
     NULL AS "parent_award_id",
     gap.award_amount AS "award_amount",
     bap.action_date AS "action_date",
     'FY' || fy(bap.action_date) AS "fy",
     lap.awarding_agency_code AS "awarding_agency_code",
     lap.awarding_agency_name AS "awarding_agency_name",
-    lap.awarding_sub_tier_agency_c AS "awarding_sub_tier_agency_c",
+    fsrs_grant.federal_agency_id AS "awarding_sub_tier_agency_c",
     lap.awarding_sub_tier_agency_n AS "awarding_sub_tier_agency_n",
     lap.awarding_office_code AS "awarding_office_code",
     lap.awarding_office_name AS "awarding_office_name",

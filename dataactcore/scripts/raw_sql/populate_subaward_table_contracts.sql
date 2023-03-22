@@ -65,8 +65,7 @@ WITH aw_dap AS
             AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(dap.parent_award_id, '-', ''))
             AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
             AND fsrs_procurement.id {0} {1}
-    )
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date),
+    )),
 base_aw_dap AS
     (SELECT DISTINCT ON (
             UPPER(dap.piid),
