@@ -62,6 +62,7 @@ aw_dap AS
         dap.total_obligated_amount AS total_obligated_amount,
         dap.vendor_doing_as_business_n AS vendor_doing_as_business_n,
         dap.action_date AS action_date,
+        -- The following are used for sorting by base vs latest transaction to put them in the proper order
         CASE WHEN COALESCE(action_type, '') = '' THEN 1
             ELSE 2
         END AS action_type_sort,

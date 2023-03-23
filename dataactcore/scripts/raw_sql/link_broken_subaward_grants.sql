@@ -59,6 +59,7 @@ aw_pf AS
         pf.high_comp_officer4_amount AS high_comp_officer4_amount,
         pf.high_comp_officer5_full_na AS high_comp_officer5_full_na,
         pf.high_comp_officer5_amount AS high_comp_officer5_amount,
+        -- The following are used for sorting by base vs latest transaction to put them in the proper order
         CASE WHEN UPPER(action_type) = 'A' THEN 1
             WHEN UPPER(action_type) = 'E' THEN 2
             ELSE 3
