@@ -79,6 +79,7 @@ class FSRSProcurementFactory(_ContractAttributes, _PrimeAwardAttributes):
     class Meta:
         model = fsrs.FSRSProcurement
 
+    id = fuzzy.FuzzyInteger(999999)
     contract_number = fuzzy.FuzzyText()
     idv_reference_number = None
     report_type = fuzzy.FuzzyText()
@@ -100,6 +101,8 @@ class FSRSSubcontractFactory(_ContractAttributes):
     class Meta:
         model = fsrs.FSRSSubcontract
 
+    id = fuzzy.FuzzyInteger(999999)
+    parent_id = fuzzy.FuzzyInteger(999999)
     subcontract_amount = fuzzy.FuzzyText()
     subcontract_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     subcontract_num = fuzzy.FuzzyText()
@@ -111,6 +114,7 @@ class FSRSGrantFactory(_GrantAttributes, _PrimeAwardAttributes):
     class Meta:
         model = fsrs.FSRSGrant
 
+    id = fuzzy.FuzzyInteger(999999)
     fain = fuzzy.FuzzyText()
     total_fed_funding_amount = fuzzy.FuzzyText()
     obligation_date = fuzzy.FuzzyDate(date(2010, 1, 1))
@@ -120,6 +124,8 @@ class FSRSSubgrantFactory(_GrantAttributes):
     class Meta:
         model = fsrs.FSRSSubgrant
 
+    id = fuzzy.FuzzyInteger(999999)
+    parent_id = fuzzy.FuzzyInteger(999999)
     subaward_amount = fuzzy.FuzzyText()
     subaward_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     subaward_num = fuzzy.FuzzyText()
