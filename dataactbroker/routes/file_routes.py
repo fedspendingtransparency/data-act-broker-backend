@@ -121,6 +121,7 @@ def add_file_routes(app, is_local, server_path):
         """ List all publish and certify history for a specific submission """
         return list_history(submission)
 
+    # TODO: Remove deprecated endpoint after April 2023
     @app.route("/v1/get_certified_file/", methods=["GET"])
     @use_kwargs({
         'submission_id': webargs_fields.Int(required=True),
@@ -129,6 +130,18 @@ def add_file_routes(app, is_local, server_path):
     })
     @requires_submission_perms('reader')
     def get_certified_file(submission, published_files_history_id, **kwargs):
+        """ Get the signed URL for the specified file history """
+        is_warning = kwargs.get('is_warning')
+        return file_history_url(published_files_history_id, is_warning, is_local, submission)
+
+    @app.route("/v1/get_published_file/", methods=["GET"])
+    @use_kwargs({
+        'submission_id': webargs_fields.Int(required=True),
+        'published_files_history_id': webargs_fields.Int(required=True),
+        'is_warning': webargs_fields.Bool(missing=False)
+    })
+    @requires_submission_perms('reader')
+    def get_published_file(submission, published_files_history_id, **kwargs):
         """ Get the signed URL for the specified file history """
         is_warning = kwargs.get('is_warning')
         return file_history_url(published_files_history_id, is_warning, is_local, submission)
