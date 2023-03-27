@@ -1,4 +1,5 @@
 from flask import request
+from flask_deprecate import deprecate_route
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
 
@@ -123,6 +124,7 @@ def add_file_routes(app, is_local, server_path):
 
     # TODO: Remove deprecated endpoint after April 2023
     @app.route("/v1/get_certified_file/", methods=["GET"])
+    @deprecate_route('This endpoint is deprecated. Please use get_published_file instead.')
     @use_kwargs({
         'submission_id': webargs_fields.Int(required=True),
         'published_files_history_id': webargs_fields.Int(required=True),
