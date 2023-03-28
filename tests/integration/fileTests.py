@@ -1019,7 +1019,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'History entry has no related file')
 
-    def test_get_certified_file(self):
+    def test_get_published_file(self):
         sess = GlobalDB.db().session
         published_files_history = sess.query(PublishedFilesHistory).\
             filter_by(certify_history_id=self.test_certify_history_id, file_type_id=FILE_TYPE_DICT['appropriations']).\
@@ -1036,21 +1036,21 @@ class FileTests(BaseTestAPI):
         # valid warning file
         params = {'submission_id': self.test_published_submission_id, 'is_warning': True,
                   'published_files_history_id': published_files_history.published_files_history_id}
-        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id})
+        response = self.app.get('/v1/get_published_file/', params, headers={'x-session-id': self.session_id})
         self.assertIn('path/to/warning_file_a.csv', response.json['url'])
         self.assertEqual(response.status_code, 200)
 
         # valid uploaded file
         params = {'submission_id': self.test_published_submission_id, 'is_warning': False,
                   'published_files_history_id': published_files_history.published_files_history_id}
-        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id})
+        response = self.app.get('/v1/get_published_file/', params, headers={'x-session-id': self.session_id})
         self.assertIn('path/to/file_a.csv', response.json['url'])
         self.assertEqual(response.status_code, 200)
 
         # nonexistent published_files_history_id
         params = {'submission_id': self.test_published_submission_id, 'is_warning': False,
                   'published_files_history_id': -1}
-        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/get_published_file/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'Invalid published_files_history_id')
@@ -1058,7 +1058,7 @@ class FileTests(BaseTestAPI):
         # non-matching submission_id and published_files_history_id
         params = {'submission_id': self.test_monthly_submission_id, 'is_warning': False,
                   'published_files_history_id': published_files_history.published_files_history_id}
-        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/get_published_file/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'],
@@ -1067,7 +1067,7 @@ class FileTests(BaseTestAPI):
         # no warning file associated with entry when requesting warning file
         params = {'submission_id': self.test_published_submission_id, 'is_warning': True,
                   'published_files_history_id': published_files_history_d.published_files_history_id}
-        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/get_published_file/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'History entry has no warning file')
@@ -1075,7 +1075,7 @@ class FileTests(BaseTestAPI):
         # no uploaded file associated with entry when requesting uploaded file
         params = {'submission_id': self.test_published_submission_id, 'is_warning': False,
                   'published_files_history_id': published_files_history_cross.published_files_history_id}
-        response = self.app.get('/v1/get_certified_file/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/get_published_file/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'History entry has no related file')

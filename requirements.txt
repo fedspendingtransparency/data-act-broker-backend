@@ -22,6 +22,7 @@ flake8==3.8.3
 Flask==1.1.2
 Flask-Bcrypt==0.7.1
 Flask-Cors==3.0.9
+Flask-Deprecate==0.1.3
 Flask-Login==0.3.2
 freezegun==0.3.7
 future==0.15.2
