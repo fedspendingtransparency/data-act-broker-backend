@@ -201,8 +201,6 @@ SET
     award_description = bdap.award_description,
     naics = ldap.naics,
     naics_description = ldap.naics_description,
-
-    -- File F Prime Awards
     high_comp_officer1_full_na = ldap.high_comp_officer1_full_na,
     high_comp_officer1_amount = ldap.high_comp_officer1_amount,
     high_comp_officer2_full_na = ldap.high_comp_officer2_full_na,

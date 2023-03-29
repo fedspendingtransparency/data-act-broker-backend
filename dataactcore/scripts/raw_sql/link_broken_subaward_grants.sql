@@ -169,7 +169,6 @@ grant_uei AS
     WHERE grant_uei_from.row = 1)
 UPDATE subaward
 SET
-    -- File F Prime Awards
     unique_award_key = lap.unique_award_key,
     award_amount = gap.award_amount,
     action_date = bap.action_date,
@@ -214,8 +213,6 @@ SET
     award_description = bap.award_description,
     cfda_numbers = ARRAY_TO_STRING(gap.cfda_nums, ', '),
     cfda_titles = ARRAY_TO_STRING(gap.cfda_names, ', '),
-
-    -- File F Prime Awards
     high_comp_officer1_full_na = lap.high_comp_officer1_full_na,
     high_comp_officer1_amount = lap.high_comp_officer1_amount,
     high_comp_officer2_full_na = lap.high_comp_officer2_full_na,
