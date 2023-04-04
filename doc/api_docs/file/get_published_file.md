@@ -1,16 +1,14 @@
-# GET "/v1/get\_certified\_file/"
+# GET "/v1/get\published\_file/"
 Get a signed url for a specified history item
 
-### **NOTE**: This endpoint is deprecated, please use `get_published_file` instead.
-
 ## Sample Request
-`/v1/get_certified_file/?submission_id=1&published_files_history_id=7&is_warning=true`
+`/v1/get_published_file/?submission_id=1&published_files_history_id=7&is_warning=true`
 
 ## Request Params
 
 - `submission_id`: (required, integer) the submission ID
 - `published_files_history_id`: (required, integer) the `published_files_history_id` of the file (obtained through [list\_history](./list_history.md))
-- `is_warning`: (boolean) whether the file being obtained is a warning file or the file that was certified. True = warning file. Default is False
+- `is_warning`: (boolean) whether the file being obtained is a warning file or the file that was published. True = warning file. Default is False
 
 ## Response (JSON)
 ```
@@ -20,7 +18,7 @@ Get a signed url for a specified history item
 ```
 
 ## Response Attributes
-- `url`: (string) the url to the certified
+- `url`: (string) the url to the published file
 
 ## Errors
 Possible HTTP Status Codes:
