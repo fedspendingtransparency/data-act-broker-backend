@@ -334,7 +334,7 @@ def test_ppop_derivations(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '02'
     assert fabs_obj.place_of_perform_county_co == '001'
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city == 'Test City'
@@ -356,16 +356,14 @@ def test_ppop_derivations(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    # TODO: return to 03 once we start deriving again
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '03'
 
     # when ppop_zip4a is 5 digits
     submission_id = initialize_test_row(database, ppop_zip4a='12345', submission_id=4)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    # cd should be 90 if there's more than one option once we start deriving again
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '90'
     assert fabs_obj.place_of_perform_county_co == '001'
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city == 'Test City'
@@ -375,8 +373,7 @@ def test_ppop_derivations(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    # TODO: return to 05 once we start deriving again
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '05'
     assert fabs_obj.place_of_perform_county_co == '001'
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city == 'Test City 2'
@@ -386,8 +383,7 @@ def test_ppop_derivations(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    # TODO: return to 90 once we start deriving again
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '90'
     assert fabs_obj.place_of_perform_county_co == '001'
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city == 'Test City 3'
@@ -443,7 +439,7 @@ def test_legal_entity_derivations(database):
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.legal_entity_city_name == 'Test City'
-    assert fabs_obj.legal_entity_congressional is None
+    assert fabs_obj.legal_entity_congressional == '01'
     assert fabs_obj.legal_entity_county_code == '001'
     assert fabs_obj.legal_entity_county_name == 'Test County'
     assert fabs_obj.legal_entity_state_code == 'NY'
@@ -468,8 +464,7 @@ def test_legal_entity_derivations(database):
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.legal_entity_city_name == 'Test City'
-    # there are multiple options so this should be 90 once we stop deriving to None
-    assert fabs_obj.legal_entity_congressional is None
+    assert fabs_obj.legal_entity_congressional == '90'
     assert fabs_obj.legal_entity_county_code == '001'
     assert fabs_obj.legal_entity_county_name == 'Test County'
     assert fabs_obj.legal_entity_state_code == 'NY'
@@ -760,7 +755,7 @@ def test_derive_pii_redacted_ppop_data(database):
     assert fabs_obj.place_of_perfor_state_code == 'NY'
     assert fabs_obj.place_of_perform_state_nam == 'New York'
     assert fabs_obj.place_of_performance_zip4a == '54321'
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '05'
 
     # Test derivations for historical data
     submission_id = initialize_test_row(database, record_type=3, legal_country='USA', le_zip5='11111', submission_id=2,
