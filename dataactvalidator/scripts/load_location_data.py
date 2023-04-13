@@ -332,36 +332,33 @@ def generate_cd_city_grouped(sess):
     cd_city_grouped_query = f"""
         WITH cd_percents AS (
             SELECT zc.city_name,
-                zips.state_abbreviation,
+                zc.state_code,
                 zips.congressional_district_no,
-                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zc.city_name, zips.state_abbreviation)) AS cd_percent
+                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zc.city_name, zc.state_code)) AS cd_percent
             FROM zips
-            JOIN zip_city AS zc ON zc.zip_code=zips.zip5
-            GROUP BY zc.city_name, zips.state_abbreviation, zips.congressional_district_no
+            JOIN zip_city AS zc ON (zc.zip_code=zips.zip5 AND zc.state_code=zips.state_abbreviation)
+            GROUP BY zc.city_name, zc.state_code, zips.congressional_district_no
         ),
         cd_passed_threshold AS (
             SELECT city_name,
-                state_abbreviation,
+                state_code,
                 congressional_district_no
             FROM cd_percents AS cp
             WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
         ),
         city_distinct AS (
-            SELECT DISTINCT city_name, state_abbreviation
+            SELECT DISTINCT city_name, state_code
             FROM cd_percents
-        )
-        INSERT INTO temp_cd_city_grouped (
-            created_at, updated_at, city_name, state_abbreviation, congressional_district_no
         )
         SELECT
             NOW(),
             NOW(),
             cyd.city_name,
-            cyd.state_abbreviation,
+            cyd.state_code,
             COALESCE(cpt.congressional_district_no, '90')
         FROM city_distinct AS cyd
         LEFT OUTER JOIN cd_passed_threshold AS cpt
-            ON cyd.city_name=cpt.city_name AND cyd.state_abbreviation=cpt.state_abbreviation;
+            ON cyd.city_name=cpt.city_name AND cyd.state_code=cpt.state_code;
     """
     sess.execute(cd_city_grouped_query)
     sess.commit()
