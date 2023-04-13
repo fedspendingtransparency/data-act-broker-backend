@@ -16,7 +16,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CityCode, CountyCode, States, ZipCity
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe, trim_item
+from dataactvalidator.scripts.loader_utils import insert_dataframe, trim_item, MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE
 
 logger = logging.getLogger(__name__)
 
@@ -307,8 +307,75 @@ def load_zip_city_data(force_reload):
         num = insert_dataframe(new_data, ZipCity.__table__.name, sess.connection())
         logger.info('{} records inserted to zip_city'.format(num))
         sess.commit()
+
+        # Regenerate cd_zips_grouped after zip_city is updated
+        generate_cd_city_grouped(sess)
     else:
         logger.info('No differences found, skipping zip_city table reload.')
+
+
+def generate_cd_city_grouped(sess):
+    """ Run SQL to group the congressional districts in the zips table by city name into the cd_city_grouped table
+
+        Args:
+            sess: the database connection
+    """
+    logger.info("Grouping zips into temporary cd_city_grouped table.")
+
+    prep_sql = """
+        CREATE TABLE IF NOT EXISTS temp_cd_city_grouped (LIKE cd_city_grouped INCLUDING ALL);
+        TRUNCATE TABLE temp_cd_city_grouped;
+        SELECT setval(\'cd_city_grouped_cd_city_grouped_id_seq\', 1, false);
+    """
+    sess.execute(prep_sql)
+
+    cd_city_grouped_query = f"""
+        WITH cd_percents AS (
+            SELECT zc.city_name,
+                zips.state_abbreviation,
+                zips.congressional_district_no,
+                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zc.city_name, zips.state_abbreviation)) AS cd_percent
+            FROM zips
+            JOIN zip_city AS zc ON zc.zip_code=zips.zip5
+            GROUP BY zc.city_name, zips.state_abbreviation, zips.congressional_district_no
+        ),
+        cd_passed_threshold AS (
+            SELECT city_name,
+                state_abbreviation,
+                congressional_district_no
+            FROM cd_percents AS cp
+            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+        ),
+        city_distinct AS (
+            SELECT DISTINCT city_name, state_abbreviation
+            FROM cd_percents
+        )
+        INSERT INTO temp_cd_city_grouped (
+            created_at, updated_at, city_name, state_abbreviation, congressional_district_no
+        )
+        SELECT
+            NOW(),
+            NOW(),
+            cyd.city_name,
+            cyd.state_abbreviation,
+            COALESCE(cpt.congressional_district_no, '90')
+        FROM city_distinct AS cyd
+        LEFT OUTER JOIN cd_passed_threshold AS cpt
+            ON cyd.city_name=cpt.city_name AND cyd.state_abbreviation=cpt.state_abbreviation;
+    """
+    sess.execute(cd_city_grouped_query)
+    sess.commit()
+
+    hot_swap_sql = """
+        ALTER SEQUENCE cd_city_grouped_cd_city_grouped_id_seq OWNED BY temp_cd_city_grouped.cd_city_grouped_id;
+        DROP TABLE cd_city_grouped;
+        ALTER TABLE temp_cd_city_grouped RENAME TO cd_city_grouped;
+        ALTER INDEX temp_cd_city_grouped_pkey RENAME TO cd_city_grouped_pkey;
+        ALTER INDEX temp_cd_city_grouped_city_name_idx RENAME TO ix_cd_city_grouped_city_name;
+        ALTER INDEX temp_cd_city_grouped_state_abbreviation_idx RENAME TO ix_cd_city_grouped_state_abbreviation;
+    """
+    sess.execute(hot_swap_sql)
+    sess.commit()
 
 
 def load_location_data(force_reload=False):

@@ -16,9 +16,11 @@ from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.models.domainModels import Zips, ZipsGrouped, StateCongressional
+from dataactcore.models.domainModels import (
+    Zips, ZipsGrouped, StateCongressional, CDStateGrouped, CDZipsGrouped, CDZipsGroupedHistorical, CDCountyGrouped
+)
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
-from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe, MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE
 
 from dataactvalidator.health_check import create_app
 
@@ -28,15 +30,16 @@ citystate_line_size = 129
 chunk_size = 1024 * 10
 
 
-def hot_swap_zip_tables(sess):
-    """ Drop the existing zips table, rename the temp_zips table, and rename all the indexes in a transaction.
+def hot_swap_zip_cd_tables(sess):
+    """ Drop the existing zips/cd tables, rename the temp zips/cd tables, and rename all the indexes in a transaction.
 
         Args:
             sess: the database connection
     """
-    # Getting indexes before dropping the table
-    indexes = Zips.__table__.indexes
-    grouped_indexes = ZipsGrouped.__table__.indexes
+    # Getting indexes before dropping the table (city is done in load_location_data)
+    indexes = []
+    for table in [Zips, ZipsGrouped, CDStateGrouped, CDZipsGrouped, CDZipsGroupedHistorical, CDCountyGrouped]:
+        indexes.extend(table.__table__.indexes)
 
     logger.info("Hot swapping temporary zips table to official zips table.")
 
@@ -46,17 +49,37 @@ def hot_swap_zip_tables(sess):
                     -- Make sure the sequences remain
                     ALTER SEQUENCE zips_zips_id_seq OWNED BY temp_zips.zips_id;
                     ALTER SEQUENCE zips_grouped_zips_grouped_id_seq OWNED BY temp_zips_grouped.zips_grouped_id;
+                    ALTER SEQUENCE cd_zips_grouped_cd_zips_grouped_id_seq
+                        OWNED BY temp_cd_zips_grouped.cd_zips_grouped_id;
+                    ALTER SEQUENCE cd_zips_grouped_historical_cd_zips_grouped_historical_id_seq
+                        OWNED BY temp_cd_zips_grouped_historical.cd_zips_grouped_historical_id;
+                    ALTER SEQUENCE cd_state_grouped_cd_state_grouped_id_seq
+                        OWNED BY temp_cd_state_grouped.cd_state_grouped_id;
+                    ALTER SEQUENCE cd_county_grouped_cd_county_grouped_id_seq
+                        OWNED BY temp_cd_county_grouped.cd_county_grouped_id;
 
                     -- Drop old zips table and rename the temporary one
                     DROP TABLE zips;
                     DROP TABLE zips_grouped;
+                    DROP TABLE cd_state_grouped;
+                    DROP TABLE cd_zips_grouped;
+                    DROP TABLE cd_zips_grouped_historical;
+                    DROP TABLE cd_county_grouped;
                     ALTER TABLE temp_zips RENAME TO zips;
                     ALTER TABLE temp_zips_grouped RENAME TO zips_grouped;
+                    ALTER TABLE temp_cd_state_grouped RENAME TO cd_state_grouped;
+                    ALTER TABLE temp_cd_zips_grouped RENAME TO cd_zips_grouped;
+                    ALTER TABLE temp_cd_zips_grouped_historical RENAME TO cd_zips_grouped_historical;
+                    ALTER TABLE temp_cd_county_grouped RENAME TO cd_county_grouped;
 
                     -- Rename the PKs and constraints to match what they were in the original zips table
                     ALTER INDEX temp_zips_pkey RENAME TO zips_pkey;
                     ALTER INDEX temp_zips_grouped_pkey RENAME TO zips_grouped_pkey;
                     ALTER INDEX temp_zips_zip5_zip_last4_key RENAME TO uniq_zip5_zip_last4;
+                    ALTER INDEX temp_cd_zips_grouped_pkey RENAME TO cd_zips_grouped_pkey;
+                    ALTER INDEX temp_cd_zips_grouped_historical_pkey RENAME TO cd_zips_grouped_historical_pkey;
+                    ALTER INDEX temp_cd_state_grouped_pkey RENAME TO cd_state_grouped_pkey;
+                    ALTER INDEX temp_cd_county_grouped_pkey RENAME TO cd_county_grouped_pkey;
 
                     -- Swap out indexes"""
 
@@ -64,14 +87,11 @@ def hot_swap_zip_tables(sess):
     for index in indexes:
         index_name = index.name.replace('ix_', '')
         sql_string += "\nALTER INDEX temp_{}_idx RENAME TO ix_{};".format(index_name, index_name)
-    for index in grouped_indexes:
-        index_name = index.name.replace('ix_', '')
-        sql_string += "\nALTER INDEX temp_{}_idx RENAME TO ix_{};".format(index_name, index_name)
     sql_string += "COMMIT;"
     sess.execute(sql_string)
 
 
-def group_zips(sess):
+def generate_zips_grouped(sess):
     """ Run SQL to group the zips in the zips table into the zips_grouped table
 
         Args:
@@ -115,6 +135,163 @@ def group_zips(sess):
             AND temp_zips.zip5 = temp_zips_grouped.zip5;
     """
     sess.execute(update_query)
+    sess.commit()
+
+
+def generate_cd_state_grouped(sess):
+    """ Run SQL to group the congressional districts in the zips table by state into the cd_state_grouped table
+
+        Args:
+            sess: the database connection
+    """
+    logger.info("Grouping zips into temporary cd_state_grouped table.")
+
+    # For state, we use a threshold of 1. If there are multiple CDs per state, we immediately set it to multiple (90).
+    mult_loc_threshold_percentage = 1.0
+
+    cd_state_grouped_query = f"""
+        WITH cd_percents AS (
+            SELECT state_abbreviation,
+                congressional_district_no,
+                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY state_abbreviation)) AS cd_percent
+            FROM zips
+            GROUP BY state_abbreviation, congressional_district_no
+        ),
+        cd_passed_threshold AS (
+            SELECT state_abbreviation,
+                congressional_district_no
+            FROM cd_percents AS cp
+            WHERE cp.cd_percent = {mult_loc_threshold_percentage}
+        ),
+        state_distinct AS (
+            SELECT DISTINCT state_abbreviation
+            FROM cd_percents
+        )
+        INSERT INTO temp_cd_state_grouped (created_at, updated_at, state_abbreviation, congressional_district_no)
+        SELECT
+            NOW(),
+            NOW(),
+            sd.state_abbreviation,
+            COALESCE(cpt.congressional_district_no, '90')
+        FROM state_distinct AS sd
+        LEFT OUTER JOIN cd_passed_threshold AS cpt ON sd.state_abbreviation=cpt.state_abbreviation;
+    """
+    sess.execute(cd_state_grouped_query)
+    sess.commit()
+
+
+def generate_cd_zips_grouped(sess):
+    """ Run SQL to group the congressional districts in the zips table by zips into the cd_zips_grouped table
+
+        Args:
+            sess: the database connection
+    """
+    logger.info("Grouping zips into temporary cd_zips_grouped table.")
+
+    cd_zips_grouped_query = f"""
+        WITH cd_percents AS (
+            SELECT zip5, congressional_district_no, COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5)) AS cd_percent
+            FROM zips
+            GROUP BY zip5, congressional_district_no
+        ),
+        cd_passed_threshold AS (
+            SELECT zip5, congressional_district_no
+            FROM cd_percents AS cp
+            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+        ),
+        zip_distinct AS (
+            SELECT DISTINCT zip5
+            FROM cd_percents
+        )
+        INSERT INTO temp_cd_zips_grouped (created_at, updated_at, zip5, congressional_district_no)
+        SELECT
+            NOW(),
+            NOW(),
+            zd.zip5,
+            COALESCE(cpt.congressional_district_no, '90')
+        FROM zip_distinct AS zd
+        LEFT OUTER JOIN cd_passed_threshold AS cpt ON zd.zip5=cpt.zip5;
+    """
+    sess.execute(cd_zips_grouped_query)
+    sess.commit()
+
+
+def generate_cd_zips_grouped_historical(sess):
+    """ Run SQL to group the congressional districts in the zips table by zips into the cd_zips_grouped_historical table
+
+        Args:
+            sess: the database connection
+    """
+    logger.info("Grouping zips into temporary cd_zips_grouped_historical table.")
+
+    cd_zips_grouped_historical_query = f"""
+        WITH cd_percents AS (
+            SELECT zip5, congressional_district_no, COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5)) AS cd_percent
+            FROM zips_historical
+            GROUP BY zip5, congressional_district_no
+        ),
+        cd_passed_threshold AS (
+            SELECT zip5, congressional_district_no
+            FROM cd_percents AS cp
+            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+        ),
+        zip_distinct AS (
+            SELECT DISTINCT zip5
+            FROM cd_percents
+        )
+        INSERT INTO temp_cd_zips_grouped_historical (created_at, updated_at, zip5, congressional_district_no)
+        SELECT
+            NOW(),
+            NOW(),
+            zd.zip5,
+            COALESCE(cpt.congressional_district_no, '90')
+        FROM zip_distinct AS zd
+        LEFT OUTER JOIN cd_passed_threshold AS cpt ON zd.zip5=cpt.zip5;
+    """
+    sess.execute(cd_zips_grouped_historical_query)
+    sess.commit()
+
+
+def generate_cd_county_grouped(sess):
+    """ Run SQL to group the congressional districts in the zips table by county name into the cd_county_grouped table
+
+        Args:
+            sess: the database connection
+    """
+    logger.info("Grouping zips into temporary cd_county_grouped table.")
+
+    cd_county_grouped_query = f"""
+        WITH cd_percents AS (
+            SELECT county_number,
+                state_abbreviation,
+                congressional_district_no,
+                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY county_number, state_abbreviation)) AS cd_percent
+            FROM zips
+            GROUP BY county_number, state_abbreviation, congressional_district_no
+        ),
+        cd_passed_threshold AS (
+            SELECT county_number, state_abbreviation, congressional_district_no
+            FROM cd_percents AS cp
+            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+        ),
+        county_distinct AS (
+            SELECT DISTINCT county_number, state_abbreviation
+            FROM cd_percents
+        )
+        INSERT INTO temp_cd_county_grouped (
+            created_at, updated_at, county_number, state_abbreviation, congressional_district_no
+        )
+        SELECT
+            NOW(),
+            NOW(),
+            cyd.county_number,
+            cyd.state_abbreviation,
+            COALESCE(cpt.congressional_district_no, '90')
+        FROM county_distinct AS cyd
+        LEFT OUTER JOIN cd_passed_threshold AS cpt
+            ON cyd.county_number=cpt.county_number AND cyd.state_abbreviation=cpt.state_abbreviation;
+    """
+    sess.execute(cd_county_grouped_query)
     sess.commit()
 
 
@@ -413,12 +590,25 @@ def read_zips():
         # Create temporary table to do work in so we don't disrupt the site for too long by altering the actual table
         sess.execute('CREATE TABLE IF NOT EXISTS temp_zips (LIKE zips INCLUDING ALL);')
         sess.execute('CREATE TABLE IF NOT EXISTS temp_zips_grouped (LIKE zips_grouped INCLUDING ALL);')
+        sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_state_grouped (LIKE cd_state_grouped INCLUDING ALL);')
+        sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_zips_grouped (LIKE cd_zips_grouped INCLUDING ALL);')
+        sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_zips_grouped_historical (LIKE cd_zips_grouped_historical'
+                     ' INCLUDING ALL);')
+        sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_county_grouped (LIKE cd_county_grouped INCLUDING ALL);')
         # Truncating in case we didn't clear out this table after a failure in the script
         sess.execute('TRUNCATE TABLE temp_zips;')
         sess.execute('TRUNCATE TABLE temp_zips_grouped;')
+        sess.execute('TRUNCATE TABLE temp_cd_state_grouped;')
+        sess.execute('TRUNCATE TABLE temp_cd_zips_grouped;')
+        sess.execute('TRUNCATE TABLE temp_cd_zips_grouped_historical;')
+        sess.execute('TRUNCATE TABLE temp_cd_county_grouped;')
         # Resetting the pk sequence
         sess.execute('SELECT setval(\'zips_zips_id_seq\', 1, false);')
         sess.execute('SELECT setval(\'zips_grouped_zips_grouped_id_seq\', 1, false);')
+        sess.execute('SELECT setval(\'cd_zips_grouped_cd_zips_grouped_id_seq\', 1, false);')
+        sess.execute('SELECT setval(\'cd_zips_grouped_historical_cd_zips_grouped_historical_id_seq\', 1, false);')
+        sess.execute('SELECT setval(\'cd_state_grouped_cd_state_grouped_id_seq\', 1, false);')
+        sess.execute('SELECT setval(\'cd_county_grouped_cd_county_grouped_id_seq\', 1, false);')
         sess.commit()
 
         if CONFIG_BROKER["use_aws"]:
@@ -447,8 +637,12 @@ def read_zips():
             citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
             parse_citystate_file(open(citystate_file), sess)
 
-        group_zips(sess)
-        hot_swap_zip_tables(sess)
+        generate_zips_grouped(sess)
+        generate_cd_state_grouped(sess)
+        generate_cd_zips_grouped(sess)
+        generate_cd_zips_grouped_historical(sess)
+        generate_cd_county_grouped(sess)
+        hot_swap_zip_cd_tables(sess)
         update_external_data_load_date(start_time, datetime.now(), 'zip_code')
 
         update_state_congr_table_current(sess)
