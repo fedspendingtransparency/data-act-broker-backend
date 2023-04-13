@@ -181,6 +181,15 @@ class ZipsHistoricalFactory(factory.Factory):
     congressional_district_no = fuzzy.FuzzyText()
 
 
+class CDStateGrouped(factory.Factory):
+    class Meta:
+        model = domainModels.CDStateGrouped
+
+    cd_state_grouped_id = None
+    state_abbreviation = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
+
+
 class ZipsGroupedFactory(factory.Factory):
     class Meta:
         model = domainModels.ZipsGrouped
@@ -201,6 +210,24 @@ class ZipsGroupedHistoricalFactory(factory.Factory):
     state_abbreviation = fuzzy.FuzzyText()
     county_number = fuzzy.FuzzyText()
     congressional_district_no = fuzzy.FuzzyText()
+
+
+class CDZipsGrouped(factory.Factory):
+    class Meta:
+        model = domainModels.CDZipsGrouped
+
+    cd_zips_grouped_id = None
+    zip5 = fuzzy.FuzzyTest()
+    congressional_district_no = fuzzy.FuzzyTest()
+
+
+class CDZipsGroupedHistorical(factory.Factory):
+    class Meta:
+        model = domainModels.CDZipsGroupedHistorical
+
+    cd_zips_grouped_historical_id = None
+    zip5 = fuzzy.FuzzyTest()
+    congressional_district_no = fuzzy.FuzzyTest()
 
 
 class SubTierAgencyFactory(factory.Factory):
@@ -250,6 +277,16 @@ class CountyCodeFactory(factory.Factory):
     state_code = fuzzy.FuzzyText()
 
 
+class CDCountyGrouped(factory.Factory):
+    class Meta:
+        model = domainModels.CDCountyGrouped
+
+    cd_county_grouped_id = None
+    county_number = fuzzy.FuzzyTest()
+    state_abbreviation = fuzzy.FuzzyTest()
+    congressional_district_no = fuzzy.FuzzyTest()
+
+
 class CityCodeFactory(factory.Factory):
     class Meta:
         model = domainModels.CityCode
@@ -272,6 +309,19 @@ class ZipCityFactory(factory.Factory):
     zip_city_id = None
     zip_code = fuzzy.FuzzyText()
     city_name = fuzzy.FuzzyText()
+
+
+class CDCityGrouped(factory.Factory):
+    """ Groups city, state, and congressional districts from the zips and zip_city table for derivation
+        (uses threshold logic)
+    """
+    class Meta:
+        model = domainModels.CDCityGrouped
+
+    cd_city_grouped_id = None
+    city_name = fuzzy.FuzzyTest()
+    state_abbreviation = fuzzy.FuzzyTest()
+    congressional_district_no = fuzzy.FuzzyTest()
 
 
 class CountryCodeFactory(factory.Factory):
