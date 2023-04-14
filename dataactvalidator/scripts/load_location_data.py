@@ -309,7 +309,25 @@ def load_zip_city_data(force_reload):
         sess.commit()
 
         # Regenerate cd_zips_grouped after zip_city is updated
+        prep_sql = """
+            CREATE TABLE IF NOT EXISTS temp_cd_city_grouped (LIKE cd_city_grouped INCLUDING ALL);
+            TRUNCATE TABLE temp_cd_city_grouped;
+            SELECT setval(\'cd_city_grouped_cd_city_grouped_id_seq\', 1, false);
+        """
+        sess.execute(prep_sql)
+
         generate_cd_city_grouped(sess)
+
+        hot_swap_sql = """
+            ALTER SEQUENCE cd_city_grouped_cd_city_grouped_id_seq OWNED BY temp_cd_city_grouped.cd_city_grouped_id;
+            DROP TABLE cd_city_grouped;
+            ALTER TABLE temp_cd_city_grouped RENAME TO cd_city_grouped;
+            ALTER INDEX temp_cd_city_grouped_pkey RENAME TO cd_city_grouped_pkey;
+            ALTER INDEX temp_cd_city_grouped_city_name_idx RENAME TO ix_cd_city_grouped_city_name;
+            ALTER INDEX temp_cd_city_grouped_state_abbreviation_idx RENAME TO ix_cd_city_grouped_state_abbreviation;
+        """
+        sess.execute(hot_swap_sql)
+        sess.commit()
     else:
         logger.info('No differences found, skipping zip_city table reload.')
 
@@ -321,13 +339,6 @@ def generate_cd_city_grouped(sess):
             sess: the database connection
     """
     logger.info("Grouping zips into temporary cd_city_grouped table.")
-
-    prep_sql = """
-        CREATE TABLE IF NOT EXISTS temp_cd_city_grouped (LIKE cd_city_grouped INCLUDING ALL);
-        TRUNCATE TABLE temp_cd_city_grouped;
-        SELECT setval(\'cd_city_grouped_cd_city_grouped_id_seq\', 1, false);
-    """
-    sess.execute(prep_sql)
 
     cd_city_grouped_query = f"""
         WITH cd_percents AS (
@@ -361,17 +372,6 @@ def generate_cd_city_grouped(sess):
             ON cyd.city_name=cpt.city_name AND cyd.state_code=cpt.state_code;
     """
     sess.execute(cd_city_grouped_query)
-    sess.commit()
-
-    hot_swap_sql = """
-        ALTER SEQUENCE cd_city_grouped_cd_city_grouped_id_seq OWNED BY temp_cd_city_grouped.cd_city_grouped_id;
-        DROP TABLE cd_city_grouped;
-        ALTER TABLE temp_cd_city_grouped RENAME TO cd_city_grouped;
-        ALTER INDEX temp_cd_city_grouped_pkey RENAME TO cd_city_grouped_pkey;
-        ALTER INDEX temp_cd_city_grouped_city_name_idx RENAME TO ix_cd_city_grouped_city_name;
-        ALTER INDEX temp_cd_city_grouped_state_abbreviation_idx RENAME TO ix_cd_city_grouped_state_abbreviation;
-    """
-    sess.execute(hot_swap_sql)
     sess.commit()
 
 

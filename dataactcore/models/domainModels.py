@@ -546,6 +546,7 @@ class CDZipsGrouped(Base):
 
     cd_zips_grouped_id = Column(Integer, primary_key=True)
     zip5 = Column(Text, index=True)
+    state_abbreviation = Column(Text, index=True)
     congressional_district_no = Column(Text)
 
 
@@ -555,6 +556,7 @@ class CDZipsGroupedHistorical(Base):
 
     cd_zips_grouped_historical_id = Column(Integer, primary_key=True)
     zip5 = Column(Text, index=True)
+    state_abbreviation = Column(Text, index=True)
     congressional_district_no = Column(Text)
 
 

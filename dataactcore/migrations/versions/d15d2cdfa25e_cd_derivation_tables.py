@@ -65,19 +65,23 @@ def upgrade_data_broker():
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('cd_zips_grouped_id', sa.Integer(), nullable=False),
     sa.Column('zip5', sa.Text(), nullable=True),
+    sa.Column('state_abbreviation', sa.Text(), nullable=True),
     sa.Column('congressional_district_no', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('cd_zips_grouped_id')
     )
     op.create_index(op.f('ix_cd_zips_grouped_zip5'), 'cd_zips_grouped', ['zip5'], unique=False)
+    op.create_index(op.f('ix_cd_zips_grouped_state_abbreviation'), 'cd_zips_grouped', ['state_abbreviation'], unique=False)
     op.create_table('cd_zips_grouped_historical',
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('cd_zips_grouped_historical_id', sa.Integer(), nullable=False),
     sa.Column('zip5', sa.Text(), nullable=True),
+    sa.Column('state_abbreviation', sa.Text(), nullable=True),
     sa.Column('congressional_district_no', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('cd_zips_grouped_historical_id')
     )
     op.create_index(op.f('ix_cd_zips_grouped_historical_zip5'), 'cd_zips_grouped_historical', ['zip5'], unique=False)
+    op.create_index(op.f('ix_cd_zips_grouped_historical_state_abbreviation'), 'cd_zips_grouped_historical', ['state_abbreviation'], unique=False)
     # ### end Alembic commands ###
 
 

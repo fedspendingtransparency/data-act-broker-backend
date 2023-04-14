@@ -29,6 +29,36 @@ zip4_line_size = 182
 citystate_line_size = 129
 chunk_size = 1024 * 10
 
+def prep_temp_zip_cd_tables(sess):
+    """ Simply sets up the temp_* zips/cd tables to be hot swapped later
+
+        Args:
+            sess: the database connection
+    """
+    # Create temporary table to do work in so we don't disrupt the site for too long by altering the actual table
+    sess.execute('CREATE TABLE IF NOT EXISTS temp_zips (LIKE zips INCLUDING ALL);')
+    sess.execute('CREATE TABLE IF NOT EXISTS temp_zips_grouped (LIKE zips_grouped INCLUDING ALL);')
+    sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_state_grouped (LIKE cd_state_grouped INCLUDING ALL);')
+    sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_zips_grouped (LIKE cd_zips_grouped INCLUDING ALL);')
+    sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_zips_grouped_historical (LIKE cd_zips_grouped_historical'
+                 ' INCLUDING ALL);')
+    sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_county_grouped (LIKE cd_county_grouped INCLUDING ALL);')
+    # Truncating in case we didn't clear out this table after a failure in the script
+    sess.execute('TRUNCATE TABLE temp_zips;')
+    sess.execute('TRUNCATE TABLE temp_zips_grouped;')
+    sess.execute('TRUNCATE TABLE temp_cd_state_grouped;')
+    sess.execute('TRUNCATE TABLE temp_cd_zips_grouped;')
+    sess.execute('TRUNCATE TABLE temp_cd_zips_grouped_historical;')
+    sess.execute('TRUNCATE TABLE temp_cd_county_grouped;')
+    # Resetting the pk sequence
+    sess.execute('SELECT setval(\'zips_zips_id_seq\', 1, false);')
+    sess.execute('SELECT setval(\'zips_grouped_zips_grouped_id_seq\', 1, false);')
+    sess.execute('SELECT setval(\'cd_zips_grouped_cd_zips_grouped_id_seq\', 1, false);')
+    sess.execute('SELECT setval(\'cd_zips_grouped_historical_cd_zips_grouped_historical_id_seq\', 1, false);')
+    sess.execute('SELECT setval(\'cd_state_grouped_cd_state_grouped_id_seq\', 1, false);')
+    sess.execute('SELECT setval(\'cd_county_grouped_cd_county_grouped_id_seq\', 1, false);')
+    sess.commit()
+
 
 def hot_swap_zip_cd_tables(sess):
     """ Drop the existing zips/cd tables, rename the temp zips/cd tables, and rename all the indexes in a transaction.
@@ -190,27 +220,28 @@ def generate_cd_zips_grouped(sess):
 
     cd_zips_grouped_query = f"""
         WITH cd_percents AS (
-            SELECT zip5, congressional_district_no, COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5)) AS cd_percent
+            SELECT zip5, state_abbreviation, congressional_district_no, COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5, state_abbreviation)) AS cd_percent
             FROM zips
-            GROUP BY zip5, congressional_district_no
+            GROUP BY zip5, state_abbreviation, congressional_district_no
         ),
         cd_passed_threshold AS (
-            SELECT zip5, congressional_district_no
+            SELECT zip5, state_abbreviation, congressional_district_no
             FROM cd_percents AS cp
             WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
         ),
         zip_distinct AS (
-            SELECT DISTINCT zip5
+            SELECT DISTINCT zip5, state_abbreviation
             FROM cd_percents
         )
-        INSERT INTO temp_cd_zips_grouped (created_at, updated_at, zip5, congressional_district_no)
-        SELECT
-            NOW(),
-            NOW(),
-            zd.zip5,
-            COALESCE(cpt.congressional_district_no, '90')
+        SELECT 
+            NOW() AS "created_at",
+            NOW() AS "updated_at",
+            zd.zip5 AS "zip5",
+            zd.state_abbreviation AS "state_abbreviation", 
+            COALESCE(cpt.congressional_district_no, '90') AS "congressional_district_no"
         FROM zip_distinct AS zd
-        LEFT OUTER JOIN cd_passed_threshold AS cpt ON zd.zip5=cpt.zip5;
+        LEFT OUTER JOIN cd_passed_threshold AS cpt
+            ON (zd.zip5=cpt.zip5 AND zd.state_abbreviation=cpt.state_abbreviation);
     """
     sess.execute(cd_zips_grouped_query)
     sess.commit()
@@ -587,29 +618,7 @@ def read_zips():
         start_time = datetime.now()
         sess = GlobalDB.db().session
 
-        # Create temporary table to do work in so we don't disrupt the site for too long by altering the actual table
-        sess.execute('CREATE TABLE IF NOT EXISTS temp_zips (LIKE zips INCLUDING ALL);')
-        sess.execute('CREATE TABLE IF NOT EXISTS temp_zips_grouped (LIKE zips_grouped INCLUDING ALL);')
-        sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_state_grouped (LIKE cd_state_grouped INCLUDING ALL);')
-        sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_zips_grouped (LIKE cd_zips_grouped INCLUDING ALL);')
-        sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_zips_grouped_historical (LIKE cd_zips_grouped_historical'
-                     ' INCLUDING ALL);')
-        sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_county_grouped (LIKE cd_county_grouped INCLUDING ALL);')
-        # Truncating in case we didn't clear out this table after a failure in the script
-        sess.execute('TRUNCATE TABLE temp_zips;')
-        sess.execute('TRUNCATE TABLE temp_zips_grouped;')
-        sess.execute('TRUNCATE TABLE temp_cd_state_grouped;')
-        sess.execute('TRUNCATE TABLE temp_cd_zips_grouped;')
-        sess.execute('TRUNCATE TABLE temp_cd_zips_grouped_historical;')
-        sess.execute('TRUNCATE TABLE temp_cd_county_grouped;')
-        # Resetting the pk sequence
-        sess.execute('SELECT setval(\'zips_zips_id_seq\', 1, false);')
-        sess.execute('SELECT setval(\'zips_grouped_zips_grouped_id_seq\', 1, false);')
-        sess.execute('SELECT setval(\'cd_zips_grouped_cd_zips_grouped_id_seq\', 1, false);')
-        sess.execute('SELECT setval(\'cd_zips_grouped_historical_cd_zips_grouped_historical_id_seq\', 1, false);')
-        sess.execute('SELECT setval(\'cd_state_grouped_cd_state_grouped_id_seq\', 1, false);')
-        sess.execute('SELECT setval(\'cd_county_grouped_cd_county_grouped_id_seq\', 1, false);')
-        sess.commit()
+        prep_temp_zip_cd_tables(sess)
 
         if CONFIG_BROKER["use_aws"]:
             zip_folder = CONFIG_BROKER["zip_folder"] + "/"
