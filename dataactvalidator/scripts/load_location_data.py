@@ -348,6 +348,7 @@ def generate_cd_city_grouped(sess):
                 COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zc.city_name, zc.state_code)) AS cd_percent
             FROM zips
             JOIN zip_city AS zc ON (zc.zip_code=zips.zip5 AND zc.state_code=zips.state_abbreviation)
+            WHERE zips.congressional_district_no IS NOT NULL
             GROUP BY zc.city_name, zc.state_code, zips.congressional_district_no
         ),
         cd_passed_threshold AS (

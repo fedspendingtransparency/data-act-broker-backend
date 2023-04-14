@@ -185,6 +185,7 @@ def generate_cd_state_grouped(sess):
                 congressional_district_no,
                 COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY state_abbreviation)) AS cd_percent
             FROM zips
+            WHERE congressional_district_no IS NOT NULL
             GROUP BY state_abbreviation, congressional_district_no
         ),
         cd_passed_threshold AS (
@@ -222,6 +223,7 @@ def generate_cd_zips_grouped(sess):
         WITH cd_percents AS (
             SELECT zip5, state_abbreviation, congressional_district_no, COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5, state_abbreviation)) AS cd_percent
             FROM zips
+            WHERE congressional_district_no IS NOT NULL
             GROUP BY zip5, state_abbreviation, congressional_district_no
         ),
         cd_passed_threshold AS (
@@ -259,6 +261,7 @@ def generate_cd_zips_grouped_historical(sess):
         WITH cd_percents AS (
             SELECT zip5, congressional_district_no, COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5)) AS cd_percent
             FROM zips_historical
+            WHERE congressional_district_no IS NOT NULL
             GROUP BY zip5, congressional_district_no
         ),
         cd_passed_threshold AS (
@@ -298,6 +301,7 @@ def generate_cd_county_grouped(sess):
                 congressional_district_no,
                 COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY county_number, state_abbreviation)) AS cd_percent
             FROM zips
+            WHERE congressional_district_no IS NOT NULL
             GROUP BY county_number, state_abbreviation, congressional_district_no
         ),
         cd_passed_threshold AS (
