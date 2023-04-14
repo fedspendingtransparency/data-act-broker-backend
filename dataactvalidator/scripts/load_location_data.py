@@ -356,7 +356,7 @@ def generate_cd_city_grouped(sess):
                 state_code,
                 congressional_district_no
             FROM cd_percents AS cp
-            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+            WHERE cp.cd_percent > {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
         ),
         city_distinct AS (
             SELECT DISTINCT city_name, state_code
