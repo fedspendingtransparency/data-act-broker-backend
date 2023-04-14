@@ -29,6 +29,7 @@ zip4_line_size = 182
 citystate_line_size = 129
 chunk_size = 1024 * 10
 
+
 def prep_temp_zip_cd_tables(sess):
     """ Simply sets up the temp_* zips/cd tables to be hot swapped later
 
@@ -221,7 +222,10 @@ def generate_cd_zips_grouped(sess):
 
     cd_zips_grouped_query = f"""
         WITH cd_percents AS (
-            SELECT zip5, state_abbreviation, congressional_district_no, COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5, state_abbreviation)) AS cd_percent
+            SELECT zip5,
+                state_abbreviation,
+                congressional_district_no,
+                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5, state_abbreviation)) AS cd_percent
             FROM zips
             WHERE congressional_district_no IS NOT NULL
             GROUP BY zip5, state_abbreviation, congressional_district_no
@@ -235,11 +239,12 @@ def generate_cd_zips_grouped(sess):
             SELECT DISTINCT zip5, state_abbreviation
             FROM cd_percents
         )
-        SELECT 
+        INSERT INTO temp_cd_zips_grouped (created_at, updated_at, zip5, state_abbreviation, congressional_district_no)
+        SELECT
             NOW() AS "created_at",
             NOW() AS "updated_at",
             zd.zip5 AS "zip5",
-            zd.state_abbreviation AS "state_abbreviation", 
+            zd.state_abbreviation AS "state_abbreviation",
             COALESCE(cpt.congressional_district_no, '90') AS "congressional_district_no"
         FROM zip_distinct AS zd
         LEFT OUTER JOIN cd_passed_threshold AS cpt
@@ -259,7 +264,9 @@ def generate_cd_zips_grouped_historical(sess):
 
     cd_zips_grouped_historical_query = f"""
         WITH cd_percents AS (
-            SELECT zip5, congressional_district_no, COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5)) AS cd_percent
+            SELECT zip5,
+                congressional_district_no,
+                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5)) AS cd_percent
             FROM zips_historical
             WHERE congressional_district_no IS NOT NULL
             GROUP BY zip5, congressional_district_no

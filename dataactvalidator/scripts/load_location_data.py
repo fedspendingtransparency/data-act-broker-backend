@@ -362,6 +362,9 @@ def generate_cd_city_grouped(sess):
             SELECT DISTINCT city_name, state_code
             FROM cd_percents
         )
+        INSERT INTO temp_cd_city_grouped (
+            created_at, updated_at, city_name, state_abbreviation, congressional_district_no
+        )
         SELECT
             NOW(),
             NOW(),
