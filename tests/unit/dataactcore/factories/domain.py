@@ -181,7 +181,7 @@ class ZipsHistoricalFactory(factory.Factory):
     congressional_district_no = fuzzy.FuzzyText()
 
 
-class CDStateGrouped(factory.Factory):
+class CDStateGroupedFactory(factory.Factory):
     class Meta:
         model = domainModels.CDStateGrouped
 
@@ -212,7 +212,7 @@ class ZipsGroupedHistoricalFactory(factory.Factory):
     congressional_district_no = fuzzy.FuzzyText()
 
 
-class CDZipsGrouped(factory.Factory):
+class CDZipsGroupedFactory(factory.Factory):
     class Meta:
         model = domainModels.CDZipsGrouped
 
@@ -221,7 +221,7 @@ class CDZipsGrouped(factory.Factory):
     congressional_district_no = fuzzy.FuzzyText()
 
 
-class CDZipsGroupedHistorical(factory.Factory):
+class CDZipsGroupedHistoricalFactory(factory.Factory):
     class Meta:
         model = domainModels.CDZipsGroupedHistorical
 
@@ -277,7 +277,7 @@ class CountyCodeFactory(factory.Factory):
     state_code = fuzzy.FuzzyText()
 
 
-class CDCountyGrouped(factory.Factory):
+class CDCountyGroupedFactory(factory.Factory):
     class Meta:
         model = domainModels.CDCountyGrouped
 
@@ -311,7 +311,7 @@ class ZipCityFactory(factory.Factory):
     city_name = fuzzy.FuzzyText()
 
 
-class CDCityGrouped(factory.Factory):
+class CDCityGroupedFactory(factory.Factory):
     """ Groups city, state, and congressional districts from the zips and zip_city table for derivation
         (uses threshold logic)
     """
