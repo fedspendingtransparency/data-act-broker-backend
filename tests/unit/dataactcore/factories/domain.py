@@ -217,8 +217,8 @@ class CDZipsGrouped(factory.Factory):
         model = domainModels.CDZipsGrouped
 
     cd_zips_grouped_id = None
-    zip5 = fuzzy.FuzzyTest()
-    congressional_district_no = fuzzy.FuzzyTest()
+    zip5 = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
 
 
 class CDZipsGroupedHistorical(factory.Factory):
@@ -226,8 +226,8 @@ class CDZipsGroupedHistorical(factory.Factory):
         model = domainModels.CDZipsGroupedHistorical
 
     cd_zips_grouped_historical_id = None
-    zip5 = fuzzy.FuzzyTest()
-    congressional_district_no = fuzzy.FuzzyTest()
+    zip5 = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
 
 
 class SubTierAgencyFactory(factory.Factory):
@@ -282,9 +282,9 @@ class CDCountyGrouped(factory.Factory):
         model = domainModels.CDCountyGrouped
 
     cd_county_grouped_id = None
-    county_number = fuzzy.FuzzyTest()
-    state_abbreviation = fuzzy.FuzzyTest()
-    congressional_district_no = fuzzy.FuzzyTest()
+    county_number = fuzzy.FuzzyText()
+    state_abbreviation = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
 
 
 class CityCodeFactory(factory.Factory):
@@ -319,9 +319,9 @@ class CDCityGrouped(factory.Factory):
         model = domainModels.CDCityGrouped
 
     cd_city_grouped_id = None
-    city_name = fuzzy.FuzzyTest()
-    state_abbreviation = fuzzy.FuzzyTest()
-    congressional_district_no = fuzzy.FuzzyTest()
+    city_name = fuzzy.FuzzyText()
+    state_abbreviation = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
 
 
 class CountryCodeFactory(factory.Factory):
