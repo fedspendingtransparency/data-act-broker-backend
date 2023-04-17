@@ -509,6 +509,15 @@ Index("ix_zips_historical_zip5_state_abbreviation_county_number",
       unique=False)
 
 
+class CDStateGrouped(Base):
+    """ Groups state and congressional districts from the zips table for derivation """
+    __tablename__ = "cd_state_grouped"
+
+    cd_state_grouped_id = Column(Integer, primary_key=True)
+    state_abbreviation = Column(Text, index=True)
+    congressional_district_no = Column(Text)
+
+
 class ZipsGrouped(Base):
     """ Zip and other address data without the final 4 digits for derivation """
     __tablename__ = "zips_grouped"
@@ -528,6 +537,26 @@ class ZipsGroupedHistorical(Base):
     zip5 = Column(Text, index=True)
     state_abbreviation = Column(Text)
     county_number = Column(Text)
+    congressional_district_no = Column(Text)
+
+
+class CDZipsGrouped(Base):
+    """ Groups zips and congressional districts from the zips table for derivation (uses threshold logic) """
+    __tablename__ = "cd_zips_grouped"
+
+    cd_zips_grouped_id = Column(Integer, primary_key=True)
+    zip5 = Column(Text, index=True)
+    state_abbreviation = Column(Text, index=True)
+    congressional_district_no = Column(Text)
+
+
+class CDZipsGroupedHistorical(Base):
+    """ Groups zips and congressional districts from the historic zips table for derivation (uses threshold logic) """
+    __tablename__ = "cd_zips_grouped_historical"
+
+    cd_zips_grouped_historical_id = Column(Integer, primary_key=True)
+    zip5 = Column(Text, index=True)
+    state_abbreviation = Column(Text, index=True)
     congressional_district_no = Column(Text)
 
 
@@ -556,6 +585,16 @@ class CountyCode(Base):
     state_code = Column(Text, index=True)
 
 
+class CDCountyGrouped(Base):
+    """ Groups county, state, and congressional districts from the zips table for derivation (uses threshold logic) """
+    __tablename__ = "cd_county_grouped"
+
+    cd_county_grouped_id = Column(Integer, primary_key=True)
+    county_number = Column(Text, index=True)
+    state_abbreviation = Column(Text, index=True)
+    congressional_district_no = Column(Text)
+
+
 class States(Base):
     """ State abbreviations and names """
     __tablename__ = "states"
@@ -574,6 +613,18 @@ class ZipCity(Base):
     zip_code = Column(Text)
     city_name = Column(Text)
     state_code = Column(Text)
+
+
+class CDCityGrouped(Base):
+    """ Groups city, state, and congressional districts from the zips and zip_city table for derivation
+        (uses threshold logic)
+    """
+    __tablename__ = "cd_city_grouped"
+
+    cd_city_grouped_id = Column(Integer, primary_key=True)
+    city_name = Column(Text, index=True)
+    state_abbreviation = Column(Text, index=True)
+    congressional_district_no = Column(Text)
 
 
 class StateCongressional(Base):
