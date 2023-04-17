@@ -36,7 +36,7 @@ def prep_temp_zip_cd_tables(sess):
         Args:
             sess: the database connection
     """
-    # Create temporary table to do work in so we don't disrupt the site for too long by altering the actual table
+    # Create temporary tables to do work in so we don't disrupt the site for too long by altering the actual tables
     sess.execute('CREATE TABLE IF NOT EXISTS temp_zips (LIKE zips INCLUDING ALL);')
     sess.execute('CREATE TABLE IF NOT EXISTS temp_zips_grouped (LIKE zips_grouped INCLUDING ALL);')
     sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_state_grouped (LIKE cd_state_grouped INCLUDING ALL);')
@@ -44,14 +44,14 @@ def prep_temp_zip_cd_tables(sess):
     sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_zips_grouped_historical (LIKE cd_zips_grouped_historical'
                  ' INCLUDING ALL);')
     sess.execute('CREATE TABLE IF NOT EXISTS temp_cd_county_grouped (LIKE cd_county_grouped INCLUDING ALL);')
-    # Truncating in case we didn't clear out this table after a failure in the script
+    # Truncating in case we didn't clear out these tables after a failure in the script
     sess.execute('TRUNCATE TABLE temp_zips;')
     sess.execute('TRUNCATE TABLE temp_zips_grouped;')
     sess.execute('TRUNCATE TABLE temp_cd_state_grouped;')
     sess.execute('TRUNCATE TABLE temp_cd_zips_grouped;')
     sess.execute('TRUNCATE TABLE temp_cd_zips_grouped_historical;')
     sess.execute('TRUNCATE TABLE temp_cd_county_grouped;')
-    # Resetting the pk sequence
+    # Resetting the pk sequences
     sess.execute('SELECT setval(\'zips_zips_id_seq\', 1, false);')
     sess.execute('SELECT setval(\'zips_grouped_zips_grouped_id_seq\', 1, false);')
     sess.execute('SELECT setval(\'cd_zips_grouped_cd_zips_grouped_id_seq\', 1, false);')

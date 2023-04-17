@@ -308,7 +308,7 @@ def load_zip_city_data(force_reload):
         logger.info('{} records inserted to zip_city'.format(num))
         sess.commit()
 
-        # Regenerate cd_zips_grouped after zip_city is updated
+        # Regenerate cd_city_grouped after zip_city is updated
         prep_sql = """
             CREATE TABLE IF NOT EXISTS temp_cd_city_grouped (LIKE cd_city_grouped INCLUDING ALL);
             TRUNCATE TABLE temp_cd_city_grouped;
