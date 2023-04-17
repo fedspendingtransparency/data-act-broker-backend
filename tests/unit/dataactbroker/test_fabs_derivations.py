@@ -4,10 +4,11 @@ from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, 
 from dataactcore.models.stagingModels import PublishedFABS
 
 from tests.unit.dataactcore.factories.domain import (ZipCityFactory, ZipsFactory, ZipsHistoricalFactory,
-                                                     ZipsGroupedFactory, ZipsGroupedHistoricalFactory, CityCodeFactory,
-                                                     SAMRecipientFactory, CFDAProgramFactory, CGACFactory, FRECFactory,
-                                                     SubTierAgencyFactory, OfficeFactory, StatesFactory,
-                                                     CountyCodeFactory, CountryCodeFactory)
+                                                     ZipsGroupedFactory, ZipsGroupedHistoricalFactory,
+                                                     CDZipsGroupedFactory, CDZipsGroupedHistoricalFactory,
+                                                     CityCodeFactory, SAMRecipientFactory, CFDAProgramFactory,
+                                                     CGACFactory, FRECFactory, SubTierAgencyFactory, OfficeFactory,
+                                                     StatesFactory, CountyCodeFactory, CountryCodeFactory)
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory
 
 
@@ -33,6 +34,12 @@ def initialize_db_values(db):
                                         congressional_district_no='90')
     zips_grouped_historical_1 = ZipsGroupedHistoricalFactory(zip5='11111', state_abbreviation='NY',
                                                              county_number='001', congressional_district_no='03')
+    # CDs grouped by zip/state only
+    cd_zips_grouped_1 = CDZipsGroupedFactory(zip5='12345', state_abbreviation='NY', congressional_district_no='02')
+    cd_zips_grouped_2 = CDZipsGroupedFactory(zip5='54321', state_abbreviation='NY', congressional_district_no='05')
+    cd_zips_grouped_3 = CDZipsGroupedFactory(zip5='98765', state_abbreviation='NY', congressional_district_no='90')
+    cd_zips_grouped_historical = CDZipsGroupedHistoricalFactory(zip5='11111', state_abbreviation='NY',
+                                                                congressional_district_no='03')
     # Cities
     zip_city = ZipCityFactory(zip_code=zip_code_1.zip5, city_name='Test City')
     zip_city_2 = ZipCityFactory(zip_code=zip_code_3.zip5, city_name='Test City 2')
@@ -119,11 +126,11 @@ def initialize_db_values(db):
                                       awarding_office_code='654321', is_active=True, record_type=1,
                                       award_modification_amendme='0', submission_id=1)
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_code_historical_1, zips_grouped_1,
-                        zips_grouped_2, zips_grouped_3, zips_grouped_historical_1, zip_city, zip_city_2, zip_city_3,
-                        zip_city_4, city_code, state, county, country_1, country_2, recipient_1,
-                        recipient_2a, recipient_2b, recipient_3, cfda, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier,
-                        frec_sub_tier, valid_office, invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4,
-                        pub_fabs_5, pub_fabs_6])
+                        zips_grouped_2, zips_grouped_3, zips_grouped_historical_1, cd_zips_grouped_1, cd_zips_grouped_2,
+                        cd_zips_grouped_3, cd_zips_grouped_historical, zip_city, zip_city_2, zip_city_3, zip_city_4,
+                        city_code, state, county, country_1, country_2, recipient_1, recipient_2a, recipient_2b,
+                        recipient_3, cfda, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier, frec_sub_tier, valid_office,
+                        invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6])
     db.session.commit()
 
 
@@ -329,7 +336,7 @@ def test_ppop_state(database):
 def test_ppop_derivations(database):
     initialize_db_values(database)
 
-    # when ppop_zip4a is 5 digits and no congressional district
+    # when ppop_zip4a is 9 digits and no congressional district
     submission_id = initialize_test_row(database, ppop_zip4a='123454321', ppop_code='NY00001', submission_id=2)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -339,7 +346,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city == 'Test City'
 
-    # when ppop_zip4a is 5 digits and no congressional district (historical)
+    # when ppop_zip4a is 9 digits and no congressional district (historical)
     submission_id = initialize_test_row(database, ppop_zip4a='111111111', ppop_code='NY00001', submission_id=2,
                                         action_date='2022/01/01')
     fabs_derivations(database.session, submission_id)
@@ -350,7 +357,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city == 'Historical Test City'
 
-    # when ppop_zip4a is 5 digits and has congressional district
+    # when ppop_zip4a is 9 digits and has congressional district
     submission_id = initialize_test_row(database, ppop_zip4a='12345-4321', ppop_cd='03', ppop_code='NY0000r',
                                         submission_id=3)
     fabs_derivations(database.session, submission_id)
@@ -363,7 +370,7 @@ def test_ppop_derivations(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.place_of_performance_congr == '90'
+    assert fabs_obj.place_of_performance_congr == '02'
     assert fabs_obj.place_of_perform_county_co == '001'
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city == 'Test City'
@@ -464,7 +471,7 @@ def test_legal_entity_derivations(database):
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.legal_entity_city_name == 'Test City'
-    assert fabs_obj.legal_entity_congressional == '90'
+    assert fabs_obj.legal_entity_congressional == '02'
     assert fabs_obj.legal_entity_county_code == '001'
     assert fabs_obj.legal_entity_county_name == 'Test County'
     assert fabs_obj.legal_entity_state_code == 'NY'

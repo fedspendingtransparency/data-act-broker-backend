@@ -301,8 +301,9 @@ def derive_ppop_location_data(sess, submission_id):
     query = """
         UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_congr = congressional_district_no
-        FROM zips_grouped_historical
+        FROM cd_zips_grouped_historical
         WHERE place_of_performance_zip5 = zip5
+            AND place_of_perfor_state_code = state_abbreviation
             AND place_of_performance_congr IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
     """
@@ -316,8 +317,9 @@ def derive_ppop_location_data(sess, submission_id):
     query = """
         UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_congr = congressional_district_no
-        FROM zips_grouped
+        FROM cd_zips_grouped
         WHERE place_of_performance_zip5 = zip5
+            AND place_of_perfor_state_code = state_abbreviation
             AND place_of_performance_congr IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
     """
@@ -536,7 +538,7 @@ def derive_le_location_data(sess, submission_id):
     query = """
         UPDATE tmp_fabs_{submission_id}
         SET legal_entity_congressional = congressional_district_no
-        FROM zips_grouped_historical
+        FROM cd_zips_grouped_historical
         WHERE legal_entity_zip5 = zip5
             AND legal_entity_congressional IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
@@ -551,7 +553,7 @@ def derive_le_location_data(sess, submission_id):
     query = """
         UPDATE tmp_fabs_{submission_id}
         SET legal_entity_congressional = congressional_district_no
-        FROM zips_grouped
+        FROM cd_zips_grouped
         WHERE legal_entity_zip5 = zip5
             AND legal_entity_congressional IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
