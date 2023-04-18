@@ -174,7 +174,7 @@ def parse_zip_city_file(f):
             curr_row = curr_chunk[:line_size]
             if curr_row[0] == "D":
                 zip_code = curr_row[1:6]
-                city_name = curr_row[62:90].strip()
+                city_name = curr_row[13:41].strip()
                 state_code = curr_row[99:101]
                 zip_city_key = zip_code + city_name + state_code
                 data_dict[zip_city_key] = {'zip_code': zip_code,
