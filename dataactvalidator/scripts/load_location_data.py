@@ -176,9 +176,10 @@ def parse_zip_city_file(f):
                 zip_code = curr_row[1:6]
                 city_name = curr_row[62:90].strip()
                 state_code = curr_row[99:101]
-                data_dict[zip_code] = {'zip_code': zip_code,
-                                       'city_name': city_name,
-                                       'state_code': state_code}
+                zip_city_key = zip_code + city_name + state_code
+                data_dict[zip_city_key] = {'zip_code': zip_code,
+                                           'city_name': city_name,
+                                           'state_code': state_code}
 
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[line_size:]
