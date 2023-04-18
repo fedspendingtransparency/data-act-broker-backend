@@ -308,6 +308,7 @@ class ZipCityFactory(factory.Factory):
 
     zip_city_id = None
     zip_code = fuzzy.FuzzyText()
+    state_code = fuzzy.FuzzyText()
     city_name = fuzzy.FuzzyText()
 
 
