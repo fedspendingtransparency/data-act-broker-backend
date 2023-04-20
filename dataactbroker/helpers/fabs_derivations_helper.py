@@ -362,10 +362,12 @@ def derive_ppop_location_data(sess, submission_id):
     # Deriving city info for transactions with zips
     query = """
         UPDATE tmp_fabs_{submission_id}
-        SET place_of_performance_city = city_name
+        SET place_of_performance_city = preferred_city_name
         FROM zip_city
         WHERE place_of_performance_zip5 IS NOT NULL
-            AND zip_city.zip_code = place_of_performance_zip5;
+            AND zip_city.zip_code = place_of_performance_zip5
+            AND place_of_perfor_state_code IS NOT NULL
+            AND zip_city.state_code = place_of_perfor_state_code;
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation('Completed ppop city info for transactions with zips derivation, '
@@ -628,10 +630,12 @@ def derive_le_location_data(sess, submission_id):
     # Deriving city info for records with zips (type 2 and 3)
     query = """
         UPDATE tmp_fabs_{submission_id}
-        SET legal_entity_city_name = city_name
+        SET legal_entity_city_name = preferred_city_name
         FROM zip_city
         WHERE legal_entity_zip5 IS NOT NULL
-            AND zip_city.zip_code = legal_entity_zip5;
+            AND zip_city.zip_code = legal_entity_zip5
+            AND legal_entity_state_code IS NOT NULL
+            AND zip_city.state_code = legal_entity_state_code;
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation('Completed legal entity city info with zips derivation, '

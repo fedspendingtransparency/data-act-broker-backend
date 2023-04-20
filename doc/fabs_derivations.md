@@ -76,8 +76,8 @@ These are derivations that dependent on each other and must be executed in the r
 	- If `place_of_performance_zip5` matches our zip table and `place_of_perform_county_co` is not populated
 		- `zips.county_number` => `place_of_perform_county_co`
 		- Note: this will cover the instances where the zip5 was provided but not the zip4
-	- If `place_of_performance_zip5` is populated and matches our zip city data,
-		- `zip_city.city_name` => `place_of_performance_city`
+	- If `place_of_performance_zip5` and `place_of_perfor_state_code` is populated and matches our zip city data,
+		- `zip_city.preferred_city_name` => `place_of_performance_city`
 	- If `place_of_performance_zip5` is not populated and `place_of_performance_code` has the 3 digits at the end (XX**###)
 		- last 3 digits of `place_of_performance_code` => `place_of_perform_county_co`
 	- If `place_of_performance_zip5` is not populated and `place_of_performance_code` has the 5 digits at the end (XX#####) and those digits along with the `place_of_perfor_state_code` match our city code data
@@ -89,7 +89,7 @@ These are derivations that dependent on each other and must be executed in the r
 	- Summary
 		- `zips.congressional_district_no` => `place_of_performance_congr`
 		- `zips.county_number` => `place_of_perform_county_co`
-		- `zip_city.city_name` => `place_of_performance_city`
+		- `zip_city.preferred_city_name` => `place_of_performance_city`
 		- `place_of_performance_code` => `place_of_perform_county_co`
 		- `city_code.county_number` => `place_of_perform_county_co`
 		- `city_code.county_name` => `place_of_perform_county_na`
@@ -111,8 +111,8 @@ These are derivations that dependent on each other and must be executed in the r
 		- `county_code.county_name` => `legal_entity_county_name`
 	- If `legal_entity_zip5` is populated and `legal_entity_state_code` matches our state data
 		- `states.state_name` => `legal_entity_state_name`
-	- If `legal_entity_zip5` is populated and `legal_entity_zip5` matches our zip city data
-		- `zip_city.city_name` => `legal_entity_city_name`
+	- If `legal_entity_zip5` and `legal_entity_state_code` is populated match our zip city data
+		- `zip_city.preferred_city_name` => `legal_entity_city_name`
 	- If `record_type` = `1` and `place_of_performance_code` matches the format (XX**###)
 		- `place_of_perform_county_co` => `legal_entity_county_code`
 		- `place_of_perform_county_na` => `legal_entity_county_name`
@@ -129,7 +129,7 @@ These are derivations that dependent on each other and must be executed in the r
 		- `zips.state_abbreviation` => `legal_entity_state_code`
 		- `county_code.county_name` => `legal_entity_county_name`
 		- `states.state_name` => `legal_entity_state_name`
-		- `zip_city.city_name` => `legal_entity_city_name`
+		- `zip_city.preferred_city_name` => `legal_entity_city_name`
 		- If `record_type` = `1`
 			- `place_of_perform_county_co` => `legal_entity_county_code`
 			- `place_of_perform_county_na` => `legal_entity_county_name`
