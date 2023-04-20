@@ -175,17 +175,20 @@ def parse_zip_city_file(f):
             if curr_row[0] == "D":
                 zip_code = curr_row[1:6]
                 city_name = curr_row[13:41].strip()
+                preferred_city_name = curr_row[62:90].strip()
                 state_code = curr_row[99:101]
                 zip_city_key = zip_code + city_name + state_code
                 data_dict[zip_city_key] = {'zip_code': zip_code,
                                            'city_name': city_name,
+                                           'preferred_city_name': preferred_city_name,
                                            'state_code': state_code}
 
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[line_size:]
 
-    data = pd.DataFrame([[item['zip_code'], item['city_name'], item['state_code']] for _, item in data_dict.items()],
-                        columns=['zip_code', 'city_name', 'state_code'])
+    data = pd.DataFrame([[item['zip_code'], item['preferred_city_name'], item['city_name'],
+                          item['state_code']] for _, item in data_dict.items()],
+                        columns=['zip_code', 'preferred_city_name', 'city_name', 'state_code'])
 
     # add created_at and updated_at columns
     now = datetime.utcnow()
