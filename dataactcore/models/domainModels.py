@@ -611,6 +611,7 @@ class ZipCity(Base):
 
     zip_city_id = Column(Integer, primary_key=True)
     zip_code = Column(Text)
+    preferred_city_name = Column(Text)
     city_name = Column(Text)
     state_code = Column(Text)
 
