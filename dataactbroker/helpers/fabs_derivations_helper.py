@@ -366,7 +366,6 @@ def derive_ppop_location_data(sess, submission_id):
         FROM zip_city
         WHERE place_of_performance_zip5 IS NOT NULL
             AND zip_city.zip_code = place_of_performance_zip5
-            AND place_of_perfor_state_code IS NOT NULL
             AND zip_city.state_code = place_of_perfor_state_code;
     """
     res = sess.execute(query.format(submission_id=submission_id))
@@ -634,7 +633,6 @@ def derive_le_location_data(sess, submission_id):
         FROM zip_city
         WHERE legal_entity_zip5 IS NOT NULL
             AND zip_city.zip_code = legal_entity_zip5
-            AND legal_entity_state_code IS NOT NULL
             AND zip_city.state_code = legal_entity_state_code;
     """
     res = sess.execute(query.format(submission_id=submission_id))
