@@ -1,4 +1,5 @@
-from sqlalchemy import ARRAY, Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text, func
+from sqlalchemy import (ARRAY, Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, BigInteger, Numeric, Text,
+                        func)
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -159,7 +160,7 @@ class AwardFinancial(Base):
     """Corresponds to entries in File C"""
     __tablename__ = "award_financial"
 
-    award_financial_id = Column(Integer, primary_key=True)
+    award_financial_id = Column(BigInteger, primary_key=True)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_award_financial_submission_id"),
@@ -400,7 +401,7 @@ class PublishedAwardFinancial(Base):
     """Model for the published data from the AwardFinancial (C file) table."""
     __tablename__ = "published_award_financial"
 
-    published_award_financial_id = Column(Integer, primary_key=True)
+    published_award_financial_id = Column(BigInteger, primary_key=True)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
                                                name="fk_published_award_financial_submission_id"),
                            nullable=False, index=True)
