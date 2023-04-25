@@ -16,7 +16,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CityCode, CountyCode, States, ZipCity
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe, trim_item
+from dataactvalidator.scripts.loader_utils import insert_dataframe, trim_item, MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE
 
 logger = logging.getLogger(__name__)
 
@@ -175,13 +175,16 @@ def parse_zip_city_file(f):
             if curr_row[0] == "D":
                 zip_code = curr_row[1:6]
                 city_name = curr_row[62:90].strip()
-                data_dict[zip_code] = {"zip_code": zip_code, "city_name": city_name}
+                state_code = curr_row[99:101]
+                data_dict[zip_code] = {'zip_code': zip_code,
+                                       'city_name': city_name,
+                                       'state_code': state_code}
 
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[line_size:]
 
-    data = pd.DataFrame([[item['zip_code'], item['city_name']] for _, item in data_dict.items()],
-                        columns=['zip_code', 'city_name'])
+    data = pd.DataFrame([[item['zip_code'], item['city_name'], item['state_code']] for _, item in data_dict.items()],
+                        columns=['zip_code', 'city_name', 'state_code'])
 
     # add created_at and updated_at columns
     now = datetime.utcnow()
@@ -304,8 +307,76 @@ def load_zip_city_data(force_reload):
         num = insert_dataframe(new_data, ZipCity.__table__.name, sess.connection())
         logger.info('{} records inserted to zip_city'.format(num))
         sess.commit()
+
+        # Regenerate cd_city_grouped after zip_city is updated
+        prep_sql = """
+            CREATE TABLE IF NOT EXISTS temp_cd_city_grouped (LIKE cd_city_grouped INCLUDING ALL);
+            TRUNCATE TABLE temp_cd_city_grouped;
+            SELECT setval(\'cd_city_grouped_cd_city_grouped_id_seq\', 1, false);
+        """
+        sess.execute(prep_sql)
+
+        generate_cd_city_grouped(sess)
+
+        hot_swap_sql = """
+            ALTER SEQUENCE cd_city_grouped_cd_city_grouped_id_seq OWNED BY temp_cd_city_grouped.cd_city_grouped_id;
+            DROP TABLE cd_city_grouped;
+            ALTER TABLE temp_cd_city_grouped RENAME TO cd_city_grouped;
+            ALTER INDEX temp_cd_city_grouped_pkey RENAME TO cd_city_grouped_pkey;
+            ALTER INDEX temp_cd_city_grouped_city_name_idx RENAME TO ix_cd_city_grouped_city_name;
+            ALTER INDEX temp_cd_city_grouped_state_abbreviation_idx RENAME TO ix_cd_city_grouped_state_abbreviation;
+        """
+        sess.execute(hot_swap_sql)
+        sess.commit()
     else:
         logger.info('No differences found, skipping zip_city table reload.')
+
+
+def generate_cd_city_grouped(sess):
+    """ Run SQL to group the congressional districts in the zips table by city name into the cd_city_grouped table
+
+        Args:
+            sess: the database connection
+    """
+    logger.info("Grouping zips into temporary cd_city_grouped table.")
+
+    cd_city_grouped_query = f"""
+        WITH cd_percents AS (
+            SELECT zc.city_name,
+                zc.state_code,
+                zips.congressional_district_no,
+                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zc.city_name, zc.state_code)) AS cd_percent
+            FROM zips
+            JOIN zip_city AS zc ON (zc.zip_code=zips.zip5 AND zc.state_code=zips.state_abbreviation)
+            WHERE zips.congressional_district_no IS NOT NULL
+            GROUP BY zc.city_name, zc.state_code, zips.congressional_district_no
+        ),
+        cd_passed_threshold AS (
+            SELECT city_name,
+                state_code,
+                congressional_district_no
+            FROM cd_percents AS cp
+            WHERE cp.cd_percent > {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+        ),
+        city_distinct AS (
+            SELECT DISTINCT city_name, state_code
+            FROM cd_percents
+        )
+        INSERT INTO temp_cd_city_grouped (
+            created_at, updated_at, city_name, state_abbreviation, congressional_district_no
+        )
+        SELECT
+            NOW(),
+            NOW(),
+            cyd.city_name,
+            cyd.state_code,
+            COALESCE(cpt.congressional_district_no, '90')
+        FROM city_distinct AS cyd
+        LEFT OUTER JOIN cd_passed_threshold AS cpt
+            ON cyd.city_name=cpt.city_name AND cyd.state_code=cpt.state_code;
+    """
+    sess.execute(cd_city_grouped_query)
+    sess.commit()
 
 
 def load_location_data(force_reload=False):
