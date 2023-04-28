@@ -1,4 +1,4 @@
-"""adding preferred city name to zip city
+""" adding preferred city name to zip city
 
 Revision ID: fb76b653c99d
 Revises: d15d2cdfa25e
@@ -8,7 +8,7 @@ Create Date: 2023-04-20 17:33:27.323226
 
 # revision identifiers, used by Alembic.
 revision = 'fb76b653c99d'
-down_revision = 'd15d2cdfa25e'
+down_revision = 'aa1b50bf0dfb'
 branch_labels = None
 depends_on = None
 
