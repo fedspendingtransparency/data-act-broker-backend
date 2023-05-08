@@ -10,7 +10,7 @@ class FlexField(Base):
     """Model for the flex field table."""
     __tablename__ = "flex_field"
 
-    flex_field_id = Column(Integer, primary_key=True)
+    flex_field_id = Column(BigInteger, primary_key=True)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_flex_field_submission_id"),
@@ -76,7 +76,7 @@ class ObjectClassProgramActivity(Base):
     """Model for the object_class_program_activity table."""
     __tablename__ = "object_class_program_activity"
 
-    object_class_program_activity_id = Column(Integer, primary_key=True)
+    object_class_program_activity_id = Column(BigInteger, primary_key=True)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_object_class_program_activity_submission_id"),
@@ -276,7 +276,7 @@ class PublishedFlexField(Base):
     """ Model for the published flex field table. """
     __tablename__ = "published_flex_field"
 
-    published_flex_field_id = Column(Integer, primary_key=True)
+    published_flex_field_id = Column(BigInteger, primary_key=True)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_published_flex_field_submission_id"),
@@ -335,7 +335,7 @@ class PublishedObjectClassProgramActivity(Base):
     """Model for the published data from the ObjectClassProgramActivity (B file) table."""
     __tablename__ = "published_object_class_program_activity"
 
-    published_object_class_program_activity_id = Column(Integer, primary_key=True)
+    published_object_class_program_activity_id = Column(BigInteger, primary_key=True)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
                                                name="fk_published_object_class_program_activity_submission_id"),
                            nullable=False, index=True)
@@ -473,7 +473,7 @@ class AwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
     __tablename__ = "award_financial_assistance"
 
-    award_financial_assistance_id = Column(Integer, primary_key=True)
+    award_financial_assistance_id = Column(BigInteger, primary_key=True)
     afa_generated_unique = Column(Text)
     unique_award_key = Column(Text)
     submission_id = Column(Integer,
@@ -574,7 +574,7 @@ Index("ix_afa_fain_upper", func.upper(AwardFinancialAssistance.fain))
 class AwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
     __tablename__ = "award_procurement"
-    award_procurement_id = Column(Integer, primary_key=True)
+    award_procurement_id = Column(BigInteger, primary_key=True)
     detached_award_proc_unique = Column(Text)
     unique_award_key = Column(Text)
     submission_id = Column(Integer,
@@ -868,7 +868,7 @@ class PublishedAwardFinancialAssistance(Base):
     """ Model for Published D2-Award (Financial Assistance). """
     __tablename__ = 'published_award_financial_assistance'
 
-    published_award_financial_assistance_id = Column(Integer, primary_key=True)
+    published_award_financial_assistance_id = Column(BigInteger, primary_key=True)
     afa_generated_unique = Column(Text)
     unique_award_key = Column(Text)
     submission_id = Column(Integer,
@@ -967,7 +967,7 @@ class PublishedAwardProcurement(Base):
     """ Model for Published D1-Award (Procurement). """
     __tablename__ = 'published_award_procurement'
 
-    published_award_procurement_id = Column(Integer, primary_key=True)
+    published_award_procurement_id = Column(BigInteger, primary_key=True)
     detached_award_proc_unique = Column(Text)
     unique_award_key = Column(Text)
     submission_id = Column(Integer,
@@ -1255,7 +1255,7 @@ class PublishedAwardProcurement(Base):
 class DetachedAwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
     __tablename__ = "detached_award_procurement"
-    detached_award_procurement_id = Column(Integer, primary_key=True)
+    detached_award_procurement_id = Column(BigInteger, primary_key=True)
     detached_award_proc_unique = Column(Text, unique=True, nullable=False)
     piid = Column(Text, index=True)
     agency_id = Column(Text)
@@ -1577,7 +1577,7 @@ class FABS(Base):
     """Model for FABS submission."""
     __tablename__ = "fabs"
 
-    fabs_id = Column(Integer, primary_key=True)
+    fabs_id = Column(BigInteger, primary_key=True)
     afa_generated_unique = Column(Text, index=True, nullable=False)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
@@ -1648,7 +1648,7 @@ class PublishedFABS(Base):
     """Model for published FABS."""
     __tablename__ = "published_fabs"
 
-    published_fabs_id = Column(Integer, primary_key=True)
+    published_fabs_id = Column(BigInteger, primary_key=True)
     afa_generated_unique = Column(Text, index=True, nullable=False)
     action_date = Column(Text, index=True)
     action_type = Column(Text, index=True)
