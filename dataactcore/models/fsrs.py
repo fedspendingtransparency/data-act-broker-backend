@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, func, Integer, String, Text, Index
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, func, Integer, BigInteger, String, Text, Index
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -153,7 +153,7 @@ Index("ix_fsrs_subcont_parent_uei_upper", func.upper(FSRSSubcontract.parent_uei)
 class Subaward(Base):
     """ Model for all subaward data """
     __tablename__ = "subaward"
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
 
     # File F - Prime Award Data
     unique_award_key = Column(Text, index=True)

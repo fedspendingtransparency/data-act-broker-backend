@@ -3,8 +3,8 @@ from datetime import timedelta
 import pandas as pd
 import sqlalchemy as sa
 
-from sqlalchemy import (Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint,
-                        Boolean, ARRAY)
+from sqlalchemy import (Column, Date, DateTime, ForeignKey, Index, Integer, BigInteger, Numeric, Text, Float,
+                        UniqueConstraint, Boolean, ARRAY)
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -255,7 +255,7 @@ class ObjectClass(Base):
 class SF133(Base):
     """Represents GTAS records"""
     __tablename__ = "sf_133"
-    sf133_id = Column(Integer, primary_key=True)
+    sf133_id = Column(BigInteger, primary_key=True)
     agency_identifier = Column(Text, nullable=False, index=True)
     allocation_transfer_agency = Column(Text, index=True)
     availability_type_code = Column(Text)
@@ -307,7 +307,7 @@ class TASFailedEdits(Base):
 
 class ProgramActivity(Base):
     __tablename__ = "program_activity"
-    program_activity_id = Column(Integer, primary_key=True)
+    program_activity_id = Column(BigInteger, primary_key=True)
     fiscal_year_period = Column(Text, nullable=False, index=True)
     agency_id = Column(Text, nullable=False, index=True)
     allocation_transfer_id = Column(Text)
@@ -611,6 +611,7 @@ class ZipCity(Base):
 
     zip_city_id = Column(Integer, primary_key=True)
     zip_code = Column(Text)
+    preferred_city_name = Column(Text)
     city_name = Column(Text)
     state_code = Column(Text)
 
