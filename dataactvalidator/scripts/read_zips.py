@@ -281,7 +281,8 @@ def generate_cd_zips_grouped_historical(sess):
             SELECT DISTINCT zip5, state_abbreviation
             FROM cd_percents
         )
-        INSERT INTO temp_cd_zips_grouped_historical (created_at, updated_at, zip5, state_abbreviation, congressional_district_no)
+        INSERT INTO temp_cd_zips_grouped_historical (created_at, updated_at, zip5, state_abbreviation,
+                                                     congressional_district_no)
         SELECT
             NOW(),
             NOW(),
