@@ -265,29 +265,33 @@ def generate_cd_zips_grouped_historical(sess):
     cd_zips_grouped_historical_query = f"""
         WITH cd_percents AS (
             SELECT zip5,
+                state_abbreviation,
                 congressional_district_no,
-                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5)) AS cd_percent
+                COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5, state_abbreviation)) AS cd_percent
             FROM zips_historical
             WHERE congressional_district_no IS NOT NULL
-            GROUP BY zip5, congressional_district_no
+            GROUP BY zip5, state_abbreviation, congressional_district_no
         ),
         cd_passed_threshold AS (
-            SELECT zip5, congressional_district_no
+            SELECT zip5, state_abbreviation, congressional_district_no
             FROM cd_percents AS cp
             WHERE cp.cd_percent > {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
         ),
         zip_distinct AS (
-            SELECT DISTINCT zip5
+            SELECT DISTINCT zip5, state_abbreviation
             FROM cd_percents
         )
-        INSERT INTO temp_cd_zips_grouped_historical (created_at, updated_at, zip5, congressional_district_no)
+        INSERT INTO temp_cd_zips_grouped_historical (created_at, updated_at, zip5, state_abbreviation,
+                                                     congressional_district_no)
         SELECT
             NOW(),
             NOW(),
             zd.zip5,
+            zd.state_abbreviation,
             COALESCE(cpt.congressional_district_no, '90')
         FROM zip_distinct AS zd
-        LEFT OUTER JOIN cd_passed_threshold AS cpt ON zd.zip5=cpt.zip5;
+        LEFT OUTER JOIN cd_passed_threshold AS cpt
+            ON (zd.zip5=cpt.zip5 AND zd.state_abbreviation=cpt.state_abbreviation);
     """
     sess.execute(cd_zips_grouped_historical_query)
     sess.commit()
