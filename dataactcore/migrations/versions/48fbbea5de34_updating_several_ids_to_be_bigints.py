@@ -47,9 +47,6 @@ def upgrade_data_broker():
     op.alter_column('object_class_program_activity', 'object_class_program_activity_id',
                existing_type=sa.INTEGER(),
                type_=sa.BigInteger())
-    op.alter_column('program_activity', 'program_activity_id',
-               existing_type=sa.INTEGER(),
-               type_=sa.BigInteger())
     op.alter_column('published_award_financial_assistance', 'published_award_financial_assistance_id',
                existing_type=sa.INTEGER(),
                type_=sa.BigInteger())
@@ -95,9 +92,6 @@ def downgrade_data_broker():
                existing_type=sa.BigInteger(),
                type_=sa.INTEGER())
     op.alter_column('published_award_financial_assistance', 'published_award_financial_assistance_id',
-               existing_type=sa.BigInteger(),
-               type_=sa.INTEGER())
-    op.alter_column('program_activity', 'program_activity_id',
                existing_type=sa.BigInteger(),
                type_=sa.INTEGER())
     op.alter_column('object_class_program_activity', 'object_class_program_activity_id',
