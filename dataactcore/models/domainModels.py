@@ -307,7 +307,7 @@ class TASFailedEdits(Base):
 
 class ProgramActivity(Base):
     __tablename__ = "program_activity"
-    program_activity_id = Column(BigInteger, primary_key=True)
+    program_activity_id = Column(Integer, primary_key=True)
     fiscal_year_period = Column(Text, nullable=False, index=True)
     agency_id = Column(Text, nullable=False, index=True)
     allocation_transfer_id = Column(Text)
