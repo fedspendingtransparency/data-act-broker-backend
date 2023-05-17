@@ -144,7 +144,7 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
         with create_app().app_context():
             sess = GlobalDB.db().session
             try:
-                raw_data = pd.read_csv(program_activity_file, dtype=str, keep_default_na=False)
+                raw_data = pd.read_csv(program_activity_file, dtype=str, na_filter=False)
             except pd.io.common.EmptyDataError:
                 log_blank_file()
                 exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
