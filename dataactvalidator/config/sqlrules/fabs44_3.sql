@@ -15,8 +15,8 @@ WHERE submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM state_congressional AS sc
-            INNER JOIN zips AS z
-                ON z.state_abbreviation = sc.state_code
+            INNER JOIN zip_city AS zc
+                ON zc.state_code = sc.state_code
         WHERE sc.congressional_district_no = fabs.legal_entity_congressional
-            AND z.zip5 = fabs.legal_entity_zip5
+            AND zc.zip_code = fabs.legal_entity_zip5
             AND COALESCE(sc.census_year, 2010) >= 2000);
