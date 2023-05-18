@@ -54,5 +54,5 @@ def test_failure(database):
     # Entry for a different state doesn't work even if it's a state that exists under a different zip
     fabs_4 = FABSFactory(legal_entity_zip5='12345', legal_entity_congressional='04', correction_delete_indicatr='C')
 
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, zip1, zip2, sc1, sc2])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, zip1, zip2, sc1, sc2, sc3])
     assert errors == 4
