@@ -41,10 +41,10 @@ def initialize_db_values(db):
     cd_zips_grouped_historical = CDZipsGroupedHistoricalFactory(zip5='11111', state_abbreviation='NY',
                                                                 congressional_district_no='03')
     # Cities
-    zip_city = ZipCityFactory(zip_code=zip_code_1.zip5, city_name='Test City')
-    zip_city_2 = ZipCityFactory(zip_code=zip_code_3.zip5, city_name='Test City 2')
-    zip_city_3 = ZipCityFactory(zip_code=zip_code_4.zip5, city_name='Test City 3')
-    zip_city_4 = ZipCityFactory(zip_code=zip_code_historical_1.zip5, city_name='Historical Test City')
+    zip_city = ZipCityFactory(zip_code=zip_code_1.zip5, preferred_city_name='Test City')
+    zip_city_2 = ZipCityFactory(zip_code=zip_code_3.zip5, preferred_city_name='Test City 2')
+    zip_city_3 = ZipCityFactory(zip_code=zip_code_4.zip5, preferred_city_name='Test City 3')
+    zip_city_4 = ZipCityFactory(zip_code=zip_code_historical_1.zip5, preferred_city_name='Historical Test City')
     city_code = CityCodeFactory(feature_name='Test City', city_code='00001', state_code='NY',
                                 county_number=zip_code_1.county_number, county_name='Test City County')
     # States
