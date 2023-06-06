@@ -335,6 +335,7 @@ def derive_ppop_location_data(sess, submission_id):
         SET place_of_perform_county_co = county_number
         FROM zips_grouped_historical
         WHERE place_of_performance_zip5 = zip5
+            AND place_of_perfor_state_code = state_abbreviation
             AND place_of_perform_county_co IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
     """
@@ -350,6 +351,7 @@ def derive_ppop_location_data(sess, submission_id):
         SET place_of_perform_county_co = county_number
         FROM zips_grouped
         WHERE place_of_performance_zip5 = zip5
+            AND place_of_perfor_state_code = state_abbreviation
             AND place_of_perform_county_co IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
     """
@@ -533,6 +535,20 @@ def derive_le_location_data(sess, submission_id):
                    'updated {}'.format(res.rowcount), submission_id, query_start)
 
     query_start = datetime.now()
+    log_derivation('Beginning legal entity state derivation', submission_id)
+    # Deriving congressional info for remaining blanks (with zip code)
+    query = """
+            UPDATE tmp_fabs_{submission_id}
+            SET legal_entity_state_code = state_code
+            FROM zip_city
+            WHERE legal_entity_zip5 = zip_code
+                AND legal_entity_state_code IS NULL;
+        """
+    res = sess.execute(query.format(submission_id=submission_id))
+    log_derivation('Completed legal entity state derivation, '
+                   'updated {}'.format(res.rowcount), submission_id, query_start)
+
+    query_start = datetime.now()
     log_derivation('Beginning historical legal entity congressional for 5-digit zip derivation', submission_id)
     # Deriving historical congressional info for remaining blanks (with zip code)
     query = """
@@ -540,6 +556,7 @@ def derive_le_location_data(sess, submission_id):
         SET legal_entity_congressional = congressional_district_no
         FROM cd_zips_grouped_historical
         WHERE legal_entity_zip5 = zip5
+            AND legal_entity_state_code = state_abbreviation
             AND legal_entity_congressional IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
     """
@@ -555,6 +572,7 @@ def derive_le_location_data(sess, submission_id):
         SET legal_entity_congressional = congressional_district_no
         FROM cd_zips_grouped
         WHERE legal_entity_zip5 = zip5
+            AND legal_entity_state_code = state_abbreviation
             AND legal_entity_congressional IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
     """
@@ -567,10 +585,10 @@ def derive_le_location_data(sess, submission_id):
     # Deriving county and state code info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
-        SET legal_entity_county_code = county_number,
-            legal_entity_state_code = state_abbreviation
+        SET legal_entity_county_code = county_number
         FROM zips_grouped_historical
         WHERE legal_entity_zip5 = zip5
+            AND legal_entity_state_code = state_abbreviation
             AND legal_entity_county_code IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
     """
@@ -583,10 +601,10 @@ def derive_le_location_data(sess, submission_id):
     # Deriving county and state code info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
-        SET legal_entity_county_code = county_number,
-            legal_entity_state_code = state_abbreviation
+        SET legal_entity_county_code = county_number
         FROM zips_grouped
         WHERE legal_entity_zip5 = zip5
+            AND legal_entity_state_code = state_abbreviation
             AND legal_entity_county_code IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
     """
