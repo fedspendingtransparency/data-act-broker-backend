@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 FAILURE_THRESHOLD_PERCENTAGE = .01
 # Used for Congressional Districts Derivations (see load_location_data and read_zips)
-MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE = 0.8
+MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE = 0.75
 
 
 def clean_col_names(field):
