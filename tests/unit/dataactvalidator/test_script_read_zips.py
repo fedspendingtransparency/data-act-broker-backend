@@ -29,7 +29,7 @@ def test_group_zips(database, monkeypatch):
     sess = database.session
 
     # Testing with a threshold of a simple majority
-    test_threshold = 0.50
+    test_threshold = 0.51
     monkeypatch.setattr(read_zips, 'MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE', test_threshold)
     monkeypatch.setattr(load_location_data, 'MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE', test_threshold)
 
