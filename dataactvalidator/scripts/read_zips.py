@@ -233,7 +233,7 @@ def generate_cd_zips_grouped(sess):
         cd_passed_threshold AS (
             SELECT zip5, state_abbreviation, congressional_district_no
             FROM cd_percents AS cp
-            WHERE cp.cd_percent > {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
         ),
         zip_distinct AS (
             SELECT DISTINCT zip5, state_abbreviation
@@ -275,7 +275,7 @@ def generate_cd_zips_grouped_historical(sess):
         cd_passed_threshold AS (
             SELECT zip5, state_abbreviation, congressional_district_no
             FROM cd_percents AS cp
-            WHERE cp.cd_percent > {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
         ),
         zip_distinct AS (
             SELECT DISTINCT zip5, state_abbreviation
@@ -318,7 +318,7 @@ def generate_cd_county_grouped(sess):
         cd_passed_threshold AS (
             SELECT county_number, state_abbreviation, congressional_district_no
             FROM cd_percents AS cp
-            WHERE cp.cd_percent > {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
         ),
         county_distinct AS (
             SELECT DISTINCT county_number, state_abbreviation
