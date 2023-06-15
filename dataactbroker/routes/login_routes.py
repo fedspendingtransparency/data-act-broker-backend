@@ -17,6 +17,11 @@ def add_login_routes(app, bcrypt):
         account_manager = AccountHandler(request)
         return account_manager.max_login(session)
 
+    @app.route("/v1/caia_login/", methods=["POST"])
+    def caia_login():
+        account_manager = AccountHandler(request)
+        return account_manager.caia_login(session)
+
     @app.route("/v1/logout/", methods=["POST"])
     def logout_user():
         return logout(session)
