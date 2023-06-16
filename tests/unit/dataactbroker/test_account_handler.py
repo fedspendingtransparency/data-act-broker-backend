@@ -157,13 +157,7 @@ def test_set_user_name_updated():
 
     user = UserFactory(name="No User")
 
-    mock_cas_attrs = {
-        'maxAttribute:First-Name': 'New',
-        'maxAttribute:Middle-Name': '',
-        'maxAttribute:Last-Name': 'Name'
-    }
-
-    account_handler.set_user_name(user, mock_cas_attrs)
+    account_handler.set_user_name(user, 'New', '', 'Name')
 
     assert user.name == 'New Name'
 
@@ -173,13 +167,7 @@ def test_set_user_name_middle_name():
 
     user = UserFactory()
 
-    mock_cas_attrs = {
-        'maxAttribute:First-Name': 'Test',
-        'maxAttribute:Middle-Name': 'Abc',
-        'maxAttribute:Last-Name': 'User'
-    }
-
-    account_handler.set_user_name(user, mock_cas_attrs)
+    account_handler.set_user_name(user, 'Test', 'Abc', 'User')
 
     assert user.name == 'Test A. User'
 
@@ -188,13 +176,7 @@ def test_set_user_name_empty_middle_name():
     """ Tests set_user_name() omits a middle name initial to the user's name when a middle name is empty (spaces) """
     user = UserFactory()
 
-    mock_cas_attrs = {
-        'maxAttribute:First-Name': 'Test',
-        'maxAttribute:Middle-Name': ' ',
-        'maxAttribute:Last-Name': 'User'
-    }
-
-    account_handler.set_user_name(user, mock_cas_attrs)
+    account_handler.set_user_name(user, 'Test', ' ', 'User')
 
     assert user.name == 'Test User'
 
@@ -210,7 +192,7 @@ def test_set_user_name_no_middle_name():
         'maxAttribute:Last-Name': 'User'
     }
 
-    account_handler.set_user_name(user, mock_cas_attrs)
+    account_handler.set_user_name(user, 'Test', None, 'User')
 
     assert user.name == 'Test User'
 
@@ -221,9 +203,10 @@ def test_set_max_perms(database, monkeypatch):
     cgac_abc = CGACFactory(cgac_code='ABC')
     cgac_def = CGACFactory(cgac_code='DEF')
     frec_abc = FRECFactory(frec_code='ABCD', cgac=cgac_abc)
-    frec_def = FRECFactory(frec_code='EFGH', cgac=cgac_abc)
+    frec_abc2 = FRECFactory(frec_code='EFGH', cgac=cgac_abc)
+    frec_def = FRECFactory(frec_code='IJKL', cgac=cgac_def)
     user = UserFactory()
-    database.session.add_all([cgac_abc, cgac_def, frec_abc, frec_def, user])
+    database.session.add_all([cgac_abc, cgac_def, frec_abc, frec_abc2, frec_def, user])
     database.session.commit()
 
     monkeypatch.setitem(account_handler.CONFIG_BROKER, 'parent_group', 'prefix')
@@ -289,12 +272,12 @@ def test_set_max_perms(database, monkeypatch):
     assert cgac_affils[0].permission_type_id == PERMISSION_TYPE_DICT['reader']
 
     # test creating one CGAC and one FREC permission from two strings
-    account_handler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_S,prefix-CGAC_DEF-FREC_ABCD-PERM_R')
+    account_handler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_S,prefix-CGAC_DEF-FREC_IJKL-PERM_R')
     database.session.commit()
     assert len(user.affiliations) == 3
     frec_affils = [affil for affil in user.affiliations if affil.frec is not None]
     assert frec_affils[0].cgac is None
-    assert frec_affils[0].frec.frec_code == 'ABCD'
+    assert frec_affils[0].frec.frec_code == 'IJKL'
     assert frec_affils[0].permission_type_id == PERMISSION_TYPE_DICT['reader']
     cgac_affils = [affil for affil in user.affiliations if affil.cgac is not None]
     cgac_affiliations = list(sorted(cgac_affils, key=lambda a: a.cgac.cgac_code))
