@@ -541,6 +541,29 @@ def get_caia_tokens(code, redirect_uri):
 
     return json.loads(caia_resp.content.decode())
 
+def refresh_tokens(refresh_token, redirect_uri):
+    """ Refresh the tokens to keep the CAIA session going. Only use when we need consistent access.
+
+        Args:
+            refresh_token: the authorization code to verify with CAIA
+            redirect_uri: the redirect_uri associated with the code for further verification
+
+        Returns:
+            A dictionary of the response from CAIA containing tokens
+    """
+    params = {
+        'grant_type': 'refresh_token',
+        'refresh_token': refresh_token,
+        'redirect_uri': redirect_uri
+    }
+    data = {
+        'client_id': CONFIG_BROKER['caia']['client_id'],
+        'client_secret': CONFIG_BROKER['caia']['client_secret']
+    }
+    caia_resp = requests.post(f"{CONFIG_BROKER['caia']['url_root']}/as/token.oauth2", params=params, data=data)
+    caia_resp.raise_for_status()
+
+    return json.loads(caia_resp.content.decode())
 
 def get_caia_user_dict(accces_token):
     """ Get the result from MAX's serviceValidate functionality
