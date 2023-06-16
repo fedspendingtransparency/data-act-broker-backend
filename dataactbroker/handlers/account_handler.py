@@ -449,7 +449,7 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
         for group_name in group_names:
             # Always starts with the 3-digit CGAC
             code = group_name[:3]
-            if 'FREC' in group_names:
+            if 'FREC' in group_name:
                 # If FREC, then its the [3-digit CGAC]-FREC_[4-digit FREC code]
                 code = group_name[9:13]
             # Permission level is always the last character
