@@ -441,9 +441,10 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
         group_names = []
 
     if 'SYS' in group_names:
-        user.affiliations = []
         user.website_admin = True
+        user.affiliations = []
     else:
+        user.website_admin = False
         perms = []
         for group_name in group_names:
             # Always starts with the 3-digit CGAC
@@ -455,10 +456,9 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
             perm = group_name[-1]
             perms.append((code, perm))
 
-        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
+        if perms:
+            user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
 
-        user.affiliations = affiliations
-        user.website_admin = False
 
 
 def set_caia_perms(user, roles):
@@ -476,7 +476,8 @@ def set_caia_perms(user, roles):
         """
     user.website_admin = ("admin" in roles)
     perms = [tuple(role.split('-')[1:]) for role in roles if role != 'admin']
-    user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id))
+    if perms:
+        user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id))
 
 
 def json_for_user(user, session_id):
