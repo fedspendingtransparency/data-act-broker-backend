@@ -188,6 +188,11 @@ class AccountHandler:
 
             # Get the access tokens and user data from the code
             caia_tokens = get_caia_tokens(code, redirect_uri)
+
+            if not caia_tokens.get('access_token', ''):
+                raise ValueError("The CAIA endpoint was unable to locate your session "
+                                 "using the code/redirect_uri combination you provided.")
+
             user_info = get_caia_user_dict(caia_tokens['access_token'])
             # No need to handle the access/refresh tokens and revoke as we've already gotten everything we need.
             revoke_caia_access(caia_tokens['refresh_token'])
@@ -210,7 +215,10 @@ class AccountHandler:
                 last_name = user_info['family_name']
                 set_user_name(user, first_name, middle_name, last_name)
 
-                set_caia_perms(user, user_info["role"][1:-1].split(', '))
+                # role string format - '[role1, role2]'
+                role_list = user_info["role"][1:-1]
+                if role_list:
+                    set_caia_perms(user, role_list.split(', '))
 
                 sess.add(user)
                 sess.commit()
@@ -460,7 +468,6 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
             user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
 
 
-
 def set_caia_perms(user, roles):
     """ Convert the user group list present on CAIA into a list of UserAffiliations and/or website_admin status.
 
@@ -474,8 +481,6 @@ def set_caia_perms(user, roles):
                 user: the User object
                 roles: list of all CAIA roles the user has
         """
-    # temporarily setting perms to empty for testing
-    roles = ['admin']
     user.website_admin = ("admin" in roles)
     perms = [tuple(role.split('-')[1:]) for role in roles if role != 'admin']
     if perms:
@@ -544,6 +549,7 @@ def get_caia_tokens(code, redirect_uri):
 
     return json.loads(caia_resp.content.decode())
 
+
 def refresh_tokens(refresh_token, redirect_uri):
     """ Refresh the tokens to keep the CAIA session going. Only use when we need consistent access.
 
@@ -567,6 +573,7 @@ def refresh_tokens(refresh_token, redirect_uri):
     caia_resp.raise_for_status()
 
     return json.loads(caia_resp.content.decode())
+
 
 def get_caia_user_dict(accces_token):
     """ Get the result from MAX's serviceValidate functionality
