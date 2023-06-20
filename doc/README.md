@@ -137,6 +137,7 @@ Login routes are used to log a user in or out or check if the current session is
 - [login](./api_docs/login/login.md)
 - [logout](./api_docs/login/logout.md)
 - [max\_login](./api_docs/login/max_login.md)
+- [caia\_login](./api_docs/login/caia_login.md)
 - [session](./api_docs/login/session.md)
 
 ### Settings Routes
