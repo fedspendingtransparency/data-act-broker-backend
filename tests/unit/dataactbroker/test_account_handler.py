@@ -103,8 +103,8 @@ def test_caia_login_success_normal_login(monkeypatch):
 
     monkeypatch.setattr(account_handler, 'revoke_caia_access', Mock())
 
-    # Testing with just the admin role
-    caia_user_dict = make_caia_user_dict('[admin]')
+    # Testing with just the admin role - note that with a singular role, CAIA drops the brackets
+    caia_user_dict = make_caia_user_dict('admin')
     monkeypatch.setattr(account_handler, 'get_caia_user_dict', Mock(return_value=caia_user_dict))
 
     # If it gets to this point, that means the user was in all the right groups aka successful login
@@ -114,8 +114,8 @@ def test_caia_login_success_normal_login(monkeypatch):
 
     assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))['message']
 
-    # Testing with no roles
-    caia_user_dict = make_caia_user_dict('[]')
+    # Testing with several roles
+    caia_user_dict = make_caia_user_dict('[admin, CGAC-123-R]')
     monkeypatch.setattr(account_handler, 'get_caia_user_dict', Mock(return_value=caia_user_dict))
 
     # If it gets to this point, that means the user was in all the right groups aka successful login

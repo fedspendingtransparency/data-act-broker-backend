@@ -215,8 +215,10 @@ class AccountHandler:
                 last_name = user_info['family_name']
                 set_user_name(user, first_name, middle_name, last_name)
 
-                # role string format - '[role1, role2]'
-                role_list = user_info["role"][1:-1]
+                # role string format
+                #   - 'role1' for a singular role
+                #   - '[role1, role2]' for multiple roles
+                role_list = user_info['role'][1:-1] if user_info['role'][0] == '[' else user_info['role']
                 if role_list:
                     set_caia_perms(user, role_list.split(', '))
 
