@@ -101,6 +101,8 @@ def test_caia_login_success_normal_login(monkeypatch):
     caia_tokens_dict = make_caia_token_dict('123456789')
     monkeypatch.setattr(account_handler, 'get_caia_tokens', Mock(return_value=caia_tokens_dict))
 
+    monkeypatch.setattr(account_handler, 'revoke_caia_access', Mock())
+
     # Testing with just the admin role
     caia_user_dict = make_caia_user_dict('[admin]')
     monkeypatch.setattr(account_handler, 'get_caia_user_dict', Mock(return_value=caia_user_dict))
