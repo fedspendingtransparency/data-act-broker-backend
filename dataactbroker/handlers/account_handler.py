@@ -219,8 +219,7 @@ class AccountHandler:
                 #   - 'role1' for a singular role
                 #   - '[role1, role2]' for multiple roles
                 role_list = user_info['role'][1:-1] if user_info['role'][0] == '[' else user_info['role']
-                if role_list:
-                    set_caia_perms(user, role_list.split(', '))
+                set_caia_perms(user, role_list.split(', '))
 
                 sess.add(user)
                 sess.commit()
@@ -484,9 +483,8 @@ def set_caia_perms(user, roles):
                 roles: list of all CAIA roles the user has
         """
     user.website_admin = ("admin" in roles)
-    perms = [tuple(role.split('-')[1:]) for role in roles if role != 'admin']
-    if perms:
-        user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id))
+    perms = [tuple(role.split('-')[1:]) for role in roles if role not in ('admin', '')]
+    user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id)) if perms else []
 
 
 def json_for_user(user, session_id):
