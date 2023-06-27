@@ -51,6 +51,17 @@ def parse_city_file(city_file):
     """
     # read the data and clean up the column names
     data = pd.read_csv(city_file, dtype=str, sep="|")
+    # TODO: put this back once we swap which file we're loading
+    # data = clean_data(
+    #     data,
+    #     {"feature_name": "feature_name",
+    #      "feature_class": "feature_class",
+    #      "census_code": "city_code",
+    #      "state_numeric": "state_fips",
+    #      "county_numeric": "county_number",
+    #      "county_name": "county_name",
+    #      "prim_lat_dec": "latitude",
+    #      "prim_long_dec": "longitude"})
     data = clean_data(
         data,
         {"FEATURE_NAME": "feature_name",
@@ -67,6 +78,16 @@ def parse_city_file(city_file):
     data = data[pd.notnull(data['city_code'])]
     data['sorting_col'] = data['feature_class'].map(feature_class_ranking)
     data = data[pd.notnull(data['sorting_col'])]
+
+    # TODO: put this back once we swap which file we're loading
+    # # Add the state codes as a column
+    # states = sess.query(States).all()
+    # state_mapping = {}
+    #
+    # for state in states:
+    #     state_mapping[state.fips_code] = state.state_code
+    # data['state_code'] = data['state_fips'].map(state_mapping)
+    # data = data.drop('state_fips', axis=1)
 
     # sort by feature_class then remove any duplicates within state/city code combo (we keep the first occurrence
     # because we've sorted by priority so the one that would overwrite the others is on top already)
@@ -95,6 +116,12 @@ def parse_county_file(county_file):
     """
     # read the data and clean up the column names
     data = pd.read_csv(county_file, dtype=str, sep="|")
+    # TODO: put this back once we swap which file we're loading
+    # data = clean_data(
+    #     data,
+    #     {"county_numeric": "county_number",
+    #      "county_name": "county_name",
+    #      "state_alpha": "state_code"})
     data = clean_data(
         data,
         {"COUNTY_NUMERIC": "county_number",
@@ -203,8 +230,11 @@ def load_city_data(force_reload):
         Args:
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
+    sess = GlobalDB.db().session
     start_time = datetime.now()
     # parse the new city code data
+    # TODO: put this back once we swap which file we're loading
+    # city_file_url = '{}/FederalCodes_National.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     city_file_url = '{}/NationalFedCodes.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     with RetrieveFileFromUri(city_file_url, 'r').get_file_object() as city_file:
         new_data = parse_city_file(city_file)
@@ -212,7 +242,6 @@ def load_city_data(force_reload):
     diff_found = check_dataframe_diff(new_data, CityCode, ['city_code_id'], ['state_code', 'city_code'])
 
     if force_reload or diff_found:
-        sess = GlobalDB.db().session
         logger.info('Differences found or reload forced, reloading city_code table.')
         # delete any data in the CityCode table
         sess.query(CityCode).delete()
@@ -233,6 +262,9 @@ def load_county_data(force_reload):
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
     start_time = datetime.now()
+    # parse the new county code data
+    # TODO: put this back once we swap which file we're loading
+    # county_file_url = '{}/GovernmentUnits_National.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     county_file_url = '{}/GOVT_UNITS.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     with RetrieveFileFromUri(county_file_url, 'r').get_file_object() as county_file:
         new_data = parse_county_file(county_file)
@@ -360,7 +392,7 @@ def generate_cd_city_grouped(sess):
                 state_code,
                 congressional_district_no
             FROM cd_percents AS cp
-            WHERE cp.cd_percent > {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
+            WHERE cp.cd_percent >= {MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE}
         ),
         city_distinct AS (
             SELECT DISTINCT city_name, state_code
