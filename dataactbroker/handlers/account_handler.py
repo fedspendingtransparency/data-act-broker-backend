@@ -1,6 +1,7 @@
 import json
 import logging
 from operator import attrgetter
+import re
 import requests
 import xmltodict
 
@@ -425,8 +426,8 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
     """ Convert the user group lists present on MAX into a list of UserAffiliations and/or website_admin status.
 
         Permissions are encoded as a comma-separated list of:
-        {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S-F}
-        {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S-F}
+        {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S-E-F}
+        {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S-E-F}
         or
         {parent-group}-CGAC_SYS to indicate website_admin
 
@@ -473,8 +474,8 @@ def set_caia_perms(user, roles):
     """ Convert the user group list present on CAIA into a list of UserAffiliations and/or website_admin status.
 
             Permissions are encoded as a comma-separated list of:
-            CGAC-{cgac-code}-{one-of-R-W-S-F}
-            FREC-{frec_code}-{one-of-R-W-S-F}
+            CGAC-{cgac-code}-{one-of-R-W-S-E-F}
+            FREC-{frec_code}-{one-of-R-W-S-E-F}
             AppApprover-Data_Act_Broker, AppOwner-Data_Act_Broker-CGAC-{cgac_code},
                 and/or AppOwner-Data_Act_Broker-FREC-{frec_code} for agency admins
             or
@@ -486,7 +487,7 @@ def set_caia_perms(user, roles):
         """
     user.website_admin = ("admin" in roles)
     perms = [tuple(role.split('-')[1:]) for role in roles
-             if role not in ('admin', '') and not role.startswith('App')]
+             if re.match('^(CGAC|FREC)-[A-Z\d]{3,4}-[RWSEF]$', role.upper())]
     user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id)) if perms else []
 
 
