@@ -33,7 +33,7 @@ This route lists an agency's stored rule settings.
             "impact": "high"
         },
         {
-            "description": "DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.",
+            "description": "DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE in File A should equal USSGL (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.",
             "label": "A35",
             "significance": 3,
             "impact": "high"

@@ -250,6 +250,8 @@ def normalize_headers(header_row, daims_headers, daims_to_short_dict, header_dic
             header = 'correctiondeleteindicator'
         elif header == 'place_of_performance_zip4':
             header = 'place_of_performance_zip4a'
+        elif header == 'deobligationsrecoveriesrefundsbytas_cpe':
+            header = 'deobligationsrecoveriesrefundsofprioryearbytas_cpe'
 
         # yield the short header when applicable, otherwise yield the cleaned header, whatever it is
         if daims_headers and header in daims_to_short_dict:
