@@ -32,7 +32,7 @@ mapping = OrderedDict([
     ('obligations_incurred_total_cpe', ['ObligationsIncurredTotalByTAS_CPE']),
     ('gross_outlay_amount_by_tas_cpe', ['GrossOutlayAmountByTAS_CPE']),
     ('unobligated_balance_cpe', ['UnobligatedBalance_CPE']),
-    ('deobligations_recoveries_r_cpe', ['DeobligationsRecoveriesRefundsByTAS_CPE']),
+    ('deobligations_recoveries_r_cpe', ['DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE']),
     ('gtas_status', ['GTASStatus'])
 ])
 db_columns = [key for key in mapping]

@@ -12,9 +12,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test IndirectCostFederalShareAmount must be blank for non-grants/non-cooperative agreements
-        (AssistanceType = 06, 07, 08, 09, 10, or 11).
-    """
+    """ Test IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, and 09. """
 
     fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type='09')
     fabs_2 = FABSFactory(indirect_federal_sharing=0, assistance_type='09')
@@ -34,10 +32,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure IndirectCostFederalShareAmount must be blank for non-grants/non-cooperative agreements
-        (AssistanceType = 06, 07, 08, 09, 10, or 11).
-    """
+    """ Test failure IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, and 09. """
 
-    fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type='11')
+    fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type='08')
     errors = number_of_errors(_FILE, database, models=[fabs_1])
     assert errors == 1
