@@ -396,7 +396,7 @@ class ErrorWarningTests(BaseTestValidator):
             },
             {
                 'Error type': 'Missing header',
-                'Header name': 'DeobligationsRecoveriesRefundsByTAS_CPE'
+                'Header name': 'DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE'
             },
             {
                 'Error type': 'Missing header',
@@ -718,13 +718,13 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
-                'Source Field Name': 'deobligationsrecoveriesrefundsbytas_cpe',
+                'Source Field Name': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
                                      ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
-                'Rule Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
+                'Rule Message': 'DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE in File A should equal USSGL'
                                 ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
-                'Source Value Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
+                'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
@@ -770,13 +770,13 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
-                'Source Field Name': 'deobligationsrecoveriesrefundsbytas_cpe',
+                'Source Field Name': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
                                      ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
-                'Rule Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
+                'Rule Message': 'DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE in File A should equal USSGL'
                                 ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
-                'Source Value Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
+                'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
@@ -822,13 +822,13 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
-                'Source Field Name': 'deobligationsrecoveriesrefundsbytas_cpe',
+                'Source Field Name': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
                                      ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
-                'Rule Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
+                'Rule Message': 'DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE in File A should equal USSGL'
                                 ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
-                'Source Value Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
+                'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
