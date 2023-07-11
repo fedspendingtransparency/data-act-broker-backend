@@ -115,7 +115,8 @@ def test_caia_login_success_normal_login(monkeypatch):
     assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))['message']
 
     # Testing with several roles
-    caia_user_dict = make_caia_user_dict('[admin, CGAC-123-R]')
+    caia_user_dict = make_caia_user_dict('[admin, CGAC-123-R,'
+                                         ' AppApprover-Data_Act_Broker, AppOwner-Data_Act_Broker-CGAC-123]')
     monkeypatch.setattr(account_handler, 'get_caia_user_dict', Mock(return_value=caia_user_dict))
 
     # If it gets to this point, that means the user was in all the right groups aka successful login

@@ -475,6 +475,8 @@ def set_caia_perms(user, roles):
             Permissions are encoded as a comma-separated list of:
             CGAC-{cgac-code}-{one-of-R-W-S-F}
             FREC-{frec_code}-{one-of-R-W-S-F}
+            AppApprover-Data_Act_Broker, AppOwner-Data_Act_Broker-CGAC-{cgac_code},
+                and/or AppOwner-Data_Act_Broker-FREC-{frec_code} for agency admins
             or
             "admin" to indicate website_admin
 
@@ -483,7 +485,8 @@ def set_caia_perms(user, roles):
                 roles: list of all CAIA roles the user has
         """
     user.website_admin = ("admin" in roles)
-    perms = [tuple(role.split('-')[1:]) for role in roles if role not in ('admin', '')]
+    perms = [tuple(role.split('-')[1:]) for role in roles
+             if role not in ('admin', '') and not role.startswith('App')]
     user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id)) if perms else []
 
 
