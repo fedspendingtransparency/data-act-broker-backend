@@ -15,8 +15,8 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ ObligationsIncurredByProgramObjectClass_CPE = value for GTAS SF 133 line #2190 for the same reporting period
-        for the TAS and DEFC combination.
+    """ ObligationsIncurredByProgramObjectClass_CPE = the negative (additive inverse) value for GTAS SF 133 line #2190
+        for the same reporting period for the TAS and DEFC combination.
     """
     submission_id = 1
     tas, period, year = 'some-tas', 2, 2002
@@ -31,8 +31,8 @@ def test_success(database):
 
 
 def test_success_multiple_rows(database):
-    """ ObligationsIncurredByProgramObjectClass_CPE = value for GTAS SF 133 line #2190 for the same reporting period
-        for the TAS and DEFC combination. Multiple OP rows for the same combo
+    """ ObligationsIncurredByProgramObjectClass_CPE = the negative (additive inverse) value for GTAS SF 133 line #2190
+        for the same reporting period for the TAS and DEFC combination. Multiple OP rows for the same combo
     """
     submission_id = 1
     tas, period, year = 'some-tas', 2, 2002
@@ -49,8 +49,8 @@ def test_success_multiple_rows(database):
 
 
 def test_non_matching_defc(database):
-    """ ObligationsIncurredByProgramObjectClass_CPE = value for GTAS SF 133 line #2190 for the same reporting period
-        for the TAS and DEFC combination. Entries with different DEFC ignored
+    """ ObligationsIncurredByProgramObjectClass_CPE = the negative (additive inverse) value for GTAS SF 133 line #2190
+        for the same reporting period for the TAS and DEFC combination. Entries with different DEFC ignored
     """
     submission_id = 1
     tas, period, year = 'some-tas', 2, 2002
@@ -67,8 +67,8 @@ def test_non_matching_defc(database):
 
 
 def test_failure(database):
-    """ Fail ObligationsIncurredByProgramObjectClass_CPE = value for GTAS SF 133 line #2190 for the same reporting
-        period for the TAS and DEFC combination.
+    """ Fail ObligationsIncurredByProgramObjectClass_CPE = the negative (additive inverse) value for GTAS SF 133 line
+        #2190 for the same reporting period for the TAS and DEFC combination.
     """
     submission_id = 1
     tas, period, year = 'some-tas', 2, 2002
@@ -83,8 +83,8 @@ def test_failure(database):
 
 
 def test_failure_same_sign(database):
-    """ Fail ObligationsIncurredByProgramObjectClass_CPE = value for GTAS SF 133 line #2190 for the same reporting
-        period for the TAS and DEFC combination. Same sign.
+    """ Fail ObligationsIncurredByProgramObjectClass_CPE = the negative (additive inverse) value for GTAS SF 133 line
+        #2190 for the same reporting period for the TAS and DEFC combination. Same sign.
     """
     submission_id = 1
     tas, period, year = 'some-tas', 2, 2002
