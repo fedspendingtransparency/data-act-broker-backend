@@ -171,7 +171,7 @@ class AccountHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR, error=str(e))
 
     def caia_login(self, session):
-        """ Logs a user in if their password matches using CAIA
+        """ Logs a user in if their CAIA validation succeeds
 
             Args:
                 session: Session object from flask
@@ -596,7 +596,7 @@ def get_caia_user_dict(accces_token):
 
 
 def revoke_caia_access(refresh_token):
-    """ Simple revokes access to the given CAIA refresh token. We are revoking the refresh token (and not the access
+    """ Simply revokes access to the given CAIA refresh token. We are revoking the refresh token (and not the access
         token) to revoke the entire grant.
 
         Args:
