@@ -135,6 +135,12 @@ broker:
             entity_api_url: https://api.sam.gov/entity-information/v2/entities
             uei_iqaas_api_url: https://api.sam.gov/prod/IQaaS/v1/api/uei-info
 
+    # CAIA login
+    caia:
+        url_root: https://caia.treasury.gov
+        client_id: sample
+        client_secret: sample
+
 services:
     debug: true
 

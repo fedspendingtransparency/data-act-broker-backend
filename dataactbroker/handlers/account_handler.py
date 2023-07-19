@@ -1,5 +1,7 @@
+import json
 import logging
 from operator import attrgetter
+import re
 import requests
 import xmltodict
 
@@ -140,9 +142,85 @@ class AccountHandler:
                     user = User()
                     user.email = email
 
-                set_user_name(user, cas_attrs)
+                first_name = cas_attrs['maxAttribute:First-Name']
+                middle_name = cas_attrs['maxAttribute:Middle-Name']
+                last_name = cas_attrs['maxAttribute:Last-Name']
+                set_user_name(user, first_name, middle_name, last_name)
 
                 set_max_perms(user, cas_attrs['maxAttribute:GroupList'], service_account_flag)
+
+                sess.add(user)
+                sess.commit()
+
+            except MultipleResultsFound:
+                raise ValueError("An error occurred during login.")
+
+            return self.create_session_and_response(session, user)
+
+        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly.
+        # We add the error parameter here because this endpoint needs to provide better feedback, and to avoid changing
+        # the default behavior of the JsonResponse class globally.
+        except (TypeError, KeyError, NotImplementedError) as e:
+            # Return a 400 with appropriate message
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR, error=str(e))
+        except ValueError as e:
+            # Return a 401 for login denied
+            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED, error=str(e))
+        except Exception as e:
+            # Return 500
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR, error=str(e))
+
+    def caia_login(self, session):
+        """ Logs a user in if their CAIA validation succeeds
+
+            Args:
+                session: Session object from flask
+
+            Returns:
+                A JsonResponse containing the user information or details on which error occurred, such as whether a
+                type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
+                different, unexpected error occurred.
+        """
+        try:
+            safe_dictionary = RequestDictionary(self.request)
+
+            code = safe_dictionary.get_value("code")
+            redirect_uri = safe_dictionary.get_value("redirect_uri")
+
+            # Get the access tokens and user data from the code
+            caia_tokens = get_caia_tokens(code, redirect_uri)
+
+            if not caia_tokens.get('access_token', ''):
+                raise ValueError("The CAIA endpoint was unable to locate your session "
+                                 "using the code/redirect_uri combination you provided.")
+
+            user_info = get_caia_user_dict(caia_tokens['access_token'])
+            # No need to handle the access/refresh tokens and revoke as we've already gotten everything we need.
+            revoke_caia_access(caia_tokens['refresh_token'])
+
+            # Grab the email and list of groups from CAIA's response
+            email = user_info['email']
+
+            try:
+                sess = GlobalDB.db().session
+                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
+
+                # If the user does not exist, create them since they are allowed to access the site because they got
+                # past the above group membership checks
+                if user is None:
+                    user = User()
+                    user.email = email
+
+                first_name = user_info['given_name']
+                middle_name = user_info['middle_name']
+                last_name = user_info['family_name']
+                set_user_name(user, first_name, middle_name, last_name)
+
+                # role string format
+                #   - 'role1' for a singular role
+                #   - '[role1, role2]' for multiple roles
+                role_list = user_info['role'][1:-1] if user_info['role'][0] == '[' else user_info['role']
+                set_caia_perms(user, role_list.split(', '))
 
                 sess.add(user)
                 sess.commit()
@@ -245,40 +323,36 @@ def perms_to_affiliations(perms, user_id, service_account_flag=False):
     """ Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms
 
         Args:
-            perms: list of permissions (as strings) for the user
+            perms: list of permissions (as lists [code, perm]) for the user
             user_id: the ID of the user
             service_account_flag: flag to indicate a service account
         Yields:
             UserAffiliations based on the permissions provided
     """
-    available_cgacs = {cgac.cgac_code: cgac for cgac in GlobalDB.db().session.query(CGAC)}
-    available_frecs = {frec.frec_code: frec for frec in GlobalDB.db().session.query(FREC)}
+    sess = GlobalDB.db().session
+    available_cgacs = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
+    available_frecs = {frec.frec_code: frec for frec in sess.query(FREC)}
     log_data = {
         'message_type': 'BrokerWarning',
         'user_id': user_id
     }
-    for perm in perms:
-        log_data['message'] = 'User with ID {} has malformed permission: {}'.format(user_id, perm)
-        components = perm.split('-PERM_')
-        if len(components) != 2:
-            logger.warning(log_data)
-            continue
+    for code, perm_level in perms:
+        log_data['message'] = 'User with ID {} has malformed permission: {}-{}'.format(user_id, code, perm_level)
 
-        codes, perm_level = components
-        split_codes = codes.split('-FREC_')
-        frec_code, cgac_code = None, None
-        if len(split_codes) == 2:
-            # permissions for FR entity code and readonly CGAC
-            frec_code, cgac_code = split_codes[1], split_codes[0]
-            if frec_code not in available_frecs or cgac_code not in available_cgacs:
+        cgac_code, frec_code = None, None
+        if len(code) == 4:
+            # FREC
+            if code not in available_frecs:
                 logger.warning(log_data)
                 continue
+            cgac_code = available_frecs[code].cgac.cgac_code
+            frec_code = code
         else:
-            # permissions for CGAC
-            cgac_code = codes
-            if cgac_code not in available_cgacs:
+            # CGAC
+            if code not in available_cgacs:
                 logger.warning(log_data)
                 continue
+            cgac_code = code
 
         perm_level = perm_level.lower()
 
@@ -334,17 +408,12 @@ def best_affiliation(affiliations):
     return all_affils
 
 
-def set_user_name(user, cas_attrs):
+def set_user_name(user, first_name, middle_name, last_name):
     """ Update the name for the user based on the MAX attributes.
 
         Args:
             user: the User object
-            cas_attrs: a dictionary of the max attributes (includes first, middle, last names) for a logged in user
     """
-    first_name = cas_attrs['maxAttribute:First-Name']
-    middle_name = cas_attrs['maxAttribute:Middle-Name']
-    last_name = cas_attrs['maxAttribute:Last-Name']
-
     # Check for None first so the condition can short-circuit without
     # having to worry about calling strip() on a None object
     if middle_name is None or middle_name.strip() == '':
@@ -357,8 +426,8 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
     """ Convert the user group lists present on MAX into a list of UserAffiliations and/or website_admin status.
 
         Permissions are encoded as a comma-separated list of:
-        {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S-F}
-        {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S-F}
+        {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S-E-F}
+        {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S-E-F}
         or
         {parent-group}-CGAC_SYS to indicate website_admin
 
@@ -372,23 +441,54 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
     # Each group name that we care about begins with the prefix, but once we have that list, we don't need the
     # prefix anymore, so trim it off.
     if max_group_list is not None:
-        perms = [group_name[len(prefix):]
-                 for group_name in max_group_list.split(',')
-                 if group_name.startswith(prefix)]
+        group_names = [group_name[len(prefix):]
+                       for group_name in max_group_list.split(',')
+                       if group_name.startswith(prefix)]
     elif service_account_flag:
         raise ValueError("There are no DATA Act Broker permissions assigned to this Service Account. You may request "
                          "permissions at https://community.max.gov/x/fJwuRQ")
     else:
-        perms = []
+        group_names = []
 
-    if 'SYS' in perms:
-        user.affiliations = []
+    if 'SYS' in group_names:
         user.website_admin = True
+        user.affiliations = []
     else:
-        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
-
-        user.affiliations = affiliations
         user.website_admin = False
+        perms = []
+        for group_name in group_names:
+            # Always starts with the 3-digit CGAC
+            code = group_name[:3]
+            if 'FREC' in group_name:
+                # If FREC, then its the [3-digit CGAC]-FREC_[4-digit FREC code]
+                code = group_name[9:13]
+            # Permission level is always the last character
+            perm = group_name[-1]
+            perms.append((code, perm))
+
+        if perms:
+            user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
+
+
+def set_caia_perms(user, roles):
+    """ Convert the user group list present on CAIA into a list of UserAffiliations and/or website_admin status.
+
+            Permissions are encoded as a comma-separated list of:
+            CGAC-{cgac-code}-{one-of-R-W-S-E-F}
+            FREC-{frec_code}-{one-of-R-W-S-E-F}
+            AppApprover-Data_Act_Broker, AppOwner-Data_Act_Broker-CGAC-{cgac_code},
+                and/or AppOwner-Data_Act_Broker-FREC-{frec_code} for agency admins
+            or
+            "admin" to indicate website_admin
+
+            Args:
+                user: the User object
+                roles: list of all CAIA roles the user has
+        """
+    user.website_admin = ("admin" in roles)
+    perms = [tuple(role.split('-')[1:]) for role in roles
+             if re.match('^(CGAC|FREC)-[A-Z\d]{3,4}-[RWSEF]$', role.upper())]
+    user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id)) if perms else []
 
 
 def json_for_user(user, session_id):
@@ -427,6 +527,88 @@ def get_max_dict(ticket, service):
     url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
     max_xml = requests.get(url).content
     return xmltodict.parse(max_xml)
+
+
+def get_caia_tokens(code, redirect_uri):
+    """ Verify the authorization code to get the logged in user's various tokens
+
+        Args:
+            code: the authorization code to verify with CAIA
+            redirect_uri: the redirect_uri associated with the code for further verification
+
+        Returns:
+            A dictionary of the response from CAIA containing tokens
+    """
+    params = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': redirect_uri
+    }
+    data = {
+        'client_id': CONFIG_BROKER['caia']['client_id'],
+        'client_secret': CONFIG_BROKER['caia']['client_secret']
+    }
+    caia_resp = requests.post(f"{CONFIG_BROKER['caia']['url_root']}/as/token.oauth2", params=params, data=data)
+    caia_resp.raise_for_status()
+
+    return json.loads(caia_resp.content.decode())
+
+
+def refresh_tokens(refresh_token, redirect_uri):
+    """ Refresh the tokens to keep the CAIA session going. Only use when we need consistent access.
+
+        Args:
+            refresh_token: the authorization code to verify with CAIA
+            redirect_uri: the redirect_uri associated with the code for further verification
+
+        Returns:
+            A dictionary of the response from CAIA containing tokens
+    """
+    params = {
+        'grant_type': 'refresh_token',
+        'refresh_token': refresh_token,
+        'redirect_uri': redirect_uri
+    }
+    data = {
+        'client_id': CONFIG_BROKER['caia']['client_id'],
+        'client_secret': CONFIG_BROKER['caia']['client_secret']
+    }
+    caia_resp = requests.post(f"{CONFIG_BROKER['caia']['url_root']}/as/token.oauth2", params=params, data=data)
+    caia_resp.raise_for_status()
+
+    return json.loads(caia_resp.content.decode())
+
+
+def get_caia_user_dict(accces_token):
+    """ Get the result from MAX's serviceValidate functionality
+
+        Args:
+            accces_token: the access token of the logged in user
+
+        Returns:
+            A dictionary of the response from CAIA containing the logged in user info
+    """
+    headers = {"Authorization": f"Bearer {accces_token}"}
+    caia_resp = requests.get(f"{CONFIG_BROKER['caia']['url_root']}/idp/userinfo.openid", headers=headers)
+    caia_resp.raise_for_status()
+
+    return json.loads(caia_resp.content.decode())
+
+
+def revoke_caia_access(refresh_token):
+    """ Simply revokes access to the given CAIA refresh token. We are revoking the refresh token (and not the access
+        token) to revoke the entire grant.
+
+        Args:
+            refresh_token: the refresh token of the logged in user
+    """
+    data = {
+        'token': refresh_token,
+        'client_id': CONFIG_BROKER['caia']['client_id'],
+        'client_secret': CONFIG_BROKER['caia']['client_secret']
+    }
+    caia_resp = requests.post(f"{CONFIG_BROKER['caia']['url_root']}/as/revoke_token.oauth2", data=data)
+    caia_resp.raise_for_status()
 
 
 def logout(session):
