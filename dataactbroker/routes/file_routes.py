@@ -1,5 +1,4 @@
 from flask import request
-from flask_deprecate import deprecate_route
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
 
