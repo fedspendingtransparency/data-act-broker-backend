@@ -1,8 +1,8 @@
 # GET "/v1/get\_submitted\_published\_file/"
 Get a signed url for a specified submitted published file. Note, this is different from
-[get\_certified\_file](./get_certified_file.md) in two ways:
-* `get_certified_file` requires a submission and access to said permission. This only needs the `published_files_history_id`.
-* `get_certified_file` can return all published/certified files, including warnings. This only returns submitted files, excluding warnings. 
+[get\_published\_file](./get_published_file.md) in two ways:
+* `get_published_file` requires a submission and access to said permission. This only needs the `published_files_history_id`.
+* `get_published_file` can return all published/certified files, including warnings. This only returns submitted files, excluding warnings. 
 
 ## Sample Request
 `/v1/get_submitted_published_file/?published_files_history_id=7`
@@ -20,7 +20,7 @@ Get a signed url for a specified submitted published file. Note, this is differe
 ```
 
 ## Response Attributes
-- `url`: (string) the url to the certified
+- `url`: (string) the url to the published file
 
 ## Errors
 Possible HTTP Status Codes:
