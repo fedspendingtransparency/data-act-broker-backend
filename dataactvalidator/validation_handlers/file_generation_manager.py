@@ -55,11 +55,14 @@ class FileGenerationManager:
             })
         if self.job and self.job.submission:
             # Submission Files
-            fillin_vals.update({
-                'submission_id': self.job.submission_id,
-                'FYP': filename_fyp_sub_format(self.job.submission),
-            })
-            file_name = SUBMISSION_FILENAMES[self.file_type].format(**fillin_vals)
+            if self.job.file_type.letter_name == 'A':
+                file_name = self.job.original_filename
+            else:
+                fillin_vals.update({
+                    'submission_id': self.job.submission_id,
+                    'FYP': filename_fyp_sub_format(self.job.submission)
+                })
+                file_name = SUBMISSION_FILENAMES[self.file_type].format(**fillin_vals)
         else:
             # Detached Files
             if self.job and self.job.file_type.letter_name == 'A':
