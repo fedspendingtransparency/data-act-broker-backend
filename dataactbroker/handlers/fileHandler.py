@@ -294,7 +294,10 @@ class FileHandler:
 
             # build fileNameMap to be used in creating jobs
             file_dict = request_params['_files']
-            self.build_file_map(file_dict, FileHandler.FILE_TYPES, upload_files, submission, existing_submission)
+            # Remove file A if it's a new submission
+            if not existing_submission:
+                file_dict = {key: val for key, val in request_params['_files'].items() if key != 'appropriations'}
+            self.build_file_map(file_dict, FileHandler.FILE_TYPES, upload_files, submission)
 
             # add external files (not for existing submissions)
             if not existing_submission:
@@ -976,7 +979,7 @@ class FileHandler:
         response_dict = {'submission_id': submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def build_file_map(self, file_dict, file_type_list, upload_files, submission, existing_submission=False):
+    def build_file_map(self, file_dict, file_type_list, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
 
             Args:
@@ -984,7 +987,6 @@ class FileHandler:
                 file_type_list: a list of all file types needed by a certain submission type
                 upload_files: files that need to be uploaded
                 submission: submission this file map is for
-                existing_submission: whether this is an update for an existing submission or a new submission
 
             Raises:
                 ResponseException: If a new submission is being made but not all the file types in the file_type_list
@@ -993,9 +995,6 @@ class FileHandler:
         for file_type in file_type_list:
             # if file_type not included in request, skip it, checks for validity are done before calling this
             if not file_dict.get(file_type):
-                continue
-            if not existing_submission and file_type == 'appropriations':
-                # When building the basic file map, ignore file A if the user sends it
                 continue
             file_reference = file_dict.get(file_type)
             try:

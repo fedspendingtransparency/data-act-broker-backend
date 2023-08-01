@@ -73,7 +73,7 @@ def generate_file(submission, file_type, start, end, agency_type, file_format):
         if file_type in ['D1', 'D2']:
             generation_helper.start_d_generation(job, start, end, agency_type, file_format=file_format)
         elif file_type == 'A':
-            agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
+            agency_code = submission.frec_code or submission.cgac_code
             generation_helper.start_a_generation(job, start, end, agency_code)
         else:
             generation_helper.start_e_f_generation(job)
