@@ -1,24 +1,22 @@
-# POST "/v1/max\_login/"
-This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker. If called by a service account, a certificate is required for authentication. **IMPORTANT**: The ticket has a 30 second expiration window so it must be used immediately after being received in order for it to be valid.
-
-### **NOTE**: This endpoint is deprecated, please use `caia_login` instead.
+# POST "/v1/caia\_login/"
+This route sends a request to the backend with the code obtained from the CAIA login endpoint in order to verify authentication and access to the Data Broker. **IMPORTANT**: The ticket has a short expiration window (less than five minutes) so it must be used immediately after being received in order for it to be valid.
 
 ## Body (JSON)
 
 ```
 {
-    "ticket": "ST-123456-abcdefghijklmnopqrst-login.max.gov",
-    "service": "https://broker-api.usaspending.gov"
+    "code": "LiDWYH9h_WogUx_exYIlTvaBaWLlT9IdOLAL7rXX",
+    "redirect_uri": "https://broker.usaspending.gov/auth"
 }
 ```
 
 ## Body Description
 
-- `ticket`: (required, string) ticket string received from MAX from initial login request (pending validation)
-- `service`: (required, string) URL encoded string that is the source of the initial login request. This may vary from the example based on the environment you are in.
+- `code`: (required, string) code string received from CAIA from initial login request (pending validation)
+- `redirect_uri`: (required, string) URL encoded string that is the redirect uri associated with the CAIA configuration. This may vary from the example based on the environment you are in.
 
 ## Response (JSON)
-More data will be added to the response depending on what we get back from MAX upon validating the ticket.
+More data will be added to the response depending on what we get back from CAIA upon validating the ticket.
 
 ```
 {
@@ -52,7 +50,7 @@ More data will be added to the response depending on what we get back from MAX u
         - `submitter`
         - `editfabs`
         - `fabs`
-- `message`: (string) login error response "You have failed to login successfully with MAX", otherwise says "Login successful"
+- `message`: (string) login error response "You have failed to login successfully with CAIA", otherwise says "Login successful"
 - `errorType`: (string) type of error, part of response only if login is unsuccessful
 - `session_id`: (string) a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
 
