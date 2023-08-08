@@ -94,7 +94,6 @@ File routes are primarily routes that are directly related to portions of submis
 - [check\_current\_page](./api_docs/file/check_current_page.md)
 - [check\_status](./api_docs/file/check_status.md)
 - [delete\_submission](./api_docs/file/delete_submission.md)
-- [get\_certified\_file](./api_docs/file/get_certified_file.md) (Deprecated, use `get_published_file` instead)
 - [get\_published\_file](./api_docs/file/get_published_file.md)
 - [get\_submitted\_published\_file](./api_docs/file/get_submitted_published_file.md)
 - [get\_comments\_file](./api_docs/file/get_comments_file.md)
@@ -136,7 +135,8 @@ Login routes are used to log a user in or out or check if the current session is
 
 - [login](./api_docs/login/login.md)
 - [logout](./api_docs/login/logout.md)
-- [max\_login](./api_docs/login/max_login.md)
+- [max\_login](./api_docs/login/max_login.md) (Deprecated, use `caia_login` instead)
+- [caia\_login](./api_docs/login/caia_login.md)
 - [session](./api_docs/login/session.md)
 
 ### Settings Routes
