@@ -212,7 +212,7 @@ class AccountHandler:
                     user.email = email
 
                 first_name = user_info['given_name']
-                middle_name = user_info['middle_name']
+                middle_name = user_info.get('middle_name')
                 last_name = user_info['family_name']
                 set_user_name(user, first_name, middle_name, last_name)
 
