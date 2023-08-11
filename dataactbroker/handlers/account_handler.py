@@ -212,15 +212,16 @@ class AccountHandler:
                     user.email = email
 
                 first_name = user_info['given_name']
-                middle_name = user_info['middle_name']
+                middle_name = user_info.get('middle_name')
                 last_name = user_info['family_name']
                 set_user_name(user, first_name, middle_name, last_name)
 
                 # role string format
-                #   - 'role1' for a singular role
-                #   - '[role1, role2]' for multiple roles
-                role_list = user_info['role'][1:-1] if user_info['role'][0] == '[' else user_info['role']
-                set_caia_perms(user, role_list.split(', '))
+                #   - 'role1' or 'role:role1' for a singular role
+                #   - '[role1, role2]' or '[role:role1, role:role2]' for multiple roles
+                role_list_str = user_info['role'][1:-1] if user_info['role'][0] == '[' else user_info['role']
+                role_list = [role[5:] if role.startswith('role:') else role for role in role_list_str.split(', ')]
+                set_caia_perms(user, role_list)
 
                 sess.add(user)
                 sess.commit()
