@@ -30,11 +30,15 @@ WITH aw_dap AS
         dap.legal_entity_country_code AS legal_entity_country_code,
         dap.legal_entity_country_name AS legal_entity_country_name,
         dap.legal_entity_zip4 AS legal_entity_zip4,
+        dap.legal_entity_county_code AS legal_entity_county_code,
+        dap.legal_entity_county_name AS legal_entity_county_name,
         dap.legal_entity_congressional AS legal_entity_congressional,
         dap.place_of_perform_city_name AS place_of_perform_city_name,
         dap.place_of_performance_state AS place_of_performance_state,
         dap.place_of_perfor_state_desc AS place_of_perfor_state_desc,
         dap.place_of_performance_zip4a AS place_of_performance_zip4a,
+        dap.place_of_perform_county_co AS place_of_perform_county_co,
+        dap.place_of_perform_county_na AS place_of_perform_county_na,
         dap.place_of_performance_congr AS place_of_performance_congr,
         dap.place_of_perform_country_c AS place_of_perform_country_c,
         dap.place_of_perf_country_desc AS place_of_perf_country_desc,
@@ -116,11 +120,15 @@ latest_aw_dap AS
         dap.legal_entity_country_code AS legal_entity_country_code,
         dap.legal_entity_country_name AS legal_entity_country_name,
         dap.legal_entity_zip4 AS legal_entity_zip4,
+        dap.legal_entity_county_code AS legal_entity_county_code,
+        dap.legal_entity_county_name AS legal_entity_county_name,
         dap.legal_entity_congressional AS legal_entity_congressional,
         dap.place_of_perform_city_name AS place_of_perform_city_name,
         dap.place_of_performance_state AS place_of_performance_state,
         dap.place_of_perfor_state_desc AS place_of_perfor_state_desc,
         dap.place_of_performance_zip4a AS place_of_performance_zip4a,
+        dap.place_of_perform_county_co AS place_of_perform_county_co,
+        dap.place_of_perform_county_na AS place_of_perform_county_na,
         dap.place_of_performance_congr AS place_of_performance_congr,
         dap.place_of_perform_country_c AS place_of_perform_country_c,
         dap.place_of_perf_country_desc AS place_of_perf_country_desc,
@@ -175,6 +183,8 @@ INSERT INTO subaward (
     "legal_entity_state_code",
     "legal_entity_state_name",
     "legal_entity_zip",
+    "legal_entity_county_code",
+    "legal_entity_county_name",
     "legal_entity_congressional",
     "legal_entity_foreign_posta",
     "business_types",
@@ -182,6 +192,8 @@ INSERT INTO subaward (
     "place_of_perform_state_code",
     "place_of_perform_state_name",
     "place_of_performance_zip",
+    "place_of_performance_county_code",
+    "place_of_performance_county_name",
     "place_of_perform_congressio",
     "place_of_perform_country_co",
     "place_of_perform_country_na",
@@ -238,6 +250,8 @@ INSERT INTO subaward (
     "sub_legal_entity_state_code",
     "sub_legal_entity_state_name",
     "sub_legal_entity_zip",
+    "sub_legal_entity_county_code",
+    "sub_legal_entity_county_name",
     "sub_legal_entity_congressional",
     "sub_legal_entity_foreign_posta",
     "sub_business_types",
@@ -245,6 +259,8 @@ INSERT INTO subaward (
     "sub_place_of_perform_state_code",
     "sub_place_of_perform_state_name",
     "sub_place_of_performance_zip",
+    "sub_place_of_performance_county_code",
+    "sub_place_of_performance_county_name",
     "sub_place_of_perform_congressio",
     "sub_place_of_perform_country_co",
     "sub_place_of_perform_country_na",
@@ -315,6 +331,8 @@ SELECT
          THEN ldap.legal_entity_zip4
          ELSE NULL
     END AS "legal_entity_zip",
+    ldap.legal_entity_county_code AS "legal_entity_county_code",
+    ldap.legal_entity_county_name AS "legal_entity_county_name",
     ldap.legal_entity_congressional AS "legal_entity_congressional",
     CASE WHEN ldap.legal_entity_country_code <> 'USA'
          THEN ldap.legal_entity_zip4
@@ -325,6 +343,8 @@ SELECT
     ldap.place_of_performance_state AS "place_of_perform_state_code",
     ldap.place_of_perfor_state_desc AS "place_of_perform_state_name",
     ldap.place_of_performance_zip4a AS "place_of_performance_zip",
+    ldap.place_of_perform_county_co AS "place_of_performance_county_code",
+    ldap.place_of_perform_county_na AS "place_of_performance_county_name",
     ldap.place_of_performance_congr AS "place_of_perform_congressio",
     ldap.place_of_perform_country_c AS "place_of_perform_country_co",
     ldap.place_of_perf_country_desc AS "place_of_perform_country_na",
@@ -386,6 +406,8 @@ SELECT
          THEN fsrs_subcontract.company_address_zip
          ELSE NULL
     END AS "sub_legal_entity_zip",
+    sub_le_county_code.county_number AS "sub_legal_entity_county_code",
+    sub_le_county_name.county_name AS "sub_legal_entity_county_name",
     fsrs_subcontract.company_address_district AS "sub_legal_entity_congressional",
     CASE WHEN fsrs_subcontract.company_address_country <> 'USA'
          THEN fsrs_subcontract.company_address_zip
@@ -396,6 +418,8 @@ SELECT
     fsrs_subcontract.principle_place_state AS "sub_place_of_perform_state_code",
     fsrs_subcontract.principle_place_state_name AS "sub_place_of_perform_state_name",
     fsrs_subcontract.principle_place_zip AS "sub_place_of_performance_zip",
+    sub_ppop_county_code.county_number AS "sub_place_of_performance_county_code",
+    sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name",
     fsrs_subcontract.principle_place_district AS "sub_place_of_perform_congressio",
     sub_ppop_country.country_code AS "sub_place_of_perform_country_co",
     sub_ppop_country.country_name AS "sub_place_of_perform_country_na",
@@ -445,7 +469,17 @@ FROM fsrs_procurement
     LEFT OUTER JOIN country_code AS sub_le_country
         ON (UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code)
             OR UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code_2_char))
+    LEFT OUTER JOIN zips_grouped AS sub_le_county_code
+        ON (fsrs_subcontract.company_address_country = 'USA' AND LEFT(fsrs_subcontract.company_address_zip, 5) = sub_le_county_code.zip5)
+    LEFT OUTER JOIN county_code AS sub_le_county_name
+    	ON (sub_le_county_code.county_number = sub_le_county_name.county_number
+    		AND sub_le_county_code.state_abbreviation = sub_le_county_name.state_code)
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON (UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
+    LEFT OUTER JOIN zips_grouped AS sub_ppop_county_code
+        ON (LEFT(fsrs_subcontract.principle_place_zip, 5) = sub_ppop_county_code.zip5)
+    LEFT OUTER JOIN county_code AS sub_ppop_county_name
+    	ON (sub_ppop_county_code.county_number = sub_ppop_county_name.county_number
+    		AND sub_ppop_county_code.state_abbreviation = sub_ppop_county_name.state_code)
 WHERE fsrs_procurement.id {0} {1}
