@@ -7,7 +7,8 @@ from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcure
                                                    FSRSSubgrantFactory)
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory, DetachedAwardProcurementFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
-from tests.unit.dataactcore.factories.domain import SAMRecipientFactory, CountryCodeFactory, CFDAProgramFactory
+from tests.unit.dataactcore.factories.domain import (SAMRecipientFactory, CFDAProgramFactory, CountryCodeFactory,
+                                                     CountyCodeFactory, ZipsGroupedFactory)
 
 
 def extract_cfda(field, type):
@@ -27,15 +28,19 @@ def reference_data(sess):
     recipient = SAMRecipientFactory(uei='123456789aBc', legal_business_name='TEST RECIPIENT',
                                     business_types=['TYPE 1', 'TYPE 2', 'TYPE 3'])
     dom_country = CountryCodeFactory(country_code='USA', country_code_2_char='US', country_name='UNITED STATES')
+    dom_zip = ZipsGroupedFactory(zip5='12345', county_number='543', state_abbreviation='VA')
+    dom_county = CountyCodeFactory(county_number='543', county_name='DOM COUNTY', state_code='VA')
     int_country = CountryCodeFactory(country_code='INT', country_code_2_char='IT', country_name='INTERNATIONAL')
     cfda_1 = CFDAProgramFactory(program_number='10.000', program_title='TEST NUMBER 1')
     cfda_2 = CFDAProgramFactory(program_number='20.000', program_title='TEST NUMBER 2')
-    sess.add_all([parent_recipient, recipient, dom_country, int_country, cfda_1, cfda_2])
-    return parent_recipient, recipient, dom_country, int_country, cfda_1, cfda_2
+    sess.add_all([parent_recipient, recipient, dom_country, dom_zip, dom_county, int_country,
+                  cfda_1, cfda_2])
+    return (parent_recipient, recipient, dom_country, dom_zip, dom_county, int_country, cfda_1,
+            cfda_2)
 
 
-def compare_contract_results(sub, d1, contract, sub_contract, dom_country, int_country, created_at, updated_at,
-                             debug=False):
+def compare_contract_results(sub, d1, contract, sub_contract, dom_country, dom_zip, dom_county, int_country,
+                             created_at, updated_at, debug=True):
     """ Helper function for contract results """
     attr = {
         'created_at': created_at,
@@ -72,6 +77,8 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, int_c
         'legal_entity_state_code': d1.legal_entity_state_code,
         'legal_entity_state_name': d1.legal_entity_state_descrip,
         'legal_entity_zip': d1.legal_entity_zip4,
+        "legal_entity_county_code": d1.legal_entity_county_code,
+        "legal_entity_county_name": d1.legal_entity_county_name,
         'legal_entity_congressional': d1.legal_entity_congressional,
         'legal_entity_foreign_posta': None,
         'business_types': contract.bus_types,
@@ -79,6 +86,8 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, int_c
         'place_of_perform_state_code': d1.place_of_performance_state,
         'place_of_perform_state_name': d1.place_of_perfor_state_desc,
         'place_of_performance_zip': d1.place_of_performance_zip4a,
+        'place_of_performance_county_code': d1.place_of_perform_county_co,
+        'place_of_performance_county_name': d1.place_of_perform_county_na,
         'place_of_perform_congressio': d1.place_of_performance_congr,
         'place_of_perform_country_co': d1.place_of_perform_country_c,
         'place_of_perform_country_na': d1.place_of_perf_country_desc,
@@ -107,6 +116,8 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, int_c
         'sub_legal_entity_state_code': sub_contract.company_address_state,
         'sub_legal_entity_state_name': sub_contract.company_address_state_name,
         'sub_legal_entity_zip': None,
+        'sub_legal_entity_county_code': None,
+        'sub_legal_entity_county_name': None,
         'sub_legal_entity_congressional': sub_contract.company_address_district,
         'sub_legal_entity_foreign_posta': sub_contract.company_address_zip,
         'sub_business_types': sub_contract.bus_types,
@@ -114,6 +125,8 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, int_c
         'sub_place_of_perform_state_code': sub_contract.principle_place_state,
         'sub_place_of_perform_state_name': sub_contract.principle_place_state_name,
         'sub_place_of_performance_zip': sub_contract.principle_place_zip,
+        'sub_place_of_performance_county_code': dom_zip.county_number,
+        'sub_place_of_performance_county_name': dom_county.county_name,
         'sub_place_of_perform_congressio': sub_contract.principle_place_district,
         'sub_place_of_perform_country_co': dom_country.country_code,
         'sub_place_of_perform_country_na': dom_country.country_name,
@@ -202,7 +215,7 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     sess.query(Subaward).delete(synchronize_session=False)
     sess.commit()
 
-    _, _, dom_country, int_country, _, _ = reference_data(sess)
+    _, _, dom_country, dom_zip, dom_county, int_country, _, _ = reference_data(sess)
 
     # Setup - create awards, procurements, subcontract
     sub = SubmissionFactory(submission_id=1)
@@ -235,6 +248,7 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
         parent=contract_awd,
         company_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
+        principle_place_zip=dom_zip.zip5 + '1234',
         subcontract_date=datetime.now()
     )
     d1_idv = DetachedAwardProcurementFactory(
@@ -268,6 +282,7 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
         parent=contract_idv,
         company_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
+        principle_place_zip=dom_zip.zip5 + '1234',
         subcontract_date=datetime.now()
     )
 
@@ -285,14 +300,14 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     created_at = updated_at = contracts_results[0].created_at
 
     # Expected Results
-    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country,
-                                    int_country, created_at, updated_at) is True
-    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
-                                    int_country, created_at, updated_at) is True
+    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country, dom_zip,
+                                    dom_county, int_country, created_at, updated_at) is True
+    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country, dom_zip,
+                                    dom_county, int_country, created_at, updated_at) is True
 
 
 def compare_grant_results(sub, fabs_base, fabs_latest, fabs_grouped, grant, sub_grant, parent_recipient, recipient,
-                          dom_country, int_country, created_at, updated_at, debug=False):
+                          dom_country, dom_zip, dom_county, int_country, created_at, updated_at, debug=True):
     """ Helper function for grant results """
     attr = {
         'created_at': created_at,
@@ -330,6 +345,8 @@ def compare_grant_results(sub, fabs_base, fabs_latest, fabs_grouped, grant, sub_
         'legal_entity_state_code': fabs_latest.legal_entity_state_code,
         'legal_entity_state_name': fabs_latest.legal_entity_state_name,
         'legal_entity_zip': None,
+        'legal_entity_county_code': fabs_latest.legal_entity_county_code,
+        'legal_entity_county_name': fabs_latest.legal_entity_county_name,
         'legal_entity_congressional': fabs_latest.legal_entity_congressional,
         'legal_entity_foreign_posta': fabs_latest.legal_entity_foreign_posta,
         'business_types': fabs_latest.business_types_desc,
@@ -337,6 +354,8 @@ def compare_grant_results(sub, fabs_base, fabs_latest, fabs_grouped, grant, sub_
         'place_of_perform_state_code': fabs_latest.place_of_perfor_state_code,
         'place_of_perform_state_name': fabs_latest.place_of_perform_state_nam,
         'place_of_performance_zip': fabs_latest.place_of_performance_zip4a.replace('-', ''),
+        'place_of_performance_county_code': fabs_latest.place_of_perform_county_co,
+        'place_of_performance_county_name': fabs_latest.place_of_perform_county_na,
         'place_of_perform_congressio': fabs_latest.place_of_performance_congr,
         'place_of_perform_country_co': dom_country.country_code,
         'place_of_perform_country_na': dom_country.country_name,
@@ -363,6 +382,8 @@ def compare_grant_results(sub, fabs_base, fabs_latest, fabs_grouped, grant, sub_
         'sub_legal_entity_state_code': sub_grant.awardee_address_state,
         'sub_legal_entity_state_name': sub_grant.awardee_address_state_name,
         'sub_legal_entity_zip': sub_grant.awardee_address_zip,
+        'sub_legal_entity_county_code': dom_zip.county_number,
+        'sub_legal_entity_county_name': dom_county.county_name,
         'sub_legal_entity_congressional': sub_grant.awardee_address_district,
         'sub_legal_entity_foreign_posta': None,
         'sub_business_types': ','.join(recipient.business_types) if recipient.business_types else None,
@@ -370,6 +391,8 @@ def compare_grant_results(sub, fabs_base, fabs_latest, fabs_grouped, grant, sub_
         'sub_place_of_perform_state_code': sub_grant.principle_place_state,
         'sub_place_of_perform_state_name': sub_grant.principle_place_state_name,
         'sub_place_of_performance_zip': sub_grant.principle_place_zip,
+        'sub_place_of_performance_county_code': None,
+        'sub_place_of_performance_county_name': None,
         'sub_place_of_perform_congressio': sub_grant.principle_place_district,
         'sub_place_of_perform_country_co': int_country.country_code,
         'sub_place_of_perform_country_na': int_country.country_name,
@@ -466,7 +489,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sess.query(Subaward).delete(synchronize_session=False)
     sess.commit()
 
-    parent_recipient, recipient, dom_country, int_country, cfda_1, cfda_2 = reference_data(sess)
+    parent_recipient, recipient, dom_country, dom_zip, dom_county, int_country, cfda_1, cfda_2 = reference_data(sess)
 
     # Setup - create awards, procurements, subcontracts
     sub = SubmissionFactory(submission_id=1)
@@ -508,6 +531,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sub_grant_non_pop_subtier = FSRSSubgrantFactory(
         parent=grant_non_pop_subtier,
         awardee_address_country=dom_country.country_code,
+        awardee_address_zip=dom_zip.zip5,
         principle_place_country=int_country.country_code_2_char,
         parent_uei=parent_recipient.uei,
         uei_number=recipient.uei,
@@ -551,6 +575,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sub_grant_non_null_sub = FSRSSubgrantFactory(
         parent=grant_non_null_sub,
         awardee_address_country=dom_country.country_code,
+        awardee_address_zip=dom_zip.zip5,
         principle_place_country=int_country.country_code_2_char,
         parent_uei=parent_recipient.uei,
         uei_number=recipient.uei,
@@ -594,6 +619,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sub_grant_agg = FSRSSubgrantFactory(
         parent=grant_agg,
         awardee_address_country=dom_country.country_code,
+        awardee_address_zip=dom_zip.zip5,
         principle_place_country=int_country.country_code,
         parent_uei=parent_recipient.uei.lower(),
         uei_number=recipient.uei,
@@ -630,16 +656,17 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     # Expected Results
     # Note: Aggregates should not be linked
     assert compare_grant_results(grants_results[0], fabs_agg, fabs_agg_2, fabs_grouped[fabs_agg.fain], grant_agg,
-                                 sub_grant_agg, parent_recipient, recipient, dom_country, int_country, created_at,
-                                 updated_at) is False
+                                 sub_grant_agg, parent_recipient, recipient, dom_country, dom_zip, dom_county,
+                                 int_country, created_at, updated_at) is False
     # Note: If federal_agency_id is blank, no link should happen and FSRS data needs to be updated
     assert compare_grant_results(grants_results[1], fabs_non_null_sub, fabs_non_null_sub_2,
                                  fabs_grouped[fabs_non_null_sub.fain], grant_non_null_sub, sub_grant_non_null_sub,
-                                 parent_recipient, recipient, dom_country, int_country, created_at, updated_at) is False
+                                 parent_recipient, recipient, dom_country, dom_zip, dom_county, int_country, created_at,
+                                 updated_at) is False
     assert compare_grant_results(grants_results[2], fabs_non_pop_subtier, fabs_non_pop_subtier_2,
                                  fabs_grouped[fabs_non_pop_subtier.fain], grant_non_pop_subtier,
-                                 sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country, int_country,
-                                 created_at, updated_at) is True
+                                 sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country, dom_zip,
+                                 dom_county, int_country, created_at, updated_at) is True
 
 
 def test_fix_broken_links(database, monkeypatch):
@@ -650,7 +677,7 @@ def test_fix_broken_links(database, monkeypatch):
     sess.query(Subaward).delete(synchronize_session=False)
     sess.commit()
 
-    parent_recipient, recipient, dom_country, int_country, cfda_1, cfda_2 = reference_data(sess)
+    parent_recipient, recipient, dom_country, dom_zip, dom_county, int_country, cfda_1, cfda_2 = reference_data(sess)
     min_date = '2019-06-06'
     award_updated_at = '2019-06-07'
 
@@ -697,6 +724,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub_grant_non_pop_subtier = FSRSSubgrantFactory(
         parent=grant_non_pop_subtier,
         awardee_address_country=dom_country.country_code,
+        awardee_address_zip=dom_zip.zip5,
         principle_place_country=int_country.country_code_2_char,
         parent_uei=parent_recipient.uei,
         uei_number=recipient.uei.lower(),
@@ -742,6 +770,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub_grant_non_null_subtier = FSRSSubgrantFactory(
         parent=grant_non_null_subtier,
         awardee_address_country=dom_country.country_code,
+        awardee_address_zip=dom_zip.zip5,
         principle_place_country=int_country.country_code_2_char,
         parent_uei=parent_recipient.uei,
         uei_number=recipient.uei,
@@ -811,6 +840,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub_grant_non_other = FSRSSubgrantFactory(
         parent=grant_non_other,
         awardee_address_country=dom_country.country_code,
+        awardee_address_zip=dom_zip.zip5,
         principle_place_country=int_country.country_code_2_char,
         parent_uei=parent_recipient.uei,
         uei_number=recipient.uei,
@@ -856,6 +886,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub_grant_agg = FSRSSubgrantFactory(
         parent=grant_agg,
         awardee_address_country=dom_country.country_code,
+        awardee_address_zip=dom_zip.zip5,
         principle_place_country=int_country.country_code_2_char,
         parent_uei=parent_recipient.uei,
         uei_number=recipient.uei,
@@ -898,6 +929,7 @@ def test_fix_broken_links(database, monkeypatch):
         parent=contract_awd,
         company_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
+        principle_place_zip=dom_zip.zip5 + '1234',
         subcontract_date=datetime.now()
     )
     d1_idv = DetachedAwardProcurementFactory(
@@ -935,6 +967,7 @@ def test_fix_broken_links(database, monkeypatch):
         parent=contract_idv,
         company_address_country=int_country.country_code_2_char,
         principle_place_country=dom_country.country_code,
+        principle_place_zip=dom_zip.zip5 + '1234',
         subcontract_date=datetime.now()
     )
 
@@ -972,25 +1005,25 @@ def test_fix_broken_links(database, monkeypatch):
     contract_created_at = contract_updated_at = contracts_results[0].created_at
 
     # Expected Results - should be False as the award isn't provided
-    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country,
-                                    int_country, contract_created_at, contract_updated_at) is False
-    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
-                                    int_country, contract_created_at, contract_updated_at) is False
+    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country, dom_zip,
+                                    dom_county, int_country, contract_created_at, contract_updated_at) is False
+    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country, dom_zip,
+                                    dom_county, int_country, contract_created_at, contract_updated_at) is False
 
     assert compare_grant_results(grants_results[0], fabs_agg, fabs_agg_2, fabs_grouped[fabs_agg.fain], grant_agg,
-                                 sub_grant_agg, parent_recipient, recipient, dom_country, int_country, grant_created_at,
-                                 grant_updated_at) is False
+                                 sub_grant_agg, parent_recipient, recipient, dom_country, dom_zip, dom_county,
+                                 int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[1], fabs_non_other, fabs_non_other_2, fabs_grouped[fabs_non_other.fain],
                                  grant_non_other, sub_grant_non_other, parent_recipient, recipient, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is False
+                                 dom_zip, dom_county, int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[2], fabs_non_null_subtier, fabs_non_null_subtier_2,
                                  fabs_grouped[fabs_non_null_subtier.fain], grant_non_null_subtier,
-                                 sub_grant_non_null_subtier, parent_recipient, recipient, dom_country, int_country,
-                                 grant_created_at, grant_updated_at) is False
+                                 sub_grant_non_null_subtier, parent_recipient, recipient, dom_country, dom_zip,
+                                 dom_county, int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[3], fabs_non_pop_subtier, fabs_non_pop_subtier_2,
                                  fabs_grouped[fabs_non_pop_subtier.fain], grant_non_pop_subtier,
-                                 sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country, int_country,
-                                 grant_created_at, grant_updated_at) is False
+                                 sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country, dom_zip,
+                                 dom_county, int_country, grant_created_at, grant_updated_at) is False
 
     # now add the awards and fix the broken links
     sess.add_all([d1_awd, d1_awd_2, d1_idv, d1_idv_2, fabs_non_null_subtier, fabs_non_null_subtier_2,
@@ -1017,24 +1050,24 @@ def test_fix_broken_links(database, monkeypatch):
     grant_updated_at = grants_results[0].updated_at
 
     # Expected Results - should now be True as the award is now available
-    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country,
-                                    int_country, contract_created_at, contract_updated_at) is True
-    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country,
-                                    int_country, contract_created_at, contract_updated_at) is True
+    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, dom_country, dom_zip,
+                                    dom_county, int_country, contract_created_at, contract_updated_at) is True
+    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, dom_country, dom_zip,
+                                    dom_county, int_country, contract_created_at, contract_updated_at) is True
     assert compare_grant_results(grants_results[0], fabs_agg, fabs_agg_2, fabs_grouped[fabs_agg.fain], grant_agg,
-                                 sub_grant_agg, parent_recipient, recipient, dom_country, int_country, grant_created_at,
-                                 grant_updated_at) is False
+                                 sub_grant_agg, parent_recipient, recipient, dom_country, dom_zip, dom_county,
+                                 int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[1], fabs_non_null_subtier, fabs_non_null_subtier_2,
                                  fabs_grouped[fabs_non_null_subtier.fain], grant_non_null_subtier,
-                                 sub_grant_non_null_subtier, parent_recipient, recipient, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is False
+                                 sub_grant_non_null_subtier, parent_recipient, recipient, dom_country, dom_zip,
+                                 dom_county, int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[2], fabs_non_other, fabs_non_other_2, fabs_grouped[fabs_non_other.fain],
                                  grant_non_other, sub_grant_non_other, parent_recipient, recipient, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is False
+                                 dom_zip, dom_county, int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[3], fabs_non_pop_subtier, fabs_non_pop_subtier_2,
                                  fabs_grouped[fabs_non_pop_subtier.fain], grant_non_pop_subtier,
-                                 sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is True
+                                 sub_grant_non_pop_subtier, parent_recipient, recipient, dom_country, dom_zip,
+                                 dom_county, int_country, grant_created_at, grant_updated_at) is True
 
     # Ensuring only updates occurred, no deletes/inserts
     assert set(original_ids) == set(updated_ids)
