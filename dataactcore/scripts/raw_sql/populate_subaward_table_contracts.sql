@@ -149,7 +149,71 @@ latest_aw_dap AS
         dap.naics_description AS naics_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC)
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC),
+-- Getting a list of all the subaward zips we'll encounter to limit any massive joins
+all_sub_zips AS (
+	SELECT DISTINCT company_address_zip AS "sub_zip"
+	FROM fsrs_subcontract
+	UNION
+	SELECT DISTINCT principle_place_zip AS "sub_zip"
+	FROM fsrs_subcontract
+),
+-- Matching on all the available zip9s
+all_sub_zip9s AS (
+	SELECT sub_zip
+	FROM all_sub_zips
+	WHERE LENGTH(sub_zip) = 9
+),
+modified_zips AS (
+	SELECT CONCAT(zip5, zip_last4) AS "sub_zip", county_number
+	FROM zips
+	WHERE EXISTS (
+		SELECT 1
+		FROM all_sub_zip9s AS asz
+		WHERE CONCAT(zip5, zip_last4) = asz.sub_zip
+	)
+),
+-- Matching on all the available zip5 + states in zips_grouped (and any remaining zip9s not currently matched)
+all_sub_zip5s AS (
+	SELECT sub_zip
+	FROM all_sub_zips AS asz
+	WHERE LENGTH(sub_zip) = 5
+	UNION
+	(SELECT sub_zip
+	FROM all_sub_zip9s AS asz
+	EXCEPT
+	SELECT sub_zip
+	FROM modified_zips AS mz)
+),
+-- Since counties can vary between a zip5 + state, we want to only match on when there's only one county and not guess
+single_zips_grouped AS (
+	SELECT zip5, state_abbreviation
+	FROM zips_grouped
+	GROUP BY zip5, state_abbreviation
+	HAVING COUNT(*) = 1
+),
+zips_grouped_modified AS (
+	SELECT zip5, state_abbreviation, county_number
+	FROM zips_grouped AS zg
+	WHERE EXISTS (
+		SELECT 1
+		FROM all_sub_zip5s AS asz
+		WHERE zg.zip5 = LEFT(asz.sub_zip, 5)
+	) AND EXISTS (
+		SELECT 1
+		FROM single_zips_grouped AS szg
+		WHERE zg.zip5 = szg.zip5
+			AND zg.state_abbreviation = szg.state_abbreviation
+	)
+),
+-- Combine the two matching groups together and join later. make sure keep them separated with type to prevent dups
+zips_modified_union AS (
+	SELECT sub_zip AS "sub_zip", NULL AS "state_abbreviation", county_number AS "county_number", 'zip9' AS "type"
+	FROM modified_zips
+	UNION
+	SELECT zip5 AS "sub_zip", state_abbreviation AS "state_code", county_number AS "county_number", 'zip5+state' AS "type"
+	FROM zips_grouped_modified
+)
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -469,16 +533,38 @@ FROM fsrs_procurement
     LEFT OUTER JOIN country_code AS sub_le_country
         ON (UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code)
             OR UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code_2_char))
-    LEFT OUTER JOIN zips_grouped AS sub_le_county_code
-        ON (fsrs_subcontract.company_address_country = 'USA' AND LEFT(fsrs_subcontract.company_address_zip, 5) = sub_le_county_code.zip5)
+    LEFT OUTER JOIN zips_modified_union AS sub_le_county_code
+        ON (fsrs_subcontract.company_address_country = 'USA' AND (
+            (
+                fsrs_subcontract.company_address_zip = sub_le_county_code.sub_zip
+                AND sub_le_county_code.type = 'zip9'
+            )
+            OR
+            (
+                LEFT(fsrs_subcontract.company_address_zip, 5) = sub_le_county_code.sub_zip
+                AND fsrs_subcontract.company_address_state = sub_le_county_code.state_abbreviation
+                AND sub_le_county_code.type = 'zip5+state'
+            )
+        ))
     LEFT OUTER JOIN county_code AS sub_le_county_name
     	ON (sub_le_county_code.county_number = sub_le_county_name.county_number
     		AND sub_le_county_code.state_abbreviation = sub_le_county_name.state_code)
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON (UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
-    LEFT OUTER JOIN zips_grouped AS sub_ppop_county_code
-        ON (LEFT(fsrs_subcontract.principle_place_zip, 5) = sub_ppop_county_code.zip5)
+    LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code
+        ON (sub_ppop_country.country_code = 'USA' AND (
+            (
+            	fsrs_subcontract.principle_place_zip = sub_ppop_county_code.sub_zip
+                AND sub_ppop_county_code.type = 'zip9'
+	        )
+	        OR
+	        ( 
+            	LEFT(fsrs_subcontract.principle_place_zip, 5) = sub_ppop_county_code.sub_zip
+            	AND fsrs_subcontract.principle_place_state = sub_ppop_county_code.state_abbreviation
+                AND sub_ppop_county_code.type = 'zip5+state'
+           	)
+        ))
     LEFT OUTER JOIN county_code AS sub_ppop_county_name
     	ON (sub_ppop_county_code.county_number = sub_ppop_county_name.county_number
     		AND sub_ppop_county_code.state_abbreviation = sub_ppop_county_name.state_code)
