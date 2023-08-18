@@ -2,7 +2,7 @@ Contributing Code to DATA Act Broker
 ====
 _Follow the development process and checks below in order to promote candidate code changes to production._
 
-### Git Workflow
+## Git Workflow
 
 We use three main branches:
 
@@ -176,6 +176,33 @@ except ValueError:
 
 See the Python [docs](https://docs.python.org/3.4/library/logging.html) for
 more info.
+
+### Route Deprecation
+
+When creating a new route to replace functionality or renaming an old route, the old route should be kept around in a deprecated state for at least two months, longer depending on the use of the route, so agencies have time to update their code. This means that when renaming a route, both the old and new name will be available and both should perform the same function. To do this, import `deprecate_route` to the routes file that contains the old route:
+
+```python
+from flask_deprecate import deprecate_route
+```
+
+Then tag the old route with the deprecation:
+
+```python
+@app.route("/old/route/", methods=["POST"])
+@deprecate_route("Leave a message here that users will see when they call this route")
+def function_name():
+    function_code_here
+        
+@app.route("/new/route/", methods=["POST"])
+def function_name():
+    function_code_here    
+```
+
+The same process should be followed for creating new routes to replace old ones with `deprecate_route` but the new routes do not have to have the exact same code as the old one.
+
+Additionally, it's suggested to update the [documentation](README.md) of the newer endpoint to include a similar note. The note should specifically be placed just under the endpoint description.
+
+The new endpoint, whether simply with a new name or changed functionality, should also be included in the documentation as a new endpoint, although the documentation for name changes can match that of the original endpoint with a new name.
 
 ## Public Domain License
 
