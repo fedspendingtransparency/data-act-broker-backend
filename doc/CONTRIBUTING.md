@@ -200,6 +200,10 @@ def function_name():
 
 The same process should be followed for creating new routes to replace old ones with `deprecate_route` but the new routes do not have to have the exact same code as the old one.
 
+Additionally, it's suggested to update the [documentation](README.md) of the newer endpoint to include a similar note. The note should specifically be placed just under the endpoint description.
+
+The new endpoint, whether simply with a new name or changed functionality, should also be included in the documentation as a new endpoint, although the documentation for name changes can match that of the original endpoint with a new name.
+
 ## Public Domain License
 
 This project is in the public domain within the United States, and copyright and related rights in the work worldwide are waived through the CC0 1.0 Universal public domain dedication.
