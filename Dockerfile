@@ -1,10 +1,10 @@
-FROM python:3.7.10
+FROM python:3.8.16
 
 RUN apt-get -y update
 RUN apt-get install -y postgresql-client
 RUN apt-get install -y netcat-openbsd
 
-RUN pip install unittest-xml-reporting setuptools==57.5.0
+RUN pip install unittest-xml-reporting setuptools==68.1.2
 
 COPY requirements.txt /data-act/backend/requirements.txt
 COPY server_requirements.txt /data-act/backend/server_requirements.txt
