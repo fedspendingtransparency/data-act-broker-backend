@@ -1,4 +1,4 @@
-WITH aw_pf AS
+CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
     (SELECT pf.fain AS fain,
         pf.award_description AS award_description,
         pf.record_type AS record_type,
@@ -66,8 +66,18 @@ WITH aw_pf AS
                 AND fsrs_grant.id {0} {1}
                 AND UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(pf.fain, '-', ''))
                 AND COALESCE(UPPER(fsrs_grant.federal_agency_id), '') = COALESCE(UPPER(pf.awarding_sub_tier_agency_c), '')
-        )),
-base_aw_pf AS
+        )
+    );
+CREATE INDEX aw_pf_fain_upp ON aw_pf (UPPER(fain));
+CREATE INDEX aw_pf_sub_upp ON aw_pf (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX aw_pf_act_date ON aw_pf (action_date);
+CREATE INDEX aw_pf_act_date_desc ON aw_pf (action_date DESC);
+CREATE INDEX aw_pf_act_type ON aw_pf (action_type_sort);
+CREATE INDEX aw_pf_act_type_desc ON aw_pf (action_type_sort DESC);
+CREATE INDEX aw_pf_mod_num_sort ON aw_pf (mod_num_sort);
+CREATE INDEX aw_pf_mod_num_sort_desc ON aw_pf (mod_num_sort DESC);
+
+CREATE TEMPORARY TABLE base_aw_pf ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(pf.fain),
             UPPER(pf.awarding_sub_tier_agency_c)
@@ -77,8 +87,11 @@ base_aw_pf AS
         cast_as_date(pf.action_date) AS action_date,
         pf.award_description
     FROM aw_pf AS pf
-    ORDER BY UPPER(pf.fain), UPPER(pf.awarding_sub_tier_agency_c), pf.action_date, pf.action_type_sort, pf.mod_num_sort),
-latest_aw_pf AS
+    ORDER BY UPPER(pf.fain), UPPER(pf.awarding_sub_tier_agency_c), pf.action_date, pf.action_type_sort, pf.mod_num_sort
+    );
+CREATE INDEX base_aw_pf_fain_upp_trans ON base_aw_pf (UPPER(TRANSLATE(fain, '-', '')));
+
+CREATE TEMPORARY TABLE latest_aw_pf ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(pf.fain),
             UPPER(pf.awarding_sub_tier_agency_c)
@@ -129,8 +142,12 @@ latest_aw_pf AS
         pf.high_comp_officer5_full_na AS high_comp_officer5_full_na,
         pf.high_comp_officer5_amount AS high_comp_officer5_amount
     FROM aw_pf AS pf
-    ORDER BY UPPER(pf.fain), UPPER(pf.awarding_sub_tier_agency_c), pf.action_date DESC, pf.action_type_sort DESC, pf.mod_num_sort DESC),
-grouped_aw_pf AS
+    ORDER BY UPPER(pf.fain), UPPER(pf.awarding_sub_tier_agency_c), pf.action_date DESC, pf.action_type_sort DESC, pf.mod_num_sort DESC
+    );
+CREATE INDEX latest_aw_pf_uei_upp ON latest_aw_pf (UPPER(uei));
+CREATE INDEX latest_aw_pf_fain_upp_trans ON latest_aw_pf (UPPER(TRANSLATE(fain, '-', '')));
+
+CREATE TEMPORARY TABLE grouped_aw_pf ON COMMIT DROP AS
     (SELECT pf.fain,
         pf.awarding_sub_tier_agency_c,
         array_agg(DISTINCT pf.cfda_number) AS cfda_nums,
@@ -139,8 +156,11 @@ grouped_aw_pf AS
      FROM aw_pf AS pf
      LEFT OUTER JOIN cfda_program AS cfda
         ON to_char(cfda.program_number, 'FM00.000') = pf.cfda_number
-     GROUP BY fain, awarding_sub_tier_agency_c),
-grant_uei AS
+     GROUP BY fain, awarding_sub_tier_agency_c
+     );
+CREATE INDEX grouped_aw_pf_fain_upp_trans ON grouped_aw_pf (UPPER(TRANSLATE(fain, '-', '')));
+
+CREATE TEMPORARY TABLE grant_uei ON COMMIT DROP AS
     (SELECT grant_uei_from.uei AS uei,
         grant_uei_from.legal_business_name AS legal_business_name,
         grant_uei_from.dba_name AS dba_name
@@ -156,8 +176,11 @@ grant_uei AS
                 ON UPPER(latest_aw_pf.uei) = UPPER(sam_recipient.uei)
         ORDER BY sam_recipient.activation_date DESC
      ) AS grant_uei_from
-    WHERE grant_uei_from.row = 1),
-subgrant_puei AS (
+    WHERE grant_uei_from.row = 1
+    );
+CREATE INDEX grant_uei_upp ON grant_uei (UPPER(uei));
+
+CREATE TEMPORARY TABLE subgrant_puei ON COMMIT DROP AS (
     SELECT sub_puei_from.uei AS uei,
         sub_puei_from.legal_business_name AS legal_business_name
     FROM (
@@ -172,8 +195,11 @@ subgrant_puei AS (
                 AND fsrs_subgrant.parent_id {0} {1}
         ORDER BY sam_recipient.activation_date DESC
     ) AS sub_puei_from
-    WHERE sub_puei_from.row = 1),
-subgrant_uei AS (
+    WHERE sub_puei_from.row = 1
+    );
+CREATE INDEX subgrant_puei_upp ON subgrant_puei (UPPER(uei));
+
+CREATE TEMPORARY TABLE subgrant_uei ON COMMIT DROP AS (
     SELECT sub_uei_from.uei AS uei,
         sub_uei_from.business_types AS business_types
     FROM (
@@ -189,7 +215,10 @@ subgrant_uei AS (
                 AND fsrs_subgrant.parent_id {0} {1}
         ORDER BY sam_recipient.activation_date DESC
     ) AS sub_uei_from
-    WHERE sub_uei_from.row = 1)
+    WHERE sub_uei_from.row = 1
+    );
+CREATE INDEX subgrant_uei_upp ON subgrant_uei (UPPER(uei));
+
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -513,4 +542,12 @@ FROM fsrs_grant
         ON UPPER(fsrs_subgrant.parent_uei) = UPPER(subgrant_puei.uei)
     LEFT OUTER JOIN subgrant_uei
         ON UPPER(fsrs_subgrant.uei_number) = UPPER(subgrant_uei.uei)
-WHERE fsrs_grant.id {0} {1}
+WHERE fsrs_grant.id {0} {1};
+
+--DROP TABLE subgrant_uei;
+--DROP TABLE subgrant_puei;
+--DROP TABLE grant_uei;
+--DROP TABLE grouped_aw_pf;
+--DROP TABLE latest_aw_pf;
+--DROP TABLE base_aw_pf;
+--DROP TABLE aw_pf;

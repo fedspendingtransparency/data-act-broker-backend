@@ -1,4 +1,4 @@
-WITH aw_dap AS
+CREATE TEMPORARY TABLE aw_dap ON COMMIT DROP AS
     (SELECT dap.unique_award_key AS unique_award_key,
         dap.piid AS piid,
         dap.idv_type AS idv_type,
@@ -66,8 +66,18 @@ WITH aw_dap AS
             AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(dap.parent_award_id, '-', ''))
             AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
             AND fsrs_procurement.id {0} {1}
-    )),
-base_aw_dap AS
+    ));
+CREATE INDEX aw_dap_piid_upp ON aw_dap (UPPER(piid));
+CREATE INDEX aw_dap_paid_upp ON aw_dap (UPPER(parent_award_id));
+CREATE INDEX aw_dap_subtier_upp ON aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX aw_dap_act_date ON aw_dap (action_date);
+CREATE INDEX aw_dap_act_date_desc ON aw_dap (action_date DESC);
+CREATE INDEX aw_dap_act_type ON aw_dap (action_type_sort);
+CREATE INDEX aw_dap_act_type_desc ON aw_dap (action_type_sort DESC);
+CREATE INDEX aw_dap_mod_num_sort ON aw_dap (mod_num_sort);
+CREATE INDEX aw_dap_mod_num_sort_desc ON aw_dap (mod_num_sort DESC);
+
+CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(dap.piid),
             UPPER(dap.parent_award_id),
@@ -81,8 +91,13 @@ base_aw_dap AS
         dap.award_description as award_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort),
-latest_aw_dap AS
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort
+    );
+CREATE INDEX base_aw_dap_piid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
+CREATE INDEX base_aw_dap_paid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
+CREATE INDEX base_aw_dap_sub_upp ON base_aw_dap (UPPER(awarding_sub_tier_agency_c));
+
+CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(dap.piid),
             UPPER(dap.parent_award_id),
@@ -136,12 +151,16 @@ latest_aw_dap AS
         dap.high_comp_officer5_amount AS high_comp_officer5_amount,
         dap.total_obligated_amount AS total_obligated_amount,
         dap.vendor_doing_as_business_n AS vendor_doing_as_business_n,
-        dap.action_date AS action_date,
         dap.naics AS naics,
         dap.naics_description AS naics_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC)
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC
+    );
+CREATE INDEX latest_aw_dap_piid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
+CREATE INDEX latest_aw_dap_paid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
+CREATE INDEX latest_aw_dap_sub_upp ON latest_aw_dap (UPPER(awarding_sub_tier_agency_c));
+
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -448,4 +467,8 @@ FROM fsrs_procurement
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON (UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
-WHERE fsrs_procurement.id {0} {1}
+WHERE fsrs_procurement.id {0} {1};
+
+--DROP TABLE latest_aw_dap;
+--DROP TABLE base_aw_dap;
+--DROP TABLE aw_dap;
