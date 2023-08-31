@@ -67,15 +67,15 @@ CREATE TEMPORARY TABLE aw_dap ON COMMIT DROP AS
             AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
             AND fsrs_procurement.id {0} {1}
     ));
-CREATE INDEX aw_dap_piid_upp ON aw_dap (UPPER(piid));
-CREATE INDEX aw_dap_paid_upp ON aw_dap (UPPER(parent_award_id));
-CREATE INDEX aw_dap_subtier_upp ON aw_dap (UPPER(awarding_sub_tier_agency_c));
-CREATE INDEX aw_dap_act_date ON aw_dap (action_date);
-CREATE INDEX aw_dap_act_date_desc ON aw_dap (action_date DESC);
-CREATE INDEX aw_dap_act_type ON aw_dap (action_type_sort);
-CREATE INDEX aw_dap_act_type_desc ON aw_dap (action_type_sort DESC);
-CREATE INDEX aw_dap_mod_num_sort ON aw_dap (mod_num_sort);
-CREATE INDEX aw_dap_mod_num_sort_desc ON aw_dap (mod_num_sort DESC);
+CREATE INDEX ix_aw_dap_piid_upp ON aw_dap (UPPER(piid));
+CREATE INDEX ix_aw_dap_paid_upp ON aw_dap (UPPER(parent_award_id));
+CREATE INDEX ix_aw_dap_subtier_upp ON aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_aw_dap_act_date ON aw_dap (action_date);
+CREATE INDEX ix_aw_dap_act_date_desc ON aw_dap (action_date DESC);
+CREATE INDEX ix_aw_dap_act_type ON aw_dap (action_type_sort);
+CREATE INDEX ix_aw_dap_act_type_desc ON aw_dap (action_type_sort DESC);
+CREATE INDEX ix_aw_dap_mod_num_sort ON aw_dap (mod_num_sort);
+CREATE INDEX ix_aw_dap_mod_num_sort_desc ON aw_dap (mod_num_sort DESC);
 
 CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
@@ -93,9 +93,9 @@ CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
     FROM aw_dap AS dap
     ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort
     );
-CREATE INDEX base_aw_dap_piid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
-CREATE INDEX base_aw_dap_paid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
-CREATE INDEX base_aw_dap_sub_upp ON base_aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_base_aw_dap_piid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
+CREATE INDEX ix_base_aw_dap_paid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
+CREATE INDEX ix_base_aw_dap_sub_upp ON base_aw_dap (UPPER(awarding_sub_tier_agency_c));
 
 CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
@@ -157,9 +157,9 @@ CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     FROM aw_dap AS dap
     ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC
     );
-CREATE INDEX latest_aw_dap_piid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
-CREATE INDEX latest_aw_dap_paid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
-CREATE INDEX latest_aw_dap_sub_upp ON latest_aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_latest_aw_dap_piid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
+CREATE INDEX ix_latest_aw_dap_paid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
+CREATE INDEX ix_latest_aw_dap_sub_upp ON latest_aw_dap (UPPER(awarding_sub_tier_agency_c));
 
 INSERT INTO subaward (
     "unique_award_key",
