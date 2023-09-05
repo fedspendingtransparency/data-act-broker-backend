@@ -1,4 +1,4 @@
-CREATE TEMPORARY TABLE ON COMMIT DROP unlinked_subs AS
+CREATE TEMPORARY TABLE unlinked_subs ON COMMIT DROP AS
     (
         SELECT id,
             prime_id,
@@ -10,7 +10,7 @@ CREATE TEMPORARY TABLE ON COMMIT DROP unlinked_subs AS
             AND subaward.subaward_type = 'sub-grant'
     );
 
-CREATE TEMPORARY TABLE ON COMMIT DROP aw_pf AS
+CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
     (SELECT pf.fain AS fain,
         pf.award_description AS award_description,
         pf.record_type AS record_type,
