@@ -1,4 +1,4 @@
-CREATE TEMPORARY TABLE unlinked_subs AS
+CREATE TEMPORARY TABLE ON COMMIT DROP unlinked_subs AS
     (
         SELECT id,
             prime_id,
@@ -10,7 +10,7 @@ CREATE TEMPORARY TABLE unlinked_subs AS
             AND subaward.subaward_type = 'sub-grant'
     );
 
-CREATE TEMPORARY TABLE aw_pf AS
+CREATE TEMPORARY TABLE ON COMMIT DROP aw_pf AS
     (SELECT pf.fain AS fain,
         pf.award_description AS award_description,
         pf.record_type AS record_type,
@@ -259,9 +259,3 @@ FROM unlinked_subs
     LEFT OUTER JOIN grant_uei
         ON UPPER(lap.uei) = UPPER(grant_uei.uei)
 WHERE subaward.id = unlinked_subs.id;
-
---DROP TABLE grant_uei;
---DROP TABLE grouped_aw_pf;
---DROP TABLE latest_aw_pf;
---DROP TABLE base_aw_pf;
---DROP TABLE aw_pf;

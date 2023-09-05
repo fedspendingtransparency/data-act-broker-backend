@@ -468,7 +468,3 @@ FROM fsrs_procurement
         ON (UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
 WHERE fsrs_procurement.id {0} {1};
-
---DROP TABLE latest_aw_dap;
---DROP TABLE base_aw_dap;
---DROP TABLE aw_dap;

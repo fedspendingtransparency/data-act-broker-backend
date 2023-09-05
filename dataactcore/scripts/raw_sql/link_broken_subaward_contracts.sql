@@ -242,8 +242,3 @@ FROM unlinked_subs
         AND UPPER(TRANSLATE(unlinked_subs.parent_award_id, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(ldap.parent_award_id, '-', ''))
         AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(ldap.awarding_sub_tier_agency_c)
 WHERE subaward.id = unlinked_subs.id;
-
---DROP TABLE latest_aw_dap;
---DROP TABLE base_aw_dap;
---DROP TABLE aw_dap;
---DROP TABLE unlinked_subs;

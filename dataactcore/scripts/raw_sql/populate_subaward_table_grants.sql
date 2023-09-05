@@ -543,11 +543,3 @@ FROM fsrs_grant
     LEFT OUTER JOIN subgrant_uei
         ON UPPER(fsrs_subgrant.uei_number) = UPPER(subgrant_uei.uei)
 WHERE fsrs_grant.id {0} {1};
-
---DROP TABLE subgrant_uei;
---DROP TABLE subgrant_puei;
---DROP TABLE grant_uei;
---DROP TABLE grouped_aw_pf;
---DROP TABLE latest_aw_pf;
---DROP TABLE base_aw_pf;
---DROP TABLE aw_pf;
