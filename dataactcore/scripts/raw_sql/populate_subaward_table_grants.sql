@@ -28,12 +28,16 @@ CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
         pf.legal_entity_state_name AS legal_entity_state_name,
         UPPER(pf.legal_entity_country_code) AS legal_entity_country_code,
         COALESCE(pf.legal_entity_zip5, '') || COALESCE(pf.legal_entity_zip_last4, '') AS legal_entity_zip,
+        pf.legal_entity_county_code AS legal_entity_county_code,
+        pf.legal_entity_county_name AS legal_entity_county_name,
         pf.legal_entity_congressional AS legal_entity_congressional,
         pf.legal_entity_foreign_posta AS legal_entity_foreign_posta,
         pf.place_of_performance_city AS place_of_performance_city,
         pf.place_of_perfor_state_code AS place_of_perfor_state_code,
         pf.place_of_perform_state_nam AS place_of_perform_state_nam,
         TRANSLATE(pf.place_of_performance_zip4a, '-', '') AS place_of_performance_zip,
+        pf.place_of_perform_county_co AS place_of_perform_county_co,
+        pf.place_of_perform_county_na AS place_of_perform_county_na,
         pf.place_of_performance_congr AS place_of_performance_congr,
         pf.action_date AS action_date,
         pf.cfda_number AS cfda_number,
@@ -124,12 +128,16 @@ CREATE TEMPORARY TABLE latest_aw_pf ON COMMIT DROP AS
         pf.legal_entity_state_name AS legal_entity_state_name,
         pf.legal_entity_country_code AS legal_entity_country_code,
         pf.legal_entity_zip AS legal_entity_zip,
+        pf.legal_entity_county_code AS legal_entity_county_code,
+        pf.legal_entity_county_name AS legal_entity_county_name,
         pf.legal_entity_congressional AS legal_entity_congressional,
         pf.legal_entity_foreign_posta AS legal_entity_foreign_posta,
         pf.place_of_performance_city AS place_of_performance_city,
         pf.place_of_perfor_state_code AS place_of_perfor_state_code,
         pf.place_of_perform_state_nam AS place_of_perform_state_nam,
         pf.place_of_performance_zip AS place_of_performance_zip,
+        pf.place_of_perform_county_co AS place_of_perform_county_co,
+        pf.place_of_perform_county_na AS place_of_perform_county_na,
         pf.place_of_performance_congr AS place_of_performance_congr,
         pf.high_comp_officer1_full_na AS high_comp_officer1_full_na,
         pf.high_comp_officer1_amount AS high_comp_officer1_amount,
@@ -219,6 +227,73 @@ CREATE TEMPORARY TABLE subgrant_uei ON COMMIT DROP AS (
     );
 CREATE INDEX ix_subgrant_uei_upp ON subgrant_uei (UPPER(uei));
 
+-- Getting a list of all the subaward zips we'll encounter to limit any massive joins
+CREATE TEMPORARY TABLE all_sub_zips ON COMMIT DROP AS (
+	SELECT DISTINCT awardee_address_zip AS "sub_zip"
+	FROM fsrs_subgrant
+	UNION
+	SELECT DISTINCT principle_place_zip AS "sub_zip"
+	FROM fsrs_subgrant
+);
+-- Matching on all the available zip9s
+CREATE TEMPORARY TABLE all_sub_zip9s ON COMMIT DROP AS (
+	SELECT sub_zip
+	FROM all_sub_zips
+	WHERE LENGTH(sub_zip) = 9
+);
+CREATE TEMPORARY TABLE modified_zips ON COMMIT DROP AS (
+	SELECT CONCAT(zip5, zip_last4) AS "sub_zip", county_number
+	FROM zips
+	WHERE EXISTS (
+		SELECT 1
+		FROM all_sub_zip9s AS asz
+		WHERE CONCAT(zip5, zip_last4) = asz.sub_zip
+	)
+);
+-- Matching on all the available zip5 + states in zips_grouped (and any remaining zip9s not currently matched)
+CREATE TEMPORARY TABLE all_sub_zip5s ON COMMIT DROP AS (
+	SELECT sub_zip
+	FROM all_sub_zips AS asz
+	WHERE LENGTH(sub_zip) = 5
+	UNION
+	(SELECT sub_zip
+	FROM all_sub_zip9s AS asz
+	EXCEPT
+	SELECT sub_zip
+	FROM modified_zips AS mz)
+);
+CREATE INDEX ix_asz5s_l5 ON all_sub_zip5s (LEFT(sub_zip, 5));
+
+-- Since counties can vary between a zip5 + state, we want to only match on when there's only one county and not guess
+CREATE TEMPORARY TABLE single_zips_grouped ON COMMIT DROP AS (
+	SELECT zip5, state_abbreviation
+	FROM zips_grouped
+	GROUP BY zip5, state_abbreviation
+	HAVING COUNT(*) = 1
+);
+CREATE TEMPORARY TABLE zips_grouped_modified ON COMMIT DROP AS (
+	SELECT zip5, state_abbreviation, county_number
+	FROM zips_grouped AS zg
+	WHERE EXISTS (
+		SELECT 1
+		FROM all_sub_zip5s AS asz
+		WHERE zg.zip5 = LEFT(asz.sub_zip, 5)
+	) AND EXISTS (
+		SELECT 1
+		FROM single_zips_grouped AS szg
+		WHERE zg.zip5 = szg.zip5
+			AND zg.state_abbreviation = szg.state_abbreviation
+	)
+);
+-- Combine the two matching groups together and join later. make sure keep them separated with type to prevent dups
+CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
+	SELECT sub_zip AS "sub_zip", NULL AS "state_abbreviation", county_number AS "county_number", 'zip9' AS "type"
+	FROM modified_zips
+	UNION
+	SELECT zip5 AS "sub_zip", state_abbreviation AS "state_code", county_number AS "county_number", 'zip5+state' AS "type"
+	FROM zips_grouped_modified
+);
+
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -252,6 +327,8 @@ INSERT INTO subaward (
     "legal_entity_state_code",
     "legal_entity_state_name",
     "legal_entity_zip",
+    "legal_entity_county_code",
+    "legal_entity_county_name",
     "legal_entity_congressional",
     "legal_entity_foreign_posta",
     "business_types",
@@ -259,6 +336,8 @@ INSERT INTO subaward (
     "place_of_perform_state_code",
     "place_of_perform_state_name",
     "place_of_performance_zip",
+    "place_of_performance_county_code",
+    "place_of_performance_county_name",
     "place_of_perform_congressio",
     "place_of_perform_country_co",
     "place_of_perform_country_na",
@@ -315,6 +394,8 @@ INSERT INTO subaward (
     "sub_legal_entity_state_code",
     "sub_legal_entity_state_name",
     "sub_legal_entity_zip",
+    "sub_legal_entity_county_code",
+    "sub_legal_entity_county_name",
     "sub_legal_entity_congressional",
     "sub_legal_entity_foreign_posta",
     "sub_business_types",
@@ -322,6 +403,8 @@ INSERT INTO subaward (
     "sub_place_of_perform_state_code",
     "sub_place_of_perform_state_name",
     "sub_place_of_performance_zip",
+    "sub_place_of_performance_county_code",
+    "sub_place_of_performance_county_name",
     "sub_place_of_perform_congressio",
     "sub_place_of_perform_country_co",
     "sub_place_of_perform_country_na",
@@ -393,6 +476,8 @@ SELECT
          THEN lap.legal_entity_zip
          ELSE NULL
     END AS "legal_entity_zip",
+    lap.legal_entity_county_code AS "legal_entity_county_code",
+    lap.legal_entity_county_name AS "legal_entity_county_name",
     lap.legal_entity_congressional AS "legal_entity_congressional",
     CASE WHEN lap.legal_entity_country_code <> 'USA'
         THEN lap.legal_entity_foreign_posta
@@ -403,6 +488,8 @@ SELECT
     lap.place_of_perfor_state_code AS "place_of_perform_state_code",
     lap.place_of_perform_state_nam AS "place_of_perform_state_name",
     lap.place_of_performance_zip AS "place_of_performance_zip",
+    lap.place_of_perform_county_co AS "place_of_performance_county_code",
+    lap.place_of_perform_county_na AS "place_of_performance_county_name",
     lap.place_of_performance_congr AS "place_of_perform_congressio",
     ppop_country.country_code AS "place_of_perform_country_co",
     ppop_country.country_name AS "place_of_perform_country_na",
@@ -464,6 +551,8 @@ SELECT
          THEN fsrs_subgrant.awardee_address_zip
          ELSE NULL
     END AS "sub_legal_entity_zip",
+    sub_le_county_code.county_number AS "sub_legal_entity_county_code",
+    sub_le_county_name.county_name AS "sub_legal_entity_county_name",
     fsrs_subgrant.awardee_address_district AS "sub_legal_entity_congressional",
     CASE WHEN fsrs_subgrant.awardee_address_country <> 'USA'
          THEN fsrs_subgrant.awardee_address_zip
@@ -477,6 +566,8 @@ SELECT
     fsrs_subgrant.principle_place_state AS "sub_place_of_perform_state_code",
     fsrs_subgrant.principle_place_state_name AS "sub_place_of_perform_state_name",
     fsrs_subgrant.principle_place_zip AS "sub_place_of_performance_zip",
+    sub_ppop_county_code.county_number AS "sub_place_of_performance_county_code",
+    sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name",
     fsrs_subgrant.principle_place_district AS "sub_place_of_perform_congressio",
     sub_ppop_country.country_code AS "sub_place_of_perform_country_co",
     sub_ppop_country.country_name AS "sub_place_of_perform_country_na",
@@ -533,9 +624,41 @@ FROM fsrs_grant
     LEFT OUTER JOIN country_code AS sub_le_country
         ON (UPPER(fsrs_subgrant.awardee_address_country) = UPPER(sub_le_country.country_code)
             OR UPPER(fsrs_subgrant.awardee_address_country) = UPPER(sub_le_country.country_code_2_char))
+    LEFT OUTER JOIN zips_modified_union AS sub_le_county_code
+        ON (fsrs_subgrant.awardee_address_country = 'USA' AND (
+            (
+                fsrs_subgrant.awardee_address_zip = sub_le_county_code.sub_zip
+                AND sub_le_county_code.type = 'zip9'
+            )
+            OR
+            (
+                LEFT(fsrs_subgrant.awardee_address_zip, 5) = sub_le_county_code.sub_zip
+                AND fsrs_subgrant.awardee_address_state = sub_le_county_code.state_abbreviation
+                AND sub_le_county_code.type = 'zip5+state'
+            )
+        ))
+    LEFT OUTER JOIN county_code AS sub_le_county_name
+    	ON (sub_le_county_code.county_number = sub_le_county_name.county_number
+    		AND sub_le_county_code.state_abbreviation = sub_le_county_name.state_code)
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON (UPPER(fsrs_subgrant.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subgrant.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
+    LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code
+        ON (sub_ppop_country.country_code = 'USA' AND (
+            (
+            	fsrs_subgrant.principle_place_zip = sub_ppop_county_code.sub_zip
+                AND sub_ppop_county_code.type = 'zip9'
+	        )
+	        OR
+	        (
+            	LEFT(fsrs_subgrant.principle_place_zip, 5) = sub_ppop_county_code.sub_zip
+            	AND fsrs_subgrant.principle_place_state = sub_ppop_county_code.state_abbreviation
+                AND sub_ppop_county_code.type = 'zip5+state'
+           	)
+        ))
+    LEFT OUTER JOIN county_code AS sub_ppop_county_name
+    	ON (sub_ppop_county_code.county_number = sub_ppop_county_name.county_number
+    		AND sub_ppop_county_code.state_abbreviation = sub_ppop_county_name.state_code)
     LEFT OUTER JOIN grant_uei
         ON UPPER(fsrs_grant.uei_number) = UPPER(grant_uei.uei)
     LEFT OUTER JOIN subgrant_puei
