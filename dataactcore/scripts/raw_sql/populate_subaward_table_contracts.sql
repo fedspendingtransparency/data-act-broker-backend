@@ -232,9 +232,11 @@ CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
 	SELECT sub_zip AS "sub_zip", NULL AS "state_abbreviation", county_number AS "county_number", 'zip9' AS "type"
 	FROM modified_zips
 	UNION
-	SELECT zip5 AS "sub_zip", state_abbreviation AS "state_code", county_number AS "county_number", 'zip5+state' AS "type"
+	SELECT zip5 AS "sub_zip", state_abbreviation, county_number AS "county_number", 'zip5+state' AS "type"
 	FROM zips_grouped_modified
 );
+CREATE INDEX ix_zmu_sz ON zips_modified_union (sub_zip);
+CREATE INDEX ix_zmu_type ON zips_modified_union (type);
 
 INSERT INTO subaward (
     "unique_award_key",
