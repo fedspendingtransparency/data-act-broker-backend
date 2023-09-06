@@ -21,6 +21,7 @@ from dataactvalidator.filestreaming.labelLoader import LabelLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.load_cfda_data import load_cfda_program
+from dataactvalidator.scripts.load_funding_opportunity_number import load_funding_opportunity_number_data
 from dataactvalidator.scripts.load_object_class import load_object_class
 from dataactvalidator.scripts.load_country_codes import load_country_codes
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
@@ -178,6 +179,8 @@ def main():
                         action='store_true')
     parser.add_argument('-defc', '--load_defc', help='Load DEFC to database', action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
+    parser.add_argument('-f', '--load_funding_opportunity_number', help='Load funding opportunity numbers',
+                        action='store_true')
     parser.add_argument('--force', help='Forces actions to occur in certain scripts regardless of checks',
                         action='store_true')
     args = parser.parse_args()
@@ -196,6 +199,7 @@ def main():
         load_zip_codes()
         load_submission_schedule()
         load_defc(args.force)
+        load_funding_opportunity_number_data()
         return
 
     if args.setup_db:
@@ -255,6 +259,9 @@ def main():
 
     if args.uncache_all_files:
         uncache_all_files()
+
+    if args.load_funding_opportunity_number:
+        load_funding_opportunity_number_data()
 
 
 if __name__ == '__main__':
