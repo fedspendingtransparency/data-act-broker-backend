@@ -184,12 +184,12 @@ CREATE TEMPORARY TABLE all_sub_zip9s ON COMMIT DROP AS (
 	WHERE LENGTH(sub_zip) = 9
 );
 CREATE TEMPORARY TABLE modified_zips ON COMMIT DROP AS (
-	SELECT CONCAT(zip5, zip_last4) AS "sub_zip", county_number
+	SELECT (zip5 || zip_last4) AS "sub_zip", county_number
 	FROM zips
 	WHERE EXISTS (
 		SELECT 1
 		FROM all_sub_zip9s AS asz
-		WHERE CONCAT(zip5, zip_last4) = asz.sub_zip
+		WHERE (zip5 || zip_last4) = asz.sub_zip
 	)
 );
 -- Matching on all the available zip5 + states in zips_grouped (and any remaining zip9s not currently matched)
