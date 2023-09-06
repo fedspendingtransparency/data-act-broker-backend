@@ -670,3 +670,18 @@ class ExternalDataLoadDate(Base):
     external_data_type_id = Column(Integer, ForeignKey("external_data_type.external_data_type_id",
                                                        name="fk_external_data_type_id"), unique=True)
     external_data_type = relationship("ExternalDataType", uselist=False)
+
+
+class FundingOpportunity(Base):
+    """ funding opportunity number lookup """
+    __tablename__ = "funding_opportunity"
+    funding_opportunity_id = Column(Integer, primary_key=True)
+    funding_opportunity_number = Column(Text, nullable=False, index=True)
+    title = Column(Text)
+    cfda_numbers = Column(ARRAY(Text))
+    agency_name = Column(Text)
+    status = Column(Text)
+    open_date = Column(Date)
+    close_date = Column(Date)
+    doc_type = Column(Text)
+    internal_id = Column(Integer)
