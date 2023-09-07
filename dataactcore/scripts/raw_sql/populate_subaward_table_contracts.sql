@@ -238,6 +238,61 @@ CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
 CREATE INDEX ix_zmu_sz ON zips_modified_union (sub_zip);
 CREATE INDEX ix_zmu_type ON zips_modified_union (type);
 
+CREATE TEMPORARY TABLE fsrs_subcontract_counties ON COMMIT DROP AS (
+	SELECT fsrs_subcontract.*,
+        sub_le_county_code.county_number AS "sub_legal_entity_county_code",
+        sub_le_county_name.county_name AS "sub_legal_entity_county_name",
+        sub_ppop_county_code.county_number AS "sub_place_of_performance_county_code",
+        sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name"
+    FROM fsrs_subcontract
+    LEFT OUTER JOIN zips_modified_union AS sub_le_county_code
+        ON (fsrs_subcontract.company_address_country = 'USA' AND (
+            (
+                fsrs_subcontract.company_address_zip = sub_le_county_code.sub_zip
+                AND sub_le_county_code.type = 'zip9'
+            )
+            OR
+            (
+                LEFT(fsrs_subcontract.company_address_zip, 5) = sub_le_county_code.sub_zip
+                AND NOT EXISTS(
+            		SELECT 1
+            		FROM zips_modified_union AS sub_le_county_code_2
+            		WHERE fsrs_subcontract.company_address_zip = sub_le_county_code_2.sub_zip AND sub_le_county_code_2.type = 'zip9'
+                )
+                AND fsrs_subcontract.company_address_state = sub_le_county_code.state_abbreviation
+                AND sub_le_county_code.type = 'zip5+state'
+            )
+        ))
+    LEFT OUTER JOIN county_code AS sub_le_county_name
+    	ON (sub_le_county_code.county_number = sub_le_county_name.county_number
+    		AND sub_le_county_code.state_abbreviation = sub_le_county_name.state_code)
+    LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code
+        ON (LEFT(fsrs_subcontract.principle_place_country, 2) = 'US' AND (
+            (
+            	fsrs_subcontract.principle_place_zip = sub_ppop_county_code.sub_zip
+                AND sub_ppop_county_code.type = 'zip9'
+	        )
+	        OR
+	        (
+            	LEFT(fsrs_subcontract.principle_place_zip, 5) = sub_ppop_county_code.sub_zip
+            	AND NOT EXISTS(
+            		SELECT 1
+            		FROM zips_modified_union AS sub_ppop_county_code_2
+            		WHERE fsrs_subcontract.principle_place_zip = sub_ppop_county_code_2.sub_zip AND sub_ppop_county_code_2.type = 'zip9'
+            	)
+            	AND fsrs_subcontract.principle_place_state = sub_ppop_county_code.state_abbreviation
+                AND sub_ppop_county_code.type = 'zip5+state'
+           	)
+        ))
+    LEFT OUTER JOIN county_code AS sub_ppop_county_name
+    	ON (sub_ppop_county_code.county_number = sub_ppop_county_name.county_number
+    		AND sub_ppop_county_code.state_abbreviation = sub_ppop_county_name.state_code)
+    WHERE fsrs_subcontract.parent_id {0} {1}
+);
+CREATE INDEX ix_fsc_pid ON fsrs_subcontract_counties (parent_id);
+CREATE INDEX ix_fsc_cac_upp ON fsrs_subcontract_counties (UPPER(company_address_country));
+CREATE INDEX ix_fsc_ppc_upp ON fsrs_subcontract_counties (UPPER(principle_place_country));
+
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -494,8 +549,8 @@ SELECT
          THEN fsrs_subcontract.company_address_zip
          ELSE NULL
     END AS "sub_legal_entity_zip",
-    sub_le_county_code.county_number AS "sub_legal_entity_county_code",
-    sub_le_county_name.county_name AS "sub_legal_entity_county_name",
+    fsrs_subcontract.sub_legal_entity_county_code AS "sub_legal_entity_county_code",
+    fsrs_subcontract.sub_legal_entity_county_name AS "sub_legal_entity_county_name",
     fsrs_subcontract.company_address_district AS "sub_legal_entity_congressional",
     CASE WHEN fsrs_subcontract.company_address_country <> 'USA'
          THEN fsrs_subcontract.company_address_zip
@@ -506,8 +561,8 @@ SELECT
     fsrs_subcontract.principle_place_state AS "sub_place_of_perform_state_code",
     fsrs_subcontract.principle_place_state_name AS "sub_place_of_perform_state_name",
     fsrs_subcontract.principle_place_zip AS "sub_place_of_performance_zip",
-    sub_ppop_county_code.county_number AS "sub_place_of_performance_county_code",
-    sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name",
+    fsrs_subcontract.sub_place_of_performance_county_code AS "sub_place_of_performance_county_code",
+    fsrs_subcontract.sub_place_of_performance_county_name AS "sub_place_of_performance_county_name",
     fsrs_subcontract.principle_place_district AS "sub_place_of_perform_congressio",
     sub_ppop_country.country_code AS "sub_place_of_perform_country_co",
     sub_ppop_country.country_name AS "sub_place_of_perform_country_na",
@@ -544,7 +599,7 @@ SELECT
     NOW() AS "updated_at"
 
 FROM fsrs_procurement
-    JOIN fsrs_subcontract
+    JOIN fsrs_subcontract_counties AS fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN base_aw_dap AS bdap
         ON UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(bdap.piid, '-', ''))
@@ -557,39 +612,7 @@ FROM fsrs_procurement
     LEFT OUTER JOIN country_code AS sub_le_country
         ON (UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code)
             OR UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code_2_char))
-    LEFT OUTER JOIN zips_modified_union AS sub_le_county_code
-        ON (fsrs_subcontract.company_address_country = 'USA' AND (
-            (
-                fsrs_subcontract.company_address_zip = sub_le_county_code.sub_zip
-                AND sub_le_county_code.type = 'zip9'
-            )
-            OR
-            (
-                LEFT(fsrs_subcontract.company_address_zip, 5) = sub_le_county_code.sub_zip
-                AND fsrs_subcontract.company_address_state = sub_le_county_code.state_abbreviation
-                AND sub_le_county_code.type = 'zip5+state'
-            )
-        ))
-    LEFT OUTER JOIN county_code AS sub_le_county_name
-    	ON (sub_le_county_code.county_number = sub_le_county_name.county_number
-    		AND sub_le_county_code.state_abbreviation = sub_le_county_name.state_code)
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON (UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
-    LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code
-        ON (sub_ppop_country.country_code = 'USA' AND (
-            (
-            	fsrs_subcontract.principle_place_zip = sub_ppop_county_code.sub_zip
-                AND sub_ppop_county_code.type = 'zip9'
-	        )
-	        OR
-	        (
-            	LEFT(fsrs_subcontract.principle_place_zip, 5) = sub_ppop_county_code.sub_zip
-            	AND fsrs_subcontract.principle_place_state = sub_ppop_county_code.state_abbreviation
-                AND sub_ppop_county_code.type = 'zip5+state'
-           	)
-        ))
-    LEFT OUTER JOIN county_code AS sub_ppop_county_name
-    	ON (sub_ppop_county_code.county_number = sub_ppop_county_name.county_number
-    		AND sub_ppop_county_code.state_abbreviation = sub_ppop_county_name.state_code)
 WHERE fsrs_procurement.id {0} {1};
