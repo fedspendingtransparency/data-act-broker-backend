@@ -305,14 +305,14 @@ CREATE TEMPORARY TABLE fsrs_subgrant_counties ON COMMIT DROP AS (
     FROM fsrs_subgrant
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip9
         ON (fsrs_subgrant.awardee_address_country = 'USA'
-            AND fsrs_subgrant.awardee_address_zip = sub_le_county_code.sub_zip
-            AND sub_le_county_code.type = 'zip9'
+            AND fsrs_subgrant.awardee_address_zip = sub_le_county_code_zip9.sub_zip
+            AND sub_le_county_code_zip9.type = 'zip9'
         )
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip5
         ON (fsrs_subgrant.awardee_address_country = 'USA'
-            AND LEFT(fsrs_subgrant.awardee_address_zip, 5) = sub_le_county_code.sub_zip
-            AND fsrs_subgrant.awardee_address_state = sub_le_county_code.state_abbreviation
-            AND sub_le_county_code.type = 'zip5+state'
+            AND LEFT(fsrs_subgrant.awardee_address_zip, 5) = sub_le_county_code_zip5.sub_zip
+            AND fsrs_subgrant.awardee_address_state = sub_le_county_code_zip5.state_abbreviation
+            AND sub_le_county_code_zip5.type = 'zip5+state'
         )
     LEFT OUTER JOIN county_code AS sub_le_county_name
     	ON (COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) = sub_le_county_name.county_number
