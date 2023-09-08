@@ -319,14 +319,14 @@ CREATE TEMPORARY TABLE fsrs_subgrant_counties ON COMMIT DROP AS (
     		AND COALESCE(sub_le_county_code_zip9.state_abbreviation, sub_le_county_code_zip5.state_abbreviation) = sub_le_county_name.state_code)
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip9
         ON (LEFT(fsrs_subgrant.principle_place_country, 2) = 'US'
-            AND fsrs_subgrant.principle_place_zip = sub_ppop_county_code.sub_zip
-            AND sub_ppop_county_code.type = 'zip9'
+            AND fsrs_subgrant.principle_place_zip = sub_ppop_county_code_zip9.sub_zip
+            AND sub_ppop_county_code_zip9.type = 'zip9'
 	    )
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip5
         ON (LEFT(fsrs_subgrant.principle_place_country, 2) = 'US'
-            AND LEFT(fsrs_subgrant.principle_place_zip, 5) = sub_ppop_county_code.sub_zip
-            AND fsrs_subgrant.principle_place_state = sub_ppop_county_code.state_abbreviation
-            AND sub_ppop_county_code.type = 'zip5+state'
+            AND LEFT(fsrs_subgrant.principle_place_zip, 5) = sub_ppop_county_code_zip5.sub_zip
+            AND fsrs_subgrant.principle_place_state = sub_ppop_county_code_zip5.state_abbreviation
+            AND sub_ppop_county_code_zip5.type = 'zip5+state'
         )
     LEFT OUTER JOIN county_code AS sub_ppop_county_name
     	ON (COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) = sub_ppop_county_name.county_number
@@ -672,7 +672,6 @@ FROM fsrs_grant
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON (UPPER(fsrs_subgrant.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subgrant.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
-    		AND sub_ppop_county_code.state_abbreviation = sub_ppop_county_name.state_code)
     LEFT OUTER JOIN grant_uei
         ON UPPER(fsrs_grant.uei_number) = UPPER(grant_uei.uei)
     LEFT OUTER JOIN subgrant_puei
