@@ -71,7 +71,7 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
     # run the SQL
     for sql_statement in sql.split(';'):
         if sql_statement.strip():
-            inserted = sess.execute(sql_statement)
+            inserted = sess.execute(sql_statement.strip())
     sess.commit()
     inserted_count = inserted.rowcount
     award_type = service_type[:service_type.index('_')]
@@ -102,7 +102,7 @@ def fix_broken_links(sess, service_type, min_date=None):
     # run the SQL
     for sql_statement in sql.split(';'):
         if sql_statement.strip():
-            updated = sess.execute(sql_statement)
+            updated = sess.execute(sql_statement.strip())
     sess.commit()
 
     updated_count = updated.rowcount
