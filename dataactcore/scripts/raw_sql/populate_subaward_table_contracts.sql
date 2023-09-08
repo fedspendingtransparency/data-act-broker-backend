@@ -184,7 +184,7 @@ CREATE TEMPORARY TABLE all_sub_zip9s ON COMMIT DROP AS (
 	WHERE LENGTH(sub_zip) = 9
 );
 CREATE TEMPORARY TABLE modified_zips ON COMMIT DROP AS (
-	SELECT (zip5 || zip_last4) AS "sub_zip", county_number
+	SELECT (zip5 || zip_last4) AS "sub_zip", county_number, state_abbreviation
 	FROM zips
 	WHERE EXISTS (
 		SELECT 1
@@ -229,10 +229,10 @@ CREATE TEMPORARY TABLE zips_grouped_modified ON COMMIT DROP AS (
 );
 -- Combine the two matching groups together and join later. make sure keep them separated with type to prevent dups
 CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
-	SELECT sub_zip AS "sub_zip", NULL AS "state_abbreviation", county_number AS "county_number", 'zip9' AS "type"
+	SELECT sub_zip, state_abbreviation, county_number, 'zip9' AS "type"
 	FROM modified_zips
 	UNION
-	SELECT zip5 AS "sub_zip", state_abbreviation, county_number AS "county_number", 'zip5+state' AS "type"
+	SELECT zip5 AS "sub_zip", state_abbreviation, county_number, 'zip5+state' AS "type"
 	FROM zips_grouped_modified
 );
 CREATE INDEX ix_zmu_sz ON zips_modified_union (sub_zip);
@@ -544,7 +544,7 @@ SELECT
     NOW() AS "updated_at"
 
 FROM fsrs_procurement
-    JOIN fsrs_subcontract_counties AS fsrs_subcontract
+    JOIN fsrs_subcontract AS fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN base_aw_dap AS bdap
         ON UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(bdap.piid, '-', ''))
@@ -563,28 +563,24 @@ FROM fsrs_procurement
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip9
         ON (fsrs_subcontract.company_address_country = 'USA'
             AND fsrs_subcontract.company_address_zip = sub_le_county_code_zip9.sub_zip
-            AND sub_le_county_code_zip9.type = 'zip9'
-        )
+            AND sub_le_county_code_zip9.type = 'zip9')
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip5
         ON (fsrs_subcontract.company_address_country = 'USA'
             AND LEFT(fsrs_subcontract.company_address_zip, 5) = sub_le_county_code_zip5.sub_zip
             AND fsrs_subcontract.company_address_state = sub_le_county_code_zip5.state_abbreviation
-            AND sub_le_county_code_zip5.type = 'zip5+state'
-        )
+            AND sub_le_county_code_zip5.type = 'zip5+state')
     LEFT OUTER JOIN county_code AS sub_le_county_name
     	ON (COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) = sub_le_county_name.county_number
     		AND COALESCE(sub_le_county_code_zip9.state_abbreviation, sub_le_county_code_zip5.state_abbreviation) = sub_le_county_name.state_code)
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip9
         ON (LEFT(fsrs_subcontract.principle_place_country, 2) = 'US'
             AND fsrs_subcontract.principle_place_zip = sub_ppop_county_code_zip9.sub_zip
-            AND sub_ppop_county_code_zip9.type = 'zip9'
-	    )
+            AND sub_ppop_county_code_zip9.type = 'zip9')
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip5
         ON (LEFT(fsrs_subcontract.principle_place_country, 2) = 'US'
             AND LEFT(fsrs_subcontract.principle_place_zip, 5) = sub_ppop_county_code_zip5.sub_zip
             AND fsrs_subcontract.principle_place_state = sub_ppop_county_code_zip5.state_abbreviation
-            AND sub_ppop_county_code_zip5.type = 'zip5+state'
-        )
+            AND sub_ppop_county_code_zip5.type = 'zip5+state')
     LEFT OUTER JOIN county_code AS sub_ppop_county_name
     	ON (COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) = sub_ppop_county_name.county_number
     		AND COALESCE(sub_ppop_county_code_zip9.state_abbreviation, sub_ppop_county_code_zip5.state_abbreviation) = sub_ppop_county_name.state_code)
