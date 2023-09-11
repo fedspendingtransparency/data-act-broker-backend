@@ -1,4 +1,4 @@
-WITH aw_dap AS
+CREATE TEMPORARY TABLE aw_dap ON COMMIT DROP AS
     (SELECT dap.unique_award_key AS unique_award_key,
         dap.piid AS piid,
         dap.idv_type AS idv_type,
@@ -30,11 +30,15 @@ WITH aw_dap AS
         dap.legal_entity_country_code AS legal_entity_country_code,
         dap.legal_entity_country_name AS legal_entity_country_name,
         dap.legal_entity_zip4 AS legal_entity_zip4,
+        dap.legal_entity_county_code AS legal_entity_county_code,
+        dap.legal_entity_county_name AS legal_entity_county_name,
         dap.legal_entity_congressional AS legal_entity_congressional,
         dap.place_of_perform_city_name AS place_of_perform_city_name,
         dap.place_of_performance_state AS place_of_performance_state,
         dap.place_of_perfor_state_desc AS place_of_perfor_state_desc,
         dap.place_of_performance_zip4a AS place_of_performance_zip4a,
+        dap.place_of_perform_county_co AS place_of_perform_county_co,
+        dap.place_of_perform_county_na AS place_of_perform_county_na,
         dap.place_of_performance_congr AS place_of_performance_congr,
         dap.place_of_perform_country_c AS place_of_perform_country_c,
         dap.place_of_perf_country_desc AS place_of_perf_country_desc,
@@ -66,8 +70,18 @@ WITH aw_dap AS
             AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(dap.parent_award_id, '-', ''))
             AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
             AND fsrs_procurement.id {0} {1}
-    )),
-base_aw_dap AS
+    ));
+CREATE INDEX ix_aw_dap_piid_upp ON aw_dap (UPPER(piid));
+CREATE INDEX ix_aw_dap_paid_upp ON aw_dap (UPPER(parent_award_id));
+CREATE INDEX ix_aw_dap_subtier_upp ON aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_aw_dap_act_date ON aw_dap (action_date);
+CREATE INDEX ix_aw_dap_act_date_desc ON aw_dap (action_date DESC);
+CREATE INDEX ix_aw_dap_act_type ON aw_dap (action_type_sort);
+CREATE INDEX ix_aw_dap_act_type_desc ON aw_dap (action_type_sort DESC);
+CREATE INDEX ix_aw_dap_mod_num_sort ON aw_dap (mod_num_sort);
+CREATE INDEX ix_aw_dap_mod_num_sort_desc ON aw_dap (mod_num_sort DESC);
+
+CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(dap.piid),
             UPPER(dap.parent_award_id),
@@ -81,8 +95,13 @@ base_aw_dap AS
         dap.award_description as award_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort),
-latest_aw_dap AS
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort
+    );
+CREATE INDEX ix_base_aw_dap_piid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
+CREATE INDEX ix_base_aw_dap_paid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
+CREATE INDEX ix_base_aw_dap_sub_upp ON base_aw_dap (UPPER(awarding_sub_tier_agency_c));
+
+CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(dap.piid),
             UPPER(dap.parent_award_id),
@@ -116,11 +135,15 @@ latest_aw_dap AS
         dap.legal_entity_country_code AS legal_entity_country_code,
         dap.legal_entity_country_name AS legal_entity_country_name,
         dap.legal_entity_zip4 AS legal_entity_zip4,
+        dap.legal_entity_county_code AS legal_entity_county_code,
+        dap.legal_entity_county_name AS legal_entity_county_name,
         dap.legal_entity_congressional AS legal_entity_congressional,
         dap.place_of_perform_city_name AS place_of_perform_city_name,
         dap.place_of_performance_state AS place_of_performance_state,
         dap.place_of_perfor_state_desc AS place_of_perfor_state_desc,
         dap.place_of_performance_zip4a AS place_of_performance_zip4a,
+        dap.place_of_perform_county_co AS place_of_perform_county_co,
+        dap.place_of_perform_county_na AS place_of_perform_county_na,
         dap.place_of_performance_congr AS place_of_performance_congr,
         dap.place_of_perform_country_c AS place_of_perform_country_c,
         dap.place_of_perf_country_desc AS place_of_perf_country_desc,
@@ -136,12 +159,85 @@ latest_aw_dap AS
         dap.high_comp_officer5_amount AS high_comp_officer5_amount,
         dap.total_obligated_amount AS total_obligated_amount,
         dap.vendor_doing_as_business_n AS vendor_doing_as_business_n,
-        dap.action_date AS action_date,
         dap.naics AS naics,
         dap.naics_description AS naics_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC)
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC
+    );
+CREATE INDEX ix_latest_aw_dap_piid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
+CREATE INDEX ix_latest_aw_dap_paid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
+CREATE INDEX ix_latest_aw_dap_sub_upp ON latest_aw_dap (UPPER(awarding_sub_tier_agency_c));
+
+-- Getting a list of all the subaward zips we'll encounter to limit any massive joins
+CREATE TEMPORARY TABLE all_sub_zips ON COMMIT DROP AS (
+	SELECT DISTINCT company_address_zip AS "sub_zip"
+	FROM fsrs_subcontract
+	UNION
+	SELECT DISTINCT principle_place_zip AS "sub_zip"
+	FROM fsrs_subcontract
+);
+-- Matching on all the available zip9s
+CREATE TEMPORARY TABLE all_sub_zip9s ON COMMIT DROP AS (
+	SELECT sub_zip
+	FROM all_sub_zips
+	WHERE LENGTH(sub_zip) = 9
+);
+CREATE TEMPORARY TABLE modified_zips ON COMMIT DROP AS (
+	SELECT (zip5 || zip_last4) AS "sub_zip", county_number, state_abbreviation
+	FROM zips
+	WHERE EXISTS (
+		SELECT 1
+		FROM all_sub_zip9s AS asz
+		WHERE (zip5 || zip_last4) = asz.sub_zip
+	)
+);
+-- Matching on all the available zip5 + states in zips_grouped (and any remaining zip9s not currently matched)
+CREATE TEMPORARY TABLE all_sub_zip5s ON COMMIT DROP AS (
+	SELECT sub_zip
+	FROM all_sub_zips AS asz
+	WHERE LENGTH(sub_zip) = 5
+	UNION
+	(SELECT sub_zip
+	FROM all_sub_zip9s AS asz
+	EXCEPT
+	SELECT sub_zip
+	FROM modified_zips AS mz)
+);
+CREATE INDEX ix_asz5s_l5 ON all_sub_zip5s (LEFT(sub_zip, 5));
+
+-- Since counties can vary between a zip5 + state, we want to only match on when there's only one county and not guess
+CREATE TEMPORARY TABLE single_zips_grouped ON COMMIT DROP AS (
+	SELECT zip5, state_abbreviation
+	FROM zips_grouped
+	GROUP BY zip5, state_abbreviation
+	HAVING COUNT(*) = 1
+);
+CREATE TEMPORARY TABLE zips_grouped_modified ON COMMIT DROP AS (
+	SELECT zip5, state_abbreviation, county_number
+	FROM zips_grouped AS zg
+	WHERE EXISTS (
+		SELECT 1
+		FROM all_sub_zip5s AS asz
+		WHERE zg.zip5 = LEFT(asz.sub_zip, 5)
+	) AND EXISTS (
+		SELECT 1
+		FROM single_zips_grouped AS szg
+		WHERE zg.zip5 = szg.zip5
+			AND zg.state_abbreviation = szg.state_abbreviation
+	)
+);
+-- Combine the two matching groups together and join later. make sure keep them separated with type to prevent dups
+CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
+	SELECT sub_zip, state_abbreviation, county_number, 'zip9' AS "type"
+	FROM modified_zips
+	UNION
+	SELECT zip5 AS "sub_zip", state_abbreviation, county_number, 'zip5+state' AS "type"
+	FROM zips_grouped_modified
+);
+CREATE INDEX ix_zmu_sz ON zips_modified_union (sub_zip);
+CREATE INDEX ix_zmu_type ON zips_modified_union (type);
+
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -175,6 +271,8 @@ INSERT INTO subaward (
     "legal_entity_state_code",
     "legal_entity_state_name",
     "legal_entity_zip",
+    "legal_entity_county_code",
+    "legal_entity_county_name",
     "legal_entity_congressional",
     "legal_entity_foreign_posta",
     "business_types",
@@ -182,6 +280,8 @@ INSERT INTO subaward (
     "place_of_perform_state_code",
     "place_of_perform_state_name",
     "place_of_performance_zip",
+    "place_of_performance_county_code",
+    "place_of_performance_county_name",
     "place_of_perform_congressio",
     "place_of_perform_country_co",
     "place_of_perform_country_na",
@@ -238,6 +338,8 @@ INSERT INTO subaward (
     "sub_legal_entity_state_code",
     "sub_legal_entity_state_name",
     "sub_legal_entity_zip",
+    "sub_legal_entity_county_code",
+    "sub_legal_entity_county_name",
     "sub_legal_entity_congressional",
     "sub_legal_entity_foreign_posta",
     "sub_business_types",
@@ -245,6 +347,8 @@ INSERT INTO subaward (
     "sub_place_of_perform_state_code",
     "sub_place_of_perform_state_name",
     "sub_place_of_performance_zip",
+    "sub_place_of_performance_county_code",
+    "sub_place_of_performance_county_name",
     "sub_place_of_perform_congressio",
     "sub_place_of_perform_country_co",
     "sub_place_of_perform_country_na",
@@ -315,6 +419,8 @@ SELECT
          THEN ldap.legal_entity_zip4
          ELSE NULL
     END AS "legal_entity_zip",
+    ldap.legal_entity_county_code AS "legal_entity_county_code",
+    ldap.legal_entity_county_name AS "legal_entity_county_name",
     ldap.legal_entity_congressional AS "legal_entity_congressional",
     CASE WHEN ldap.legal_entity_country_code <> 'USA'
          THEN ldap.legal_entity_zip4
@@ -325,6 +431,8 @@ SELECT
     ldap.place_of_performance_state AS "place_of_perform_state_code",
     ldap.place_of_perfor_state_desc AS "place_of_perform_state_name",
     ldap.place_of_performance_zip4a AS "place_of_performance_zip",
+    ldap.place_of_perform_county_co AS "place_of_performance_county_code",
+    ldap.place_of_perform_county_na AS "place_of_performance_county_name",
     ldap.place_of_performance_congr AS "place_of_perform_congressio",
     ldap.place_of_perform_country_c AS "place_of_perform_country_co",
     ldap.place_of_perf_country_desc AS "place_of_perform_country_na",
@@ -386,6 +494,8 @@ SELECT
          THEN fsrs_subcontract.company_address_zip
          ELSE NULL
     END AS "sub_legal_entity_zip",
+    COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) AS "sub_legal_entity_county_code",
+    sub_le_county_name.county_name AS "sub_legal_entity_county_name",
     fsrs_subcontract.company_address_district AS "sub_legal_entity_congressional",
     CASE WHEN fsrs_subcontract.company_address_country <> 'USA'
          THEN fsrs_subcontract.company_address_zip
@@ -396,6 +506,8 @@ SELECT
     fsrs_subcontract.principle_place_state AS "sub_place_of_perform_state_code",
     fsrs_subcontract.principle_place_state_name AS "sub_place_of_perform_state_name",
     fsrs_subcontract.principle_place_zip AS "sub_place_of_performance_zip",
+    COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) AS "sub_place_of_performance_county_code",
+    sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name",
     fsrs_subcontract.principle_place_district AS "sub_place_of_perform_congressio",
     sub_ppop_country.country_code AS "sub_place_of_perform_country_co",
     sub_ppop_country.country_name AS "sub_place_of_perform_country_na",
@@ -432,7 +544,7 @@ SELECT
     NOW() AS "updated_at"
 
 FROM fsrs_procurement
-    JOIN fsrs_subcontract
+    JOIN fsrs_subcontract AS fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN base_aw_dap AS bdap
         ON UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(bdap.piid, '-', ''))
@@ -448,4 +560,28 @@ FROM fsrs_procurement
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON (UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
             OR UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code_2_char))
-WHERE fsrs_procurement.id {0} {1}
+    LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip9
+        ON (fsrs_subcontract.company_address_country = 'USA'
+            AND fsrs_subcontract.company_address_zip = sub_le_county_code_zip9.sub_zip
+            AND sub_le_county_code_zip9.type = 'zip9')
+    LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip5
+        ON (fsrs_subcontract.company_address_country = 'USA'
+            AND LEFT(fsrs_subcontract.company_address_zip, 5) = sub_le_county_code_zip5.sub_zip
+            AND fsrs_subcontract.company_address_state = sub_le_county_code_zip5.state_abbreviation
+            AND sub_le_county_code_zip5.type = 'zip5+state')
+    LEFT OUTER JOIN county_code AS sub_le_county_name
+    	ON (COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) = sub_le_county_name.county_number
+    		AND COALESCE(sub_le_county_code_zip9.state_abbreviation, sub_le_county_code_zip5.state_abbreviation) = sub_le_county_name.state_code)
+    LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip9
+        ON (LEFT(fsrs_subcontract.principle_place_country, 2) = 'US'
+            AND fsrs_subcontract.principle_place_zip = sub_ppop_county_code_zip9.sub_zip
+            AND sub_ppop_county_code_zip9.type = 'zip9')
+    LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip5
+        ON (LEFT(fsrs_subcontract.principle_place_country, 2) = 'US'
+            AND LEFT(fsrs_subcontract.principle_place_zip, 5) = sub_ppop_county_code_zip5.sub_zip
+            AND fsrs_subcontract.principle_place_state = sub_ppop_county_code_zip5.state_abbreviation
+            AND sub_ppop_county_code_zip5.type = 'zip5+state')
+    LEFT OUTER JOIN county_code AS sub_ppop_county_name
+    	ON (COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) = sub_ppop_county_name.county_number
+    		AND COALESCE(sub_ppop_county_code_zip9.state_abbreviation, sub_ppop_county_code_zip5.state_abbreviation) = sub_ppop_county_name.state_code)
+WHERE fsrs_procurement.id {0} {1};

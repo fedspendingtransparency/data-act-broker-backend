@@ -1,4 +1,4 @@
-WITH unlinked_subs AS
+CREATE TEMPORARY TABLE unlinked_subs ON COMMIT DROP AS
     (
         SELECT id,
             prime_id,
@@ -8,8 +8,10 @@ WITH unlinked_subs AS
             awarding_sub_tier_agency_c
         FROM subaward
         WHERE subaward.unique_award_key IS NULL
-            AND subaward.subaward_type = 'sub-contract'),
-aw_dap AS
+            AND subaward.subaward_type = 'sub-contract'
+    );
+
+CREATE TEMPORARY TABLE aw_dap ON COMMIT DROP AS
     (SELECT dap.unique_award_key AS unique_award_key,
         dap.piid AS piid,
         dap.idv_type AS idv_type,
@@ -41,11 +43,15 @@ aw_dap AS
         dap.legal_entity_country_code AS legal_entity_country_code,
         dap.legal_entity_country_name AS legal_entity_country_name,
         dap.legal_entity_zip4 AS legal_entity_zip4,
+        dap.legal_entity_county_code AS legal_entity_county_code,
+        dap.legal_entity_county_name AS legal_entity_county_name,
         dap.legal_entity_congressional AS legal_entity_congressional,
         dap.place_of_perform_city_name AS place_of_perform_city_name,
         dap.place_of_performance_state AS place_of_performance_state,
         dap.place_of_perfor_state_desc AS place_of_perfor_state_desc,
         dap.place_of_performance_zip4a AS place_of_performance_zip4a,
+        dap.place_of_perform_county_co AS place_of_perform_county_co,
+        dap.place_of_perform_county_na AS place_of_perform_county_na,
         dap.place_of_performance_congr AS place_of_performance_congr,
         dap.place_of_perform_country_c AS place_of_perform_country_c,
         dap.place_of_perf_country_desc AS place_of_perf_country_desc,
@@ -77,8 +83,18 @@ aw_dap AS
             AND UPPER(TRANSLATE(unlinked_subs.parent_award_id, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(dap.parent_award_id, '-', ''))
             AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(dap.awarding_sub_tier_agency_c)
     )
-    {0}),
-base_aw_dap AS
+    {0});
+CREATE INDEX ix_aw_dap_piid_upp ON aw_dap (UPPER(piid));
+CREATE INDEX ix_aw_dap_paid_upp ON aw_dap (UPPER(parent_award_id));
+CREATE INDEX ix_aw_dap_subtier_upp ON aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_aw_dap_act_date ON aw_dap (action_date);
+CREATE INDEX ix_aw_dap_act_date_desc ON aw_dap (action_date DESC);
+CREATE INDEX ix_aw_dap_act_type ON aw_dap (action_type_sort);
+CREATE INDEX ix_aw_dap_act_type_desc ON aw_dap (action_type_sort DESC);
+CREATE INDEX ix_aw_dap_mod_num_sort ON aw_dap (mod_num_sort);
+CREATE INDEX ix_aw_dap_mod_num_sort_desc ON aw_dap (mod_num_sort DESC);
+
+CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(dap.piid),
             UPPER(dap.parent_award_id),
@@ -92,8 +108,13 @@ base_aw_dap AS
         dap.award_description as award_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort),
-latest_aw_dap AS
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort
+    );
+CREATE INDEX ix_base_aw_dap_piid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
+CREATE INDEX ix_base_aw_dap_paid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
+CREATE INDEX ix_base_aw_dap_sub_upp ON base_aw_dap (UPPER(awarding_sub_tier_agency_c));
+
+CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(dap.piid),
             UPPER(dap.parent_award_id),
@@ -127,11 +148,15 @@ latest_aw_dap AS
         dap.legal_entity_country_code AS legal_entity_country_code,
         dap.legal_entity_country_name AS legal_entity_country_name,
         dap.legal_entity_zip4 AS legal_entity_zip4,
+        dap.legal_entity_county_code AS legal_entity_county_code,
+        dap.legal_entity_county_name AS legal_entity_county_name,
         dap.legal_entity_congressional AS legal_entity_congressional,
         dap.place_of_perform_city_name AS place_of_perform_city_name,
         dap.place_of_performance_state AS place_of_performance_state,
         dap.place_of_perfor_state_desc AS place_of_perfor_state_desc,
         dap.place_of_performance_zip4a AS place_of_performance_zip4a,
+        dap.place_of_perform_county_co AS place_of_perform_county_co,
+        dap.place_of_perform_county_na AS place_of_perform_county_na,
         dap.place_of_performance_congr AS place_of_performance_congr,
         dap.place_of_perform_country_c AS place_of_perform_country_c,
         dap.place_of_perf_country_desc AS place_of_perf_country_desc,
@@ -147,12 +172,16 @@ latest_aw_dap AS
         dap.high_comp_officer5_amount AS high_comp_officer5_amount,
         dap.total_obligated_amount AS total_obligated_amount,
         dap.vendor_doing_as_business_n AS vendor_doing_as_business_n,
-        dap.action_date AS action_date,
         dap.naics AS naics,
         dap.naics_description AS naics_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC)
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC
+    );
+CREATE INDEX ix_latest_aw_dap_piid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
+CREATE INDEX ix_latest_aw_dap_paid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
+CREATE INDEX ix_latest_aw_dap_sub_upp ON latest_aw_dap (UPPER(awarding_sub_tier_agency_c));
+
 UPDATE subaward
 SET
     unique_award_key = ldap.unique_award_key,
@@ -186,6 +215,8 @@ SET
                             THEN ldap.legal_entity_zip4
                             ELSE NULL
                        END,
+    legal_entity_county_code = ldap.legal_entity_county_code,
+    legal_entity_county_name = ldap.legal_entity_county_name,
     legal_entity_congressional = ldap.legal_entity_congressional,
     legal_entity_foreign_posta = CASE WHEN ldap.legal_entity_country_code <> 'USA'
                                       THEN ldap.legal_entity_zip4
@@ -195,6 +226,8 @@ SET
     place_of_perform_state_code = ldap.place_of_performance_state,
     place_of_perform_state_name = ldap.place_of_perfor_state_desc,
     place_of_performance_zip = ldap.place_of_performance_zip4a,
+    place_of_performance_county_code = ldap.place_of_perform_county_co,
+    place_of_performance_county_name = ldap.place_of_perform_county_na,
     place_of_perform_congressio = ldap.place_of_performance_congr,
     place_of_perform_country_co = ldap.place_of_perform_country_c,
     place_of_perform_country_na = ldap.place_of_perf_country_desc,
