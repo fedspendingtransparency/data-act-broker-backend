@@ -199,7 +199,7 @@ def main():
         load_zip_codes()
         load_submission_schedule()
         load_defc(args.force)
-        load_funding_opportunity_number_data()
+        load_funding_opportunity_number_data(args.force)
         return
 
     if args.setup_db:
@@ -261,7 +261,7 @@ def main():
         uncache_all_files()
 
     if args.load_funding_opportunity_number:
-        load_funding_opportunity_number_data()
+        load_funding_opportunity_number_data(args.force)
 
 
 if __name__ == '__main__':
