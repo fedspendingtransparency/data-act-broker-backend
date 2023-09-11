@@ -1,14 +1,14 @@
 """Creating funding_opportunity table
 
 Revision ID: 94b97eeb67ba
-Revises: 48fbbea5de34
+Revises: 7212b234d8c5
 Create Date: 2023-09-05 12:51:16.108742
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '94b97eeb67ba'
-down_revision = '48fbbea5de34'
+down_revision = '7212b234d8c5'
 branch_labels = None
 depends_on = None
 
