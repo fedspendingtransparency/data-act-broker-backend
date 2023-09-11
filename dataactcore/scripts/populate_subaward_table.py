@@ -68,8 +68,10 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
         values = '({})'.format(','.join([str(id) for id in ids]))
     sql = sql.format(operator, values)
 
-    # run the SQL
-    inserted = sess.execute(sql)
+    # run the SQL. splitting and stripping the calls for pg_stat_activity visibility while it's running
+    for sql_statement in sql.split(';'):
+        if sql_statement.strip():
+            inserted = sess.execute(sql_statement.strip())
     sess.commit()
     inserted_count = inserted.rowcount
     award_type = service_type[:service_type.index('_')]
@@ -97,8 +99,10 @@ def fix_broken_links(sess, service_type, min_date=None):
     min_date_sql = '' if min_date is None else 'AND updated_at >= \'{}\''.format(min_date)
     sql = sql.format(min_date_sql)
 
-    # run the SQL
-    updated = sess.execute(sql)
+    # run the SQL. splitting and stripping the calls for pg_stat_activity visibility while it's running
+    for sql_statement in sql.split(';'):
+        if sql_statement.strip():
+            updated = sess.execute(sql_statement.strip())
     sess.commit()
 
     updated_count = updated.rowcount
