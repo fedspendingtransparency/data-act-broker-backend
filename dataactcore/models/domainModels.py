@@ -335,6 +335,10 @@ class CountryCode(Base):
     territory_free_state = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
+Index("ix_dap_awardee_or_recipient_uei_upper", sa.func.upper(CountryCode.country_code))
+Index("ix_dap_awardee_or_recipient_uei_upper", sa.func.upper(CountryCode.country_code_2_char))
+
+
 class SAMRecipient(Base):
     """ DUNS Records """
     __tablename__ = "sam_recipient"
@@ -378,6 +382,7 @@ class SAMRecipient(Base):
 
 
 Index("ix_sam_recipient_uei_upper", sa.func.upper(SAMRecipient.uei))
+Index("ix_sam_activation_desc", SAMRecipient.activation_date.desc())
 
 
 class HistoricDUNS(Base):

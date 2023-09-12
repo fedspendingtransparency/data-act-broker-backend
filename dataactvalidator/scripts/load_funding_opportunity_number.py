@@ -3,18 +3,26 @@ import pandas as pd
 import datetime
 import json
 import requests
+import argparse
+
+from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import FundingOpportunity
+
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
 
-def load_funding_opportunity_number_data():
-    """ Load funding opportunity number lookup table. """
+def load_funding_opportunity_number_data(force_reload=False):
+    """ Load funding opportunity number lookup table.
+
+        Args:
+            force_reload: whether or not to force a reload
+    """
     now = datetime.datetime.now()
     metrics_json = {
         'script_name': 'load_funding_opportunity_number.py',
@@ -32,14 +40,15 @@ def load_funding_opportunity_number_data():
         'oppStatuses': 'forecasted|posted|closed|archived',
         'rows': batch_size
     }
+    request_path = 'https://www.grants.gov/grantsws/rest/opportunities/search/'
 
-    fon_resp = requests.post('https://www.grants.gov/grantsws/rest/opportunities/search/', json=post_body).json()
+    fon_resp = requests.post(request_path, json=post_body).json()
     total_records = fon_resp['hitCount']
     fon_list = fon_resp['oppHits']
 
     while post_body['startRecordNum'] + batch_size < total_records:
         post_body['startRecordNum'] += batch_size
-        fon_resp = requests.post('https://www.grants.gov/grantsws/rest/opportunities/search/', json=post_body).json()
+        fon_resp = requests.post(request_path, json=post_body).json()
         fon_list += fon_resp['oppHits']
 
     fon_data = pd.DataFrame(fon_list)
@@ -60,18 +69,24 @@ def load_funding_opportunity_number_data():
         {}
     )
 
-    sess = GlobalDB.db().session
-    # delete any data in the Funding Opportunity table
-    metrics_json['records_deleted'] = sess.query(FundingOpportunity).delete()
+    diff_found = check_dataframe_diff(fon_data, FundingOpportunity, ['funding_opportunity_id'], ['internal_id'])
 
-    # Restart sequence so it's always starting at 1
-    sess.execute("ALTER SEQUENCE funding_opportunity_funding_opportunity_id_seq RESTART")
+    if force_reload or diff_found:
+        logger.info('Differences found or reload forced, reloading funding_opportunity table.')
+        sess = GlobalDB.db().session
+        # delete any data in the Funding Opportunity table
+        metrics_json['records_deleted'] = sess.query(FundingOpportunity).delete()
 
-    num = insert_dataframe(fon_data, FundingOpportunity.__table__.name, sess.connection())
-    sess.commit()
+        # Restart sequence so it's always starting at 1
+        sess.execute("ALTER SEQUENCE funding_opportunity_funding_opportunity_id_seq RESTART")
 
-    logger.info('{} records inserted to {}'.format(num, FundingOpportunity.__table__.name))
-    metrics_json['records_inserted'] = num
+        num = insert_dataframe(fon_data, FundingOpportunity.__table__.name, sess.connection())
+        sess.commit()
+
+        logger.info('{} records inserted to {}'.format(num, FundingOpportunity.__table__.name))
+        metrics_json['records_inserted'] = num
+    else:
+        logger.info('No differences found, skipping funding_opportunity table reload.')
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 
@@ -83,4 +98,8 @@ if __name__ == '__main__':
     configure_logging()
 
     with create_app().app_context():
-        load_funding_opportunity_number_data()
+        parser = argparse.ArgumentParser(description='Loads in Funding Opportunity Number data')
+        parser.add_argument('-f', '--force', help='If provided, forces a reload', action='store_true')
+        args = parser.parse_args()
+
+        load_funding_opportunity_number_data(force_reload=args.force)
