@@ -1606,7 +1606,7 @@ class FABS(Base):
     fain = Column(Text, index=True)
     federal_action_obligation = Column(Numeric, index=True)
     funding_office_code = Column(Text, index=True)
-    funding_opportunity_goals = Column(Text, index=True)
+    funding_opportunity_goals = Column(Text)
     funding_opportunity_number = Column(Text, index=True)
     funding_sub_tier_agency_co = Column(Text, index=True)
     indirect_federal_sharing = Column(Numeric, index=True)
