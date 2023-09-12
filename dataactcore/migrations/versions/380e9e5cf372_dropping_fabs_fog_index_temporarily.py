@@ -1,14 +1,14 @@
 """Dropping FABS FOG index temporarily
 
 Revision ID: 380e9e5cf372
-Revises: 7212b234d8c5
+Revises: 94b97eeb67ba
 Create Date: 2023-09-12 17:09:45.851338
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '380e9e5cf372'
-down_revision = '7212b234d8c5'
+down_revision = '94b97eeb67ba'
 branch_labels = None
 depends_on = None
 
