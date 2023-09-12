@@ -38,7 +38,6 @@ def load_funding_opportunity_number_data(force_reload=False):
     post_body = {
         'startRecordNum': 0,
         'oppStatuses': 'forecasted|posted|closed|archived',
-        # 'oppStatuses': 'forecasted',
         'rows': batch_size
     }
     request_path = 'https://www.grants.gov/grantsws/rest/opportunities/search/'
