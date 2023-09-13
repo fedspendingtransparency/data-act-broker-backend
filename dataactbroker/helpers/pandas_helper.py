@@ -1,12 +1,13 @@
 import pandas as pd
 import logging
+import numpy as np
 
 from dataactcore.interfaces.db import GlobalDB
 
 logger = logging.getLogger(__name__)
 
 
-def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None):
+def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None, date_format='%m/%d/%Y'):
     """ Checks if 2 dataframes (the new data and the existing data for a model) are different.
 
         Args:
@@ -16,6 +17,7 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
             sort_cols: An array containing the columns to sort on
             lambda_funcs: An array of tuples (column to update, transformative lambda taking in a row argument)
                           that will be processed in the order provided.
+            date_format: The format into which date columns will be converted to strings
 
         Returns:
             True if there are differences between the two dataframes, false otherwise
@@ -45,6 +47,24 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
     except ValueError:
         logger.info('created_at, updated_at, or at least one of the columns provided for deletion not found,'
                     ' drop skipped.')
+
+    # Convert all dates to strings for proper comparison
+    for col in new_data_copy.select_dtypes(include=['datetime64']).columns.tolist():
+        new_data_copy[col] = new_data_copy[col].dt.strftime(date_format)
+    for col in current_data.select_dtypes(include=['datetime64']).columns.tolist():
+        current_data[col] = current_data[col].dt.strftime(date_format)
+
+    # Convert all remaining columns to strings for proper comparison
+    new_data_copy = new_data_copy.replace(np.nan, '').astype(str)
+    current_data = current_data.replace(np.nan, '').astype(str)
+
+    # Replace all NaT/nan strings created from above changes with ''
+    new_data_copy = new_data_copy.replace('[Nn]a[Tn]', '', regex=True).astype(str)
+    current_data = current_data.replace('[Nn]a[Tn]', '', regex=True).astype(str)
+
+    # Strip all strings so they don't have extra whitespace
+    new_data_copy = new_data_copy.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+    current_data = current_data.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
     # pandas comparison requires everything to be in the same order
     new_data_copy.sort_values(by=sort_cols, inplace=True)

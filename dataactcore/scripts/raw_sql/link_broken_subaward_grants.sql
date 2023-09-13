@@ -1,4 +1,4 @@
-WITH unlinked_subs AS
+CREATE TEMPORARY TABLE unlinked_subs ON COMMIT DROP AS
     (
         SELECT id,
             prime_id,
@@ -7,8 +7,10 @@ WITH unlinked_subs AS
             awarding_sub_tier_agency_c
         FROM subaward
         WHERE subaward.unique_award_key IS NULL
-            AND subaward.subaward_type = 'sub-grant'),
-aw_pf AS
+            AND subaward.subaward_type = 'sub-grant'
+    );
+
+CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
     (SELECT pf.fain AS fain,
         pf.award_description AS award_description,
         pf.record_type AS record_type,
@@ -38,12 +40,16 @@ aw_pf AS
         pf.legal_entity_state_name AS legal_entity_state_name,
         UPPER(pf.legal_entity_country_code) AS legal_entity_country_code,
         COALESCE(pf.legal_entity_zip5, '') || COALESCE(pf.legal_entity_zip_last4, '') AS legal_entity_zip,
+        pf.legal_entity_county_code AS legal_entity_county_code,
+        pf.legal_entity_county_name AS legal_entity_county_name,
         pf.legal_entity_congressional AS legal_entity_congressional,
         pf.legal_entity_foreign_posta AS legal_entity_foreign_posta,
         pf.place_of_performance_city AS place_of_performance_city,
         pf.place_of_perfor_state_code AS place_of_perfor_state_code,
         pf.place_of_perform_state_nam AS place_of_perform_state_nam,
         TRANSLATE(pf.place_of_performance_zip4a, '-', '') AS place_of_performance_zip,
+        pf.place_of_perform_county_co AS place_of_perform_county_co,
+        pf.place_of_perform_county_na AS place_of_perform_county_na,
         pf.place_of_performance_congr AS place_of_performance_congr,
         pf.action_date AS action_date,
         pf.cfda_number AS cfda_number,
@@ -76,8 +82,17 @@ aw_pf AS
                 AND UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(pf.fain, '-', ''))
                 AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(pf.awarding_sub_tier_agency_c)
         )
-        {0}),
-base_aw_pf AS
+        {0});
+CREATE INDEX ix_aw_pf_fain_upp ON aw_pf (UPPER(fain));
+CREATE INDEX ix_aw_pf_sub_upp ON aw_pf (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_aw_pf_act_date ON aw_pf (action_date);
+CREATE INDEX ix_aw_pf_act_date_desc ON aw_pf (action_date DESC);
+CREATE INDEX ix_aw_pf_act_type ON aw_pf (action_type_sort);
+CREATE INDEX ix_aw_pf_act_type_desc ON aw_pf (action_type_sort DESC);
+CREATE INDEX ix_aw_pf_mod_num_sort ON aw_pf (mod_num_sort);
+CREATE INDEX ix_aw_pf_mod_num_sort_desc ON aw_pf (mod_num_sort DESC);
+
+CREATE TEMPORARY TABLE base_aw_pf ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(pf.fain),
             UPPER(pf.awarding_sub_tier_agency_c)
@@ -87,8 +102,11 @@ base_aw_pf AS
         cast_as_date(pf.action_date) AS action_date,
         pf.award_description
     FROM aw_pf AS pf
-    ORDER BY UPPER(pf.fain), UPPER(pf.awarding_sub_tier_agency_c), pf.action_date, pf.action_type_sort, pf.mod_num_sort),
-latest_aw_pf AS
+    ORDER BY UPPER(pf.fain), UPPER(pf.awarding_sub_tier_agency_c), pf.action_date, pf.action_type_sort, pf.mod_num_sort
+    );
+CREATE INDEX ix_base_aw_pf_fain_upp_trans ON base_aw_pf (UPPER(TRANSLATE(fain, '-', '')));
+
+CREATE TEMPORARY TABLE latest_aw_pf ON COMMIT DROP AS
     (SELECT DISTINCT ON (
             UPPER(pf.fain),
             UPPER(pf.awarding_sub_tier_agency_c)
@@ -121,12 +139,16 @@ latest_aw_pf AS
         pf.legal_entity_state_name AS legal_entity_state_name,
         pf.legal_entity_country_code AS legal_entity_country_code,
         pf.legal_entity_zip AS legal_entity_zip,
+        pf.legal_entity_county_code AS legal_entity_county_code,
+        pf.legal_entity_county_name AS legal_entity_county_name,
         pf.legal_entity_congressional AS legal_entity_congressional,
         pf.legal_entity_foreign_posta AS legal_entity_foreign_posta,
         pf.place_of_performance_city AS place_of_performance_city,
         pf.place_of_perfor_state_code AS place_of_perfor_state_code,
         pf.place_of_perform_state_nam AS place_of_perform_state_nam,
         pf.place_of_performance_zip AS place_of_performance_zip,
+        pf.place_of_perform_county_co AS place_of_perform_county_co,
+        pf.place_of_perform_county_na AS place_of_perform_county_na,
         pf.place_of_performance_congr AS place_of_performance_congr,
         pf.high_comp_officer1_full_na AS high_comp_officer1_full_na,
         pf.high_comp_officer1_amount AS high_comp_officer1_amount,
@@ -139,8 +161,12 @@ latest_aw_pf AS
         pf.high_comp_officer5_full_na AS high_comp_officer5_full_na,
         pf.high_comp_officer5_amount AS high_comp_officer5_amount
     FROM aw_pf AS pf
-    ORDER BY UPPER(pf.fain), UPPER(pf.awarding_sub_tier_agency_c), pf.action_date DESC, pf.action_type_sort DESC, pf.mod_num_sort DESC),
-grouped_aw_pf AS
+    ORDER BY UPPER(pf.fain), UPPER(pf.awarding_sub_tier_agency_c), pf.action_date DESC, pf.action_type_sort DESC, pf.mod_num_sort DESC
+    );
+CREATE INDEX ix_latest_aw_pf_uei_upp ON latest_aw_pf (UPPER(uei));
+CREATE INDEX ix_latest_aw_pf_fain_upp_trans ON latest_aw_pf (UPPER(TRANSLATE(fain, '-', '')));
+
+CREATE TEMPORARY TABLE grouped_aw_pf ON COMMIT DROP AS
     (SELECT pf.fain,
         pf.awarding_sub_tier_agency_c,
         array_agg(DISTINCT pf.cfda_number) AS cfda_nums,
@@ -149,8 +175,11 @@ grouped_aw_pf AS
      FROM aw_pf AS pf
      LEFT OUTER JOIN cfda_program AS cfda
         ON to_char(cfda.program_number, 'FM00.000') = pf.cfda_number
-     GROUP BY fain, awarding_sub_tier_agency_c),
-grant_uei AS
+     GROUP BY fain, awarding_sub_tier_agency_c
+     );
+CREATE INDEX ix_grouped_aw_pf_fain_upp_trans ON grouped_aw_pf (UPPER(TRANSLATE(fain, '-', '')));
+
+CREATE TEMPORARY TABLE grant_uei ON COMMIT DROP AS
     (SELECT grant_uei_from.uei AS uei,
         grant_uei_from.legal_business_name AS legal_business_name,
         grant_uei_from.dba_name AS dba_name
@@ -166,7 +195,9 @@ grant_uei AS
                 ON UPPER(latest_aw_pf.uei) = UPPER(sam_recipient.uei)
         ORDER BY sam_recipient.activation_date DESC
      ) AS grant_uei_from
-    WHERE grant_uei_from.row = 1)
+    WHERE grant_uei_from.row = 1);
+CREATE INDEX ix_grant_uei_upp ON grant_uei (UPPER(uei));
+
 UPDATE subaward
 SET
     unique_award_key = lap.unique_award_key,
@@ -199,6 +230,8 @@ SET
                             THEN lap.legal_entity_zip
                             ELSE NULL
                        END,
+    legal_entity_county_code = lap.legal_entity_county_code,
+    legal_entity_county_name = lap.legal_entity_county_name,
     legal_entity_congressional = lap.legal_entity_congressional,
     legal_entity_foreign_posta = CASE WHEN lap.legal_entity_country_code <> 'USA'
                                       THEN lap.legal_entity_foreign_posta
@@ -209,6 +242,8 @@ SET
     place_of_perform_state_code = lap.place_of_perfor_state_code,
     place_of_perform_state_name = lap.place_of_perform_state_nam,
     place_of_performance_zip = lap.place_of_performance_zip,
+    place_of_performance_county_code = lap.place_of_perform_county_co,
+    place_of_performance_county_name = lap.place_of_perform_county_na,
     place_of_perform_congressio = lap.place_of_performance_congr,
     award_description = bap.award_description,
     cfda_numbers = ARRAY_TO_STRING(gap.cfda_nums, ', '),
