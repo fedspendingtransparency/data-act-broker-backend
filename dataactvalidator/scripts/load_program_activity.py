@@ -275,11 +275,10 @@ def exit_if_nonlocal(exit_code):
 
 if __name__ == '__main__':
     configure_logging()
-    parser = argparse.ArgumentParser(description='Loads in Program Activit data')
+    parser = argparse.ArgumentParser(description='Loads in Program Activity data')
     parser.add_argument('-e', '--export', help='If provided, exports a public version of the file locally',
                         action='store_true')
-    parser.add_argument('-f', '--force', help='If provided, forces a reload',
-                        action='store_true')
+    parser.add_argument('-f', '--force', help='If provided, forces a reload', action='store_true')
     args = parser.parse_args()
 
     config_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
