@@ -409,4 +409,3 @@ class FundingOpportunityFactory(factory.Factory):
     close_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
     doc_type = fuzzy.FuzzyText()
     internal_id = fuzzy.FuzzyInteger(0, 99999)
-
