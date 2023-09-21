@@ -393,3 +393,19 @@ class DEFCFactory(factory.Factory):
     defc_id = None
     code = fuzzy.FuzzyText()
     group = fuzzy.FuzzyText()
+
+
+class FundingOpportunityFactory(factory.Factory):
+    class Meta:
+        model = domainModels.FundingOpportunity
+
+    funding_opportunity_id = None
+    funding_opportunity_number = fuzzy.FuzzyText()
+    title = fuzzy.FuzzyText()
+    cfda_numbers = ['12.345', '98.765']
+    agency_name = fuzzy.FuzzyText()
+    status = fuzzy.FuzzyText()
+    open_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    close_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    doc_type = fuzzy.FuzzyText()
+    internal_id = fuzzy.FuzzyInteger(0, 99999)
