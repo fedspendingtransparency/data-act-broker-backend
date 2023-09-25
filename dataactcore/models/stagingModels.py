@@ -1566,7 +1566,7 @@ class DetachedAwardProcurement(Base):
     uei_legal_business_name = Column(Text)
     fee_paid_for_use_of_serv = Column(Text)
     total_estimated_order_val = Column(Text)
-    self_certified_hub_zone = Column(Boolean)
+    self_cert_hub_zone_joint = Column(Boolean)
     approved_date = Column(Text)
     closed_date = Column(Text)
     source_selection_process = Column(Text)
