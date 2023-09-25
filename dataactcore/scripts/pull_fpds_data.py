@@ -172,6 +172,8 @@ def competition_values(data, obj):
                  'evaluatedPreference': 'evaluated_preference',
                  'extentCompeted': 'extent_competed',
                  'fedBizOpps': 'fed_biz_opps',
+                 'IDVTypeOfSetAside': 'idv_type_of_set_aside',
+                 'IDVnumberOfOffersReceived': 'idv_number_of_offers_recie',
                  'localAreaSetAside': 'local_area_set_aside',
                  'numberOfOffersReceived': 'number_of_offers_received',
                  'priceEvaluationPercentDifference': 'price_evaluation_adjustmen',
@@ -497,6 +499,20 @@ def purchaser_information_values(data, obj):
     return obj
 
 
+def contract_marketing_data_values(data, obj):
+    """ Get values from the contractMarketingData level of the xml """
+    value_map = {'feePaidForUseOfService': 'fee_paid_for_use_of_serv',
+                 'totalEstimatedOrderValue': 'total_estimated_order_val'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    return obj
+
+
 def relevant_contract_dates_values(data, obj):
     """ Get values from the relevantContractDates level of the xml """
     value_map = {'currentCompletionDate': 'period_of_performance_curr',
@@ -669,6 +685,7 @@ def vendor_site_details_values(data, obj):
                  'isSBACertified8AJointVenture': 'sba_certified_8_a_joint_ve',
                  'isSBACertified8AProgramParticipant': 'c8a_program_participant',
                  'isSBACertifiedHUBZone': 'historically_underutilized',
+                 'isSelfCertifiedHUBZoneJointVenture': 'self_cert_hub_zone_joint',
                  'isSBACertifiedSmallDisadvantagedBusiness': 'small_disadvantaged_busine',
                  'isSelfCertifiedSmallDisadvantagedBusiness': 'self_certified_small_disad'}
 
@@ -695,7 +712,12 @@ def vendor_site_details_values(data, obj):
             obj[value] = None
 
     # entityIdentifiers > vendorUEIInformation sub-level
-    value_map = {'UEI': 'awardee_or_recipient_uei',
+    value_map = {'domesticParentUEI': 'domestic_parent_uei',
+                 'domesticParentUEIName': 'domestic_parent_uei_name',
+                 'immediateParentUEI': 'immediate_parent_uei',
+                 'immediateParentUEIName': 'immediate_parent_uei_name',
+                 'UEI': 'awardee_or_recipient_uei',
+                 'UEILegalBusinessName': 'uei_legal_business_name',
                  'ultimateParentUEI': 'ultimate_parent_uei',
                  'ultimateParentUEIName': 'ultimate_parent_legal_enti'}
 
@@ -838,9 +860,26 @@ def vendor_site_details_values(data, obj):
     return obj
 
 
+def transaction_information_values(data, obj):
+    """ Get values from the genericTags level of the xml """
+    value_map = {'approvedDate': 'approved_date',
+                 'closedDate': 'closed_date',
+                 'createdDate': 'initial_report_date',
+                 'lastModifiedDate': 'last_modified'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    return obj
+
+
 def generic_values(data, obj):
     """ Get values from the genericTags level of the xml """
-    generic_strings_value_map = {'genericString01': 'solicitation_date'}
+    generic_strings_value_map = {'genericString01': 'solicitation_date',
+                                 'genericString06': 'source_selection_process'}
 
     for key, value in generic_strings_value_map.items():
         try:
@@ -1172,6 +1211,13 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
 
     # make sure key exists before passing it
     try:
+        data['contractMarketingData']
+    except KeyError:
+        data['contractMarketingData'] = {}
+    obj = contract_marketing_data_values(data['contractMarketingData'], obj)
+
+    # make sure key exists before passing it
+    try:
         data['relevantContractDates']
     except KeyError:
         data['relevantContractDates'] = {}
@@ -1186,6 +1232,13 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
 
     # make sure key exists before passing it
     try:
+        data['transactionInformation']
+    except KeyError:
+        data['transactionInformation'] = {}
+    obj = transaction_information_values(data['transactionInformation'], obj)
+
+    # make sure key exists before passing it
+    try:
         data['genericTags']
     except KeyError:
         data['genericTags'] = {}
@@ -1193,16 +1246,6 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
 
     obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
                                      country_list, exec_comp_dict, atom_type)
-
-    try:
-        obj['last_modified'] = extract_text(data['transactionInformation']['lastModifiedDate'])
-    except (KeyError, TypeError):
-        obj['last_modified'] = None
-
-    try:
-        obj['initial_report_date'] = extract_text(data['transactionInformation']['createdDate'])
-    except (KeyError, TypeError):
-        obj['initial_report_date'] = None
 
     obj['pulled_from'] = atom_type
 
