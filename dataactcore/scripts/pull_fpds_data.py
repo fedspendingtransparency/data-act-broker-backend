@@ -1283,7 +1283,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
                       'tribally_owned_business', 'asian_pacific_american_own', 'black_american_owned_busin',
                       'hispanic_american_owned_bu', 'native_american_owned_busi', 'subcontinent_asian_asian_i',
                       'other_minority_owned_busin', 'for_profit_organization', 'nonprofit_organization',
-                      'other_not_for_profit_organ', 'us_local_government']
+                      'other_not_for_profit_organ', 'us_local_government', 'self_cert_hub_zone_joint']
     for field in boolean_fields:
         if obj[field]:
             obj[field] = strtobool(obj[field])
