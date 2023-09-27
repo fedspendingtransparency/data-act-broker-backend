@@ -80,20 +80,20 @@ The agency admin can follow the instructions in the [IIQ User Guide](https://cai
 
 #### Identifying Users Roles
 
-At the moment, the only way to determine the currently assigned CAIA roles of a certain user is by following the workflow to
-remove their access (see above), note which roles are available to be removed, and not finally requesting to have any removed.
+At the moment, the only way to determine the currently assigned CAIA roles of a certain user is by following the [workflow to
+remove their access](#removing-user-access), note which roles are available to be removed, and not finally requesting to have any removed.
 
 #### Adding/Removing Agency Admins
 
 To assign a user to be an agency admin, the user must request to be assigned the role.
 Agency admins are unable to approve/deny their own requests and so **it's required for the user to make the request.**
 
-The user can follow the guide above to request the agency-specific Agency Admin role and
+The user can follow [the guide above](#agency-users-requesting-broker-permission-roles-within-an-agency) to request the agency-specific Agency Admin role and
 the existing agency admin can follow the other guide above to approve/deny the request, making the user an agency admin.
 
 If an agency admin plans to transfer or remove their agency admin status, it is neccessary to ensure that at least one
 agency admin is assigned to that agency and the agency admin CAIA role is removed from the previous owner (following the
-removing user access guide above).
+[removing user access guide](#removing-user-access)).
 
 #### Troubleshooting
 * If a user has left their agency admin role without removing it or if an agency is unable to assign an agency admin,
