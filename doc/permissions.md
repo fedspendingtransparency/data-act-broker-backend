@@ -2,70 +2,133 @@
 
 A simple guide covering permissions on the Broker and how they get set on each environment. 
 
-- For more details from an OMB Max permission administration standpoint, see (requires OMB Max login): https://community.max.gov/pages/viewpage.action?spaceKey=TREASExternal&title=DATA+Act+Broker+Registration
+- For more details from a CAIA permission administration standpoint, see the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) (requires CAIA login):
 - For more details from a code implementation level, please check out the code in [permissions.py](../dataactbroker/permissions.py).
 
-## Permission Levels
+## Broker Permission Levels
 
-As listed out in [lookups.py](../dataactcore/models/lookups.py), there are five permission levels.
-Each permission level must be granted via MAX groups which only apply to one agency at a time.
-Users may be able to have permissions for multiple agencies which is only determined by the MAX groups
-they are associated with.
+As listed out in [lookups.py](../dataactcore/models/lookups.py), there are five permission levels, all of which
+determine how a user may interact with the system in the context of their associated agencies.
 
-"Permission Levels" can be looked at as _**Roles**_, but are only dealt with in context of a _MAX group_ and _Agency_, as described below.
+Broker users are assigned permission levels via [CAIA roles managed by the CAIA IIQ service](#caia). Users may be able
+to have permissions levels for multiple agencies.
 
-**Note: For each group (DABS/FABS), each additional permission level builds upon the previous level 
-(ex. DABS Writer can also read DABS Submissions).**
+"Permission Levels" can be looked at as overall _**Roles**_, but are only dealt within the context of an associated _Agency_.
+Additionally, these permission levels pertain only to and explain the behavior of the Broker application. They
+exist solely within the Broker database, independent from the system that manages the agency users and its roles.
 
 #### DABS (Data Act Broker Submissions)
 
-1. **Reader (R)**: May read all aspects of submissions associated with the agency.
+1. **Reader (R)**: May read all aspects of submissions associated with the agency (both DABS and FABS).
 2. **Writer (W)**: May go through the submission process up to certifying (includes uploads, 
 advancing in the submission, and deleting submissions).
 3. **Submitter (S)**: May certify submissions for the agency.
 
 #### FABS (Financial Assistance Broker Submissions)
 
-1. **Edit-FABS (E)**: May upload files and delete submissions.
-2. **FABS (F)**: May publish FABS submissions.
+1. **Reader (R)**: May read all aspects of submissions associated with the agency (both DABS and FABS).
+2. **Edit-FABS (E)**: May upload files and delete submissions.
+3. **FABS (F)**: May publish FABS submissions.
 
-**Note: FABS users also have DABS reader permissions by default.** 
+**Note**: For each group (DABS/FABS), each additional permission level builds upon the previous level
+(ex. DABS Writer can also read DABS Submissions, FABS can also upload FABS files).
 
 #### Administrators
 
 Specific users may be given administrator access which includes all the access listed above.
 
-## Translation from MAX Groups
+## CAIA
 
-Each time a user logs in, they go through [login.max.gov](https://portal.max.gov/home/sa/userHome). 
-After authenticating, the Broker reads the group(s) the logged-in user is a part of and resets their Broker permissions.
-These are determined by the MAX group name and agency associated with it.
+Each time a user logs into the Broker, they go through the Department of Treasury's CAIA (Common Approach to Identity Assurance),
+a system allowing various sources of government users to authenticate in one place.
 
-### MAX Groups
+After authenticating, the Broker reads the CAIA roles the logged-in user is assigned and resets their Broker permission levels
+based on the agency code and permission level included in each of the CAIA role names.
+
+### Navigating CAIA IIQ
+
+The management system of the CAIA users and their associated roles is known as the [CAIA IIQ service](https://iiq.fiscal.treasury.gov/) (requires CAIA login).
+
+Each agency has assigned at least one **Agency Administrator** (also referred to as the **AppOwner**) that is responsible for managing the users and their associated roles
+within the agency. Each agency admin should be aware of the common workflows below.
+
+Each workflow will be referencing the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) as it includes
+step-by-step instructions with screenshots.
+
+#### Agency Users: Requesting Broker Permission Roles within an Agency
+
+Agency Administrators are unable to approve their own IIQ requests; **therefore, the user seeking access will need to self-request.**
+
+The user can follow the instructions in the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) ("*Self Request Access*").
+
+To determine the proper CAIA role to add, refer to the [Roles Names](#role-names) section below.
+
+#### Agency Admins: Approving/Denying Requests
+
+Once the agency user has requested the proper CAIA role, the request needs to be approved or denied by the Agency Admin.
+The Agency Admin CAIA role includes the unique ability to see, approve, and deny these requests. 
+
+The agency admin can follow the instructions in the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) ("*Manage User Access*" -> "*Approving/Denying User Access Requests*").
+
+Once approved, the agency user will be assigned the role shortly (at least several minutes).
+
+#### Removing User Access
+
+If a user needs to have a certain role removed, either the agency user or the agency admin can revoke the permission without needing approval. 
+
+The agency admin can follow the instructions in the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) ("*Manage User Access*" -> "*Removing User Access*").
+
+#### Identifying Users Roles
+
+At the moment, the only way to determine the currently assigned CAIA roles of a certain user is by following the workflow to
+remove their access (see above), note which roles are available to be removed, and not finally requesting to have any removed.
+
+#### Adding/Removing Agency Admins
+
+To assign a user to be an agency admin, the user must request to be assigned the role.
+Agency admins are unable to approve/deny their own requests and so **it's required for the user to make the request.**
+
+The user can follow the guide above to request the agency-specific Agency Admin role and
+the existing agency admin can follow the other guide above to approve/deny the request, making the user an agency admin.
+
+If an agency admin plans to transfer or remove their agency admin status, it is neccessary to ensure that at least one
+agency admin is assigned to that agency and the agency admin CAIA role is removed from the previous owner (following the
+removing user access guide above).
+
+#### Troubleshooting
+* If a user has left their agency admin role without removing it or if an agency is unable to assign an agency admin,
+contact the [ServiceDesk](mailto:usaspending.help@fiscal.treasury.gov).
+
+### Role Names
+
+Below are the CAIA role name templates that the Broker uses to determine which agency permission levels to assign to each user.
 
 #### Components
 
-- **Parent Group**: The MAX parent group that designates this is for the DATA-Act Broker. 
-This can be used to separate permissions per environment (dev, staging, production).
-- **CGAC**: The 3-digit code representing the toptier agency this permission is associated with.
-- **FREC**: The 4-digit FR entity code representing the toptier agency this permission is associated with.
-- **Permission Level**: The levels listed above with their letter code
+- `CGAC Code`: The 3-digit code representing the toptier agency this permission is associated with.
+- `FREC Code`: The 4-digit FR entity code representing the toptier agency this permission is associated with.
+- `Permission Level`: One of the levels [listed above](#broker-permission-levels) represented by their letter code
 
 #### Formats
 
-- For CGAC agencies: **{Parent Group}-CGAC_{CGAC}-PERM_{Permission Level}**
-- For FREC agencies: **{Parent Group}-CGAC_{CGAC}-FREC_{FREC}-PERM_{Permission Level}**
+Broker Permission Levels/Roles (within an agency):
+- CGAC agencies: **Data_Act_Broker-CGAC-`CGAC Code`-`Permission Level`**
+- FREC agencies: **Data_Act_Broker-FREC-`FREC Code`-`Permission Level`**
 
 **Note: FREC permissions will give read access to the CGAC agency as well.**
+
+Agency Administrators Roles:
+- CGAC agencies: **AppOwner-Data_Act_Broker-`CGAC Code`**
+- FREC agencies: **AppOwner-Data_Act_Broker-`FREC Code`**
 
 For more details, check out [account_handler.py](../dataactbroker/handlers/account_handler.py).
 
 ## Detailed Access Matrix
-_Below lists the actions in Broker that a user must be authorized to perform. Authorization is governed by way of granting or denying the action to a **Permission Level (aka Role)** within the context of a MAX Group and Agency._
+_Below lists the actions in Broker that a user must be authorized to perform. Authorization is governed by way of granting or denying the action to a **Permission Level (aka Role)** within the context of an Agency._
 
 _The actions below are bucketed by Permission Level._
 - _Unless stated that a Permission Level inherits granted or denied actions from another, the Permission Level is **DENIED** all other actions listed below._
-- _Given Permission Levels (aka Roles) are assigned on a per-User and per-Agency basis (where the MAX Group defines the Agency), the actions granted or denied below will be done so in the context of a single Agency._
+- _Given Permission Levels (aka Roles) are assigned on a per-User and per-Agency basis (where the CAIA role name includes the Agency), the actions granted or denied below will be done so in the context of a single Agency._
 
 ### **`Reader (R)`**
 1. Read of everything
