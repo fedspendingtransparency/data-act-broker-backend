@@ -49,13 +49,14 @@ based on the agency code and permission level included in each of the CAIA role 
 
 The management system of the CAIA users and their associated roles is known as the [CAIA IIQ service](https://iiq.fiscal.treasury.gov/) (requires CAIA login).
 
-Each agency has assigned at least one **Agency Administrator** (also referred to as the **AppOwner**) that is responsible for managing the users and their associated roles
-within the agency. Each agency admin should be aware of the common workflows below.
+Each agency has assigned at least one **Agency Administrator** (also referred to as the **AppOwner**) that is
+responsible for managing the users and their associated roles within the agency. Each agency admin should be aware of
+the common workflows below.
 
 Each workflow will be referencing the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) as it includes
 step-by-step instructions with screenshots.
 
-#### Agency Users: Requesting Broker Permission Roles within an Agency
+#### Requesting User Access
 
 Agency Administrators are unable to approve their own IIQ requests; **therefore, the user seeking access will need to self-request.**
 
@@ -88,7 +89,7 @@ remove their access](#removing-user-access), note which roles are available to b
 To assign a user to be an agency admin, the user must request to be assigned the role.
 Agency admins are unable to approve/deny their own requests and so **it's required for the user to make the request.**
 
-The user can follow [the guide above](#agency-users-requesting-broker-permission-roles-within-an-agency) to request the agency-specific Agency Admin role and
+The user can follow [the guide above](#requesting-user-access) to request the agency-specific Agency Admin role and
 the existing agency admin can follow the other guide above to approve/deny the request, making the user an agency admin.
 
 If an agency admin plans to transfer or remove their agency admin status, it is neccessary to ensure that at least one
