@@ -1,4 +1,4 @@
--- When provided, FundingOpportunityNumber must only contain letters (a-z, lowercase or uppercase), numerals (0-10),
+-- When provided, FundingOpportunityNumber must only contain letters (a-z, lowercase or uppercase), numerals (0-9),
 -- or the ‘-‘ character, to ensure consistency with Grants.gov FundingOpportunityNumber formatting requirements.
 
 SELECT

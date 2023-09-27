@@ -12,7 +12,7 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test when provided, FundingOpportunityNumber must only contain letters (a-z, lowercase or uppercase),
-        numerals (0-10), or the ‘-‘ character, to ensure consistency with Grants.gov FundingOpportunityNumber
+        numerals (0-9), or the ‘-‘ character, to ensure consistency with Grants.gov FundingOpportunityNumber
         formatting requirements.
     """
     fabs_1 = FABSFactory(funding_opportunity_number='abE-223', correction_delete_indicatr='C')
@@ -31,7 +31,7 @@ def test_success(database):
 
 def test_failure(database):
     """ Test failure when provided, FundingOpportunityNumber must only contain letters (a-z, lowercase or uppercase),
-        numerals (0-10), or the ‘-‘ character, to ensure consistency with Grants.gov FundingOpportunityNumber
+        numerals (0-9), or the ‘-‘ character, to ensure consistency with Grants.gov FundingOpportunityNumber
         formatting requirements.
     """
     fabs_1 = FABSFactory(funding_opportunity_number='123-()', assistance_type='06', correction_delete_indicatr='C')
