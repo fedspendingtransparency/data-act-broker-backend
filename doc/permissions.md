@@ -19,14 +19,14 @@ exist solely within the Broker database, independent from the system that manage
 
 #### DABS (Data Act Broker Submissions)
 
-1. **Reader (R)**: May read all aspects of submissions associated with the agency (both DABS and FABS).
+1. **Reader (R)**: View/download any DABS or FABS submission in the associated agency
 2. **Writer (W)**: May go through the submission process up to certifying (includes uploads, 
 advancing in the submission, and deleting submissions).
 3. **Submitter (S)**: May certify submissions for the agency.
 
 #### FABS (Financial Assistance Broker Submissions)
 
-1. **Reader (R)**: May read all aspects of submissions associated with the agency (both DABS and FABS).
+1. **Reader (R)**: View/download any DABS or FABS submission in the associated agency
 2. **Edit-FABS (E)**: May upload files and delete submissions.
 3. **FABS (F)**: May publish FABS submissions.
 
@@ -71,7 +71,7 @@ The Agency Admin CAIA role includes the unique ability to see, approve, and deny
 
 The agency admin can follow the instructions in the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) ("*Manage User Access*" -> "*Approving/Denying User Access Requests*").
 
-Once approved, the agency user will be assigned the role shortly (at least several minutes).
+Once approved, it will take at least a few minutes for the assigned role to be added to the agency user by the system.
 
 #### Removing User Access
 
@@ -81,13 +81,13 @@ The agency admin can follow the instructions in the [IIQ User Guide](https://cai
 
 #### Identifying Users Roles
 
-At the moment, the only way to determine the currently assigned CAIA roles of a certain user is by following the [workflow to
-remove their access](#removing-user-access), note which roles are available to be removed, and not finally requesting to have any removed.
+At the moment, the only way to determine the currently assigned CAIA roles of a certain user is by following the
+[workflow to remove their access](#removing-user-access) and seeing which roles appear in the list.
 
 #### Adding/Removing Agency Admins
 
 To assign a user to be an agency admin, the user must request to be assigned the role.
-Agency admins are unable to approve/deny their own requests and so **it's required for the user to make the request.**
+Agency admins are unable to approve/deny their own requests so **it's required for the user to make the request.**
 
 The user can follow [the guide above](#requesting-user-access) to request the agency-specific Agency Admin role and
 the existing agency admin can follow the other guide above to approve/deny the request, making the user an agency admin.
@@ -132,29 +132,30 @@ _The actions below are bucketed by Permission Level._
 - _Given Permission Levels (aka Roles) are assigned on a per-User and per-Agency basis (where the CAIA role name includes the Agency), the actions granted or denied below will be done so in the context of a single Agency._
 
 ### **`Reader (R)`**
-1. Read of everything
+1. View any DABS or FABS submission in the associated agency.
+2. Download any DABS or FABS submission file in the associated agency.
 
 ### **`Writer (W)`**: 
 1. Inherits all permissions of `Reader`
-2. Create DABS submission
+2. Create DABS submissions
 3. Upload DABS submission files
 4. Validate DABS files A, B, C compliance
 5. Validate DABS cross-file compliance
 6. Generate DABS D1, D2, E, F files
 7. Replace DABS submission files
-8. Delete DABS submission
+8. Delete DABS submissions
 9. Update DABS submission comments
 
 ### **`Submitter (S)`**
 1. Inherits all permissions of `Writer`
-2. Certify submission
+2. Certify submissions
 
 ### **`Edit-FABS (E)`**
 1. Inherits all permissions of `Reader`
-2. Create FABS submission
+2. Create FABS submissions
 3. Upload FABS submission file
 4. Replace FABS submission file
-5. Delete FABS submission file
+5. Delete FABS submissions
 
 ### **`FABS (F)`**
 1. Inherits all permissions of `Edit-FABS`
