@@ -1559,6 +1559,19 @@ class DetachedAwardProcurement(Base):
     awardee_or_recipient_uei = Column(Text, index=True)
     ultimate_parent_uei = Column(Text, index=True)
     entity_data_source = Column(Text)
+    immediate_parent_uei = Column(Text)
+    immediate_parent_uei_name = Column(Text)
+    domestic_parent_uei = Column(Text)
+    domestic_parent_uei_name = Column(Text)
+    uei_legal_business_name = Column(Text)
+    fee_paid_for_use_of_serv = Column(Text)
+    total_estimated_order_val = Column(Text)
+    self_cert_hub_zone_joint = Column(Boolean)
+    approved_date = Column(Text)
+    closed_date = Column(Text)
+    source_selection_process = Column(Text)
+    idv_type_of_set_aside = Column(Text)
+    idv_number_of_offers_recie = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1571,6 +1584,9 @@ Index("ix_dap_piid_upper", func.upper(DetachedAwardProcurement.piid))
 Index("ix_dap_parent_award_id_upper", func.upper(DetachedAwardProcurement.parent_award_id))
 Index("ix_dap_awarding_sub_tier_agency_c_upper", func.upper(DetachedAwardProcurement.awarding_sub_tier_agency_c))
 Index("ix_dap_awardee_or_recipient_uei_upper", func.upper(DetachedAwardProcurement.awardee_or_recipient_uei))
+
+Index("ix_dap_piid_upp_trans", func.upper(func.translate(DetachedAwardProcurement.piid, '-', '')))
+Index("ix_dap_pai_upp_trans", func.upper(func.translate(DetachedAwardProcurement.parent_award_id, '-', '')))
 
 
 class FABS(Base):
@@ -1603,7 +1619,7 @@ class FABS(Base):
     fain = Column(Text, index=True)
     federal_action_obligation = Column(Numeric, index=True)
     funding_office_code = Column(Text, index=True)
-    funding_opportunity_goals = Column(Text, index=True)
+    funding_opportunity_goals = Column(Text)
     funding_opportunity_number = Column(Text, index=True)
     funding_sub_tier_agency_co = Column(Text, index=True)
     indirect_federal_sharing = Column(Numeric, index=True)
