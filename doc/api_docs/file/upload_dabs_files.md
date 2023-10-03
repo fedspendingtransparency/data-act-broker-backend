@@ -3,7 +3,7 @@ A call to this route should be of content type `"multipart/form-data"`, and, if 
 
 This route will upload the files, then kick off the validation jobs. It will return the submission\_id.
 
-For a new submission, all three files must be submitted. For corrections to an existing submission, one or more files must be submitted along with the `existing_submission_id` parameter.
+For a new submission, only files B and C must be submitted. If file A is submitted for a new submission, it will be ignored but will not cause an error. For corrections to an existing submission, one or more files must be submitted along with the `existing_submission_id` parameter. Custom file A may be submitted for an existing submission.
 
 For information on the CGAC and FREC parameters, see the note in the main README in the "[Background](../../README.md#background)" section.
 
@@ -20,8 +20,7 @@ curl -i -X POST
       -F 'is_quarter=true' 
       -F 'test_submission=true'
       -F 'reporting_period_start_date=04/2018' 
-      -F 'reporting_period_end_date=06/2018' 
-      -F "appropriations=@/local/path/to/a.csv" 
+      -F 'reporting_period_end_date=06/2018'
       -F "award_financial=@/local/path/to/c.csv"  
       -F "program_activity=@/local/path/to/b.csv"
     /v1/upload_dabs_files/
