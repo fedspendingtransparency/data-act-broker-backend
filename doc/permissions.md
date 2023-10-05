@@ -122,6 +122,10 @@ Agency Administrators Roles:
 - CGAC agencies: **AppOwner-Data_Act_Broker-`CGAC Code`**
 - FREC agencies: **AppOwner-Data_Act_Broker-`FREC Code`**
 
+**Note: Agency Admin Roles are completely separate from and do not include any Broker Permission Levels.
+If agency admins are expected to also interact with the Broker application, they will need to have other
+users to request the Broker Permission Levels/Roles on their behalf and approve them.**
+
 For more details, check out [account_handler.py](../dataactbroker/handlers/account_handler.py).
 
 ## Detailed Access Matrix
