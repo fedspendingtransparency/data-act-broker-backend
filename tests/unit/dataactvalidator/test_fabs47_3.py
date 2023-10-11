@@ -22,10 +22,11 @@ def test_success(database):
     fabs_3 = FABSFactory(funding_opportunity_number=None, correction_delete_indicatr='C')
     fabs_4 = FABSFactory(funding_opportunity_number='', correction_delete_indicatr='')
 
-    # Ignored for CorrectionDeleteIndicator of D
+    # Ignored for CorrectionDeleteIndicator of D and FON of 'Not Applicable'
     fabs_5 = FABSFactory(funding_opportunity_number='()', correction_delete_indicatr='d')
+    fabs_6 = FABSFactory(funding_opportunity_number='NoT AppLicaBle', correction_delete_indicatr='')
 
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6])
     assert errors == 0
 
 
