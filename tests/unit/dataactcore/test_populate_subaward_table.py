@@ -65,7 +65,7 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, dom_z
         'funding_sub_tier_agency_na': d1.funding_sub_tier_agency_na,
         'funding_office_code': d1.funding_office_code,
         'funding_office_name': d1.funding_office_name,
-        'awardee_or_recipient_uniqu': contract.duns,
+        'awardee_or_recipient_uniqu': d1.awardee_or_recipient_uniqu,
         'awardee_or_recipient_uei': d1.awardee_or_recipient_uei,
         'awardee_or_recipient_legal': d1.awardee_or_recipient_legal,
         'dba_name': d1.vendor_doing_as_business_n,
