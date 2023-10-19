@@ -6,9 +6,9 @@ import pytest
 
 import dataactcore.config
 from dataactcore.models import baseModel
-from dataactcore.scripts import (setup_job_tracker_db, setup_user_db, setup_validation_db, setup_error_db,
-                                 setup_static_data)
-from dataactcore.scripts.database_setup import create_database, drop_database, run_migrations
+from dataactcore.scripts.initialize import setup_user_db, setup_validation_db, setup_static_data, setup_error_db, \
+    setup_job_tracker_db
+from dataactcore.scripts.initialize.database_setup import create_database, drop_database, run_migrations
 from dataactcore.interfaces.db import GlobalDB
 
 
