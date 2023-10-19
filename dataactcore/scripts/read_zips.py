@@ -20,7 +20,7 @@ from dataactcore.models.domainModels import (
     Zips, ZipsGrouped, StateCongressional, CDStateGrouped, CDZipsGrouped, CDZipsGroupedHistorical, CDCountyGrouped
 )
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
-from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe, MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE
+from dataactcore.utils.loader_utils import clean_data, insert_dataframe, MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE
 
 from dataactvalidator.health_check import create_app
 

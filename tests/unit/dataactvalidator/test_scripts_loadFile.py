@@ -1,7 +1,7 @@
 import pandas as pd
 
 from dataactcore.models.domainModels import CGAC
-from dataactvalidator.scripts import load_agencies
+from dataactcore.scripts import load_agencies
 from tests.unit.dataactcore.factories.domain import CGACFactory
 
 

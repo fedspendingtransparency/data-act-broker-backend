@@ -22,7 +22,7 @@ from dataactcore.models.userModel import User # noqa
 from dataactcore.models.validationModels import FileColumn
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactcore.utils.loader_utils import insert_dataframe
 from dataactvalidator.validation_handlers.validationManager import update_account_nums
 
 logger = logging.getLogger(__name__)

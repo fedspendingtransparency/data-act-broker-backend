@@ -6,7 +6,7 @@ import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SF133
-from dataactvalidator.scripts import load_sf133
+from dataactcore.scripts.pipeline import load_sf133
 from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
 
 

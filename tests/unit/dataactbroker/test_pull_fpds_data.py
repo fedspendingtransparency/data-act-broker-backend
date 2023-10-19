@@ -5,7 +5,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SubTierAgency, CGAC, Zips
 from dataactcore.models.lookups import BUSINESS_CATEGORY_FIELDS
 
-from dataactcore.scripts import pull_fpds_data
+from dataactcore.scripts.pipeline import pull_fpds_data
 
 
 def test_list_data():

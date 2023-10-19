@@ -4,7 +4,7 @@ import datetime
 import pytest
 import os
 
-from dataactvalidator.scripts import load_program_activity
+from dataactcore.scripts.pipeline import load_program_activity
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataType
 
@@ -23,8 +23,8 @@ def add_relevant_data_types(sess):
         sess.commit()
 
 
-@patch('dataactvalidator.scripts.load_program_activity.io.BytesIO')
-@patch('dataactvalidator.scripts.load_program_activity.boto3')
+@patch('dataactcore.scripts.pipeline.load_program_activity.io.BytesIO')
+@patch('dataactcore.scripts.pipeline.load_program_activity.boto3')
 def test_get_program_activity_file_aws(boto3, bytesio, monkeypatch):
     """ Test retrieving the program activity file from AWS """
 
@@ -83,9 +83,9 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
 
 
 @patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
-@patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
-@patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
-@patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_stored_pa_last_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_date_of_current_pa_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_program_activity_file')
 def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
                                     mocked_set_stored_date, database, monkeypatch):
     """ Test actually loading the program activity data """
@@ -122,9 +122,9 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
 
 
 @patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
-@patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
-@patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
-@patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_stored_pa_last_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_date_of_current_pa_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_program_activity_file')
 def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
                                                 mocked_set_stored_date, monkeypatch):
     """ Test actually loading the program activity data """
@@ -147,9 +147,9 @@ def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_c
 
 
 @patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
-@patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
-@patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
-@patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_stored_pa_last_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_date_of_current_pa_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_program_activity_file')
 def test_load_program_activity_data_no_header(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
                                               mocked_set_stored_date, monkeypatch):
     """ Test actually loading the program activity data """
@@ -172,9 +172,9 @@ def test_load_program_activity_data_no_header(mocked_get_pa_file, mocked_get_cur
 
 
 @patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
-@patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
-@patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
-@patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_stored_pa_last_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_date_of_current_pa_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_program_activity_file')
 def test_load_program_activity_data_empty_file(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
                                                mocked_set_stored_date, monkeypatch):
     """ Test actually loading the program activity data """

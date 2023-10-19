@@ -20,7 +20,7 @@ from dataactcore.models.stagingModels import (AwardFinancialAssistance, AwardPro
 from dataactbroker.helpers.validation_helper import clean_col
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactcore.utils.loader_utils import insert_dataframe
 
 logger = logging.getLogger(__name__)
 CHUNK_SIZE = 10000

@@ -6,7 +6,7 @@ import argparse
 from datetime import datetime
 
 from dataactbroker.helpers.generic_helper import batch
-from dataactvalidator.scripts.loader_utils import clean_data
+from dataactcore.utils.loader_utils import clean_data
 from dataactvalidator.health_check import create_app
 from dataactcore.models.domainModels import HistoricDUNS, SAMRecipient
 from dataactcore.interfaces.db import GlobalDB

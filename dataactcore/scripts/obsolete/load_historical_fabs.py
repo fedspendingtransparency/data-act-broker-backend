@@ -17,7 +17,7 @@ from dataactcore.models.userModel import User # noqa
 from dataactcore.models.stagingModels import PublishedFABS
 from dataactcore.models.domainModels import SubTierAgency, CountyCode, States, Zips, ZipCity, CityCode
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
+from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 

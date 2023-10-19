@@ -3,7 +3,7 @@ import datetime
 import pytest
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.scripts import load_duns_exec_comp
+from dataactcore.scripts.pipeline import load_duns_exec_comp
 from dataactcore.models.domainModels import SAMRecipient
 
 

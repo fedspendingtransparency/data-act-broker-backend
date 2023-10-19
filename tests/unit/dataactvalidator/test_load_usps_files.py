@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
-from dataactvalidator.scripts.load_usps_files import get_payload_string, check_response_status, get_login_tokens, \
+from dataactcore.scripts.pipeline.load_usps_files import get_payload_string, check_response_status, get_login_tokens, \
     get_file_info
 from tests.unit.mock_helpers import MockSession
 

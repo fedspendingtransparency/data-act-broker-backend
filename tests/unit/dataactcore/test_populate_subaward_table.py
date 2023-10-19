@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from dataactcore.scripts.populate_subaward_table import populate_subaward_table, fix_broken_links
+from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactbroker.helpers.generic_helper import fy
 from dataactcore.models.fsrs import Subaward
 from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,

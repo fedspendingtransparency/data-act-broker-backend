@@ -1,14 +1,14 @@
 from io import StringIO
 
-from dataactvalidator.scripts import read_zips
-from dataactvalidator.scripts.read_zips import (
-    generate_zips_grouped, generate_cd_state_grouped, generate_cd_zips_grouped,
-    generate_cd_county_grouped, update_state_congr_table_census
-)
-from dataactvalidator.scripts import load_location_data
-from dataactvalidator.scripts.load_location_data import generate_cd_city_grouped
 from dataactcore.models.domainModels import (
     CDCityGrouped, CDCountyGrouped, CDStateGrouped, CDZipsGrouped, StateCongressional, Zips, ZipsGrouped, ZipCity
+)
+from dataactcore.scripts import load_location_data
+from dataactcore.scripts.load_location_data import generate_cd_city_grouped
+from dataactcore.scripts import read_zips
+from dataactcore.scripts.read_zips import (
+    generate_zips_grouped, generate_cd_state_grouped, generate_cd_zips_grouped,
+    generate_cd_county_grouped, update_state_congr_table_census
 )
 
 

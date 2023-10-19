@@ -2,7 +2,7 @@ import re
 import os
 
 from dataactcore.config import CONFIG_BROKER
-from dataactvalidator.scripts import load_sf133
+from dataactcore.scripts.pipeline import load_sf133
 
 SF_RE = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
 line_sums = {}

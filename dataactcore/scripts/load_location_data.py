@@ -16,7 +16,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CityCode, CountyCode, States, ZipCity
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe, trim_item, MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE
+from dataactcore.utils.loader_utils import insert_dataframe, trim_item, MULTIPLE_LOCATION_THRESHOLD_PERCENTAGE
 
 logger = logging.getLogger(__name__)
 

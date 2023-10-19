@@ -11,7 +11,7 @@ from dataactcore.broker_logging import configure_logging
 from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL, \
     config_state_mappings
 from dataactcore.models.fsrs import Subaward
-from dataactcore.scripts.populate_subaward_table import populate_subaward_table, fix_broken_links
+from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)

@@ -18,7 +18,7 @@ from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_
 from dataactcore.models.stagingModels import FlexField, PublishedFlexField
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactcore.utils.loader_utils import insert_dataframe
 
 logger = logging.getLogger(__name__)
 

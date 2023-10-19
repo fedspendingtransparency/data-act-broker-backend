@@ -17,7 +17,7 @@ from dataactcore.scripts.setup_validation_db import setup_validation_db
 from dataactcore.scripts.database_setup import create_database, run_migrations
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
-from dataactbroker.scripts.setup_emails import setup_emails
+from dataactcore.scripts.setup_emails import setup_emails
 from dataactvalidator.health_check import create_app as create_validator_app
 from dataactcore.models.lookups import ALL_PERMISSION_TYPES_DICT
 from tests.unit.dataactcore.factories.user import UserFactory

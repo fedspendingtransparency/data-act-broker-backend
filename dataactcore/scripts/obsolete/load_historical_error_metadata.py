@@ -17,7 +17,7 @@ from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT,
                                         ERROR_TYPE_DICT)
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactcore.utils.loader_utils import insert_dataframe
 
 from dataactcore.models.validationModels import RuleSeverity  # noqa
 from dataactcore.models.userModel import User  # noqa

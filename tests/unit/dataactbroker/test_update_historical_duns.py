@@ -1,10 +1,10 @@
 import os
 import pandas as pd
 
-from dataactbroker.scripts import update_historical_duns
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.sam_recipient import SAM_COLUMNS, EXCLUDE_FROM_API
 from dataactcore.models.domainModels import SAMRecipient, HistoricDUNS
+from dataactcore.scripts.ad_hoc import update_historical_duns
 
 
 def test_remove_existing_recipients(database):

@@ -2,7 +2,7 @@ import os
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import TASFailedEdits
-from dataactvalidator.scripts import load_tas_failing_edits
+from dataactcore.scripts.pipeline import load_tas_failing_edits
 
 
 def test_load_tas_failing_edits_file(database):

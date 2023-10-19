@@ -11,7 +11,7 @@ from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import ObjectClass
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
+from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
