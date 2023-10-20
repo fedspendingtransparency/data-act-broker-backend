@@ -14,7 +14,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import FileGeneration
 from dataactcore.models.validationModels import RuleSetting
 from dataactcore.scripts.setup.load_agencies import load_agency_data
-from dataactcore.scripts.setup.load_cfda_data import load_cfda_program
+from dataactcore.scripts.pipeline.load_cfda_data import load_cfda_program
 from dataactcore.scripts.setup.load_country_codes import load_country_codes
 from dataactcore.scripts.setup.load_defc import load_defc
 from dataactcore.scripts.setup.load_funding_opportunity_number import load_funding_opportunity_number_data
