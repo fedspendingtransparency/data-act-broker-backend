@@ -13,18 +13,18 @@ from dataactcore.broker_logging import configure_logging
 from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import FileGeneration
 from dataactcore.models.validationModels import RuleSetting
-from dataactcore.scripts.initialize.load_agencies import load_agency_data
-from dataactcore.scripts.initialize.load_cfda_data import load_cfda_program
-from dataactcore.scripts.initialize.load_country_codes import load_country_codes
-from dataactcore.scripts.initialize.load_defc import load_defc
-from dataactcore.scripts.initialize.load_funding_opportunity_number import load_funding_opportunity_number_data
-from dataactcore.scripts.initialize.load_location_data import load_location_data
-from dataactcore.scripts.initialize.load_object_class import load_object_class
-from dataactcore.scripts.initialize.setup_all_db import setup_all_db
-from dataactcore.scripts.initialize.setup_emails import setup_emails
-from dataactcore.scripts.initialize.load_submission_window_schedule import load_submission_window_schedule
-from dataactcore.scripts.initialize.load_tas import load_tas
-from dataactcore.scripts.initialize.read_zips import read_zips
+from dataactcore.scripts.setup.load_agencies import load_agency_data
+from dataactcore.scripts.setup.load_cfda_data import load_cfda_program
+from dataactcore.scripts.setup.load_country_codes import load_country_codes
+from dataactcore.scripts.setup.load_defc import load_defc
+from dataactcore.scripts.setup.load_funding_opportunity_number import load_funding_opportunity_number_data
+from dataactcore.scripts.setup.load_location_data import load_location_data
+from dataactcore.scripts.setup.load_object_class import load_object_class
+from dataactcore.scripts.setup.setup_all_db import setup_all_db
+from dataactcore.scripts.setup.setup_emails import setup_emails
+from dataactcore.scripts.setup.load_submission_window_schedule import load_submission_window_schedule
+from dataactcore.scripts.setup.load_tas import load_tas
+from dataactcore.scripts.setup.read_zips import read_zips
 from dataactcore.scripts.pipeline.load_program_activity import load_program_activity_data
 from dataactcore.scripts.pipeline.load_sf133 import load_all_sf133
 from dataactcore.scripts.pipeline.load_tas_failing_edits import load_all_tas_failing_edits
@@ -40,7 +40,7 @@ validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
 
 
 def setup_db():
-    """Set up broker database and initialize data."""
+    """Set up broker database and setup data."""
     logger.info('Setting up db')
     setup_all_db()
     setup_emails()
@@ -57,7 +57,7 @@ def create_admin():
         if not user:
             # once the rest of the setup scripts are updated to use
             # GlobalDB instead of databaseSession, move the app_context
-            # creation up to initialize()
+            # creation up to setup()
             user = create_user_with_password(admin_email, admin_pass, Bcrypt(), website_admin=True)
     return user
 
@@ -155,7 +155,7 @@ def load_submission_schedule():
 
 def main():
     parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
-    parser.add_argument('-i', '--initialize', help='Run all broker initialization tasks', action='store_true')
+    parser.add_argument('-i', '--setup', help='Run all broker initialization tasks', action='store_true')
     parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
     parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')
     parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')

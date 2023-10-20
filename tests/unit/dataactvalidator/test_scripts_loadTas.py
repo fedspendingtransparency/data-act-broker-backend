@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pandas as pd
 
 from dataactcore.models.domainModels import TAS_COMPONENTS, TASLookup
-from dataactcore.scripts.initialize import load_tas
+from dataactcore.scripts.setup import load_tas
 from tests.unit.dataactcore.factories.domain import TASFactory
 
 

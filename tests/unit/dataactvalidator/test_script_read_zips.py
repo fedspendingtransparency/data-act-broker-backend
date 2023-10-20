@@ -3,9 +3,9 @@ from io import StringIO
 from dataactcore.models.domainModels import (
     CDCityGrouped, CDCountyGrouped, CDStateGrouped, CDZipsGrouped, StateCongressional, Zips, ZipsGrouped, ZipCity
 )
-from dataactcore.scripts.initialize import load_location_data, read_zips
-from dataactcore.scripts.initialize.load_location_data import generate_cd_city_grouped
-from dataactcore.scripts.initialize.read_zips import (
+from dataactcore.scripts.setup import load_location_data, read_zips
+from dataactcore.scripts.setup.load_location_data import generate_cd_city_grouped
+from dataactcore.scripts.setup.read_zips import (
     generate_zips_grouped, generate_cd_state_grouped, generate_cd_zips_grouped,
     generate_cd_county_grouped, update_state_congr_table_census
 )

@@ -1,6 +1,6 @@
 from dataactcore.config import CONFIG_DB
 from dataactcore.broker_logging import configure_logging
-from dataactcore.scripts.initialize.database_setup import create_database
+from dataactcore.scripts.setup.database_setup import create_database
 
 
 def setup_job_queue_db():

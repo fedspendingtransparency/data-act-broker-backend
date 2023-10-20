@@ -4,13 +4,13 @@ import os
 
 from dataactcore.config import CONFIG_DB
 from dataactcore.broker_logging import configure_logging
-from dataactcore.scripts.initialize.database_setup import create_database, run_migrations
-from dataactcore.scripts.initialize.setup_error_db import setup_error_db
-from dataactcore.scripts.initialize.setup_job_tracker_db import setup_job_tracker_db
-from dataactcore.scripts.initialize.setup_user_db import setup_user_db
-from dataactcore.scripts.initialize.setup_validation_db import setup_validation_db
-from dataactcore.scripts.initialize.setup_static_data import setup_static_data
-from dataactcore.scripts.initialize.setup_submission_type_db import setup_submission_type_db
+from dataactcore.scripts.setup.database_setup import create_database, run_migrations
+from dataactcore.scripts.setup.setup_error_db import setup_error_db
+from dataactcore.scripts.setup.setup_job_tracker_db import setup_job_tracker_db
+from dataactcore.scripts.setup.setup_user_db import setup_user_db
+from dataactcore.scripts.setup.setup_validation_db import setup_validation_db
+from dataactcore.scripts.setup.setup_static_data import setup_static_data
+from dataactcore.scripts.setup.setup_submission_type_db import setup_submission_type_db
 
 
 logger = logging.getLogger(__name__)
