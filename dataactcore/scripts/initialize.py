@@ -40,7 +40,7 @@ validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
 
 
 def setup_db():
-    """Set up broker database and setup data."""
+    """Set up broker database and initialize data."""
     logger.info('Setting up db')
     setup_all_db()
     setup_emails()
@@ -57,7 +57,7 @@ def create_admin():
         if not user:
             # once the rest of the setup scripts are updated to use
             # GlobalDB instead of databaseSession, move the app_context
-            # creation up to setup()
+            # creation up to initialize()
             user = create_user_with_password(admin_email, admin_pass, Bcrypt(), website_admin=True)
     return user
 

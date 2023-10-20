@@ -139,7 +139,7 @@ _:bulb: TIP: Many of the commands below use the format `docker exec -it dataact-
 **Create a User**
 
 ```bash
-$ docker exec -it dataact-broker-backend python dataactcore/scripts/setup.py -a
+$ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -a
 ```
 This creates a local admin user that you can use to log in. The Broker utilizes MAX.gov for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. The credentials for the user created are the values you have configured in the `db.admin_email` and `db.admin_password` config params in `config.yml` or overridden in `local_config.yml`.
 
@@ -148,7 +148,7 @@ Now try to browse to http://localhost:3002, and login with the configured creden
 **Initialize Database**
 
 ```bash
-$ docker exec -it dataact-broker-backend python dataactcore/scripts/setup.py -i
+$ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -i
 ```
 This loads the information needed to validate data submissions: schemas, rules, and reference data such as object classes and account codes. You can view what each function does [here](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/dataactcore/scripts/initialize.py), but the functions called by `initialize.py -i` are as follows:
 
@@ -180,13 +180,13 @@ If instead, you want to match the production environment (and are a developer on
 Once you've placed those files, run:
 
 ```bash
-$ docker exec -it dataact-broker-backend python dataactcore/scripts/setup.py -s
+$ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -s
 ```
 
 This will only load the new SF133 entries. To force load from your files, you can add the `-f` or `--force` flag:
 
 ```bash
-$ docker exec -it dataact-broker-backend python dataactcore/scripts/setup.py -s --force
+$ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -s --force
 ```
 
 This will take several minutes to process.
@@ -202,7 +202,7 @@ Program Activity file location: `dataactvalidator/config/program_activity.csv`
 To load these files:
 
 ```bash
-$ docker exec -it dataact-broker-backend python dataactcore/scripts/setup.py -d
+$ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -d
 ```
 
 #### TAS data:
@@ -214,5 +214,5 @@ TAS file location: `dataactvalidator/config/cars_tas.csv`
 To load TAS data:
 
 ```bash
-$ docker exec -it dataact-broker-backend python dataactcore/scripts/setup.py -t
+$ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -t
 ```

@@ -42,8 +42,8 @@ setup(
     install_requires=reqs,
     entry_points={
         'console_scripts': [
-            'webbroker = dataactbroker.scripts.setup:options',
-            'validator = dataactvalidator.scripts.setup:options',
+            'webbroker = dataactbroker.scripts.initialize:options',
+            'validator = dataactvalidator.scripts.initialize:options',
         ],
     },
 )
