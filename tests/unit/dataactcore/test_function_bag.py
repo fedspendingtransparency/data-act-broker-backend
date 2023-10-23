@@ -16,7 +16,7 @@ def test_check_job_dependencies_not_finished(database):
     """ Tests check_job_dependencies with a job that isn't finished """
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['waiting'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     sess.add_all([sub, job])
     sess.commit()
@@ -30,12 +30,12 @@ def test_check_job_dependencies_has_unfinished_dependencies(database):
     """ Tests check_job_dependencies with a job that isn't finished """
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
                      number_of_errors=0)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+    job_2 = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['waiting'],
                        job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
-    job_3 = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+    job_3 = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['waiting'],
                        job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
                        number_of_errors=0)
     sess.add_all([sub, job, job_2, job_3])
@@ -58,10 +58,10 @@ def test_check_job_dependencies_prior_dependency_has_errors(database):
     """ Tests check_job_dependencies with a job that is finished but has errors """
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
                      number_of_errors=3)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+    job_2 = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['waiting'],
                        job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     sess.add_all([sub, job, job_2])
     sess.commit()
@@ -84,10 +84,10 @@ def test_check_job_dependencies_ready(mock_sqs_queue, database):
     mock_sqs_queue.return_value = SQSMockQueue
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
                      number_of_errors=0)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+    job_2 = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['waiting'],
                        job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     sess.add_all([sub, job, job_2])
     sess.commit()
@@ -157,7 +157,7 @@ def test_get_last_modified(database):
                               is_fabs=False, is_quarter_format=True, updated_at=now)
     sub_2 = SubmissionFactory(submission_id=2, reporting_fiscal_year=2020, reporting_fiscal_period=6,
                               is_fabs=False, is_quarter_format=True, updated_at=now)
-    job = JobFactory(submission_id=sub_2.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+    job = JobFactory(submission=sub_2, job_status_id=JOB_STATUS_DICT['waiting'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
                      updated_at=now + datetime.timedelta(days=1))
     sess.add_all([sub_1, sub_2, job])

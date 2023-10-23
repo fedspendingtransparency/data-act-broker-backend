@@ -232,8 +232,8 @@ def test_success_populated_011_fr_entity_cgac(database):
     submission_id = randint(1000, 10000)
     tas, account_num, period, year, cgac_code, frec_code = 'some-tas', 1, 2, 2002, 'some-cgac-code', 'some-frec-code'
 
-    cgac = CGACFactory(cgac_code=cgac_code, cgac_id=1)
-    frec = FRECFactory(cgac_id=cgac.cgac_id, frec_code=frec_code, frec_id=1)
+    cgac = CGACFactory(cgac_code=cgac_code)
+    frec = FRECFactory(cgac=cgac, frec_code=frec_code)
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None,
                        agency_identifier='011', account_num=account_num)
     ts1 = TASFactory(account_num=account_num, fr_entity_type=frec_code)
@@ -249,8 +249,8 @@ def test_failure_populated_011_fr_entity_cgac(database):
     submission_id = randint(1000, 10000)
     tas, account_num, period, year, cgac_code, frec_code = 'some-tas', 1, 2, 2002, 'some-cgac-code', 'some-frec-code'
 
-    cgac = CGACFactory(cgac_code=cgac_code, cgac_id=1)
-    frec = FRECFactory(cgac_id=cgac.cgac_id, frec_code=frec_code, frec_id=1)
+    cgac = CGACFactory(cgac_code=cgac_code)
+    frec = FRECFactory(cgac=cgac, frec_code=frec_code)
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None,
                        agency_identifier='011', account_num=account_num)
     ts1 = TASFactory(account_num=account_num, fr_entity_type=frec_code)

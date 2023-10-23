@@ -121,22 +121,22 @@ def test_current_page(file_app, database):
     finished_job = JOB_STATUS_DICT['finished']
     waiting = JOB_STATUS_DICT['waiting']
 
-    job_a = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['appropriations'],
-                       job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_b = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['program_activity'],
-                       job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_c = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['award_financial'],
-                       job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_d1 = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['award_procurement'],
-                        job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_d2 = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['award'],
-                        job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_e = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['executive_compensation'],
-                       job_type_id=upload, number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_f = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload,
+    job_a = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=csv_validation,
                        number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_cross_file = JobFactory(submission_id=sub.submission_id, file_type_id=None, job_type_id=validation,
-                                number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_b = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=csv_validation,
+                       number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_c = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=csv_validation,
+                       number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_d1 = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=csv_validation,
+                        number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_d2 = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award'], job_type_id=csv_validation,
+                        number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_e = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload,
+                       number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_f = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload, number_of_errors=0,
+                       file_size=123, job_status_id=finished_job)
+    job_cross_file = JobFactory(submission=sub, file_type_id=None, job_type_id=validation, number_of_errors=0,
+                                file_size=123, job_status_id=finished_job)
 
     database.session.add_all([job_a, job_b, job_c, job_d1, job_d2, job_e, job_f, job_cross_file])
     database.session.commit()

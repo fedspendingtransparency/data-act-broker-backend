@@ -18,7 +18,7 @@ def test_column_headers(database):
 def test_success(database):
     """ Tests that TAS with no ATA or matching ATA pass. """
     sub = SubmissionFactory(cgac_code='abc')
-    cgac = CGACFactory(cgac_code='abc')
+    cgac_letter = CGACFactory(cgac_code='abc')
     tas = TASFactory(financial_indicator2='f')
 
     # Matching ATA
@@ -41,34 +41,28 @@ def test_success(database):
     ap5 = AppropriationFactory(submission_id=sub.submission_id, allocation_transfer_agency='Not a match',
                                account_num=tas.account_num, adjustments_to_unobligated_cpe=15)
 
-    assert number_of_errors(_FILE, database, submission=sub, models=[cgac, tas, ap1, ap2, ap3, ap4, ap5]) == 0
+    assert number_of_errors(_FILE, database, submission=sub, models=[cgac_letter, tas, ap1, ap2, ap3, ap4, ap5]) == 0
 
-    cgac = CGACFactory(cgac_code='123')
-    database.session.add(cgac)
-    database.session.commit()
-
-    frec = FRECFactory(frec_code='abcd', cgac_id=cgac.cgac_id)
+    cgac_nums = CGACFactory(cgac_code='123')
+    frec = FRECFactory(frec_code='abcd', cgac=cgac_nums)
     sub = SubmissionFactory(cgac_code=None, frec_code=frec.frec_code)
 
     # Matching ATA for a FREC
     ap = AppropriationFactory(submission_id=sub.submission_id, allocation_transfer_agency='123',
                               adjustments_to_unobligated_cpe=15)
 
-    assert number_of_errors(_FILE, database, submission=sub, models=[frec, ap]) == 0
+    assert number_of_errors(_FILE, database, submission=sub, models=[cgac_nums, frec, ap]) == 0
 
     # Accounting for CGAC 097 (021 is allowed)
     dod_cgac = CGACFactory(cgac_code='097')
-    database.session.add(dod_cgac)
-    database.session.commit()
-
-    frec = FRECFactory(frec_code='abcde', cgac_id=dod_cgac.cgac_id)
+    frec = FRECFactory(frec_code='abcde', cgac=dod_cgac)
     sub = SubmissionFactory(cgac_code=None, frec_code=frec.frec_code)
 
     # Matching ATA for a FREC
     ap = AppropriationFactory(submission_id=sub.submission_id, allocation_transfer_agency='021',
                               adjustments_to_unobligated_cpe=15)
 
-    assert number_of_errors(_FILE, database, submission=sub, models=[frec, ap]) == 0
+    assert number_of_errors(_FILE, database, submission=sub, models=[dod_cgac, frec, ap]) == 0
 
 
 def test_failure(database):
