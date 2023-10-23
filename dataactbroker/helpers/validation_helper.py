@@ -68,7 +68,7 @@ def clean_col(value, clean_quotes=True):
             otherwise
     """
     # Need to check that it's not a list because truth value of a list will be an error
-    if type(value) is not list and (isnull(value) or not str(value).strip()):
+    if not isinstance(value, list) and (isnull(value) or not str(value).strip()):
         return None
 
     value = str(value).strip()
