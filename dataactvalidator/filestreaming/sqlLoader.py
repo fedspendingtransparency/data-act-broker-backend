@@ -8,8 +8,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import clean_data
-from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 logger = logging.getLogger(__name__)

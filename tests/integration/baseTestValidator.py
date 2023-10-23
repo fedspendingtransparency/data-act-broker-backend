@@ -10,16 +10,16 @@ from dataactcore.broker_logging import configure_logging
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password
-from dataactcore.scripts.database_setup import drop_database
-from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db
-from dataactcore.scripts.setup_error_db import setup_error_db
-from dataactcore.scripts.setup_validation_db import setup_validation_db
+from dataactcore.scripts.setup.database_setup import drop_database
+from dataactcore.scripts.setup.setup_job_tracker_db import setup_job_tracker_db
+from dataactcore.scripts.setup.setup_error_db import setup_error_db
+from dataactcore.scripts.setup.setup_validation_db import setup_validation_db
 from dataactcore.scripts.initialize import load_sql_rules
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.domainModels import CGAC
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
-from dataactcore.scripts.database_setup import create_database, run_migrations
+from dataactcore.scripts.setup.database_setup import create_database, run_migrations
 import dataactcore.config
 
 basePath = CONFIG_BROKER["path"]
