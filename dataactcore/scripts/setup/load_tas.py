@@ -125,14 +125,14 @@ def update_tas_lookups(sess, csv_path, update_missing=[], metrics=None):
     data = clean_tas(csv_path, metrics)
     add_existing_id(data)
 
-    old_data = data[data['existing_id'].notnull()]
+    old_data = data[data['existing_id'].notnull()].copy()
     del old_data['existing_id']
 
     # Update TAS/Display TAS values for old data to update
     old_data['tas'] = concat_tas_dict_vectorized(old_data)
     old_data['display_tas'] = old_data.apply(lambda x: concat_display_tas_dict(x), axis=1)
 
-    new_data = data[data['existing_id'].isnull()]
+    new_data = data[data['existing_id'].isnull()].copy()
     del new_data['existing_id']
 
     if update_missing:

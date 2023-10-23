@@ -67,7 +67,8 @@ def clean_col(value, clean_quotes=True):
             None if the value is empty or just whitespace, a stripped version of the value without surrounding quotes
             otherwise
     """
-    if isnull(value) or not str(value).strip():
+    # Need to check that it's not a list because truth value of a list will be an error
+    if not isinstance(value, list) and (isnull(value) or not str(value).strip()):
         return None
 
     value = str(value).strip()
