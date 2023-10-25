@@ -43,7 +43,7 @@ from dataactcore.models.validationModels import RuleSql, ValidationLabel
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import report_file_name
-from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactcore.utils.loader_utils import insert_dataframe
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csvReader import CsvReader
