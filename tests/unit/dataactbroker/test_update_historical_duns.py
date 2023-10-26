@@ -94,7 +94,7 @@ def mock_get_sam_props(key_list, api='entity', includes_uei=True):
     }
     for key in key_list:
         if key in sam_mappings:
-            results = results.append(pd.DataFrame(sam_mappings[key]), sort=True)
+            results = pd.concat([results, pd.DataFrame(sam_mappings[key])], sort=True)
     return results
 
 

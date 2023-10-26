@@ -1,13 +1,15 @@
-from flask import g
+from flask import g, request
 from functools import wraps
-from webargs import fields as webargs_fields
-from webargs.flaskparser import parser as webargs_parser
+from marshmallow import INCLUDE
+from webargs import fields as webargs_fields, flaskparser
 
 from dataactbroker.handlers.agency_handler import get_sub_tiers_from_perms
 from dataactbroker.permissions import requires_login, separate_affiliations
 
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+
+webargs_parser = flaskparser.FlaskParser(unknown=INCLUDE)
 
 
 def convert_to_submission_id(fn):
@@ -23,11 +25,15 @@ def convert_to_submission_id(fn):
     @wraps(fn)
     @requires_login     # check login before checking submission_id
     def wrapped(*args, **kwargs):
-        req_args = webargs_parser.parse({
-            'submission': webargs_fields.Int(),
-            'submission_id': webargs_fields.Int()
-        })
-        submission_id = req_args.get('submission', req_args.get('submission_id'))
+        # Check if the submission id is in the querystring, then check the json body
+        for location in ['query', 'json']:
+            req_args = webargs_parser.parse({
+                'submission': webargs_fields.Int(),
+                'submission_id': webargs_fields.Int()
+            }, request, location=location)
+            submission_id = req_args.get('submission', req_args.get('submission_id'))
+            if submission_id is not None:
+                break
         if submission_id is None:
             raise ResponseException("submission_id is required", StatusCode.CLIENT_ERROR)
         return fn(submission_id, *args, **kwargs)

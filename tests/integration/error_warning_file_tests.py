@@ -991,8 +991,8 @@ class ErrorWarningTests(BaseTestValidator):
 
         # Going back to reprocess the header row
         self.validator.reader.file.seek(0)
-        reader_obj = pd.read_csv(self.validator.reader.file, dtype=str, delimiter=',', error_bad_lines=False,
-                                 na_filter=False, chunksize=2, warn_bad_lines=False)
+        reader_obj = pd.read_csv(self.validator.reader.file, dtype=str, delimiter=',', on_bad_lines='skip',
+                                 na_filter=False, chunksize=2)
         # Setting this outside of reader/file type objects which may not be used during processing
         self.validator.flex_fields = ['flex_field_a', 'flex_field_b']
         self.validator.header_dict = self.validator.reader.header_dict

@@ -28,8 +28,8 @@ def add_user_routes(app, system_email, bcrypt):
     @app.route("/v1/list_submission_users/", methods=["GET"])
     @requires_login
     @use_kwargs({
-        'is_fabs': webargs_fields.Bool(missing=False)
-    })
+        'is_fabs': webargs_fields.Bool(load_default=False)
+    }, location='query')
     def list_submission_users_route(is_fabs):
         """ List all users with submissions that the requesting user has permissions for """
         return list_submission_users(is_fabs)
@@ -44,7 +44,7 @@ def add_user_routes(app, system_email, bcrypt):
     @requires_login
     @use_kwargs({
         'skip_guide': webargs_fields.Bool(required=True)
-    })
+    }, location='json')
     def set_skip_guide(skip_guide):
         """ Sets skip_guide param for current user """
         account_manager = AccountHandler(request, bcrypt=bcrypt)
@@ -57,7 +57,7 @@ def add_user_routes(app, system_email, bcrypt):
     # @use_kwargs({
     #     'email_template': webargs_fields.String(required=True),
     #     'users': webargs_fields.List(webargs_fields.Int(), required=True)
-    # })
+    # }, location='json')
     # def email_users(submission, email_template, users):
     #     """ Sends email notifications to users that their submission is ready for review & publish viewing """
     #     account_manager = AccountHandler(request, bcrypt=bcrypt)

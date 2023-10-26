@@ -1125,7 +1125,8 @@ class FileTests(BaseTestAPI):
                   'submission_id': self.row_error_submission_id}
         response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'file_type: Not a valid choice.')
+        self.assertEqual(response.json['message'], 'file_type: Must be one of: appropriations, award, award_financial, '
+                                                   'award_procurement, fabs, program_activity.')
 
     def test_submission_report_url_invalid_cross(self):
         """ Test that invalid cross_types cause an error """
@@ -1135,7 +1136,8 @@ class FileTests(BaseTestAPI):
                   'submission_id': self.row_error_submission_id}
         response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'cross_type: Not a valid choice.')
+        self.assertEqual(response.json['message'], 'cross_type: Must be one of: award, award_financial, '
+                                                   'award_procurement, program_activity.')
 
     def test_submission_report_url_valid_type_invalid_pair(self):
         """ Test that valid cross_type but invalid pair causes an error """

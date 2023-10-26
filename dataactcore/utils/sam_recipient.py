@@ -860,7 +860,7 @@ def update_sam_props(df, api='entity'):
             empty_recp_row = empty_row_template.copy()
             empty_recp_row[key_col] = key
             empty_sam_rows.append(empty_recp_row)
-        sam_props_batch = sam_props_batch.append(pd.DataFrame(empty_sam_rows), sort=True)
-        sam_props_df = sam_props_df.append(sam_props_batch, sort=True)
+        sam_props_batch = pd.concat([sam_props_batch, pd.DataFrame(empty_sam_rows)], sort=True)
+        sam_props_df = pd.concat([sam_props_df, sam_props_batch], sort=True)
         index += batch_size
     return pd.merge(df, sam_props_df, on=[key_col])

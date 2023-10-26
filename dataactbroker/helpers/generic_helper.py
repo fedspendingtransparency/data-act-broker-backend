@@ -29,7 +29,10 @@ class StringLiteral(String):
     """ Teach SA how to literalize various things """
 
     def __init__(self, *args, **kwargs):
+        # the literalizing solution involves including the properties below
+        # that shouldn't be passed explicitly to String. This keeps track of them without breaking.
         self._enums = kwargs.pop('_enums', None)
+        self._disable_warnings = kwargs.pop('_disable_warnings', None)
         super(StringLiteral, self).__init__(*args, **kwargs)
 
     def literal_processor(self, dialect):

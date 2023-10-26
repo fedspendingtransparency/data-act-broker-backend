@@ -116,9 +116,9 @@ def clean_historic_recipients(sess):
         Args:
             sess: the database connection
     """
-    new_recps = list(sess.query(SAMRecipient.awardee_or_recipient_uniqu).filter(
+    new_recps = [x[0] for x in sess.query(SAMRecipient.awardee_or_recipient_uniqu).filter(
         SAMRecipient.awardee_or_recipient_uniqu == HistoricDUNS.awardee_or_recipient_uniqu,
-        SAMRecipient.historic.is_(False)).all())
+        SAMRecipient.historic.is_(False)).all()]
     if new_recps:
         logger.info('Found {} new DUNS that were previously only available as a historic DUNS. Removing the historic'
                     ' records from the historic duns table.'.format(len(new_recps)))

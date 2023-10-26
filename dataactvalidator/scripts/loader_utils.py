@@ -93,7 +93,7 @@ def _insert_dataframe_using_copy(
 
 
 def trim_item(item):
-    if type(item) == np.str:
+    if isinstance(item, str):
         return item.strip()
     return item
 

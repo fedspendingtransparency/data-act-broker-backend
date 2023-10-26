@@ -447,8 +447,8 @@ class ValidationManager:
                     break
                 skiprows.append(i)
 
-        reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
-                                 na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False, skiprows=skiprows)
+        reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, na_filter=False,
+                                 chunksize=CHUNK_SIZE, on_bad_lines='skip', skiprows=skiprows)
         # Setting this outside of reader/file type objects which may not be used during processing
         self.flex_fields = self.reader.flex_fields
         self.header_dict = self.reader.header_dict
