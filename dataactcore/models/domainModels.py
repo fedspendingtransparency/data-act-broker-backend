@@ -196,7 +196,7 @@ def matching_cars_subquery(sess, model_class, start_date, end_date, submission_i
     if submission_id:
         model_sub_id = getattr(model_class, 'submission_id')
         subquery = subquery.filter(submission_id == model_sub_id)
-    return subquery.as_scalar()
+    return subquery.scalar_subquery()
 
 
 class CGAC(Base):
