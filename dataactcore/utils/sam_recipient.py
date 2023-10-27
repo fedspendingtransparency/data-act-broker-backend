@@ -15,7 +15,7 @@ from backoff import on_exception, expo
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SAMRecipient
 from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
-from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
+from dataactcore.utils.loader_utils import clean_data, trim_item, insert_dataframe
 from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
