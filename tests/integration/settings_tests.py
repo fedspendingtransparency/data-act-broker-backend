@@ -105,7 +105,7 @@ class SettingsTests(BaseTestAPI):
         # Basic passing test
         rule_settings_params = {'agency_code': '097', 'file': 'C', 'errors': [], 'warnings': []}
         response = self.app.post_json('/v1/save_rule_settings/', rule_settings_params,
-                                 headers={'x-session-id': self.session_id})
+                                      headers={'x-session-id': self.session_id})
 
         self.assertEqual(response.status_code, 200)
         assert response.json == {"message": "Agency 097 rules saved."}
@@ -115,42 +115,42 @@ class SettingsTests(BaseTestAPI):
         # Not including any required filters
         rule_settings_params = {}
         response = self.app.post_json('/v1/save_rule_settings/', rule_settings_params, expect_errors=True,
-                                 headers={'x-session-id': self.session_id})
+                                      headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'Missing required parameter: agency_code')
 
         # Not including some required filters
         rule_settings_params = {'agency_code': ''}
         response = self.app.post_json('/v1/save_rule_settings/', rule_settings_params, expect_errors=True,
-                                 headers={'x-session-id': self.session_id})
+                                      headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file: Missing data for required field.')
 
         # Not including some required filters
         rule_settings_params = {'agency_code': '', 'file': '', 'errors': [], 'warnings': []}
         response = self.app.post_json('/v1/save_rule_settings/', rule_settings_params, expect_errors=True,
-                                 headers={'x-session-id': self.session_id})
+                                      headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
 
         # Not including some required filters
         rule_settings_params = {'agency_code': '', 'file': 'cross-D1', 'errors': [], 'warnings': []}
         response = self.app.post_json('/v1/save_rule_settings/', rule_settings_params, expect_errors=True,
-                                 headers={'x-session-id': self.session_id})
+                                      headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
 
         # Wrong agency code
         rule_settings_params = {'agency_code': 'BAD', 'file': 'C'}
         response = self.app.post_json('/v1/save_rule_settings/', rule_settings_params, expect_errors=True,
-                                 headers={'x-session-id': self.session_id})
+                                      headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'Invalid agency_code: BAD')
 
         # Wrong file
         rule_settings_params = {'agency_code': '097', 'file': 'BAD'}
         response = self.app.post_json('/v1/save_rule_settings/', rule_settings_params, expect_errors=True,
-                                 headers={'x-session-id': self.session_id})
+                                      headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
 
@@ -159,7 +159,7 @@ class SettingsTests(BaseTestAPI):
         self.login_user()
         rule_settings_params = {'agency_code': '097', 'file': 'C', 'errors': [], 'warnings': []}
         response = self.app.post_json("/v1/save_rule_settings/", rule_settings_params,
-                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 403)
         json = response.json

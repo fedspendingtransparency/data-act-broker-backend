@@ -24,6 +24,7 @@ from dataactcore.utils.statusCode import StatusCode
 
 parser = flaskparser.FlaskParser(unknown=INCLUDE)
 
+
 # Add the file submission route
 def add_file_routes(app, is_local, server_path):
     """ Create routes related to file submission for flask app """
@@ -258,10 +259,10 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/published_submissions/", methods=["GET"])
     @requires_login
     @parser.use_kwargs({'reporting_fiscal_year': webargs_fields.String(required=True),
-                 'reporting_fiscal_period': webargs_fields.String(required=True),
-                 'cgac_code': webargs_fields.String(),
-                 'frec_code': webargs_fields.String(),
-                 'is_quarter': webargs_fields.Bool()}, location='query')
+                        'reporting_fiscal_period': webargs_fields.String(required=True),
+                        'cgac_code': webargs_fields.String(),
+                        'frec_code': webargs_fields.String(),
+                        'is_quarter': webargs_fields.Bool()}, location='query')
     def get_published_submissions(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
         cgac_code = kwargs.get('cgac_code')

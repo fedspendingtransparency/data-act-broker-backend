@@ -46,7 +46,8 @@ def test_no_perms_broker_user(create_session_mock, max_dict_mock, database, monk
     response = json.loads(res.get_data().decode("utf-8"))
     sess = GlobalDB.db().session
     # This is to prevent an integrity error with other tests that create users.
-    sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com")).delete(synchronize_session=False)
+    sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com"))\
+        .delete(synchronize_session=False)
     sess.commit()
     assert response['message'] == "There are no DATA Act Broker permissions assigned to this Service Account. You " \
                                   "may request permissions at https://community.max.gov/x/fJwuRQ"
@@ -59,7 +60,8 @@ def test_w_perms_broker_user(create_session_mock, max_dict_mock, database, monke
     res = ah.max_login({})
     sess = GlobalDB.db().session
     # This is to prevent an integrity error with other tests that create users.
-    sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com")).delete(synchronize_session=False)
+    sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com"))\
+        .delete(synchronize_session=False)
     sess.commit()
     assert res is True
 
