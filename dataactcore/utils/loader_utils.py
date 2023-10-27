@@ -141,7 +141,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
     data = data.rename(columns=field_map)
 
     # trim all columns
-    data = data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
+    data = data.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
     if len(required_values) > 0:
         # if file is blank, immediately fail

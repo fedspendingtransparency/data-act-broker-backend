@@ -655,7 +655,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
     # make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
     # NULL in the db.
     cdata = cdata.replace(np.nan, '', regex=True)
-    cdata = cdata.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+    cdata = cdata.map(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
     return cdata
 

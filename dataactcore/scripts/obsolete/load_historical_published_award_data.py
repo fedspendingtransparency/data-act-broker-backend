@@ -229,7 +229,7 @@ def process_file_chunk(sess, data, published_table, job, submission_id, file_typ
 
     # Clean rows
     if len(data.index) > 0:
-        data = data.applymap(clean_col)
+        data = data.map(clean_col)
         for field in [col for col in list(data.columns) if col in float_cols]:
             data[field] = data[field].apply(lambda x: x.replace(',', '') if x else None)
 
