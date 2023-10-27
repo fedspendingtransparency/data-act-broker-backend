@@ -28,7 +28,7 @@ def extract_abbreviation(row):
         Returns:
             abbreviation extracted from agency_name or np.nan
     """
-    abbr = re.findall('^.* \((.*)\)$', row['agency_name'])
+    abbr = re.findall(r'^.* \((.*)\)$', row['agency_name'])
     if abbr and abbr[0] != 'nan':
         return abbr[0]
     else:

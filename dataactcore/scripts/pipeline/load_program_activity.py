@@ -252,7 +252,7 @@ def convert_fyq_to_fyp(fyq):
             FYQ converted to FYP or left the same
     """
     # If it's in quarter format, convert to period
-    if re.match('^FY\d{2}Q\d$', str(fyq).upper().strip()):
+    if re.match(r'^FY\d{2}Q\d$', str(fyq).upper().strip()):
         # Make sure it's all uppercase and replace the Q with a P
         fyq = fyq.upper().strip().replace('Q', 'P')
         # take the last character in the string (the quarter), multiply by 3, replace

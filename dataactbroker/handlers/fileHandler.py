@@ -1802,7 +1802,7 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             # Make a list of all the names we're filtering on
             file_array = []
             for file_name in file_list:
-                file_regex = '.+\/.*' + str(file_name).upper() + '[^\/]*$'
+                file_regex = r'.+\/.*' + str(file_name).upper() + r'[^\/]*$'
                 file_array.append(func.upper(Job.filename).op('~')(file_regex))
 
             # Create a subquery to get all submission IDs related to upload jobs (every type except cross-file has an

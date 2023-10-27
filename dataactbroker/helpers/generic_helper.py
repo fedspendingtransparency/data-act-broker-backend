@@ -106,7 +106,7 @@ def year_period_to_dates(year, period):
             Strings representing the start and end dates of the given quarter
     """
     # Make sure year is in the proper format
-    if not year or not re.match('^\d{4}$', str(year)):
+    if not year or not re.match(r'^\d{4}$', str(year)):
         raise ResponseException('Year must be in YYYY format.', StatusCode.CLIENT_ERROR)
     # Make sure period is a number 2-12
     if not period or period not in list(range(2, 13)):

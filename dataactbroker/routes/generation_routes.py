@@ -5,7 +5,7 @@ from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.handlers import generation_handler
 from dataactbroker.permissions import requires_login, requires_submission_perms
 
-DATE_REGEX = '^\d{2}\/\d{2}\/\d{4}$'
+DATE_REGEX = r'^\d{2}\/\d{2}\/\d{4}$'
 
 parser = flaskparser.FlaskParser(unknown=INCLUDE)
 
