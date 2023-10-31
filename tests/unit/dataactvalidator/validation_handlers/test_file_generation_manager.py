@@ -213,7 +213,7 @@ def test_generate_a(database, monkeypatch):
     tas2 = TASFactory(financial_indicator2=' ', **tas2_dict)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2017',
-                     end_date='03/31/2017', submission_id=None)
+                     end_date='03/31/2017', submission=None)
     sess.add_all([sf1, sf2, sf3, sf4, sf5, tas1, tas2, job])
     sess.commit()
 
@@ -293,7 +293,7 @@ def test_generate_a_after_2020(database, monkeypatch):
     tas = TASFactory(financial_indicator2=' ', **tas_dict)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
-                     end_date='03/31/2021', submission_id=None)
+                     end_date='03/31/2021', submission=None)
     sess.add_all([sf1, sf2, tas, job])
     sess.commit()
 
@@ -351,12 +351,7 @@ def test_generate_a_null_ata(database, monkeypatch):
     year = 2017
 
     cgac = CGACFactory(cgac_code=agency_cgac)
-    sess.add(cgac)
-    sess.commit()
-
-    frec = FRECFactory(frec_code=agency_frec, cgac_id=cgac.cgac_id)
-    sess.add(frec)
-    sess.commit()
+    frec = FRECFactory(frec_code=agency_frec, cgac=cgac)
 
     tas1_dict = {
         'allocation_transfer_agency': None,
@@ -389,8 +384,8 @@ def test_generate_a_null_ata(database, monkeypatch):
     tas2 = TASFactory(financial_indicator2=' ', fr_entity_type=agency_frec, **tas2_dict)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2017',
-                     end_date='03/31/2017', submission_id=None)
-    sess.add_all([sf1, sf2, sf3, sf4, sf5, tas1, tas2, job])
+                     end_date='03/31/2017', submission=None)
+    sess.add_all([cgac, frec, sf1, sf2, sf3, sf4, sf5, tas1, tas2, job])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
@@ -573,19 +568,19 @@ def test_generate_a_gtas_status(database, monkeypatch):
     # Valid job with a closed GTAS window
     job_1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
-                       end_date='03/31/2021', submission_id=None)
+                       end_date='03/31/2021', submission=None)
     # Job with no associated submission period
     job_2 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
-                       end_date='06/30/2021', submission_id=None)
+                       end_date='06/30/2021', submission=None)
     # Job with GTAS window still open
     job_3 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
-                       end_date='04/30/2021', submission_id=None)
+                       end_date='04/30/2021', submission=None)
     # Job with no fail data in the database
     job_4 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2021',
-                       end_date='02/28/2021', submission_id=None)
+                       end_date='02/28/2021', submission=None)
     sess.add_all([sf_1, sf_2, sf_3, sf_4, sf_5, sf_6, sf_7, sf_8, sf_9, sf_10, tas_1, tas_2, tas_3, tas_4, tas_5, tas_6,
                   tas_7, fail_1, fail_2, fail_3, fail_4, fail_5, fail_6, sub_window_no_fail, sub_window_over,
                   sub_window_progress, job_1, job_2, job_3, job_4])
@@ -715,7 +710,7 @@ def test_generate_sub_d1(database, monkeypatch):
                                      file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=False,
                                      file_path=None, file_format='csv')
     sub = SubmissionFactory(submission_id=4, reporting_fiscal_year='2022', reporting_fiscal_period='4')
-    job = JobFactory(submission_id=4, file_type_id=FILE_TYPE_DICT['award_procurement'])
+    job = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_procurement'])
     sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5, file_gen, sub, job])
     sess.commit()
 
@@ -741,7 +736,7 @@ def test_generate_sub_d2(database, monkeypatch):
                                      file_type='D1', agency_code='123', agency_type='funding', is_cached_file=False,
                                      file_path=None, file_format='txt')
     sub = SubmissionFactory(submission_id=4, reporting_fiscal_year='2022', reporting_fiscal_period='4')
-    job = JobFactory(submission_id=4, file_type_id=FILE_TYPE_DICT['award'])
+    job = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award'])
     sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5, file_gen, sub, job])
     sess.commit()
 
@@ -1049,13 +1044,13 @@ def test_generate_file_updates_jobs(monkeypatch, database):
     sess = database.session
     job1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                       file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
-                      start_date='01/01/2017', end_date='01/31/2017')
+                      start_date='01/01/2017', end_date='01/31/2017', submission=None)
     job2 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                       file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
-                      start_date='01/01/2017', end_date='01/31/2017')
+                      start_date='01/01/2017', end_date='01/31/2017', submission=None)
     job3 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                       file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
-                      start_date='01/01/2017', end_date='01/31/2017')
+                      start_date='01/01/2017', end_date='01/31/2017', submission=None)
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=True,
                                      file_path=None, file_format='csv')
@@ -1099,14 +1094,12 @@ def test_generate_e_file(mock_broker_config_paths, database):
     sess = database.session
     sub = SubmissionFactory()
     sub_2 = SubmissionFactory()
-    sess.add_all([sub, sub_2])
-    sess.commit()
 
     file_path = str(mock_broker_config_paths['broker_files'].join('e_test1'))
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['executive_compensation'], filename=file_path,
-                     original_filename='e_test1', submission_id=sub.submission_id)
-    database.session.add(job)
+                     original_filename='e_test1', submission=sub)
+    database.session.add_all([sub, sub_2, job])
     database.session.commit()
 
     model = AwardProcurementFactory(submission_id=sub.submission_id)

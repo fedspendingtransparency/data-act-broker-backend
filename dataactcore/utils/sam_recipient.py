@@ -15,7 +15,7 @@ from backoff import on_exception, expo
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SAMRecipient
 from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
-from dataactvalidator.scripts.loader_utils import clean_data, trim_item, insert_dataframe
+from dataactcore.utils.loader_utils import clean_data, trim_item, insert_dataframe
 from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
@@ -168,13 +168,13 @@ def parse_sam_recipient_file(file_path, metrics=None):
     keep = 'first' if period == 'MONTHLY' else 'last'
     relevant_data.drop_duplicates(subset=[key_col], keep=keep, inplace=True)
 
-    delete_data = relevant_data[relevant_data['sam_extract_code'] == '1']
+    delete_data = relevant_data[relevant_data['sam_extract_code'] == '1'].copy()
     deletes_received = len(delete_data.index)
     add_data = relevant_data[relevant_data['sam_extract_code'].isin(['A', 'E', '2'])]
     adds_received = len(add_data.index)
     update_data = relevant_data[relevant_data['sam_extract_code'] == '3']
     updates_received = len(update_data.index)
-    add_update_data = relevant_data[relevant_data['sam_extract_code'].isin(['A', 'E', '2', '3'])]
+    add_update_data = relevant_data[relevant_data['sam_extract_code'].isin(['A', 'E', '2', '3'])].copy()
     del add_update_data["sam_extract_code"]
     del delete_data["sam_extract_code"]
 
