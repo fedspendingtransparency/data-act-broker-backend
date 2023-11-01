@@ -17,6 +17,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case, cast
 from sqlalchemy.sql import extract
 
+from dataactbroker.handlers.generation_handler import generate_file
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        get_submissions_in_period)
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
@@ -84,7 +85,7 @@ class FileHandler:
     # 1024 sounds like a good chunk size, we can change if needed
     CHUNK_SIZE = 1024
     FILE_TYPES = ['appropriations', 'award_financial', 'program_activity']
-    EXTERNAL_FILE_TYPES = ['D2', 'D1', 'E', 'F']
+    EXTERNAL_FILE_TYPES = ['A', 'D2', 'D1', 'E', 'F']
     VALIDATOR_RESPONSE_FILE = 'validatorResponse'
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
@@ -161,9 +162,11 @@ class FileHandler:
         for file_type in FileHandler.FILE_TYPES:
             if '_files' in request_params and request_params['_files'].get(file_type):
                 param_count += 1
+                if not existing_submission_id and file_type == 'appropriations':
+                    param_count -= 1
 
-        if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES):
-            raise ResponseException('Must include all files for a new submission', StatusCode.CLIENT_ERROR)
+        if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES) - 1:
+            raise ResponseException('Must include files B and C for a new submission', StatusCode.CLIENT_ERROR)
 
         if existing_submission_id and param_count == 0:
             raise ResponseException('Must include at least one file for an existing submission',
@@ -291,6 +294,9 @@ class FileHandler:
 
             # build fileNameMap to be used in creating jobs
             file_dict = request_params['_files']
+            # Remove file A if it's a new submission
+            if not existing_submission:
+                file_dict = {key: val for key, val in request_params['_files'].items() if key != 'appropriations'}
             self.build_file_map(file_dict, FileHandler.FILE_TYPES, upload_files, submission)
 
             # add external files (not for existing submissions)
@@ -308,6 +314,12 @@ class FileHandler:
                             'start': formatted_start_date.strftime('%Y%m%d'),
                             'end': formatted_end_date.strftime('%Y%m%d'),
                             'agency_type': 'awarding',
+                            'ext': '.csv'
+                        })
+                    if ext_file_type == 'A':
+                        curr_date = datetime.utcnow()
+                        fillin_vals.update({
+                            'raw_filename': 'Broker{}'.format(curr_date.strftime('%Y%m%d')),
                             'ext': '.csv'
                         })
                     filename = filename.format(**fillin_vals)
@@ -352,12 +364,20 @@ class FileHandler:
                 with app.app_context():
                     g.user = active_user
                     self.finalize(job_dict[file_type + '_id'])
+            if not existing_submission:
+                end_date = submission.reporting_end_date
+                generate_file(submission, 'A', end_date.replace(day=1).strftime('%m/%d/%Y'),
+                              end_date.strftime('%m/%d/%Y'), 'awarding', 'csv')
             for file_type, file_ref in request_params['_files'].items():
-                t = threading.Thread(target=upload, args=(file_ref, file_type,
-                                                          current_app._get_current_object(), g.user,
-                                                          submission.submission_id))
-                t.start()
-                t.join()
+                # Ignore file A if it was uploaded and it's a new submission
+                if file_type == 'appropriations' and not existing_submission:
+                    continue
+                else:
+                    t = threading.Thread(target=upload, args=(file_ref, file_type,
+                                                              current_app._get_current_object(), g.user,
+                                                              submission.submission_id))
+                    t.start()
+                    t.join()
             api_response = {'success': 'true', 'submission_id': submission.submission_id}
             json_response = JsonResponse.create(StatusCode.OK, api_response)
         except (ValueError, TypeError, NotImplementedError) as e:
