@@ -55,11 +55,14 @@ class FileGenerationManager:
             })
         if self.job and self.job.submission:
             # Submission Files
-            fillin_vals.update({
-                'submission_id': self.job.submission_id,
-                'FYP': filename_fyp_sub_format(self.job.submission),
-            })
-            file_name = SUBMISSION_FILENAMES[self.file_type].format(**fillin_vals)
+            if self.job.file_type.letter_name == 'A':
+                file_name = self.job.original_filename
+            else:
+                fillin_vals.update({
+                    'submission_id': self.job.submission_id,
+                    'FYP': filename_fyp_sub_format(self.job.submission)
+                })
+                file_name = SUBMISSION_FILENAMES[self.file_type].format(**fillin_vals)
         else:
             # Detached Files
             if self.job and self.job.file_type.letter_name == 'A':
@@ -68,6 +71,8 @@ class FileGenerationManager:
             file_name = DETACHED_FILENAMES[self.file_type].format(**fillin_vals)
         if self.is_local:
             file_path = "".join([CONFIG_BROKER['broker_files'], file_name])
+        elif self.job.file_type.letter_name == 'A' and self.job.submission_id is not None:
+            file_path = "".join(['{}/'.format(self.job.submission_id), file_name])
         else:
             file_path = "".join(["None/", file_name])
 

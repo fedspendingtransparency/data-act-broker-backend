@@ -645,7 +645,7 @@ def test_check_generation_prereqs_bad_type(database):
     sess.commit()
 
     with pytest.raises(ResponseException):
-        check_generation_prereqs(sub.submission_id, 'A')
+        check_generation_prereqs(sub.submission_id, 'B')
 
 
 def gen_file_path_from_submission(submission, original_filename):
