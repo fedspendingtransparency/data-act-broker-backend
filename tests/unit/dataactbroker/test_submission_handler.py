@@ -47,10 +47,10 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
                             publish_status_id=PUBLISH_STATUS_DICT['updated'], is_fabs=False, number_of_errors=40,
                             number_of_warnings=200)
     # Job for submission
-    job = JobFactory(submission_id=sub.submission_id, last_validated=now_plus_10,
+    job = JobFactory(submission=sub, last_validated=now_plus_10,
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['finished'],
                      file_type_id=FILE_TYPE_DICT['appropriations'], number_of_rows=3, file_size=7655)
-    job_2 = JobFactory(submission_id=sub.submission_id, last_validated=now_plus_10,
+    job_2 = JobFactory(submission=sub, last_validated=now_plus_10,
                        job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['finished'],
                        file_type_id=FILE_TYPE_DICT['program_activity'], number_of_rows=7, file_size=12345)
 
@@ -388,22 +388,22 @@ def test_get_submission_data_dabs(database):
     sub_2 = SubmissionFactory(submission_id=2, is_fabs=False)
 
     # Job for submission
-    job = JobFactory(updated_at=now, job_id=1, submission_id=sub.submission_id,
+    job = JobFactory(updated_at=now, job_id=1, submission=sub,
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['finished'],
                      file_type_id=FILE_TYPE_DICT['appropriations'], number_of_rows=3, file_size=7655,
                      original_filename='file_1')
-    job_2 = JobFactory(updated_at=now, job_id=2, submission_id=sub.submission_id,
+    job_2 = JobFactory(updated_at=now, job_id=2, submission=sub,
                        job_type_id=JOB_TYPE_DICT['file_upload'], job_status_id=JOB_STATUS_DICT['finished'],
                        file_type_id=FILE_TYPE_DICT['program_activity'], number_of_rows=None, file_size=None,
                        original_filename='file_2')
-    job_3 = JobFactory(updated_at=now, job_id=3, submission_id=sub.submission_id,
+    job_3 = JobFactory(updated_at=now, job_id=3, submission=sub,
                        job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['running'],
                        file_type_id=FILE_TYPE_DICT['program_activity'], number_of_rows=7, file_size=12345,
                        original_filename='file_2')
-    job_4 = JobFactory(updated_at=now, job_id=4, submission_id=sub.submission_id,
+    job_4 = JobFactory(updated_at=now, job_id=4, submission=sub,
                        job_type_id=JOB_TYPE_DICT['validation'], job_status_id=JOB_STATUS_DICT['waiting'],
                        file_type_id=None, number_of_rows=None, file_size=None, original_filename=None)
-    job_5 = JobFactory(updated_at=now, job_id=5, submission_id=sub_2.submission_id,
+    job_5 = JobFactory(updated_at=now, job_id=5, submission=sub_2,
                        job_type_id=JOB_TYPE_DICT['validation'], job_status_id=JOB_STATUS_DICT['waiting'],
                        file_type_id=None, number_of_rows=None, file_size=None, original_filename=None)
 
@@ -513,16 +513,13 @@ def test_publish_and_certify_dabs_submission(database, monkeypatch):
                                        is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                        publishing_user_id=None)
         sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now - datetime.timedelta(days=1))
-        sess.add_all([user, cgac, submission, sub_window])
-        sess.commit()
 
-        comment = CommentFactory(file_type_id=FILE_TYPE_DICT['appropriations'], comment='Test',
-                                 submission_id=submission.submission_id)
-        job_1 = JobFactory(submission_id=submission.submission_id, last_validated=now,
+        comment = CommentFactory(file_type_id=FILE_TYPE_DICT['appropriations'], comment='Test', submission=submission)
+        job_1 = JobFactory(submission=submission, last_validated=now,
                            job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        job_2 = JobFactory(submission_id=submission.submission_id, last_validated=now + datetime.timedelta(days=1),
+        job_2 = JobFactory(submission=submission, last_validated=now + datetime.timedelta(days=1),
                            job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        sess.add_all([job_1, job_2, comment])
+        sess.add_all([user, cgac, submission, sub_window, job_1, job_2, comment])
         sess.commit()
 
         flex_field = FlexField(file_type_id=FILE_TYPE_DICT['appropriations'], header='flex_test', job_id=job_1.job_id,
@@ -613,22 +610,18 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
                                                       period_start=now - datetime.timedelta(days=1))
         sub_window2 = SubmissionWindowScheduleFactory(year=2017, period=2,
                                                       period_start=now - datetime.timedelta(days=1))
+
+        job_1 = JobFactory(submission=pub_mon1_submission, last_validated=now,
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        job_2 = JobFactory(submission=pub_mon1_submission, last_validated=now + datetime.timedelta(days=1),
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        job_3 = JobFactory(submission=pub_mon2_submission, last_validated=now,
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        job_4 = JobFactory(submission=pub_mon2_submission, last_validated=now + datetime.timedelta(days=1),
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
         sess.add_all([user, cgac, pub_mon1_submission, pub_mon2_submission, non_pub_same_mon_submission,
                       non_pub_diff_mon_submission, non_pub_same_qtr_submission, non_pub_diff_qtr_submission,
-                      sub_window1, sub_window2])
-        sess.commit()
-
-        job_1 = JobFactory(submission_id=pub_mon1_submission.submission_id, last_validated=now,
-                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        job_2 = JobFactory(submission_id=pub_mon1_submission.submission_id,
-                           last_validated=now + datetime.timedelta(days=1),
-                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        job_3 = JobFactory(submission_id=pub_mon2_submission.submission_id, last_validated=now,
-                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        job_4 = JobFactory(submission_id=pub_mon2_submission.submission_id,
-                           last_validated=now + datetime.timedelta(days=1),
-                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        sess.add_all([job_1, job_2, job_3, job_4])
+                      sub_window1, sub_window2, job_1, job_2, job_3, job_4])
         sess.commit()
 
         g.user = user
@@ -703,16 +696,13 @@ def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
                                                         is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                                         publishing_user_id=None)
         sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now - datetime.timedelta(days=1))
-        sess.add_all([user, cgac, pub_qtr_submission, non_pub_same_mon_submission, non_pub_diff_mon_submission,
-                      non_pub_same_qtr_submission, non_pub_diff_qtr_submission, sub_window])
-        sess.commit()
 
-        job_1 = JobFactory(submission_id=pub_qtr_submission.submission_id, last_validated=now,
+        job_1 = JobFactory(submission=pub_qtr_submission, last_validated=now,
                            job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        job_2 = JobFactory(submission_id=pub_qtr_submission.submission_id,
-                           last_validated=now + datetime.timedelta(days=1),
+        job_2 = JobFactory(submission=pub_qtr_submission, last_validated=now + datetime.timedelta(days=1),
                            job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        sess.add_all([job_1, job_2])
+        sess.add_all([user, cgac, pub_qtr_submission, non_pub_same_mon_submission, non_pub_diff_mon_submission,
+                      non_pub_same_qtr_submission, non_pub_diff_qtr_submission, sub_window, job_1, job_2])
         sess.commit()
 
         g.user = user
@@ -754,11 +744,8 @@ def test_publish_checks_revalidation_needed(database):
                                    is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                    publishing_user_id=None)
     reval = RevalidationThresholdFactory(revalidation_date=now)
-    sess.add_all([cgac, submission, reval])
-    sess.commit()
-    job = JobFactory(submission_id=submission.submission_id, last_validated=earlier,
-                     job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-    sess.add(job)
+    job = JobFactory(submission=submission, last_validated=earlier, job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+    sess.add_all([cgac, submission, reval, job])
     sess.commit()
 
     with pytest.raises(ValueError) as val_error:
@@ -783,11 +770,8 @@ def test_publish_checks_test_submission(database):
                                    is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                    publishing_user_id=None)
     reval = RevalidationThresholdFactory(revalidation_date=now)
-    sess.add_all([cgac, submission, reval])
-    sess.commit()
-    job = JobFactory(submission_id=submission.submission_id, last_validated=earlier,
-                     job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-    sess.add(job)
+    job = JobFactory(submission=submission, last_validated=earlier, job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+    sess.add_all([cgac, submission, reval, job])
     sess.commit()
 
     with pytest.raises(ValueError) as val_error:
@@ -810,12 +794,8 @@ def test_publish_checks_window_not_in_db(database):
                                    publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                                    is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                    publishing_user_id=None)
-    sess.add_all([cgac, submission])
-    sess.commit()
-
-    job = JobFactory(submission_id=submission.submission_id, last_validated=now,
-                     job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-    sess.add(job)
+    job = JobFactory(submission=submission, last_validated=now, job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+    sess.add_all([cgac, submission, job])
     sess.commit()
 
     with pytest.raises(ValueError) as val_error:
@@ -839,12 +819,8 @@ def test_publish_checks_window_too_early(database):
                                    is_fabs=False, number_of_errors=0, number_of_warnings=200,
                                    publishing_user_id=None)
     sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now)
-    sess.add_all([cgac, submission, sub_window])
-    sess.commit()
-
-    job = JobFactory(submission_id=submission.submission_id, last_validated=earlier,
-                     job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-    sess.add(job)
+    job = JobFactory(submission=submission, last_validated=earlier, job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+    sess.add_all([cgac, submission, sub_window, job])
     sess.commit()
 
     with pytest.raises(ValueError) as val_error:
@@ -875,14 +851,9 @@ def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database
         sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=earlier)
         sub_window_2 = SubmissionWindowScheduleFactory(year=2017, period=6,
                                                        period_start=now + datetime.timedelta(days=10))
-        sess.add_all([user, cgac, submission, sub_window, sub_window_2])
-        sess.commit()
-
-        job = JobFactory(submission_id=submission.submission_id, last_validated=now,
-                         job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        c_job = JobFactory(submission_id=submission.submission_id, last_validated=now,
-                           job_type_id=JOB_TYPE_DICT['validation'])
-        sess.add_all([job, c_job])
+        job = JobFactory(submission=submission, last_validated=now, job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        c_job = JobFactory(submission=submission, last_validated=now, job_type_id=JOB_TYPE_DICT['validation'])
+        sess.add_all([user, cgac, submission, sub_window, sub_window_2, job, c_job])
         sess.commit()
 
         g.user = user
@@ -1163,16 +1134,12 @@ def test_move_published_data(database):
     with Flask('test-app').app_context():
         sess = database.session
 
-        # Create 2 submissions
+        # Create submissions and jobs so we can put IDs into the tables
         sub_1 = SubmissionFactory()
         sub_2 = SubmissionFactory()
-        sess.add_all([sub_1, sub_2])
-        sess.commit()
-
-        # Create jobs so we can put a job ID into the tables
-        job_1 = JobFactory(submission_id=sub_1.submission_id)
-        job_2 = JobFactory(submission_id=sub_2.submission_id)
-        sess.add_all([job_1, job_2])
+        job_1 = JobFactory(submission=sub_1)
+        job_2 = JobFactory(submission=sub_2)
+        sess.add_all([sub_1, sub_2, job_1, job_2])
         sess.commit()
 
         # Create Appropriation entries, 1 per submission, and one of each other kind

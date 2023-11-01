@@ -529,10 +529,10 @@ def test_update_val_progress(database):
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
     fabs_sub = SubmissionFactory(submission_id=2, is_fabs=True)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
                      progress=32.4)
-    fabs_job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    fabs_job = JobFactory(submission=fabs_sub, job_status_id=JOB_STATUS_DICT['finished'],
                           job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['fabs'],
                           progress=0)
     sess.add_all([sub, fabs_sub, job, fabs_job])
@@ -549,7 +549,7 @@ def test_update_val_progress(database):
 def test_update_cross_val_progress(database):
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['running'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['running'],
                      job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
                      progress=32.4)
     sess.add_all([sub, job])

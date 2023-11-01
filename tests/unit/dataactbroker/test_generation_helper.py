@@ -33,12 +33,11 @@ def test_start_d_generation_submission_cached(database, monkeypatch):
         agency_code='1234', agency_type='awarding', is_cached_file=True, file_path=file_path, file_format='csv')
     up_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], file_type_id=FILE_TYPE_DICT['award'], error_message=None,
-        job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, original_filename=None,
-        submission_id=submission.submission_id)
+        job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, original_filename=None, submission=submission)
     val_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award'],
         job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, original_filename=None,
-        submission_id=submission.submission_id)
+        submission=submission)
     sess.add_all([submission, file_gen, up_job, val_job])
     sess.commit()
 
@@ -80,11 +79,11 @@ def test_start_d_generation_submission_change_request(database, monkeypatch):
         file_format='csv')
     up_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, job_type_id=JOB_TYPE_DICT['file_upload'],
-        file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, submission_id=submission.submission_id,
+        file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, submission=submission,
         file_generation_id=file_gen.file_generation_id, original_filename=original_filename)
     val_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award_procurement'],
-        job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, submission_id=submission.submission_id,
+        job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, submission=submission,
         original_filename=original_filename)
     sess.add_all([submission, file_gen, up_job, val_job])
     sess.commit()
@@ -119,12 +118,11 @@ def test_start_d_generation_submission_different_format(database, monkeypatch):
         agency_code='1234', agency_type='awarding', is_cached_file=True, file_path=file_path, file_format='csv')
     up_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], file_type_id=FILE_TYPE_DICT['award'], error_message=None,
-        job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, original_filename=None,
-        submission_id=submission.submission_id)
+        job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, original_filename=None, submission=submission)
     val_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award'],
         job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, original_filename=None,
-        submission_id=submission.submission_id)
+        submission=submission)
     sess.add_all([submission, file_gen, up_job, val_job])
     sess.commit()
 
@@ -149,11 +147,11 @@ def test_start_d_generation_submission_new(database, monkeypatch):
         frec_code=None, is_quarter_format=False, publishable=False, reporting_fiscal_year='2017')
     up_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award'],
-        job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, submission_id=submission.submission_id,
+        job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, submission=submission,
         original_filename=original_filename, file_generation_id=None)
     val_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award'],
-        job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, submission_id=submission.submission_id,
+        job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, submission=submission,
         original_filename=original_filename)
     sess.add_all([submission, up_job, val_job])
     sess.commit()
@@ -188,7 +186,7 @@ def test_retrieve_cached_file_generation(database):
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
         file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
-        original_filename=None, file_generation_id=None)
+        original_filename=None, file_generation_id=None, submission=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
         agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
@@ -206,7 +204,7 @@ def test_retrieve_cached_file_generation_none(database):
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
         file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
-        original_filename=None, file_generation_id=None)
+        original_filename=None, file_generation_id=None, submission=None)
     sess.add(job)
     sess.commit()
 
@@ -221,7 +219,7 @@ def test_retrieve_cached_file_generation_end_date_diff(database):
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
         file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
-        original_filename=None, file_generation_id=None)
+        original_filename=None, file_generation_id=None, submission=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-30', file_type='D2',
         agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
@@ -239,7 +237,7 @@ def test_retrieve_cached_file_generation_start_date_diff(database):
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
         file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
-        original_filename=None, file_generation_id=None)
+        original_filename=None, file_generation_id=None, submission=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-02', end_date='2017-01-31', file_type='D2',
         agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
@@ -257,7 +255,7 @@ def test_retrieve_cached_file_generation_agency_code_diff(database):
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
         file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
-        original_filename=None, file_generation_id=None)
+        original_filename=None, file_generation_id=None, submission=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
         agency_code='124', agency_type='awarding', is_cached_file=True, file_format='csv')
@@ -275,7 +273,7 @@ def test_retrieve_cached_file_generation_agency_type_diff(database):
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
         file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
-        original_filename=None, file_generation_id=None)
+        original_filename=None, file_generation_id=None, submission=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
         agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
@@ -293,7 +291,7 @@ def test_retrieve_cached_file_generation_file_type_diff(database):
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
         file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
-        original_filename=None, file_generation_id=None)
+        original_filename=None, file_generation_id=None, submission=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D1',
         agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
@@ -311,7 +309,7 @@ def test_retrieve_cached_file_generation_not_cached(database):
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
         file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
-        original_filename=None, file_generation_id=None)
+        original_filename=None, file_generation_id=None, submission=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
         agency_code='123', agency_type='awarding', is_cached_file=False, file_format='csv')
@@ -330,7 +328,7 @@ def test_check_detached_d_file_generation(database):
     # Detached D2 generation waiting to be picked up by the Validator
     job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['award'], error_message='', filename='job_id/file.csv',
-                     original_filename='file.csv')
+                     original_filename='file.csv', submission=None)
     sess.add(job)
     sess.commit()
     response_dict = check_file_generation(job.job_id)
@@ -465,7 +463,7 @@ def test_copy_file_generation_to_job_detached(monkeypatch, database):
     file_path = gen_file_path_from_submission('None', original_filename)
 
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                     file_type_id=FILE_TYPE_DICT['award'])
+                     file_type_id=FILE_TYPE_DICT['award'], submission=None)
     file_gen = FileGenerationFactory(file_type='D1', file_path=file_path, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
@@ -528,9 +526,9 @@ def test_check_generation_prereqs_ef_valid(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
-                           file_type_id=None, job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=0,
-                           number_of_warnings=1, error_message=None)
+    cross_val = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
+                           job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=0, number_of_warnings=1,
+                           error_message=None)
     sess.add_all([sub, cross_val])
     sess.commit()
 
@@ -544,7 +542,7 @@ def test_check_generation_prereqs_ef_not_finished(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
+    cross_val = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
                            job_status_id=JOB_STATUS_DICT['waiting'], number_of_errors=0, number_of_warnings=0,
                            error_message=None)
     sess.add_all([sub, cross_val])
@@ -560,7 +558,7 @@ def test_check_generation_prereqs_ef_has_errors(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
+    cross_val = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
                            job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=1, number_of_warnings=0,
                            error_message=None)
     sess.add_all([sub, cross_val])
@@ -578,13 +576,13 @@ def test_check_generation_prereqs_d_valid(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_1 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_2 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_3 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=1, error_message=None)
     sess.add_all([sub, job_1, job_2, job_3])
@@ -600,13 +598,13 @@ def test_check_generation_prereqs_d_not_finished(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_1 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_2 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['waiting'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_3 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
     sess.add_all([sub, job_1, job_2, job_3])
@@ -622,13 +620,13 @@ def test_check_generation_prereqs_d_has_errors(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_1 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=1, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_2 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+    job_3 = JobFactory(submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                        file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
     sess.add_all([sub, job_1, job_2, job_3])

@@ -354,7 +354,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -365,7 +365,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['running'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['running'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -376,7 +376,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['waiting'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['waiting'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -387,7 +387,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['ready'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['ready'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -398,7 +398,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, is_fabs=True, reporting_start_date=None)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['ready'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['ready'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -411,7 +411,7 @@ def test_list_submissions_success(database, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=2, is_fabs=True, reporting_start_date=None,
                             certified=False)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -424,7 +424,7 @@ def test_list_submissions_success(database, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=2, is_fabs=True, reporting_start_date=None,
                             certified=True)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -437,7 +437,7 @@ def test_list_submissions_success(database, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=3, is_fabs=True, reporting_start_date=None,
                             certified=True)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -462,7 +462,7 @@ def test_list_submissions_failure(database, monkeypatch):
 
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['failed'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['failed'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -473,7 +473,7 @@ def test_list_submissions_failure(database, monkeypatch):
 
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['invalid'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['invalid'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
@@ -805,13 +805,13 @@ def test_submission_report_url_local(monkeypatch, tmpdir, database):
     sub1 = SubmissionFactory(submission_id=4, is_fabs=False)
     sub2 = SubmissionFactory(submission_id=5, is_fabs=False)
     sub3 = SubmissionFactory(submission_id=6, is_fabs=False, reporting_fiscal_year='2022', reporting_fiscal_period='2')
-    job1 = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
+    job1 = JobFactory(submission=sub1, job_status_id=JOB_STATUS_DICT['finished'],
                       job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
                       updated_at='2017-01-01')
-    job2 = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
+    job2 = JobFactory(submission=sub2, job_status_id=JOB_STATUS_DICT['finished'],
                       job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
                       updated_at='2020-08-01')
-    job3 = JobFactory(submission_id=6, job_status_id=JOB_STATUS_DICT['finished'],
+    job3 = JobFactory(submission=sub3, job_status_id=JOB_STATUS_DICT['finished'],
                       job_type_id=JOB_TYPE_DICT['validation'], file_type_id=FILE_TYPE_DICT['award_financial'],
                       updated_at='2022-08-01')
     add_models(database, [format_name_change, dev_8325_change, sub1, job1, sub2, job2, sub3, job3])
@@ -840,13 +840,13 @@ def test_submission_report_url_s3(monkeypatch, database):
     sub1 = SubmissionFactory(submission_id=4, is_fabs=False)
     sub2 = SubmissionFactory(submission_id=5, is_fabs=False)
     sub3 = SubmissionFactory(submission_id=6, is_fabs=False, reporting_fiscal_year='2022', reporting_fiscal_period='2')
-    job1 = JobFactory(submission_id=4, job_status_id=JOB_STATUS_DICT['finished'],
+    job1 = JobFactory(submission=sub1, job_status_id=JOB_STATUS_DICT['finished'],
                       job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                       file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2017-01-01')
-    job2 = JobFactory(submission_id=5, job_status_id=JOB_STATUS_DICT['finished'],
+    job2 = JobFactory(submission=sub2, job_status_id=JOB_STATUS_DICT['finished'],
                       job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                       file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2020-08-01')
-    job3 = JobFactory(submission_id=6, job_status_id=JOB_STATUS_DICT['finished'],
+    job3 = JobFactory(submission=sub3, job_status_id=JOB_STATUS_DICT['finished'],
                       job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                       file_type_id=FILE_TYPE_DICT['appropriations'], updated_at='2022-08-01')
     add_models(database, [daims_change, dev_8325_change, sub1, job1, sub2, job2, sub3, job3])
@@ -933,7 +933,7 @@ def test_get_upload_file_url_local(database, monkeypatch, tmpdir):
 
     # create and insert submission/job
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename='a/path/to/some_file.csv')
     add_models(database, [sub, job])
@@ -970,7 +970,7 @@ def test_get_upload_file_url_no_file(database):
         get_upload_file_url.
     """
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename=None)
     add_models(database, [sub, job])
@@ -991,7 +991,7 @@ def test_get_upload_file_url_s3(database, monkeypatch):
 
     # create and insert submission/job
     sub = SubmissionFactory(submission_id=1, is_fabs=False)
-    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+    job = JobFactory(submission=sub, job_status_id=JOB_STATUS_DICT['finished'],
                      job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename='1/some_file.csv')
     add_models(database, [sub, job])
@@ -1459,13 +1459,12 @@ def test_get_status_fabs(database):
     now = datetime.now()
 
     sub = SubmissionFactory(submission_id=1, is_fabs=True)
-    job_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
+    job_up = JobFactory(updated_at=now, submission=sub, job_type_id=JOB_TYPE_DICT['file_upload'],
                         file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
                         number_of_errors=0, number_of_warnings=0, original_filename='test_file.csv')
-    job_val = JobFactory(updated_at=now, submission_id=sub.submission_id,
-                         job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['fabs'],
-                         job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=0, number_of_warnings=4,
-                         original_filename='test_file.csv')
+    job_val = JobFactory(updated_at=now, submission=sub, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                         file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
+                         number_of_errors=0, number_of_warnings=4, original_filename='test_file.csv')
 
     sess.add_all([sub, job_up, job_val])
     sess.commit()
@@ -1490,62 +1489,62 @@ def test_get_status_dabs(database):
     finished_status = JOB_STATUS_DICT['finished']
 
     # Completed, warnings, errors
-    job_1_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=upload_job,
+    job_1_up = JobFactory(updated_at=now, submission=sub, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=finished_status,
                           number_of_errors=0, number_of_warnings=0, error_message=None, progress=24,
                           original_filename='test_file_a.csv')
-    job_1_val = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=validation_job,
+    job_1_val = JobFactory(updated_at=now, submission=sub, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=finished_status,
                            number_of_errors=10, number_of_warnings=4, error_message=None,
                            original_filename='test_file_a.csv')
     # Invalid upload
-    job_2_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=upload_job,
+    job_2_up = JobFactory(updated_at=now, submission=sub, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['invalid'],
                           number_of_errors=0, number_of_warnings=0, error_message=None,
                           original_filename='test_file_b.csv')
-    job_2_val = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=validation_job,
+    job_2_val = JobFactory(updated_at=now, submission=sub, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['waiting'],
                            number_of_errors=0, number_of_warnings=0, error_message=None,
                            original_filename='test_file_b.csv')
     # Validating
-    job_3_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=upload_job,
+    job_3_up = JobFactory(updated_at=now, submission=sub, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=finished_status,
                           number_of_errors=0, number_of_warnings=0, error_message=None,
                           original_filename='test_file_c.csv')
-    job_3_val = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=validation_job,
+    job_3_val = JobFactory(updated_at=now, submission=sub, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['running'],
                            number_of_errors=0, number_of_warnings=0, error_message=None,
                            original_filename='test_file_c.csv')
     # Uploading
-    job_4_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=upload_job,
+    job_4_up = JobFactory(updated_at=now, submission=sub, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['award'], job_status_id=JOB_STATUS_DICT['running'],
                           number_of_errors=0, number_of_warnings=0, error_message=None,
                           original_filename='test_file_d2.csv')
-    job_4_val = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=validation_job,
+    job_4_val = JobFactory(updated_at=now, submission=sub, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['award'], job_status_id=JOB_STATUS_DICT['ready'],
                            number_of_errors=0, number_of_warnings=0, error_message=None,
                            original_filename='test_file_d2.csv')
     # Invalid on validation
-    job_5_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=upload_job,
+    job_5_up = JobFactory(updated_at=now, submission=sub, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['award_procurement'], job_status_id=finished_status,
                           number_of_errors=0, number_of_warnings=0, error_message=None,
                           original_filename='test_file_d1.csv')
-    job_5_val = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=validation_job,
+    job_5_val = JobFactory(updated_at=now, submission=sub, job_type_id=validation_job,
                            file_type_id=FILE_TYPE_DICT['award_procurement'], job_status_id=JOB_STATUS_DICT['invalid'],
                            number_of_errors=0, number_of_warnings=0, error_message=None,
                            original_filename='test_file_d1.csv')
     # Failed
-    job_6_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=upload_job,
+    job_6_up = JobFactory(updated_at=now, submission=sub, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['executive_compensation'],
                           job_status_id=JOB_STATUS_DICT['failed'], number_of_errors=0, number_of_warnings=0,
                           error_message='test message', original_filename='test_file_e.csv')
     # Ready
-    job_7_up = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=upload_job,
+    job_7_up = JobFactory(updated_at=now, submission=sub, job_type_id=upload_job,
                           file_type_id=FILE_TYPE_DICT['sub_award'], job_status_id=JOB_STATUS_DICT['ready'],
                           number_of_errors=0, number_of_warnings=0, error_message=None,
                           original_filename='test_file_f.csv')
     # Waiting
-    job_8_val = JobFactory(updated_at=now, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
+    job_8_val = JobFactory(updated_at=now, submission=sub, job_type_id=JOB_TYPE_DICT['validation'],
                            file_type_id=None, job_status_id=JOB_STATUS_DICT['waiting'], number_of_errors=0,
                            number_of_warnings=5, error_message=None, progress=15.9, original_filename=None)
 

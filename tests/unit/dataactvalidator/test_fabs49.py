@@ -48,7 +48,7 @@ def test_success_frec(database):
     # Ignored if sub tier agency code doesn't exist because that's handled elsewhere
     fabs_2 = FABSFactory(awarding_sub_tier_agency_c='9876', correction_delete_indicatr=None)
 
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, frec_subtier, frec_cgac],
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, frec_subtier, frec_cgac, frec],
                               submission=frec_submission)
     assert errors == 0
 

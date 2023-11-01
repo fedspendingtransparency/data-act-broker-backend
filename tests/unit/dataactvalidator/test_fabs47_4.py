@@ -13,23 +13,24 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test when provided, FundingOpportunityNumber should match a FundingOpportunityNumber within an existing notice
-        of funding opportunity on Grants.gov.
+        of funding opportunity on Grants.gov. Agencies may provide the value "Not Applicable".
     """
     fon = FundingOpportunityFactory(funding_opportunity_number='123-abC')
     # test that case is irrelevant
     fabs_1 = FABSFactory(funding_opportunity_number='123-ABC', correction_delete_indicatr='C')
     fabs_2 = FABSFactory(funding_opportunity_number='123-Abc', correction_delete_indicatr=None)
 
-    # Ignored for CorrectionDeleteIndicator of D
+    # Ignored for CorrectionDeleteIndicator of D and FON of 'Not Applicable'
     fabs_3 = FABSFactory(funding_opportunity_number='123', correction_delete_indicatr='d')
+    fabs_4 = FABSFactory(funding_opportunity_number='NoT AppLicaBle', correction_delete_indicatr='')
 
-    errors = number_of_errors(_FILE, database, models=[fon, fabs_1, fabs_2, fabs_3])
+    errors = number_of_errors(_FILE, database, models=[fon, fabs_1, fabs_2, fabs_3, fabs_4])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test failure when provided, FundingOpportunityNumber should match a FundingOpportunityNumber within an existing
-        notice of funding opportunity on Grants.gov.
+        notice of funding opportunity on Grants.gov. Agencies may provide the value "Not Applicable".
     """
     fon = FundingOpportunityFactory(funding_opportunity_number='123-abC')
     fabs_1 = FABSFactory(funding_opportunity_number='123', correction_delete_indicatr='C')

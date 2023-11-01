@@ -12,11 +12,10 @@ def test_relevant_flex_data(database):
     """Verify that we can retrieve multiple flex fields from our data"""
     sess = database.session
     subs = [SubmissionFactory() for _ in range(3)]
-    sess.add_all(subs)
-    sess.commit()
+
     # Three jobs per submission
-    jobs = [JobFactory(submission_id=sub.submission_id) for sub in subs for _ in range(3)]
-    sess.add_all(jobs)
+    jobs = [JobFactory(submission=sub) for sub in subs for _ in range(3)]
+    sess.add_all(subs + jobs)
     sess.commit()
     # Set up ten rows of three fields per job
     sess.add_all([
