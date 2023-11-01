@@ -40,7 +40,7 @@ def load_funding_opportunity_number_data(force_reload=False):
         'oppStatuses': 'forecasted|posted|closed|archived',
         'rows': batch_size
     }
-    request_path = 'https://www.grants.gov/grantsws/rest/opportunities/search/'
+    request_path = 'https://apply07.grants.gov/grantsws/rest/opportunities/search/'
 
     fon_resp = requests.post(request_path, json=post_body).json()
     total_records = fon_resp['hitCount']
