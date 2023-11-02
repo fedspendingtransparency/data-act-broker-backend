@@ -35,7 +35,7 @@ Mako==1.0.4
 MarkupSafe==1.1.1
 marshmallow==2.19.2
 mccabe==0.6.1
-numpy==1.19.2
+numpy==1.19.3
 pandas==0.25.3
 paramiko==2.7.2
 pep8-naming==0.4.1
