@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
 MULTIPROCESSING_POOLS = CONFIG_BROKER['multiprocessing_pools'] or None
-PARALLEL = CONFIG_BROKER['parallel_loading']
+PARALLEL = False
 BATCH_SQL_VAL_RESULTS = CONFIG_BROKER['batch_sql_validation_results']
 
 
