@@ -532,8 +532,17 @@ class ValidationManager:
             temp_reader = self.reader
             self.reader = None
 
+            # We need to dispose the engine connection when making the child processes in SQLAlchemy 1.4
+            # https://docs.sqlalchemy.org/en/14/core/pooling.html#using-connection-pools-with-multiprocessing-or-os-fork
+            conn = db_connection()
+            engine = conn.engine
+
+            def initializer():
+                """ ensure the parent proc's database connections are not touched in the new connection pool """
+                engine.dispose(close=False)
+
             m_lock = server_manager.Lock()
-            pool = Pool(MULTIPROCESSING_POOLS)
+            pool = Pool(MULTIPROCESSING_POOLS, initializer=initializer())
             results = []
             for chunk_df in reader_obj:
                 result = pool.apply_async(func=self.parallel_process_data_chunk,
