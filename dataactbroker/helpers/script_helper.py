@@ -17,7 +17,8 @@ def list_data(data):
         Args:
             data: dictionaries to turn into a list of those dictionaries
 
-        Returns a list of dictionaries or the data that was provided if it wasn't a dictionary
+        Returns:
+            a list of dictionaries or the data that was provided if it wasn't a dictionary
     """
     if isinstance(data, dict):
         # make a list so it's consistent
