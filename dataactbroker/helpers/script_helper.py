@@ -33,6 +33,15 @@ def get_xml_with_exception_hand(url_string, namespaces, expect_entries=True):
             url_string: string path to the feed we are getting data from
             namespaces: dict of namespaces to clean up for the xml parsing
             expect_entries: boolean of whether we should check the length of the list
+
+        Returns:
+            The XML response from the url provided
+
+        Raises:
+            ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout:
+                If there is a problem calling the url provided
+            KeyError:
+                If one of the expected keys doesn't exist
     """
     exception_retries = -1
     retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
