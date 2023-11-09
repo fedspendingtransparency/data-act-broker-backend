@@ -1112,7 +1112,8 @@ class ValidationManager:
                 'submission_id': self.submission_id,
                 'job_id': self.job_id,
             })
-            spawn_of_job.kill()
+            if spawn_of_job.is_running():
+                spawn_of_job.kill()
 
 
 def update_account_nums(model_class, submission_id):
