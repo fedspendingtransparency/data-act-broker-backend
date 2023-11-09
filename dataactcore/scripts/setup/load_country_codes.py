@@ -2,6 +2,9 @@ import logging
 import requests
 import xmltodict
 import time
+import csv
+import boto3
+import os
 
 import pandas as pd
 import datetime
@@ -12,17 +15,15 @@ from urllib3.exceptions import ReadTimeoutError
 
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.models.domainModels import CountryCode
-
-from dataactvalidator.health_check import create_app
 from dataactcore.utils.loader_utils import insert_dataframe
 
+from dataactvalidator.health_check import create_app
+
 logger = logging.getLogger(__name__)
-
-feed_url = 'https://nsgreg-api.nga.mil/geo-political/GENC/3/now'
-
 
 CC_NAMESPACES = {'http://api.nsgreg.nga.mil/schema/genc/3.0': None,
                  'http://api.nsgreg.nga.mil/schema/genc/3.0/genc-cmn': None}
@@ -43,7 +44,7 @@ def list_data(data):
 
 
 def get_with_exception_hand(url_string):
-    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
+    """ Retrieve data from Country Code, allow for multiple retries and timeouts """
     exception_retries = -1
     retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
     request_timeout = 60
@@ -51,8 +52,6 @@ def get_with_exception_hand(url_string):
     while exception_retries < len(retry_sleep_times):
         try:
             resp = requests.get(url_string, timeout=request_timeout)
-            # resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-            resp_dict = xmltodict.parse(resp.text)
             break
         except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout, KeyError) as e:
             exception_retries += 1
@@ -62,7 +61,7 @@ def get_with_exception_hand(url_string):
                             .format(retry_sleep_times[exception_retries], request_timeout))
                 time.sleep(retry_sleep_times[exception_retries])
             else:
-                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                logger.info('Connection to Country Code feed lost, maximum retry attempts exceeded.')
                 raise e
     return resp
 
@@ -86,6 +85,7 @@ def load_country_codes(base_path, force_reload=False):
 
     with create_app().app_context():
         sess = GlobalDB.db().session
+        feed_url = 'https://nsgreg-api.nga.mil/geo-political/GENC/3/now'
 
         resp = get_with_exception_hand(feed_url)
 
@@ -114,6 +114,18 @@ def load_country_codes(base_path, force_reload=False):
             num = insert_dataframe(data, CountryCode.__table__.name, sess.connection())
             metrics_json['records_inserted'] = num
             sess.commit()
+
+            if CONFIG_BROKER["use_aws"]:
+                cc_filename = 'country_codes.csv'
+
+                data.to_csv(cc_filename, index=False, quoting=csv.QUOTE_ALL, header=True,
+                            columns=['country_code', 'country_code_2_char', 'country_name', 'territory_free_state'])
+
+                logger.info("Uploading {} to {}".format(cc_filename, CONFIG_BROKER["public_files_bucket"]))
+                s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+                s3.upload_file('country_codes.csv', CONFIG_BROKER["public_files_bucket"],
+                               'broker_reference_data/country_codes.csv')
+                os.remove(cc_filename)
 
             # Updating data load dates if the load successfully added new country codes
             update_external_data_load_date(now, datetime.datetime.now(), 'country_code')
