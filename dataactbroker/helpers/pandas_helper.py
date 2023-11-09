@@ -30,7 +30,7 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
     # Drop the created_at and updated_at columns from the new data so they don't cause differences
     try:
         new_data_copy.drop(['created_at', 'updated_at'], axis=1, inplace=True)
-    except ValueError:
+    except (ValueError, KeyError):
         logger.info('created_at or updated_at column not found, drop skipped.')
 
     sess = GlobalDB.db().session
@@ -44,7 +44,7 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
     # Drop the created_at and updated_at for the same reason as above, also drop the pk ID column for this table
     try:
         current_data.drop(['created_at', 'updated_at'] + del_cols, axis=1, inplace=True)
-    except ValueError:
+    except (ValueError, KeyError):
         logger.info('created_at, updated_at, or at least one of the columns provided for deletion not found,'
                     ' drop skipped.')
 

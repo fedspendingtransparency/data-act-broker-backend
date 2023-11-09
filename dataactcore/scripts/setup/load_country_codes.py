@@ -1,26 +1,70 @@
-import os
 import logging
 import requests
+import xmltodict
+import time
 
 import pandas as pd
 import datetime
 import json
 
+from requests.exceptions import ConnectionError, ReadTimeout
+from urllib3.exceptions import ReadTimeoutError
+
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CountryCode
 
 from dataactvalidator.health_check import create_app
-from dataactcore.utils.loader_utils import clean_data, insert_dataframe
+from dataactcore.utils.loader_utils import insert_dataframe
 
 logger = logging.getLogger(__name__)
+
+feed_url = 'https://nsgreg-api.nga.mil/geo-political/GENC/3/now'
+
+
+CC_NAMESPACES = {'http://api.nsgreg.nga.mil/schema/genc/3.0': None,
+                 'http://api.nsgreg.nga.mil/schema/genc/3.0/genc-cmn': None}
+
+TERRITORY_LIST = ['ASM', 'FSM', 'GUM', 'MHL', 'MNP', 'PLW', 'PRI', 'VIR', 'XBK', 'XHO', 'XJA', 'XJV', 'XKR', 'XMW',
+                  'XNV', 'XPL', 'XWK']
 
 
 def convert_territory_bool_to_str(row):
     return str(row['territory_free_state'])
+
+
+def list_data(data):
+    if isinstance(data, dict):
+        # make a list so it's consistent
+        data = [data, ]
+    return data
+
+
+def get_with_exception_hand(url_string):
+    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
+    exception_retries = -1
+    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+    request_timeout = 60
+
+    while exception_retries < len(retry_sleep_times):
+        try:
+            resp = requests.get(url_string, timeout=request_timeout)
+            # resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+            resp_dict = xmltodict.parse(resp.text)
+            break
+        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout, KeyError) as e:
+            exception_retries += 1
+            request_timeout += 60
+            if exception_retries < len(retry_sleep_times):
+                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
+                            .format(retry_sleep_times[exception_retries], request_timeout))
+                time.sleep(retry_sleep_times[exception_retries])
+            else:
+                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                raise e
+    return resp
 
 
 def load_country_codes(base_path, force_reload=False):
@@ -43,32 +87,21 @@ def load_country_codes(base_path, force_reload=False):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        country_code_file = '{}/country_codes.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
+        resp = get_with_exception_hand(feed_url)
 
-        logger.info('Loading country codes file from {}'.format(country_code_file))
+        resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=CC_NAMESPACES)
+        country_data = list_data(resp_dict['GENCStandardBaseline']['GeopoliticalEntityEntry'])
+        country_list = []
 
-        # Get data from public S3 bucket
-        r = requests.get(country_code_file, allow_redirects=True)
-        filename = os.path.join(base_path, 'country_codes.csv')
-        open(filename, 'wb').write(r.content)
+        for country in country_data:
+            country_list.append({
+                'country_name': country['name'],
+                'country_code': country['encoding']['char3Code'],
+                'country_code_2_char': country['encoding']['char2Code'],
+                'territory_free_state': country['encoding']['char3Code'] in TERRITORY_LIST
+            })
 
-        # Parse data
-        data = pd.read_csv(filename, dtype=str)
-        metrics_json['records_provided'] = len(data.index)
-        data = clean_data(
-            data,
-            CountryCode,
-            {'country_code': 'country_code',
-             'country_name': 'country_name',
-             '2_char_country_code': 'country_code_2_char',
-             'territory_or_freely_associated_state': 'territory_free_state'},
-            {}
-        )
-        # de-dupe
-        data.drop_duplicates(subset=['country_code'], inplace=True)
-        metrics_json['duplicates_dropped'] = metrics_json['records_provided'] - len(data.index)
-
-        # compare to existing content in table
+        data = pd.DataFrame(country_list)
         diff_found = check_dataframe_diff(data, CountryCode, ['country_code_id'], ['country_code'],
                                           lambda_funcs=[('territory_free_state', convert_territory_bool_to_str)])
 
@@ -88,9 +121,6 @@ def load_country_codes(base_path, force_reload=False):
             logger.info('{} records inserted to country_code table'.format(num))
         else:
             logger.info('No differences found, skipping country_code table reload.')
-
-        # Delete file once we're done
-        os.remove(filename)
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 
