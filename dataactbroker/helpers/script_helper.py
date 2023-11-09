@@ -12,14 +12,27 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 def list_data(data):
+    """ Make dictionaries into a list
+
+        Args:
+            data: dictionaries to turn into a list of those dictionaries
+
+        Returns a list of dictionaries or the data that was provided if it wasn't a dictionary
+    """
     if isinstance(data, dict):
         # make a list so it's consistent
         data = [data, ]
     return data
 
 
-def get_with_exception_hand(url_string, namespaces, expect_entries=True):
-    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
+def get_xml_with_exception_hand(url_string, namespaces, expect_entries=True):
+    """ Retrieve XML data from a feed, allow for multiple retries and timeouts
+
+        Args:
+            url_string: string path to the feed we are getting data from
+            namespaces: dict of namespaces to clean up for the xml parsing
+            expect_entries: boolean of whether we should check the length of the list
+    """
     exception_retries = -1
     retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
     request_timeout = 60

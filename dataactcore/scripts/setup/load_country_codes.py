@@ -1,7 +1,5 @@
 import logging
-import requests
 import xmltodict
-import time
 import csv
 import boto3
 import os
@@ -10,11 +8,8 @@ import pandas as pd
 import datetime
 import json
 
-from requests.exceptions import ConnectionError, ReadTimeout
-from urllib3.exceptions import ReadTimeoutError
-
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
-from dataactbroker.helpers.script_helper import list_data, get_with_exception_hand
+from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -57,7 +52,7 @@ def load_country_codes(force_reload=False):
         sess = GlobalDB.db().session
         feed_url = 'https://nsgreg-api.nga.mil/geo-political/GENC/3/now'
 
-        resp = get_with_exception_hand(feed_url, CC_NAMESPACES, False)
+        resp = get_xml_with_exception_hand(feed_url, CC_NAMESPACES, False)
 
         resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=CC_NAMESPACES)
         country_data = list_data(resp_dict['GENCStandardBaseline']['GeopoliticalEntityEntry'])

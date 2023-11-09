@@ -19,7 +19,7 @@ from distutils.util import strtobool
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
-from dataactbroker.helpers.script_helper import list_data, get_with_exception_hand
+from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -1455,7 +1455,7 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
 def get_total_expected_records(base_url):
     """ Retrieve the total number of expected records based on the last paginated URL """
     # get a single call so we can find the last page
-    initial_request = get_with_exception_hand(base_url, FPDS_NAMESPACES, expect_entries=False)
+    initial_request = get_xml_with_exception_hand(base_url, FPDS_NAMESPACES, expect_entries=False)
     initial_request_xml = xmltodict.parse(initial_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
 
     # retrieve all URLs
@@ -1482,7 +1482,7 @@ def get_total_expected_records(base_url):
     final_request_count = int(final_request_url.split('&start=')[-1])
 
     # retrieve the last page of data
-    final_request = get_with_exception_hand(final_request_url, FPDS_NAMESPACES)
+    final_request = get_xml_with_exception_hand(final_request_url, FPDS_NAMESPACES)
     final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
     try:
         entries_list = list_data(final_request_xml['feed']['entry'])
@@ -1561,7 +1561,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             futures = [
                 loop.run_in_executor(
                     None,
-                    get_with_exception_hand,
+                    get_xml_with_exception_hand,
                     base_url + "&start=" + str(entries_already_processed + (start_offset * MAX_ENTRIES)),
                     FPDS_NAMESPACES,
                     total_expected_records > entries_already_processed + (start_offset * MAX_ENTRIES)
