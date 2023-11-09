@@ -14,12 +14,13 @@ from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
+from dataactbroker.helpers.script_helper import list_data, get_with_exception_hand
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.models.domainModels import CountryCode
-from dataactcore.utils.loader_utils import insert_dataframe
+from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
 from dataactvalidator.health_check import create_app
 
@@ -36,41 +37,10 @@ def convert_territory_bool_to_str(row):
     return str(row['territory_free_state'])
 
 
-def list_data(data):
-    if isinstance(data, dict):
-        # make a list so it's consistent
-        data = [data, ]
-    return data
-
-
-def get_with_exception_hand(url_string):
-    """ Retrieve data from Country Code, allow for multiple retries and timeouts """
-    exception_retries = -1
-    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
-    request_timeout = 60
-
-    while exception_retries < len(retry_sleep_times):
-        try:
-            resp = requests.get(url_string, timeout=request_timeout)
-            break
-        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout, KeyError) as e:
-            exception_retries += 1
-            request_timeout += 60
-            if exception_retries < len(retry_sleep_times):
-                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
-                            .format(retry_sleep_times[exception_retries], request_timeout))
-                time.sleep(retry_sleep_times[exception_retries])
-            else:
-                logger.info('Connection to Country Code feed lost, maximum retry attempts exceeded.')
-                raise e
-    return resp
-
-
-def load_country_codes(base_path, force_reload=False):
+def load_country_codes(force_reload=False):
     """ Load Country Codes into the database.
 
         Args:
-            base_path: directory that contains the domain values files.
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
     now = datetime.datetime.now()
@@ -87,7 +57,7 @@ def load_country_codes(base_path, force_reload=False):
         sess = GlobalDB.db().session
         feed_url = 'https://nsgreg-api.nga.mil/geo-political/GENC/3/now'
 
-        resp = get_with_exception_hand(feed_url)
+        resp = get_with_exception_hand(feed_url, CC_NAMESPACES, False)
 
         resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=CC_NAMESPACES)
         country_data = list_data(resp_dict['GENCStandardBaseline']['GeopoliticalEntityEntry'])
@@ -102,6 +72,15 @@ def load_country_codes(base_path, force_reload=False):
             })
 
         data = pd.DataFrame(country_list)
+        data = clean_data(
+            data,
+            CountryCode,
+            {'country_code': 'country_code',
+             'country_name': 'country_name',
+             'country_code_2_char': 'country_code_2_char',
+             'territory_free_state': 'territory_free_state'},
+            {}
+        )
         diff_found = check_dataframe_diff(data, CountryCode, ['country_code_id'], ['country_code'],
                                           lambda_funcs=[('territory_free_state', convert_territory_bool_to_str)])
 
@@ -110,6 +89,9 @@ def load_country_codes(base_path, force_reload=False):
             logger.info('Differences found or reload forced, reloading country_code table.')
             # if there's a difference, clear out the old data before adding the new stuff
             metrics_json['records_deleted'] = sess.query(CountryCode).delete()
+
+            # Restart sequence so it's always starting at 1
+            sess.execute("ALTER SEQUENCE country_code_country_code_id_seq RESTART")
 
             num = insert_dataframe(data, CountryCode.__table__.name, sess.connection())
             metrics_json['records_inserted'] = num
