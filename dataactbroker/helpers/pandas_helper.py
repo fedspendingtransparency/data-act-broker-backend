@@ -63,8 +63,8 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
     current_data = current_data.replace('[Nn]a[Tn]', '', regex=True).astype(str)
 
     # Strip all strings so they don't have extra whitespace
-    new_data_copy = new_data_copy.applymap(lambda x: x.strip() if isinstance(x, str) else x)
-    current_data = current_data.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+    new_data_copy = new_data_copy.map(lambda x: x.strip() if isinstance(x, str) else x)
+    current_data = current_data.map(lambda x: x.strip() if isinstance(x, str) else x)
 
     # pandas comparison requires everything to be in the same order
     new_data_copy.sort_values(by=sort_cols, inplace=True)

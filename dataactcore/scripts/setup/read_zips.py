@@ -653,7 +653,7 @@ def read_zips():
         else:
             base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
             # creating the list while ignoring hidden files on mac
-            file_list = [f for f in os.listdir(base_path) if not re.match('^\.', f)]
+            file_list = [f for f in os.listdir(base_path) if not re.match(r'^\.', f)]
             for file in file_list:
                 parse_zip4_file(open(os.path.join(base_path, file)), sess)
 

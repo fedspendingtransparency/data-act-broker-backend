@@ -1,6 +1,6 @@
 from flask import request
-from webargs import fields as webargs_fields, validate as webargs_validate
-from webargs.flaskparser import use_kwargs
+from marshmallow import INCLUDE
+from webargs import fields as webargs_fields, validate as webargs_validate, flaskparser
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_status, list_submissions as list_submissions_handler,
@@ -22,6 +22,8 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.statusCode import StatusCode
 
+parser = flaskparser.FlaskParser(unknown=INCLUDE)
+
 
 # Add the file submission route
 def add_file_routes(app, is_local, server_path):
@@ -39,7 +41,7 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/check_status/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    @use_kwargs({'type': webargs_fields.String(missing='')})
+    @parser.use_kwargs({'type': webargs_fields.String(load_default='')}, location='query')
     def check_status(submission, **kwargs):
         type = kwargs.get('type')
         return get_status(submission, type)
@@ -53,7 +55,7 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/submission_data/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    @use_kwargs({'type': webargs_fields.String(missing='')})
+    @parser.use_kwargs({'type': webargs_fields.String(load_default='')}, location='query')
     def submission_data(submission, **kwargs):
         type = kwargs.get('type')
         return get_submission_data(submission, type)
@@ -69,23 +71,23 @@ def add_file_routes(app, is_local, server_path):
         return JsonResponse.create(StatusCode.OK, get_latest_publication_period())
 
     @app.route("/v1/list_banners/", methods=["GET"])
-    @use_kwargs({'login': webargs_fields.Boolean(missing=False)})
+    @parser.use_kwargs({'login': webargs_fields.Boolean(load_default=False)}, location='query')
     def get_banner_list(login):
         return list_banners(login)
 
     @app.route("/v1/list_submissions/", methods=["POST"])
     @requires_login
-    @use_kwargs({
-        'page': webargs_fields.Int(missing=1),
-        'limit': webargs_fields.Int(missing=5),
+    @parser.use_kwargs({
+        'page': webargs_fields.Int(load_default=1),
+        'limit': webargs_fields.Int(load_default=5),
         'published': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
-        'sort': webargs_fields.String(missing='modified'),
-        'order': webargs_fields.String(missing='desc'),
-        'fabs': webargs_fields.Bool(missing=False),
-        'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
-    })
+        'sort': webargs_fields.String(load_default='modified'),
+        'order': webargs_fields.String(load_default='desc'),
+        'fabs': webargs_fields.Bool(load_default=False),
+        'filters': webargs_fields.Dict(keys=webargs_fields.String(), load_default={})
+    }, location='json')
     def list_submissions(published, **kwargs):
         """ List submission IDs associated with the current user """
         page = kwargs.get('page')
@@ -98,14 +100,14 @@ def add_file_routes(app, is_local, server_path):
 
     @app.route("/v1/list_latest_published_files/", methods=["GET"])
     @requires_login
-    @use_kwargs({
+    @parser.use_kwargs({
         'type': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(('fabs', 'dabs'))),
         'agency': webargs_fields.String(),
         'year': webargs_fields.Int(),
         'period': webargs_fields.Int()
-    })
+    }, location='query')
     def list_latest_published_files(**kwargs):
         """ List submission IDs associated with the current user """
         sub_type = kwargs.get('type')
@@ -122,11 +124,11 @@ def add_file_routes(app, is_local, server_path):
         return list_history(submission)
 
     @app.route("/v1/get_published_file/", methods=["GET"])
-    @use_kwargs({
+    @parser.use_kwargs({
         'submission_id': webargs_fields.Int(required=True),
         'published_files_history_id': webargs_fields.Int(required=True),
-        'is_warning': webargs_fields.Bool(missing=False)
-    })
+        'is_warning': webargs_fields.Bool(load_default=False)
+    }, location='query')
     @requires_submission_perms('reader')
     def get_published_file(submission, published_files_history_id, **kwargs):
         """ Get the signed URL for the specified file history """
@@ -134,9 +136,9 @@ def add_file_routes(app, is_local, server_path):
         return file_history_url(published_files_history_id, is_warning, is_local, submission)
 
     @app.route("/v1/get_submitted_published_file/", methods=["GET"])
-    @use_kwargs({
+    @parser.use_kwargs({
         'published_files_history_id': webargs_fields.Int(required=True)
-    })
+    }, location='query')
     @requires_login
     def get_submitted_published_file(published_files_history_id):
         """ Get the signed URL for the specified submitted and published file """
@@ -199,10 +201,10 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/get_submission_zip/", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    @use_kwargs({
+    @parser.use_kwargs({
         'publish_history_id': webargs_fields.Int(),
         'certify_history_id': webargs_fields.Int()
-    })
+    }, location='query')
     def get_sub_zip(submission, **kwargs):
         publish_history_id = kwargs.get('publish_history_id')
         certify_history_id = kwargs.get('certify_history_id')
@@ -211,7 +213,7 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/report_url/", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    @use_kwargs({
+    @parser.use_kwargs({
         'file_type': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys() - {'executive_compensation', 'sub_award'})
@@ -219,7 +221,7 @@ def add_file_routes(app, is_local, server_path):
         'warning': webargs_fields.Bool(),
         'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(['program_activity', 'award_financial',
                                                                              'award_procurement', 'award']))
-    })
+    }, location='query')
     def post_submission_report_url(submission, file_type, **kwargs):
         warning = kwargs.get('warning')
         cross_type = kwargs.get('cross_type')
@@ -228,20 +230,20 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/get_file_url/", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    @use_kwargs({
+    @parser.use_kwargs({
         'file_type': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
         )
-    })
+    }, location='query')
     def get_file_url(submission, file_type):
         return get_upload_file_url(submission, file_type)
 
     @app.route("/v1/get_detached_file_url/", methods=['GET'])
     @requires_login
-    @use_kwargs({
+    @parser.use_kwargs({
         'job_id': webargs_fields.Int(required=True)
-    })
+    }, location='query')
     def get_detached_file_url(job_id):
         return get_detached_upload_file_url(job_id)
 
@@ -256,11 +258,11 @@ def add_file_routes(app, is_local, server_path):
 
     @app.route("/v1/published_submissions/", methods=["GET"])
     @requires_login
-    @use_kwargs({'reporting_fiscal_year': webargs_fields.String(required=True),
-                 'reporting_fiscal_period': webargs_fields.String(required=True),
-                 'cgac_code': webargs_fields.String(),
-                 'frec_code': webargs_fields.String(),
-                 'is_quarter': webargs_fields.Bool()})
+    @parser.use_kwargs({'reporting_fiscal_year': webargs_fields.String(required=True),
+                        'reporting_fiscal_period': webargs_fields.String(required=True),
+                        'cgac_code': webargs_fields.String(),
+                        'frec_code': webargs_fields.String(),
+                        'is_quarter': webargs_fields.Bool()}, location='query')
     def get_published_submissions(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
         cgac_code = kwargs.get('cgac_code')
@@ -292,7 +294,7 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('writer', check_fabs='editfabs')
-    @use_kwargs({'is_fabs': webargs_fields.Bool(missing=False)})
+    @parser.use_kwargs({'is_fabs': webargs_fields.Bool(load_default=False)}, location='json')
     def restart_validation(submission, **kwargs):
         is_fabs = kwargs.get('is_fabs')
         return FileHandler.restart_validation(submission, is_fabs)

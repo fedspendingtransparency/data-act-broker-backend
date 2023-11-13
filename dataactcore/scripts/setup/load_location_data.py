@@ -36,7 +36,7 @@ def clean_data(data, field_map):
     data = data.rename(columns=field_map)
 
     # trim all columns
-    data = data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
+    data = data.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
     return data
 
 

@@ -229,7 +229,7 @@ def split_ppop_zip(sess, submission_id):
     start_time = datetime.now()
     log_derivation('Beginning place of performance zip5 and zip last4 derivation', submission_id)
 
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_zip5 = SUBSTRING(place_of_performance_zip4a, 1, 5),
             place_of_perform_zip_last4 = CASE WHEN LENGTH(place_of_performance_zip4a) = 5
@@ -376,7 +376,7 @@ def derive_ppop_location_data(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning ppop county info for county ppop derivation', submission_id)
     # Deriving county code info for transactions with ppop code XX**###
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET place_of_perform_county_co = RIGHT(place_of_performance_code, 3)
         WHERE place_of_performance_zip5 IS NULL
@@ -389,7 +389,7 @@ def derive_ppop_location_data(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning ppop city info for city ppop derivation', submission_id)
     # Deriving county/city info for transactions with ppop code XX#####
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET place_of_perform_county_co = county_number,
             place_of_perform_county_na = county_name,
@@ -438,7 +438,7 @@ def derive_ppop_scope(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning ppop scope with non-null zip derivation', submission_id)
     # When zip is not null
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_scope = CASE WHEN UPPER(place_of_performance_zip4a) = 'CITY-WIDE'
                                               THEN 'City-wide'
@@ -457,7 +457,7 @@ def derive_ppop_scope(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning ppop scope with null zip derivation', submission_id)
     # When zip is null
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_scope = CASE WHEN (UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dRT]$'
                                                       OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]TS\d\d\d$')
@@ -658,7 +658,7 @@ def derive_le_location_data(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning legal entity location info record type 1 county format derivation', submission_id)
     # Deriving county, state, and congressional info for county format ppop codes in record type 1
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET legal_entity_county_code = place_of_perform_county_co,
             legal_entity_county_name = place_of_perform_county_na,
@@ -675,7 +675,7 @@ def derive_le_location_data(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning legal entity location info record type 1 state format derivation', submission_id)
     # Deriving county, state, and congressional info for state format ppop codes in record type 1
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET legal_entity_state_code = place_of_perfor_state_code,
             legal_entity_state_name = place_of_perform_state_nam,

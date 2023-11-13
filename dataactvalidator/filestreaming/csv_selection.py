@@ -169,7 +169,7 @@ def generate_temp_query_file(query, header=True, delimiter=','):
     with open(temp_sql_file_path, 'w') as file:
         with_header = ' HEADER' if header else ''
         format_delimiter = 'delimiter \'|\' ' if delimiter == '|' else ''
-        file.write('\copy ({}) To STDOUT with {}CSV{}'.format(query, format_delimiter, with_header))
+        file.write('\\copy ({}) To STDOUT with {}CSV{}'.format(query, format_delimiter, with_header))
 
     return temp_sql_file, temp_sql_file_path
 

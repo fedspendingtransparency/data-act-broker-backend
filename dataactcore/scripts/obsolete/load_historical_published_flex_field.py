@@ -82,7 +82,7 @@ def process_flex_data(data, flex_headers, submission_id, job_id, file_type_id):
     data = data[list(flex_headers)]
 
     if len(data.index) > 0:
-        data = data.applymap(clean_col)
+        data = data.map(clean_col)
 
     # Populate row number, adding 2 to the index because the first row is always row 2 but index starts at 0
     data = data.reset_index()

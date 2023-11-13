@@ -488,7 +488,7 @@ def set_caia_perms(user, roles):
         """
     user.website_admin = ("admin" in roles)
     perms = [tuple(role.split('-')[1:]) for role in roles
-             if re.match('^(CGAC|FREC)-[A-Z\d]{3,4}-[RWSEF]$', role.upper())]
+             if re.match(r'^(CGAC|FREC)-[A-Z\d]{3,4}-[RWSEF]$', role.upper())]
     user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id)) if perms else []
 
 

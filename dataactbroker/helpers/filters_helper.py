@@ -48,7 +48,7 @@ def agency_filter(sess, query, cgac_model, frec_model, agency_list):
     if len(frec_list) > 0:
         agency_filters.append(frec_model.frec_code.in_(frec_list))
 
-    return query.filter(or_(*agency_filters))
+    return query.filter(or_(*agency_filters)) if agency_filters else query
 
 
 def permissions_filter(query):
@@ -71,7 +71,7 @@ def permissions_filter(query):
             affiliation_filters.append(Submission.cgac_code.in_(cgac_codes))
         if frec_codes:
             affiliation_filters.append(Submission.frec_code.in_(frec_codes))
-        query = query.filter(or_(*affiliation_filters))
+        query = query.filter(or_(*affiliation_filters)) if affiliation_filters else query
 
     return query
 
@@ -113,7 +113,7 @@ def file_filter(query, file_model, files):
                                               target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]]))
                 file_type_filters.append(and_(file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]],
                                               target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]]))
-    return query.filter(or_(*file_type_filters))
+    return query.filter(or_(*file_type_filters)) if file_type_filters else query
 
 
 def rule_severity_filter(query, error_level, error_model=ErrorMetadata):

@@ -73,7 +73,7 @@ def extract_text(data_val):
 
 
 def is_valid_zip(zip_code):
-    if re.match('^\d{5}(-?\d{4})?$', zip_code):
+    if re.match(r'^\d{5}(-?\d{4})?$', zip_code):
         return True
     return False
 
@@ -1250,7 +1250,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
                    "awardee_or_recipient_legal", "other_statutory_authority"]
     for field in free_fields:
         if obj[field]:
-            obj[field] = re.sub('\s', ' ', obj[field])
+            obj[field] = re.sub(r'\s', ' ', obj[field])
 
     boolean_fields = ['small_business_competitive', 'city_local_government', 'county_local_government',
                       'inter_municipal_local_gove', 'local_government_owned', 'municipality_local_governm',
@@ -1815,7 +1815,7 @@ def create_lookups(sess):
 
         # if the county name has only letters/spaces then we want it in our by-name lookup, the rest have the potential
         # to be different from the FPDS feed
-        if re.match('^[A-Z\s]+$', county_code.county_name):
+        if re.match(r'^[A-Z\s]+$', county_code.county_name):
             county_by_name[county_code.state_code][county_name] = county_code.county_number
 
     # get and create list of uei -> exec comp data mappings

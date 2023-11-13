@@ -19,7 +19,7 @@ def add_settings_routes(app):
                                       OneOf(FILE_TYPES, error='Must be {}, or {}'.format(', '.join(FILE_TYPES[:-1]),
                                                                                          FILE_TYPES[-1])),
                                       required=True)
-    })
+    }, location='query')
     def get_rule_settings(**kwargs):
         """ Returns the rule settings based on the filters provided """
         agency_code = kwargs.get('agency_code')
@@ -36,7 +36,7 @@ def add_settings_routes(app):
                                       required=True),
         'errors': webargs_fields.List(webargs_fields.Dict),
         'warnings': webargs_fields.List(webargs_fields.Dict)
-    })
+    }, location='json')
     def post_save_rule_settings(**kwargs):
         """ Set the rule settings based on the rules provided """
         agency_code = kwargs.get('agency_code')
