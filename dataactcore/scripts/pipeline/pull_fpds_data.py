@@ -19,6 +19,8 @@ from distutils.util import strtobool
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
+from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand
+
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 
@@ -58,13 +60,6 @@ cgacErrors = {}
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
-
-
-def list_data(data):
-    if isinstance(data, dict):
-        # make a list so it's consistent
-        data = [data, ]
-    return data
 
 
 def extract_text(data_val):
@@ -1457,37 +1452,10 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
                 sess.commit()
 
 
-def get_with_exception_hand(url_string, expect_entries=True):
-    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
-    exception_retries = -1
-    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
-    request_timeout = 60
-
-    while exception_retries < len(retry_sleep_times):
-        try:
-            resp = requests.get(url_string, timeout=request_timeout)
-            if expect_entries:
-                # we should always expect entries, otherwise we shouldn't be calling it
-                resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-                len(list_data(resp_dict['feed']['entry']))
-            break
-        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout, KeyError) as e:
-            exception_retries += 1
-            request_timeout += 60
-            if exception_retries < len(retry_sleep_times):
-                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
-                            .format(retry_sleep_times[exception_retries], request_timeout))
-                time.sleep(retry_sleep_times[exception_retries])
-            else:
-                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
-                raise e
-    return resp
-
-
 def get_total_expected_records(base_url):
     """ Retrieve the total number of expected records based on the last paginated URL """
     # get a single call so we can find the last page
-    initial_request = get_with_exception_hand(base_url, expect_entries=False)
+    initial_request = get_xml_with_exception_hand(base_url, FPDS_NAMESPACES, expect_entries=False)
     initial_request_xml = xmltodict.parse(initial_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
 
     # retrieve all URLs
@@ -1514,7 +1482,7 @@ def get_total_expected_records(base_url):
     final_request_count = int(final_request_url.split('&start=')[-1])
 
     # retrieve the last page of data
-    final_request = get_with_exception_hand(final_request_url)
+    final_request = get_xml_with_exception_hand(final_request_url, FPDS_NAMESPACES)
     final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
     try:
         entries_list = list_data(final_request_xml['feed']['entry'])
@@ -1593,8 +1561,9 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             futures = [
                 loop.run_in_executor(
                     None,
-                    get_with_exception_hand,
+                    get_xml_with_exception_hand,
                     base_url + "&start=" + str(entries_already_processed + (start_offset * MAX_ENTRIES)),
+                    FPDS_NAMESPACES,
                     total_expected_records > entries_already_processed + (start_offset * MAX_ENTRIES)
                 )
                 for start_offset in range(requests_at_once)
