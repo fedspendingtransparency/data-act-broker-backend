@@ -4,6 +4,7 @@ import ddtrace
 import inspect
 import time
 import traceback
+import pandas as pd
 
 from ddtrace.constants import ANALYTICS_SAMPLE_RATE_KEY
 from ddtrace.ext import SpanTypes
@@ -290,7 +291,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                 validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES['error_report_path'])
                 validation_manager.validate_job(job.job_id)
 
-        except (ResponseException, csv.Error, UnicodeDecodeError, ValueError) as e:
+        except (ResponseException, csv.Error, pd.errors.ParserError, UnicodeDecodeError, ValueError) as e:
             # Handle exceptions explicitly raised during validation
             error_data = {
                 'message': 'An exception occurred in the Validator',
