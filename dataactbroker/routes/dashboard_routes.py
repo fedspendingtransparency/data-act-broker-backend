@@ -18,12 +18,12 @@ def add_dashboard_routes(app):
     @app.route('/v1/get_rule_labels/', methods=['POST'])
     @use_kwargs({
         'files': webargs_fields.List(webargs_fields.String(), required=True),
-        'fabs': webargs_fields.Bool(missing=False),
+        'fabs': webargs_fields.Bool(load_default=False),
         'error_level': webargs_fields.String(validate=webargs_validate.
                                              OneOf(['warning', 'error', 'mixed'],
                                                    error='Must be either warning, error, or mixed'),
-                                             missing='warning')
-    })
+                                             load_default='warning')
+    }, location='json')
     def get_rule_labels(**kwargs):
         """ Returns the rule labels based on the filters provided """
         files = kwargs.get('files')
@@ -34,8 +34,8 @@ def add_dashboard_routes(app):
     @app.route("/v1/historic_dabs_graphs/", methods=["POST"])
     @requires_login
     @use_kwargs({
-        'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
-    })
+        'filters': webargs_fields.Dict(keys=webargs_fields.String(), load_default={})
+    }, location='json')
     def historic_dabs_graphs(**kwargs):
         """ Returns the historic DABS graphs based on the filters provided """
         filters = kwargs.get('filters')
@@ -44,12 +44,12 @@ def add_dashboard_routes(app):
     @app.route("/v1/historic_dabs_table/", methods=["POST"])
     @requires_login
     @use_kwargs({
-        'page': webargs_fields.Int(missing=1),
-        'limit': webargs_fields.Int(missing=5),
-        'sort': webargs_fields.String(missing='period'),
-        'order': webargs_fields.String(missing='desc'),
+        'page': webargs_fields.Int(load_default=1),
+        'limit': webargs_fields.Int(load_default=5),
+        'sort': webargs_fields.String(load_default='period'),
+        'order': webargs_fields.String(load_default='desc'),
         'filters': webargs_fields.Dict(keys=webargs_fields.String(), required=True)
-    })
+    }, location='json')
     def historic_dabs_table(**kwargs):
         """ List warning metadata for selected  """
         page = kwargs.get('page')
@@ -70,8 +70,8 @@ def add_dashboard_routes(app):
         'error_level': webargs_fields.String(validate=webargs_validate.
                                              OneOf(['warning', 'error', 'mixed'],
                                                    error='Must be either warning, error, or mixed'),
-                                             missing='warning')
-    })
+                                             load_default='warning')
+    }, location='query')
     def get_active_submission_overview(submission, file, **kwargs):
         """ Returns an overview of the requested submission for the active dashboard """
         error_level = kwargs.get('error_level')
@@ -88,8 +88,8 @@ def add_dashboard_routes(app):
         'error_level': webargs_fields.String(validate=webargs_validate.
                                              OneOf(['warning', 'error', 'mixed'],
                                                    error='Must be either warning, error, or mixed'),
-                                             missing='warning')
-    })
+                                             load_default='warning')
+    }, location='query')
     def impact_counts(submission, file, **kwargs):
         """ Returns the impact counts of the requested submission for the active dashboard """
         error_level = kwargs.get('error_level')
@@ -106,8 +106,8 @@ def add_dashboard_routes(app):
         'error_level': webargs_fields.String(validate=webargs_validate.
                                              OneOf(['warning', 'error', 'mixed'],
                                                    error='Must be either warning, error, or mixed'),
-                                             missing='warning')
-    })
+                                             load_default='warning')
+    }, location='query')
     def significance_counts(submission, file, **kwargs):
         """ Returns the significance counts of the requested submission for the active dashboard """
         error_level = kwargs.get('error_level')
@@ -124,12 +124,12 @@ def add_dashboard_routes(app):
         'error_level': webargs_fields.String(validate=webargs_validate.
                                              OneOf(['warning', 'error', 'mixed'],
                                                    error='Must be either warning, error, or mixed'),
-                                             missing='warning'),
-        'page': webargs_fields.Int(missing=1),
-        'limit': webargs_fields.Int(missing=5),
-        'sort': webargs_fields.String(missing='significance'),
-        'order': webargs_fields.String(missing='asc')
-    })
+                                             load_default='warning'),
+        'page': webargs_fields.Int(load_default=1),
+        'limit': webargs_fields.Int(load_default=5),
+        'sort': webargs_fields.String(load_default='significance'),
+        'order': webargs_fields.String(load_default='asc')
+    }, location='query')
     def get_active_submission_table(submission, file, **kwargs):
         """ Returns an overview of the requested submission for the active dashboard """
         error_level = kwargs.get('error_level')

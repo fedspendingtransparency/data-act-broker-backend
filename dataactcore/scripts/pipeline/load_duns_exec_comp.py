@@ -52,16 +52,16 @@ def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_da
     if local:
         local_files = os.listdir(local)
         monthly_v1_files = sorted([monthly_file for monthly_file in local_files
-                                   if re.match('SAM_{}_UTF-8_MONTHLY_\d+\.ZIP'.format(DATA_TYPES[data_type]),
+                                   if re.match(r'SAM_{}_UTF-8_MONTHLY_\d+\.ZIP'.format(DATA_TYPES[data_type]),
                                                monthly_file.upper())])
         monthly_v2_files = sorted([monthly_file for monthly_file in local_files
-                                   if re.match('SAM_{}_UTF-8_MONTHLY_V2_\d+\.ZIP'.format(DATA_TYPES[data_type]),
+                                   if re.match(r'SAM_{}_UTF-8_MONTHLY_V2_\d+\.ZIP'.format(DATA_TYPES[data_type]),
                                                monthly_file.upper())])
         daily_v1_files = sorted([daily_file for daily_file in local_files
-                                 if re.match('SAM_{}_UTF-8_DAILY_\d+\.ZIP'.format(DATA_TYPES[data_type]),
+                                 if re.match(r'SAM_{}_UTF-8_DAILY_\d+\.ZIP'.format(DATA_TYPES[data_type]),
                                              daily_file.upper())])
         daily_v2_files = sorted([daily_file for daily_file in local_files
-                                 if re.match('SAM_{}_UTF-8_DAILY_V2_\d+\.ZIP'.format(DATA_TYPES[data_type]),
+                                 if re.match(r'SAM_{}_UTF-8_DAILY_V2_\d+\.ZIP'.format(DATA_TYPES[data_type]),
                                              daily_file.upper())])
     else:
         # TODO: the SAM API currently doesn't list available files and doesnt include historic ones,

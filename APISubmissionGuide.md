@@ -26,9 +26,10 @@ While the Submission API has been designed to be as easy to understand as possib
 
 ## DABS Submission Process
 
-### Upload A, B, C Files
+### Upload B and C Files
 - Step 1: call `/v1/upload_dabs_files/` (POST) to create the submission.
-- For details on its use, click [here](./doc/api_docs/file/upload_dabs_files.md)
+	- For details on its use, click [here](./doc/api_docs/file/upload_dabs_files.md)
+- File A will be generated automatically at this point.
 - **NOTE**: If you would like to certify this submission, call `/v1/published_submissions/` (GET) to ensure there are no other submissions already published by the same agency in the same period.
     - For details on its use, click [here](./doc/api_docs/file/published_submissions.md)
 
@@ -43,11 +44,11 @@ While the Submission API has been designed to be as easy to understand as possib
 - To get a general overview of the number of errors/warnings in the submission, along with all other metadata, `/v1/submission_metadata/` can be called. For details on its use, click [here](./doc/api_docs/file/submission_metadata.md)
 - To get detailed information on each of the jobs and the errors that occurred in each, `/v1/submission_data/` can be called. For details on its use, click [here](./doc/api_docs/file/submission_data.md)
 - If there are any errors and more granular detail is needed, get the error reports by calling `/v1/report_url/`. For details on its use, click [here](./doc/api_docs/file/report_url.md). In this case, `cross_type` should not be used.
+- If the automatically generated file A is not adequate for any reason, at this point a custom file A may be uploaded along with any files that have errors in them.
 - If a reupload is needed for any of the files, begin again from `upload_dabs_files` with these changes:
     - Only pass the keys of the files being updated (e.g. if only appropriations needs a reupload, you will pass `appropriations: "FILENAME"` as an entry in the payload but not the other two.
     - Add the key `existing_submission_id` with the ID of the submission as the content (string).
     - Response will update to not include the IDs and keys for any files that were not resubmitted
-    - Only call `finalize_job` on the updated files
 - If for any reason one of the uploaded files need to be redownloaded, use the `/v1/get_file_url` route to get the signed url for it. For details on its use, click [here](./doc/api_docs/file/get_file_url.md)
 
 ### Generate D1, D2 Files

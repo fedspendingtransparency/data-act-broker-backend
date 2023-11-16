@@ -287,6 +287,8 @@ def mark_job_status(job_id, status_name, skip_check=False):
     job.job_status_id = JOB_STATUS_DICT[status_name]
     if status_name in ('ready', 'waiting'):
         job.error_message = None
+    if status_name == 'finished':
+        job.progress = 100
     sess.commit()
 
     # if status is changed to finished for the first time, check dependencies

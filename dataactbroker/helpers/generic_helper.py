@@ -29,7 +29,10 @@ class StringLiteral(String):
     """ Teach SA how to literalize various things """
 
     def __init__(self, *args, **kwargs):
+        # the literalizing solution involves including the properties below
+        # that shouldn't be passed explicitly to String. This keeps track of them without breaking.
         self._enums = kwargs.pop('_enums', None)
+        self._disable_warnings = kwargs.pop('_disable_warnings', None)
         super(StringLiteral, self).__init__(*args, **kwargs)
 
     def literal_processor(self, dialect):
@@ -103,7 +106,7 @@ def year_period_to_dates(year, period):
             Strings representing the start and end dates of the given quarter
     """
     # Make sure year is in the proper format
-    if not year or not re.match('^\d{4}$', str(year)):
+    if not year or not re.match(r'^\d{4}$', str(year)):
         raise ResponseException('Year must be in YYYY format.', StatusCode.CLIENT_ERROR)
     # Make sure period is a number 2-12
     if not period or period not in list(range(2, 13)):

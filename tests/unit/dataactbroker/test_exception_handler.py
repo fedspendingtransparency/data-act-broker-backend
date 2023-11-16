@@ -10,10 +10,11 @@ def test_exception_handler(test_app):
     exception_handler.add_exception_handlers(test_app.application)
 
     @test_app.application.route("/endpoint/")
-    @use_kwargs({'param1': webargs_fields.Int(),
-                 'param2': webargs_fields.String(required=True),
-                 'param3': webargs_fields.Int(required=True)
-                 })
+    @use_kwargs({
+        'param1': webargs_fields.Int(),
+        'param2': webargs_fields.String(required=True),
+        'param3': webargs_fields.Int(required=True)
+    }, location='query')
     def handle(param1, param2):
         pass
 

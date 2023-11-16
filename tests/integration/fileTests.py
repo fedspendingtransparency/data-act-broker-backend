@@ -303,6 +303,19 @@ class FileTests(BaseTestAPI):
                                  headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 200)
 
+    def test_submit_file_no_a(self):
+        """ Test file submissions with no file A """
+        update_json = {
+            'cgac_code': 'SYS',
+            'frec_code': None,
+            'is_quarter': True,
+            'reporting_period_start_date': '07/2015',
+            'reporting_period_end_date': '09/2015'}
+        response = self.app.post('/v1/upload_dabs_files/', update_json,
+                                 upload_files=[AWARD_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
     def test_submit_file_fabs_dabs_route(self):
         """ Test trying to update a FABS submission via the DABS route """
         update_json = {
@@ -344,7 +357,7 @@ class FileTests(BaseTestAPI):
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T],
                                  headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'Must include all files for a new submission')
+        self.assertEqual(response.json['message'], 'Must include files B and C for a new submission')
 
     def test_submit_file_old_no_params(self):
         """ Test file submission for an existing submission while not providing any file parameters """
@@ -1125,7 +1138,8 @@ class FileTests(BaseTestAPI):
                   'submission_id': self.row_error_submission_id}
         response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'file_type: Not a valid choice.')
+        self.assertEqual(response.json['message'], 'file_type: Must be one of: appropriations, award, award_financial, '
+                                                   'award_procurement, fabs, program_activity.')
 
     def test_submission_report_url_invalid_cross(self):
         """ Test that invalid cross_types cause an error """
@@ -1135,7 +1149,8 @@ class FileTests(BaseTestAPI):
                   'submission_id': self.row_error_submission_id}
         response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'cross_type: Not a valid choice.')
+        self.assertEqual(response.json['message'], 'cross_type: Must be one of: award, award_financial, '
+                                                   'award_procurement, program_activity.')
 
     def test_submission_report_url_valid_type_invalid_pair(self):
         """ Test that valid cross_type but invalid pair causes an error """

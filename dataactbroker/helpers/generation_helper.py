@@ -391,6 +391,7 @@ def check_generation_prereqs(submission_id, file_type):
             A boolean indicating if the job has no incomplete prerequisites (True if the job is clear to start)
     """
     sess = GlobalDB.db().session
+    unfinished_prereqs = 0
     prereq_query = sess.query(Job).filter(Job.submission_id == submission_id,
                                           or_(Job.job_status_id != lookups.JOB_STATUS_DICT['finished'],
                                               Job.number_of_errors > 0))
@@ -403,7 +404,7 @@ def check_generation_prereqs(submission_id, file_type):
         unfinished_prereqs = prereq_query.filter(Job.file_type_id.in_(
             [lookups.FILE_TYPE_DICT['appropriations'], lookups.FILE_TYPE_DICT['program_activity'],
              lookups.FILE_TYPE_DICT['award_financial']])).count()
-    else:
+    elif file_type != 'A':
         raise ResponseException('Invalid type for file generation', StatusCode.CLIENT_ERROR)
 
     return unfinished_prereqs == 0

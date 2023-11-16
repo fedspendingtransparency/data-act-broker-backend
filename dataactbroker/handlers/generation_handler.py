@@ -46,8 +46,8 @@ def generate_file(submission, file_type, start, end, agency_type, file_format):
             error_message = 'file_format must be either csv or txt for D file generation.'
 
     # Only D1, D2, E, and F files can be generated
-    elif file_type not in ['E', 'F']:
-        error_message = 'File type must be either D1, D2, E, or F'
+    elif file_type not in ['A', 'E', 'F']:
+        error_message = 'File type must be either A, D1, D2, E, or F'
 
     # Return any client errors
     if error_message:
@@ -72,6 +72,9 @@ def generate_file(submission, file_type, start, end, agency_type, file_format):
     try:
         if file_type in ['D1', 'D2']:
             generation_helper.start_d_generation(job, start, end, agency_type, file_format=file_format)
+        elif file_type == 'A':
+            agency_code = submission.frec_code or submission.cgac_code
+            generation_helper.start_a_generation(job, start, end, agency_code)
         else:
             generation_helper.start_e_f_generation(job)
     except Exception as e:

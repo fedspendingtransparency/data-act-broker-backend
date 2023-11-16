@@ -1,11 +1,13 @@
-from webargs import fields as webargs_fields, validate as webargs_validate
-from webargs.flaskparser import use_kwargs
+from webargs import fields as webargs_fields, validate as webargs_validate, flaskparser
+from marshmallow import INCLUDE
 
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.handlers import generation_handler
 from dataactbroker.permissions import requires_login, requires_submission_perms
 
-DATE_REGEX = '^\d{2}\/\d{2}\/\d{4}$'
+DATE_REGEX = r'^\d{2}\/\d{2}\/\d{4}$'
+
+parser = flaskparser.FlaskParser(unknown=INCLUDE)
 
 
 def add_generation_routes(app, is_local, server_path):
@@ -20,7 +22,7 @@ def add_generation_routes(app, is_local, server_path):
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('writer')
-    @use_kwargs({
+    @parser.use_kwargs({
         'file_type': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F")),
@@ -29,17 +31,17 @@ def add_generation_routes(app, is_local, server_path):
         'end': webargs_fields.String(
             validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY")),
         'agency_type': webargs_fields.String(
-            missing='awarding',
+            load_default='awarding',
             validate=webargs_validate.OneOf(('awarding', 'funding'),
                                             error="Must be either awarding or funding if provided")
         ),
         'file_format': webargs_fields.String(
-            missing='csv',
+            load_default='csv',
             validate=webargs_validate.OneOf(('csv', 'txt'),
                                             error="Must be either csv or txt if provided")
         )
-    })
-    def generate_file(submission_id, file_type, **kwargs):
+    }, location='json')
+    def generate_file(submission, file_type, **kwargs):
         """ Kick of a file generation, or retrieve the cached version of the file.
 
             Attributes:
@@ -54,16 +56,16 @@ def add_generation_routes(app, is_local, server_path):
         end = kwargs.get('end')
         agency_type = kwargs.get('agency_type')
         file_format = kwargs.get('file_format')
-        return generation_handler.generate_file(submission_id, file_type, start, end, agency_type, file_format)
+        return generation_handler.generate_file(submission, file_type, start, end, agency_type, file_format)
 
     @app.route("/v1/check_generation_status/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    @use_kwargs({'file_type': webargs_fields.String(
+    @parser.use_kwargs({'file_type': webargs_fields.String(
         required=True,
         validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F"))
-    })
-    def check_generation_status(submission, file_type):
+    }, location='query')
+    def check_generation_status(submission, file_type, **kwargs):
         """ Return status of file generation job
 
             Attributes:
@@ -74,7 +76,7 @@ def add_generation_routes(app, is_local, server_path):
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
-    @use_kwargs({
+    @parser.use_kwargs({
         'file_type': webargs_fields.String(required=True, validate=webargs_validate.OneOf(('A', 'D1', 'D2'))),
         'cgac_code': webargs_fields.String(),
         'frec_code': webargs_fields.String(),
@@ -84,17 +86,17 @@ def add_generation_routes(app, is_local, server_path):
         'period': webargs_fields.Int(validate=webargs_validate.OneOf(list(range(2, 13)),
                                                                      error="Period must be an integer 2-12.")),
         'agency_type': webargs_fields.String(
-            missing='awarding',
+            load_default='awarding',
             validate=webargs_validate.OneOf(('awarding', 'funding'),
                                             error="Must be either awarding or funding if provided")
         ),
         'file_format': webargs_fields.String(
-            missing='csv',
+            load_default='csv',
             validate=webargs_validate.OneOf(('csv', 'txt'),
                                             error="Must be either csv or txt if provided")
         ),
-        'element_numbers': webargs_fields.Bool(missing=False),
-    })
+        'element_numbers': webargs_fields.Bool(load_default=False),
+    }, location='json')
     def generate_detached_file(file_type, **kwargs):
         """ Generate a file from external API, independent from a submission
 
@@ -123,7 +125,7 @@ def add_generation_routes(app, is_local, server_path):
 
     @app.route("/v1/check_detached_generation_status/", methods=["GET"])
     @requires_login
-    @use_kwargs({'job_id': webargs_fields.Int(required=True)})
+    @parser.use_kwargs({'job_id': webargs_fields.Int(required=True)}, location='query')
     def check_detached_generation_status(job_id):
         """ Return status of file generation job """
         return generation_handler.check_detached_generation(job_id)

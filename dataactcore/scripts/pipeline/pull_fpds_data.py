@@ -19,6 +19,8 @@ from distutils.util import strtobool
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
+from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand
+
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 
@@ -60,13 +62,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-def list_data(data):
-    if isinstance(data, dict):
-        # make a list so it's consistent
-        data = [data, ]
-    return data
-
-
 def extract_text(data_val):
     if type(data_val) is not str:
         data_val = data_val['#text']
@@ -78,7 +73,7 @@ def extract_text(data_val):
 
 
 def is_valid_zip(zip_code):
-    if re.match('^\d{5}(-?\d{4})?$', zip_code):
+    if re.match(r'^\d{5}(-?\d{4})?$', zip_code):
         return True
     return False
 
@@ -1255,7 +1250,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
                    "awardee_or_recipient_legal", "other_statutory_authority"]
     for field in free_fields:
         if obj[field]:
-            obj[field] = re.sub('\s', ' ', obj[field])
+            obj[field] = re.sub(r'\s', ' ', obj[field])
 
     boolean_fields = ['small_business_competitive', 'city_local_government', 'county_local_government',
                       'inter_municipal_local_gove', 'local_government_owned', 'municipality_local_governm',
@@ -1457,37 +1452,10 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
                 sess.commit()
 
 
-def get_with_exception_hand(url_string, expect_entries=True):
-    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
-    exception_retries = -1
-    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
-    request_timeout = 60
-
-    while exception_retries < len(retry_sleep_times):
-        try:
-            resp = requests.get(url_string, timeout=request_timeout)
-            if expect_entries:
-                # we should always expect entries, otherwise we shouldn't be calling it
-                resp_dict = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-                len(list_data(resp_dict['feed']['entry']))
-            break
-        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout, KeyError) as e:
-            exception_retries += 1
-            request_timeout += 60
-            if exception_retries < len(retry_sleep_times):
-                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
-                            .format(retry_sleep_times[exception_retries], request_timeout))
-                time.sleep(retry_sleep_times[exception_retries])
-            else:
-                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
-                raise e
-    return resp
-
-
 def get_total_expected_records(base_url):
     """ Retrieve the total number of expected records based on the last paginated URL """
     # get a single call so we can find the last page
-    initial_request = get_with_exception_hand(base_url, expect_entries=False)
+    initial_request = get_xml_with_exception_hand(base_url, FPDS_NAMESPACES, expect_entries=False)
     initial_request_xml = xmltodict.parse(initial_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
 
     # retrieve all URLs
@@ -1514,7 +1482,7 @@ def get_total_expected_records(base_url):
     final_request_count = int(final_request_url.split('&start=')[-1])
 
     # retrieve the last page of data
-    final_request = get_with_exception_hand(final_request_url)
+    final_request = get_xml_with_exception_hand(final_request_url, FPDS_NAMESPACES)
     final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
     try:
         entries_list = list_data(final_request_xml['feed']['entry'])
@@ -1593,8 +1561,9 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             futures = [
                 loop.run_in_executor(
                     None,
-                    get_with_exception_hand,
+                    get_xml_with_exception_hand,
                     base_url + "&start=" + str(entries_already_processed + (start_offset * MAX_ENTRIES)),
+                    FPDS_NAMESPACES,
                     total_expected_records > entries_already_processed + (start_offset * MAX_ENTRIES)
                 )
                 for start_offset in range(requests_at_once)
@@ -1846,7 +1815,7 @@ def create_lookups(sess):
 
         # if the county name has only letters/spaces then we want it in our by-name lookup, the rest have the potential
         # to be different from the FPDS feed
-        if re.match('^[A-Z\s]+$', county_code.county_name):
+        if re.match(r'^[A-Z\s]+$', county_code.county_name):
             county_by_name[county_code.state_code][county_name] = county_code.county_number
 
     # get and create list of uei -> exec comp data mappings

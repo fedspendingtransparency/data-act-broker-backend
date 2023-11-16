@@ -186,7 +186,7 @@ def format_fabs_data(data, sess, fips_state_list, state_code_list, sub_tier_list
     # make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
     # NULL in the db.
     cdata = cdata.replace(np.nan, '', regex=True)
-    cdata = cdata.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+    cdata = cdata.map(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
     # generate the afa_generated_unique field
     cdata['afa_generated_unique'] = cdata.apply(lambda x: generate_unique_string(x), axis=1)

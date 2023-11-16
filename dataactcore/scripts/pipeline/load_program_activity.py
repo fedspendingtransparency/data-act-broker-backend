@@ -145,7 +145,7 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
             sess = GlobalDB.db().session
             try:
                 raw_data = pd.read_csv(program_activity_file, dtype=str, na_filter=False)
-            except pd.io.common.EmptyDataError:
+            except pd.errors.EmptyDataError:
                 log_blank_file()
                 exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
                 return
@@ -252,7 +252,7 @@ def convert_fyq_to_fyp(fyq):
             FYQ converted to FYP or left the same
     """
     # If it's in quarter format, convert to period
-    if re.match('^FY\d{2}Q\d$', str(fyq).upper().strip()):
+    if re.match(r'^FY\d{2}Q\d$', str(fyq).upper().strip()):
         # Make sure it's all uppercase and replace the Q with a P
         fyq = fyq.upper().strip().replace('Q', 'P')
         # take the last character in the string (the quarter), multiply by 3, replace

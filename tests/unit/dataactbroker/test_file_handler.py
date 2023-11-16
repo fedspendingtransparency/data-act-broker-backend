@@ -167,7 +167,9 @@ def test_create_submission_external_files(database, monkeypatch):
     ex_types = [FILE_TYPE_DICT_LETTER_ID[ex_type] for ex_type in fileHandler.FileHandler.EXTERNAL_FILE_TYPES]
     external_files = sess.query(Job).filter(Submission.submission_id == new_same_sub.submission_id,
                                             Job.file_type_id.in_(ex_types))
+    curr_date = datetime.now().strftime('%Y%m%d')
     expected_names = {
+        'A': 'SubID-{}_File-A_FY10P04_Broker{}_123456789.csv'.format(new_same_sub.submission_id, curr_date),
         'D1': 'SubID-{}_File-D1_FY10P04_20100101_20100131_awarding_123456789.csv'.format(new_same_sub.submission_id),
         'D2': 'SubID-{}_File-D2_FY10P04_20100101_20100131_awarding_123456789.csv'.format(new_same_sub.submission_id),
         'E': 'SubID-{}_File-E_FY10P04_123456789.csv'.format(new_same_sub.submission_id),
