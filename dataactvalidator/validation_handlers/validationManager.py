@@ -550,7 +550,7 @@ class ValidationManager:
                                               args=(chunk_df, shared_data, file_row_count, m_lock))
                     results.append(result)
             except pd.errors.ParserError as e:
-                # if it pandas can't read a later portion after starting,
+                # if pandas can't read a later portion after starting,
                 # make sure the pool is closed/joined first
                 raise e
             finally:
