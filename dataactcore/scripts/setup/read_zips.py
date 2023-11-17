@@ -407,18 +407,18 @@ def export_state_congr_table(sess):
         Args:
             sess: the database connection
     """
-    state_congr_filaname = 'state_congressional.csv'
+    state_congr_filename = 'state_congressional.csv'
 
-    logger.info("Exporting state_congressional table to {}".format(state_congr_filaname))
+    logger.info("Exporting state_congressional table to {}".format(state_congr_filename))
     query = sess.query(StateCongressional.state_code, StateCongressional.congressional_district_no,
                        StateCongressional.census_year).filter(StateCongressional.congressional_district_no.isnot(None))
-    write_query_to_file(sess, query, state_congr_filaname)
+    write_query_to_file(sess, query, state_congr_filename)
 
-    logger.info("Uploading {} to {}".format(state_congr_filaname, CONFIG_BROKER["public_files_bucket"]))
+    logger.info("Uploading {} to {}".format(state_congr_filename, CONFIG_BROKER["public_files_bucket"]))
     s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
     s3.upload_file('state_congressional.csv', CONFIG_BROKER["public_files_bucket"],
                    'broker_reference_data/state_congressional.csv')
-    os.remove(state_congr_filaname)
+    os.remove(state_congr_filename)
 
 
 def add_to_table(data, sess):
