@@ -49,7 +49,7 @@ def load_email_template(sess, subject, contents, email_type):
         EmailTemplate.template_type_id == email_id).one_or_none()
     template = EmailTemplate()
     if template_id:
-        template.email_template_id = template_id
+        template.email_template_id = template_id._mapping['email_template_id']
     template.subject = subject
     template.content = contents
     template.template_type_id = email_id
