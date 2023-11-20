@@ -46,10 +46,10 @@ def load_email_template(sess, subject, contents, email_type):
         EmailTemplateType.name == email_type).one()._mapping['email_template_type_id']
     template_id = sess.query(
         EmailTemplate.email_template_id).filter(
-        EmailTemplate.template_type_id == email_id).one_or_none()._mapping['email_template_id']
+        EmailTemplate.template_type_id == email_id).one_or_none()
     template = EmailTemplate()
     if template_id:
-        template.email_template_id = template_id
+        template.email_template_id = template_id._mapping['email_template_id']
     template.subject = subject
     template.content = contents
     template.template_type_id = email_id
