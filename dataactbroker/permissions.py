@@ -4,8 +4,8 @@ from flask import request
 
 from werkzeug.exceptions import BadRequest
 
-from webargs import fields as webargs_fields
-from webargs.flaskparser import parser as webargs_parser
+from marshmallow import INCLUDE
+from webargs import fields as webargs_fields, flaskparser
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import SubTierAgency
@@ -21,6 +21,8 @@ NOT_AUTHORIZED_MSG = "You are not authorized to perform the requested task. Plea
 
 DABS_PERMS = [PERMISSION_SHORT_DICT['w'], PERMISSION_SHORT_DICT['s']]
 FABS_PERM = PERMISSION_SHORT_DICT['f']
+
+webargs_parser = flaskparser.FlaskParser(unknown=INCLUDE)
 
 
 def requires_login(func):
@@ -174,10 +176,10 @@ def requires_agency_perms(perm):
         @wraps(fn)
         def wrapped(*args, **kwargs):
             req_args = webargs_parser.parse({
-                'existing_submission_id': webargs_fields.Int(missing=None),
-                'cgac_code': webargs_fields.String(missing=None),
-                'frec_code': webargs_fields.String(missing=None)
-            })
+                'existing_submission_id': webargs_fields.Int(load_default=None),
+                'cgac_code': webargs_fields.String(load_default=None),
+                'frec_code': webargs_fields.String(load_default=None)
+            }, request, location='form')
             # Ensure there is either an existing_submission_id, a cgac_code, or a frec_code
             if req_args['existing_submission_id'] is None and req_args['cgac_code'] is None and \
                req_args['frec_code'] is None:
@@ -215,15 +217,19 @@ def requires_agency_code_perms(perm):
         @requires_login
         @wraps(fn)
         def wrapped(*args, **kwargs):
-            req_args = webargs_parser.parse({
-                'agency_code': webargs_fields.String(missing=None)
-            })
+            for location in ['query', 'json']:
+                req_args = webargs_parser.parse({
+                    'agency_code': webargs_fields.String(load_default=None)
+                }, request, location=location)
+                agency_code = req_args.get('agency_code', None)
+                if agency_code is not None:
+                    break
             # Ensure there is an agency_code
-            if req_args['agency_code'] is None:
+            if agency_code is None:
                 raise ResponseException('Missing required parameter: agency_code', StatusCode.CLIENT_ERROR)
 
             # Check permissions for the agency
-            if not active_user_can(perm, cgac_code=req_args['agency_code'], frec_code=req_args['agency_code']):
+            if not active_user_can(perm, cgac_code=agency_code, frec_code=agency_code):
                 raise ResponseException("User does not have permissions for that agency", StatusCode.PERMISSION_DENIED)
             return fn(*args, **kwargs)
         return wrapped

@@ -189,7 +189,7 @@ def load_sf133(sess, filename, fiscal_year, fiscal_period, force_sf133_load=Fals
     data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
     # make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
     # NULL in the db.
-    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+    data = data.map(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
     # Keeping display_tas out here as it depends on empty allocation_transfer_agency being None and not 000
     data['display_tas'] = data.apply(lambda row: concat_display_tas_dict(row), axis=1)

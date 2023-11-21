@@ -58,13 +58,13 @@ class DomainTests(BaseTestAPI):
         response = self.app.get("/v1/list_agencies/", query_params, headers={"x-session-id": self.session_id},
                                 expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'perm_type: Not a valid choice.')
+        self.assertEqual(response.json['message'], 'perm_type: Must be one of: dabs, fabs, mixed.')
 
         query_params = {'perm_level': 'test', 'perm_type': 'fabs'}
         response = self.app.get("/v1/list_agencies/", query_params, headers={"x-session-id": self.session_id},
                                 expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'perm_level: Not a valid choice.')
+        self.assertEqual(response.json['message'], 'perm_level: Must be one of: reader, submitter, writer.')
 
     def test_list_all_agencies_success(self):
         """Test retrieving list agencies information."""

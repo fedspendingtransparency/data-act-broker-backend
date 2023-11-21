@@ -102,7 +102,7 @@ def load_domain_value_files(base_path, force=False):
     logger.info('Loading Program Activity')
     load_program_activity_data(base_path)
     logger.info('Loading Country codes')
-    load_country_codes(base_path, force)
+    load_country_codes(force)
 
 
 def load_sf133():
@@ -218,7 +218,7 @@ def main():
         load_domain_value_files(validator_config_path, args.force)
 
     if args.update_country_codes:
-        load_country_codes(validator_config_path, args.force)
+        load_country_codes(args.force)
 
     if args.update_object_class:
         load_object_class(validator_config_path)

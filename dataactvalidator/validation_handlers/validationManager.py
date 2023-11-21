@@ -447,8 +447,8 @@ class ValidationManager:
                     break
                 skiprows.append(i)
 
-        reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
-                                 na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False, skiprows=skiprows)
+        reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, na_filter=False,
+                                 chunksize=CHUNK_SIZE, on_bad_lines='skip', skiprows=skiprows)
         # Setting this outside of reader/file type objects which may not be used during processing
         self.flex_fields = self.reader.flex_fields
         self.header_dict = self.reader.header_dict
@@ -532,8 +532,17 @@ class ValidationManager:
             temp_reader = self.reader
             self.reader = None
 
+            # We need to dispose the engine connection when making the child processes in SQLAlchemy 1.4
+            # https://docs.sqlalchemy.org/en/14/core/pooling.html#using-connection-pools-with-multiprocessing-or-os-fork
+            conn = db_connection()
+            engine = conn.engine
+
+            def initializer():
+                """ ensure the parent proc's database connections are not touched in the new connection pool """
+                engine.dispose(close=False)
+
             m_lock = server_manager.Lock()
-            pool = Pool(MULTIPROCESSING_POOLS)
+            pool = Pool(MULTIPROCESSING_POOLS, initializer=initializer())
             results = []
             for chunk_df in reader_obj:
                 result = pool.apply_async(func=self.parallel_process_data_chunk,

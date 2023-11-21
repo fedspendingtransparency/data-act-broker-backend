@@ -30,7 +30,7 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
     # Drop the created_at and updated_at columns from the new data so they don't cause differences
     try:
         new_data_copy.drop(['created_at', 'updated_at'], axis=1, inplace=True)
-    except ValueError:
+    except (ValueError, KeyError):
         logger.info('created_at or updated_at column not found, drop skipped.')
 
     sess = GlobalDB.db().session
@@ -44,7 +44,7 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
     # Drop the created_at and updated_at for the same reason as above, also drop the pk ID column for this table
     try:
         current_data.drop(['created_at', 'updated_at'] + del_cols, axis=1, inplace=True)
-    except ValueError:
+    except (ValueError, KeyError):
         logger.info('created_at, updated_at, or at least one of the columns provided for deletion not found,'
                     ' drop skipped.')
 
@@ -63,8 +63,8 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
     current_data = current_data.replace('[Nn]a[Tn]', '', regex=True).astype(str)
 
     # Strip all strings so they don't have extra whitespace
-    new_data_copy = new_data_copy.applymap(lambda x: x.strip() if isinstance(x, str) else x)
-    current_data = current_data.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+    new_data_copy = new_data_copy.map(lambda x: x.strip() if isinstance(x, str) else x)
+    current_data = current_data.map(lambda x: x.strip() if isinstance(x, str) else x)
 
     # pandas comparison requires everything to be in the same order
     new_data_copy.sort_values(by=sort_cols, inplace=True)

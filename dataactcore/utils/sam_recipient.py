@@ -147,7 +147,7 @@ def parse_sam_recipient_file(file_path, metrics=None):
         total_data = total_data.assign(uei=np.nan, ultimate_parent_uei=np.nan)
 
     # trimming all columns before cleaning to ensure the sam_extract is working as intended
-    total_data = total_data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
+    total_data = total_data.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
     # add deactivation_date column for delete records
     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
@@ -432,7 +432,7 @@ def parse_exec_comp_file(file_path, metrics=None):
     records_received = len(total_data.index)
 
     # trimming all columns before cleaning to ensure the sam_extract is working as intended
-    total_data = total_data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
+    total_data = total_data.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
     total_data = total_data[total_data[key_col].notnull()
                             & total_data['sam_extract_code'].isin(['2', '3', 'A', 'E'])]
@@ -860,7 +860,7 @@ def update_sam_props(df, api='entity'):
             empty_recp_row = empty_row_template.copy()
             empty_recp_row[key_col] = key
             empty_sam_rows.append(empty_recp_row)
-        sam_props_batch = sam_props_batch.append(pd.DataFrame(empty_sam_rows), sort=True)
-        sam_props_df = sam_props_df.append(sam_props_batch, sort=True)
+        sam_props_batch = pd.concat([sam_props_batch, pd.DataFrame(empty_sam_rows)], sort=True)
+        sam_props_df = pd.concat([sam_props_df, sam_props_batch], sort=True)
         index += batch_size
     return pd.merge(df, sam_props_df, on=[key_col])

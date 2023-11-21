@@ -59,7 +59,7 @@ def clean_delete_data(data):
     data = data.replace(np.nan, '', regex=True)
 
     # trim all columns
-    data = data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
+    data = data.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
     # Convert all dates to the same format as we have in the DB
     data['delete_date'] = data['delete_date'].map(lambda x: convert_date(x) if x else None)

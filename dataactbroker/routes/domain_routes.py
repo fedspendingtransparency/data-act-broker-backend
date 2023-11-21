@@ -17,12 +17,12 @@ def add_domain_routes(app):
     @requires_login
     @use_kwargs({
         'perm_level': webargs_fields.String(
-            missing='reader',
+            load_default='reader',
             validate=webargs_validate.OneOf(('reader', 'writer', 'submitter'))),
         'perm_type': webargs_fields.String(
-            missing='mixed',
+            load_default='mixed',
             validate=webargs_validate.OneOf(('mixed', 'fabs', 'dabs'))),
-    })
+    }, location='query')
     def list_agencies(perm_level, perm_type):
         """ Get all agencies the current user has DABS access to. """
         return JsonResponse.create(StatusCode.OK, get_accessible_agencies(perm_level, perm_type))

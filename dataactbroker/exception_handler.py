@@ -11,18 +11,24 @@ def add_exception_handlers(app):
         """We receive 422s from the webargs library. Clean up their message
         and convert them to 400s"""
         if hasattr(error, 'data'):
-            message = ' '.join(
-                field_name + ': ' + '; '.join(messages)
-                for field_name, messages
-                in sorted(error.data['messages'].items())
-            )
+            webargs_messages = []
+            for location, fielddata in error.data['messages'].items():
+                for field_name, messages in sorted(fielddata.items()):
+                    field_messages = []
+                    for message in messages:
+                        if "Must be one of:" in message:
+                            options = ', '.join(sorted([x.strip() for x in message[15:-1].split(', ')]))
+                            message = f"Must be one of: {options}."
+                        field_messages.append(message)
+                    webargs_messages.append(field_name + ': ' + '; '.join(field_messages))
+            resp_message = ' '.join(webargs_messages)
         else:
-            message = 'Invalid request'
-        body = {'message': message}
+            resp_message = 'Invalid request'
+        body = {'message': resp_message}
         if CONFIG_SERVICES['debug']:
             body['exception_type'] = str(error.exc)
             body['trace'] = [
                 str(entry)
                 for entry in traceback.extract_tb(error.exc.__traceback__, 10)
             ]
-        return jsonify({'message': message}), 400
+        return jsonify({'message': resp_message}), 400
