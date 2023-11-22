@@ -544,12 +544,18 @@ class ValidationManager:
             m_lock = server_manager.Lock()
             pool = Pool(MULTIPROCESSING_POOLS, initializer=initializer())
             results = []
-            for chunk_df in reader_obj:
-                result = pool.apply_async(func=self.parallel_process_data_chunk,
-                                          args=(chunk_df, shared_data, file_row_count, m_lock))
-                results.append(result)
-            pool.close()
-            pool.join()
+            try:
+                for chunk_df in reader_obj:
+                    result = pool.apply_async(func=self.parallel_process_data_chunk,
+                                              args=(chunk_df, shared_data, file_row_count, m_lock))
+                    results.append(result)
+            except pd.errors.ParserError as e:
+                # if pandas can't read a later portion after starting,
+                # make sure the pool is closed/joined first
+                raise e
+            finally:
+                pool.close()
+                pool.join()
 
             # Raises any exceptions if such occur
             for result in results:
@@ -1112,7 +1118,8 @@ class ValidationManager:
                 'submission_id': self.submission_id,
                 'job_id': self.job_id,
             })
-            spawn_of_job.kill()
+            if spawn_of_job.is_running():
+                spawn_of_job.kill()
 
 
 def update_account_nums(model_class, submission_id):
