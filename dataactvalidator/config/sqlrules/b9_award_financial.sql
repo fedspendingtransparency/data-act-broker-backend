@@ -1,8 +1,9 @@
--- Must be a valid program activity name/program activity code combination for the corresponding funding TAS/TAFS,
--- as defined in the OMB Program Activity MAX Collect Exercise. However, if every balance on this row is $0 there are
--- no obligations or outlays on the TAS, a program activity name of "Unknown/Other" combined with a program activity
--- code of 0000 should be used. Note: A program activity code of "0000" or a program activity name of "Unknown/Other"
--- should not be provided for File C.
+-- Should be a valid program activity name/program activity code combination for the corresponding funding TAS/TAFS,
+-- as defined in the OMB Program Activity MAX Collect Exercise. However, if every balance on this row is $0,
+-- a program activity name of "Unknown/Other" combined with a program activity code of 0000 should be used.
+-- Note: A program activity code of "0000" or a program activity name of "Unknown/Other" should not be provided
+-- for File C. PAC/PAN will not be accepted beginning FY26 PD01/02 for new activity but allowed for resubmissions of
+-- periods prior to FY26 PD 01/02.
 WITH award_financial_b9_{0} AS
     (SELECT submission_id,
         row_number,
