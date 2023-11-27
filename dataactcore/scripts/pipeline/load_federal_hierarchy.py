@@ -9,7 +9,6 @@ import sys
 import time
 
 from datetime import datetime, timedelta
-from pandas.io.json import json_normalize
 from requests.packages.urllib3.exceptions import ReadTimeoutError
 
 from dataactcore.config import CONFIG_BROKER
@@ -123,7 +122,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
                     # Add to the file data structure
                     if filename:
-                        row = json_normalize(flatten_json(org))
+                        row = pd.json_normalize(flatten_json(org))
                         dataframe = dataframe.append(row)
 
                     # Don't process the top_sub_levels, but store them in the fed hierarchy export
