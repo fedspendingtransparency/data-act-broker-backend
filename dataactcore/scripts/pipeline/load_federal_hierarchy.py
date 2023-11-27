@@ -123,7 +123,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     # Add to the file data structure
                     if filename:
                         row = pd.json_normalize(flatten_json(org))
-                        dataframe = dataframe.append(row)
+                        dataframe = pd.concat([dataframe, row])
 
                     # Don't process the top_sub_levels, but store them in the fed hierarchy export
                     if level in top_sub_levels:
@@ -171,6 +171,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     if header not in file_headers:
                         file_headers.append(header)
                         logger.info('Headers missing column: %s', header)
+
+                # Adding all the extra headers we might not have in the dataframe for any reason
+                dataframe = dataframe.reindex(columns=file_headers)
 
                 # Write to file
                 with open(filename, 'a') as f:
