@@ -18,11 +18,10 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests that, for entries with the matching TAS, Appropriations
-    deobligations_recoveries_r_cpe equals the sum of all corresponding entries
-    for Object Class Program Acitivity fields ussgl487100_downward_adjus_cpe,
-    ussgl497100_downward_adjus_cpe, ussgl487200_downward_adjus_cpe,
-    ussgl497200_downward_adjus_cpe"""
+    """ Test the DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations account file (A)
+        does not equal the sum of the corresponding DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE
+        values in the object class and program activity file (B).
+    """
     tas = TASFactory()
     database.session.add(tas)
     database.session.flush()
@@ -63,11 +62,10 @@ def test_success_scenario2(database):
 
 
 def test_failure(database):
-    """ Tests that, for entries with the matching TAS, Appropriations
-    deobligations_recoveries_r_cpe does not equals the sum of all
-    corresponding entries for Object Class Program Acitivity fields
-    ussgl487100_downward_adjus_cpe, ussgl497100_downward_adjus_cpe,
-    ussgl487200_downward_adjus_cpe, ussgl497200_downward_adjus_cpe"""
+    """ Test fail the DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations account file (A)
+        does not equal the sum of the corresponding DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE
+        values in the object class and program activity file (B).
+    """
     tas = TASFactory()
     database.session.add(tas)
     database.session.flush()

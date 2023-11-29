@@ -16,10 +16,9 @@ def test_column_headers(database):
 
 
 def test_sum_matches(database):
-    """ Test the GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the sum of the
-        corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the award financial file (B).
-        {This value is the sum of all Gross Outlay Amounts reported in file B, to indicate year-to-date activity by
-        TAS/Subaccount.}
+    """ Test the GrossOutlayAmountByTAS_CPE amount in the appropriations account file (A) does not equal the sum of the
+        corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the object class and
+        program activity file (B).
     """
     tas = TASFactory()
     database.session.add(tas)
@@ -33,10 +32,9 @@ def test_sum_matches(database):
 
 
 def test_sum_does_not_match(database):
-    """ Test fail the GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the sum of the
-        corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the award financial file (B).
-        {This value is the sum of all Gross Outlay Amounts reported in file B, to indicate year-to-date activity by
-        TAS/Subaccount.}
+    """ Test fail the GrossOutlayAmountByTAS_CPE amount in the appropriations account file (A) does not equal the sum of
+        the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the object class and
+        program activity file (B).
     """
     tas = TASFactory()
     database.session.add(tas)
