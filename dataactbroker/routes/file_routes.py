@@ -236,7 +236,7 @@ def add_file_routes(app, is_local, server_path):
             validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
         )
     }, location='query')
-    def get_file_url(submission, file_type):
+    def get_file_url(submission, file_type, **kwargs):
         return get_upload_file_url(submission, file_type)
 
     @app.route("/v1/get_detached_file_url/", methods=['GET'])
