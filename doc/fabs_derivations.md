@@ -14,23 +14,25 @@ These are derivations that can happen in any order.
 	- `cfda.program_title` => `cfda_title`
 - `derive_awarding_agency_data`
 	- `office.sub_tier_code` => `awarding_sub_tier_agency_c`
-	- `cgac.cgac_code` or `frec.frec_code` => `awarding_agency_code`
-	- `cgac.cgac_name` or `frec.frec_name` => `awarding_agency_name`
-	- `sta.sub_tier_agency_name` => `awarding_sub_tier_agency_n`
+    - (based on `awarding_sub_tier_agency_c`)
+		- `cgac.cgac_code` or `frec.frec_code` => `awarding_agency_code`
+		- `cgac.cgac_name` or `frec.frec_name` => `awarding_agency_name`
+		- `sta.sub_tier_agency_name` => `awarding_sub_tier_agency_n`
 - `derive_funding_agency_data`
 	- `office.sub_tier_code` => `funding_sub_tier_agency_c`
-	- `cgac.cgac_code` or `frec.frec_code` => `funding_agency_code`
-	- `cgac.cgac_name` or `frec.frec_name` => `funding_agency_name`
-	- `sta.sub_tier_agency_name` => `funding_sub_tier_agency_n`
-- `derive_office_data`
+    - (based on `funding_sub_tier_agency_co`)
+		- `cgac.cgac_code` or `frec.frec_code` => `funding_agency_code`
+		- `cgac.cgac_name` or `frec.frec_name` => `funding_agency_name`
+		- `sta.sub_tier_agency_name` => `funding_sub_tier_agency_n`
+- `derive_office_data` (based on the award, the `awarding_sub_tier_agency_c`, and `record_type`)
 	- `office.office_code` => `awarding_office_code`
 	- `office.office_code` => `funding_office_code`
 	- `office.office_name` => `awarding_office_name`
 	- `office.office_name` => `funding_office_name`
-- `derive_parent_uei`
+- `derive_parent_uei` (based on `uei`)
 	- `sam_recipient.ultimate_parent_legal_enti` => `ultimate_parent_legal_enti`
 	- `sam_recipient.ultimate_parent_uei` => `ultimate_parent_uei`
-- `derive_executive_compensation`
+- `derive_executive_compensation` (based on `uei`)
 	- `sam_recipient.high_comp_officer1_full_na` => `high_comp_officer1_full_na`
 	- `sam_recipient.high_comp_officer1_amount` => `high_comp_officer1_amount`
 	- `sam_recipient.high_comp_officer2_full_na` => `high_comp_officer2_full_na`
@@ -70,12 +72,16 @@ These are derivations that dependent on each other and must be executed in the r
 	- If `place_of_perform_zip_last4` is populated and (`place_of_perform_zip_last4` and `place_of_performance_zip5` match our zips table)
 		- `zips.congressional_district_no` => `place_of_performance_congr` (if not already populated) 
 		- `zips.county_number` => `place_of_perform_county_co`
+        - **Note: Derivation uses an older dataset if the action_date is before a certain date**
 	- If `place_of_performance_zip5` matches our zip table and `place_of_performance_congr` is not populated
 		-  `zips.congressional_district_no` => `place_of_performance_congr`
-		Note: this will cover the instances where the zip5 was provided but not the zip4
+		- **Note: this will cover the instances where the zip5 was provided but not the zip4**
+        - **Note: Derivation uses an older dataset if the action_date is before a certain date**
+		- **Note: Derivation uses a threshold logic (75%) to associate the congressional district to a zip5 and state.**
 	- If `place_of_performance_zip5` matches our zip table and `place_of_perform_county_co` is not populated
 		- `zips.county_number` => `place_of_perform_county_co`
-		- Note: this will cover the instances where the zip5 was provided but not the zip4
+		- **Note: this will cover the instances where the zip5 was provided but not the zip4**
+        - **Note: Derivation uses an older dataset if the action_date is before a certain date**
 	- If `place_of_performance_zip5` is populated and matches our zip city data,
 		- `zip_city.city_name` => `place_of_performance_city`
 	- If `place_of_performance_zip5` is not populated and `place_of_performance_code` has the 3 digits at the end (XX**###)
@@ -100,13 +106,19 @@ These are derivations that dependent on each other and must be executed in the r
 		- `zips.congressional_district_no` => `legal_entity_congressional` (if not already populated)
 		- `zips.county_number` => `legal_entity_county_code`
 		- `zips.state_abbreviation` => `legal_entity_state_code`
+        - **Note: Derivation uses an older dataset if the action_date is before a certain date**
+	- If `legal_entity_zip5` matches our zip data and `legal_entity_state_code` isn't populated
+		- `zip_city.state_code` => `legal_entity_state_code`
+		- **Note: this will cover the instances where the zip5 was provided but not the zip4**
 	- If `legal_entity_zip5` matches our zip data and `legal_entity_congressional` isn't populated
 		- `zips.congressional_district_no` => `legal_entity_congressional`
-		Note: this will cover the instances where the zip5 was provided but not the zip4
+		- **Note: this will cover the instances where the zip5 was provided but not the zip4**
+        - **Note: Derivation uses an older dataset if the action_date is before a certain date**
+		- **Note: Derivation uses a threshold logic (75%) to associate the congressional district to a zip5 and state.**
 	- If `legal_entity_zip5` matches our zip data and `legal_entity_county_code` isn't populated
 		- `zips.county_number` => `legal_entity_county_code`
-		- `zips.state_abbreviation` => `legal_entity_state_code`
-		Note: this will cover the instances where the zip5 was provided but not the zip4
+		- **Note: this will cover the instances where the zip5 was provided but not the zip4**
+        - **Note: Derivation uses an older dataset if the action_date is before a certain date**
 	- If `legal_entity_zip5` is populated and `legal_entity_county_code` and `legal_entity_state_code` match our county data
 		- `county_code.county_name` => `legal_entity_county_name`
 	- If `legal_entity_zip5` is populated and `legal_entity_state_code` matches our state data

@@ -536,7 +536,7 @@ def derive_le_location_data(sess, submission_id):
 
     query_start = datetime.now()
     log_derivation('Beginning legal entity state derivation', submission_id)
-    # Deriving congressional info for remaining blanks (with zip code)
+    # Deriving state info for remaining blanks (with zip code)
     query = """
             UPDATE tmp_fabs_{submission_id}
             SET legal_entity_state_code = state_code
@@ -581,8 +581,8 @@ def derive_le_location_data(sess, submission_id):
                    'updated {}'.format(res.rowcount), submission_id, query_start)
 
     query_start = datetime.now()
-    log_derivation('Beginning historical legal entity county and state derivation', submission_id)
-    # Deriving county and state code info for remaining blanks (with zip code)
+    log_derivation('Beginning historical legal entity county', submission_id)
+    # Deriving county info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
         SET legal_entity_county_code = county_number
@@ -597,8 +597,8 @@ def derive_le_location_data(sess, submission_id):
                    'updated {}'.format(res.rowcount), submission_id, query_start)
 
     query_start = datetime.now()
-    log_derivation('Beginning historical legal entity county and state derivation', submission_id)
-    # Deriving county and state code info for remaining blanks (with zip code)
+    log_derivation('Beginning historical legal entity county', submission_id)
+    # Deriving county info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
         SET legal_entity_county_code = county_number
