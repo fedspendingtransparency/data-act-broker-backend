@@ -28,7 +28,7 @@ def test_success(database):
     fabs_3 = FABSFactory(place_of_performance_code='', place_of_performance_congr='03', correction_delete_indicatr='',
                          action_date='20230102')
     fabs_4 = FABSFactory(place_of_performance_code=None, place_of_performance_congr='03',
-                          correction_delete_indicatr='', action_date='20230102')
+                         correction_delete_indicatr='', action_date='20230102')
     # Ignore dates after 20230103
     fabs_5 = FABSFactory(place_of_performance_code='nY**001', place_of_performance_congr='09',
                          correction_delete_indicatr='', action_date='20230104')
@@ -40,7 +40,7 @@ def test_success(database):
                          correction_delete_indicatr='C', action_date='20230102')
     # Ignore correction delete indicator of D
     fabs_8 = FABSFactory(place_of_performance_code='nY**001', place_of_performance_congr='09',
-                          correction_delete_indicatr='d', action_date='20230102')
+                         correction_delete_indicatr='d', action_date='20230102')
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8,
                                                        zips])

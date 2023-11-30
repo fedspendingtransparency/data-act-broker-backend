@@ -55,7 +55,8 @@ def test_failure(database):
         PrimaryPlaceOfPerformanceCongressionalDistrict should be associated with the provided
         PrimaryPlaceOfPerformanceZIP+4 according to the historic USPS source data.
     """
-    zips = ZipsHistoricalFactory(zip5='12345', zip_last4='6789', state_abbreviation='NY', congressional_district_no='01')
+    zips = ZipsHistoricalFactory(zip5='12345', zip_last4='6789', state_abbreviation='NY',
+                                 congressional_district_no='01')
 
     fabs_1 = FABSFactory(place_of_performance_code='ny12345', place_of_performance_zip4a='12345',
                          place_of_performance_congr='03', correction_delete_indicatr='', action_date='20230102')
