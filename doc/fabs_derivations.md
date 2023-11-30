@@ -78,6 +78,15 @@ These are derivations that dependent on each other and must be executed in the r
 		- **Note: this will cover the instances where the zip5 was provided but not the zip4**
         - **Note: Derivation uses an older dataset if the action_date is before a certain date**
 		- **Note: Derivation uses a threshold logic (75%) to associate the congressional district to a zip5 and state.**
+	- If `place_of_performance_code` is in the county format, the county and state in it match our data, and `place_of_performance_congr` is not populated
+		-  `cd_county_grouped.congressional_district_no` => `place_of_performance_congr`
+		- **Note: Derivation uses a threshold logic (75%) to associate the congressional district to a county code and state.**
+	- If `place_of_performance_code` is in the city format, the city and state in it match our data, and `place_of_performance_congr` is not populated
+		-  `cd_city_grouped.congressional_district_no` => `place_of_performance_congr`
+		- **Note: Derivation uses a threshold logic (75%) to associate the congressional district to a city code/name and state.**
+	- If `place_of_performance_code` is in the state format, the state in it matches our data, and `place_of_performance_congr` is not populated
+		-  `cd_state_grouped.congressional_district_no` => `place_of_performance_congr`
+		- **Note: Derivation uses a threshold logic (100%) to associate the congressional district to a state.**
 	- If `place_of_performance_zip5` matches our zip table and `place_of_perform_county_co` is not populated
 		- `zips.county_number` => `place_of_perform_county_co`
 		- **Note: this will cover the instances where the zip5 was provided but not the zip4**
