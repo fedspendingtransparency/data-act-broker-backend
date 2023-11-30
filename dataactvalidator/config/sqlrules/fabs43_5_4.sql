@@ -16,7 +16,8 @@ WITH fabs43_5_2_{0} AS
         AND (CASE WHEN is_date(COALESCE(action_date, '0'))
               THEN CAST(action_date AS DATE)
               END) < CAST('01/03/2023' AS DATE)
-        AND UPPER(place_of_performance_zip4a) ~ '^\d\d\d\d\d(\-?\d\d\d\d)?$')
+        AND UPPER(place_of_performance_zip4a) ~ '^\d\d\d\d\d(\-?\d\d\d\d)?$'
+        AND place_of_performance_congr <> '90')
 SELECT
     row_number,
     place_of_performance_code,

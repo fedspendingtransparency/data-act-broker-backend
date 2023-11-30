@@ -36,12 +36,15 @@ def test_success(database):
     # Ignore dates before 20230103
     fabs_7 = FABSFactory(place_of_performance_code='ny12345', place_of_performance_zip4a='123456789',
                          place_of_performance_congr='09', correction_delete_indicatr='', action_date='20230102')
+    # Ignore CD of 90
+    fabs_8 = FABSFactory(place_of_performance_code='ny12345', place_of_performance_congr='90',
+                         correction_delete_indicatr='C', action_date='20230830')
     # Ignore correction delete indicator of D
-    fabs_8 = FABSFactory(place_of_performance_code='ny12345', place_of_performance_zip4a='123456789',
+    fabs_9 = FABSFactory(place_of_performance_code='ny12345', place_of_performance_zip4a='123456789',
                          place_of_performance_congr='09', correction_delete_indicatr='d', action_date='20230830')
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8,
-                                                       zips])
+                                                       fabs_9, zips])
     assert errors == 0
 
 

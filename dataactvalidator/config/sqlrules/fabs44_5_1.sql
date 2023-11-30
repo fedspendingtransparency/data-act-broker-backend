@@ -11,7 +11,7 @@ SELECT
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs
 WHERE submission_id = {0}
-    AND COALESCE(legal_entity_congressional, '') <> ''
+    AND COALESCE(legal_entity_congressional, '') NOT IN ('', '90')
     AND COALESCE(legal_entity_zip5, '') <> ''
     AND (CASE WHEN is_date(COALESCE(action_date, '0'))
               THEN CAST(action_date AS DATE)

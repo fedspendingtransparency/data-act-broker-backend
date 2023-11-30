@@ -35,11 +35,15 @@ def test_success(database):
     # Ignore other ppop code formats
     fabs_6 = FABSFactory(place_of_performance_code='nY12001', place_of_performance_congr='09',
                          correction_delete_indicatr='c', action_date='20230830')
+    # Ignore CD of 90
+    fabs_7 = FABSFactory(place_of_performance_code='nY**001', place_of_performance_congr='90',
+                         correction_delete_indicatr='C', action_date='20230830')
     # Ignore correction delete indicator of D
-    fabs_7 = FABSFactory(place_of_performance_code='nY**001', place_of_performance_congr='09',
+    fabs_8 = FABSFactory(place_of_performance_code='nY**001', place_of_performance_congr='09',
                           correction_delete_indicatr='d', action_date='20230830')
 
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, zips])
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8,
+                                                       zips])
     assert errors == 0
 
 
