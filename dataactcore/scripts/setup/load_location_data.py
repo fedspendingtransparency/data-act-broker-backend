@@ -359,6 +359,7 @@ def load_zip_city_data(force_reload):
             DROP TABLE cd_city_grouped;
             ALTER TABLE temp_cd_city_grouped RENAME TO cd_city_grouped;
             ALTER INDEX temp_cd_city_grouped_pkey RENAME TO cd_city_grouped_pkey;
+            ALTER INDEX temp_cd_city_grouped_city_code_idx RENAME TO ix_cd_city_grouped_city_code;
             ALTER INDEX temp_cd_city_grouped_city_name_idx RENAME TO ix_cd_city_grouped_city_name;
             ALTER INDEX temp_cd_city_grouped_state_abbreviation_idx RENAME TO ix_cd_city_grouped_state_abbreviation;
         """
@@ -399,17 +400,20 @@ def generate_cd_city_grouped(sess):
             FROM cd_percents
         )
         INSERT INTO temp_cd_city_grouped (
-            created_at, updated_at, city_name, state_abbreviation, congressional_district_no
+            created_at, updated_at, city_code, city_name, state_abbreviation, congressional_district_no
         )
         SELECT
             NOW(),
             NOW(),
+            cc.city_code,
             cyd.city_name,
             cyd.state_code,
             COALESCE(cpt.congressional_district_no, '90')
         FROM city_distinct AS cyd
         LEFT OUTER JOIN cd_passed_threshold AS cpt
-            ON cyd.city_name=cpt.city_name AND cyd.state_code=cpt.state_code;
+            ON cyd.city_name=cpt.city_name AND cyd.state_code=cpt.state_code
+        LEFT OUTER JOIN city_code AS cc
+            ON cyd.city_name=UPPER(cc.feature_name) AND cyd.state_code=cc.state_code;
     """
     sess.execute(cd_city_grouped_query)
     sess.commit()
