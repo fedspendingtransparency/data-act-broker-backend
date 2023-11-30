@@ -6,9 +6,11 @@ from dataactcore.models.stagingModels import PublishedFABS
 from tests.unit.dataactcore.factories.domain import (ZipCityFactory, ZipsFactory, ZipsHistoricalFactory,
                                                      ZipsGroupedFactory, ZipsGroupedHistoricalFactory,
                                                      CDZipsGroupedFactory, CDZipsGroupedHistoricalFactory,
-                                                     CityCodeFactory, SAMRecipientFactory, CFDAProgramFactory,
-                                                     CGACFactory, FRECFactory, SubTierAgencyFactory, OfficeFactory,
-                                                     StatesFactory, CountyCodeFactory, CountryCodeFactory)
+                                                     CDCountyGroupedFactory, CDCityGroupedFactory,
+                                                     CDStateGroupedFactory, CityCodeFactory, SAMRecipientFactory,
+                                                     CFDAProgramFactory, CGACFactory, FRECFactory, SubTierAgencyFactory,
+                                                     OfficeFactory, StatesFactory, CountyCodeFactory,
+                                                     CountryCodeFactory)
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory
 
 
@@ -40,6 +42,13 @@ def initialize_db_values(db):
     cd_zips_grouped_3 = CDZipsGroupedFactory(zip5='98765', state_abbreviation='NY', congressional_district_no='90')
     cd_zips_grouped_historical = CDZipsGroupedHistoricalFactory(zip5='11111', state_abbreviation='NY',
                                                                 congressional_district_no='03')
+    # CDs grouped by county/city/state
+    cd_county_grouped = CDCountyGroupedFactory(county_number='001', state_abbreviation='NY',
+                                               congressional_district_no='91')
+    cd_city_grouped_1 = CDCityGroupedFactory(city_code='00001', state_abbreviation='NY', congressional_district_no='92')
+    cd_city_grouped_2 = CDCityGroupedFactory(city_code='0001R', state_abbreviation='NY', congressional_district_no='94')
+    cd_state_grouped = CDStateGroupedFactory(state_abbreviation='NY', congressional_district_no='93')
+
     # Cities
     zip_city = ZipCityFactory(zip_code=zip_code_1.zip5, preferred_city_name='Test City',
                               state_code=zip_code_1.state_abbreviation)
@@ -131,10 +140,11 @@ def initialize_db_values(db):
                                       award_modification_amendme='0', submission_id=1)
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_code_historical_1, zips_grouped_1,
                         zips_grouped_2, zips_grouped_3, zips_grouped_historical_1, cd_zips_grouped_1, cd_zips_grouped_2,
-                        cd_zips_grouped_3, cd_zips_grouped_historical, zip_city, zip_city_2, zip_city_3, zip_city_4,
-                        city_code, state, county, country_1, country_2, recipient_1, recipient_2a, recipient_2b,
-                        recipient_3, cfda, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier, frec_sub_tier, valid_office,
-                        invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6])
+                        cd_zips_grouped_3, cd_zips_grouped_historical, cd_county_grouped, cd_city_grouped_1,
+                        cd_city_grouped_2, cd_state_grouped, zip_city, zip_city_2, zip_city_3, zip_city_4, city_code,
+                        state, county, country_1, country_2, recipient_1, recipient_2a, recipient_2b, recipient_3, cfda,
+                        cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier, frec_sub_tier, valid_office, invalid_office,
+                        pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6])
     db.session.commit()
 
 
@@ -399,12 +409,12 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city == 'Test City 3'
 
-    # when ppop_zip4 is 'city-wide'
+    # when ppop_code and ppop_zip4 is 'city-wide'
     submission_id = initialize_test_row(database, ppop_zip4a='City-WIDE', ppop_code='NY0001R', submission_id=7)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '94'
     assert fabs_obj.place_of_perform_county_co is None
     assert fabs_obj.place_of_perform_county_na is None
     assert fabs_obj.place_of_performance_city is None
@@ -417,7 +427,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_perform_county_co == '001'
     assert fabs_obj.place_of_perform_county_na == 'Test County'
     assert fabs_obj.place_of_performance_city is None
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '91'
 
     # when we don't have ppop_zip4a and ppop_code is in XX##### format
     submission_id = initialize_test_row(database, ppop_code='Ny00001', submission_id=9)
@@ -427,7 +437,14 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_perform_county_co == '001'
     assert fabs_obj.place_of_perform_county_na == 'Test City County'
     assert fabs_obj.place_of_performance_city == 'Test City'
-    assert fabs_obj.place_of_performance_congr is None
+    assert fabs_obj.place_of_performance_congr == '92'
+
+    # when we don't have ppop_zip4a and ppop_code is in XX***** format
+    submission_id = initialize_test_row(database, ppop_code='Ny*****', submission_id=9)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_congr == '93'
 
     # when we don't have a ppop_code at all
     submission_id = initialize_test_row(database, ppop_code='', record_type=3, submission_id=10)

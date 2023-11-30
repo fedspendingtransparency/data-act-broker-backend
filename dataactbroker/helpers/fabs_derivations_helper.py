@@ -328,6 +328,54 @@ def derive_ppop_location_data(sess, submission_id):
                    'updated {}'.format(res.rowcount), submission_id, query_start)
 
     query_start = datetime.now()
+    log_derivation('Beginning ppop congr info by county derivation', submission_id)
+    # Deriving congressional info for remaining blanks (with county code)
+    query = """
+        UPDATE tmp_fabs_{submission_id}
+        SET place_of_performance_congr = congressional_district_no
+        FROM cd_county_grouped
+        WHERE place_of_performance_congr IS NULL
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
+            AND LEFT(UPPER(place_of_performance_code), 2) = state_abbreviation
+            AND RIGHT(UPPER(place_of_performance_code), 3) = county_number;
+    """
+    res = sess.execute(query.format(submission_id=submission_id))
+    log_derivation('Completed ppop congr info for county derivation, '
+                   'updated {}'.format(res.rowcount), submission_id, query_start)
+
+    query_start = datetime.now()
+    log_derivation('Beginning ppop congr info by city derivation', submission_id)
+    # Deriving congressional info for remaining blanks (with city code)
+    query = """
+        UPDATE tmp_fabs_{submission_id}
+        SET place_of_performance_congr = congressional_district_no
+        FROM cd_city_grouped
+        WHERE place_of_performance_congr IS NULL
+            AND (UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dRT]$'
+                 OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]TS\d\d\d$')
+            AND LEFT(UPPER(place_of_performance_code), 2) = state_abbreviation
+            AND RIGHT(UPPER(place_of_performance_code), 5) = city_code;
+    """
+    res = sess.execute(query.format(submission_id=submission_id))
+    log_derivation('Completed ppop congr info by city derivation, '
+                   'updated {}'.format(res.rowcount), submission_id, query_start)
+
+    query_start = datetime.now()
+    log_derivation('Beginning ppop congr info by state derivation', submission_id)
+    # Deriving congressional info for remaining blanks (with state code)
+    query = """
+        UPDATE tmp_fabs_{submission_id}
+        SET place_of_performance_congr = congressional_district_no
+        FROM cd_state_grouped
+        WHERE place_of_performance_congr IS NULL
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\*\*\*$'
+            AND LEFT(UPPER(place_of_performance_code), 2) = state_abbreviation;
+    """
+    res = sess.execute(query.format(submission_id=submission_id))
+    log_derivation('Completed ppop congr info by state derivation, '
+                   'updated {}'.format(res.rowcount), submission_id, query_start)
+
+    query_start = datetime.now()
     log_derivation('Beginning ppop historical county info derivation', submission_id)
     # Deriving historical county code info for remaining blanks (with zip code)
     query = """
