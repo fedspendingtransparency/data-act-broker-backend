@@ -42,7 +42,7 @@ def test_success(database):
                          action_date='20230104')
     fabs_10 = FABSFactory(place_of_performance_code=None, place_of_performance_congr='04',
                           correction_delete_indicatr='', action_date='20230104')
-    # Test ignoring action dates after census
+    # Test ignoring action dates before census
     fabs_11 = FABSFactory(place_of_performance_code='Ny12345', place_of_performance_congr='04',
                           correction_delete_indicatr='', action_date='20230102')
     # Ignore correction delete indicator of D
