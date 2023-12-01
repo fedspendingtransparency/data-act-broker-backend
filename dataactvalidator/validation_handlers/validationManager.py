@@ -104,12 +104,12 @@ class ValidationManager:
         self.expected_headers = []
         self.long_to_short_dict = {}
         self.short_to_long_dict = {}
-        self.daims_to_short_dict = {}
-        self.short_to_daims_dict = {}
+        self.gsdm_to_short_dict = {}
+        self.short_to_gsdm_dict = {}
 
         # create long-to-short (and vice-versa) column name mappings
         sess = GlobalDB.db().session
-        colnames = sess.query(FileColumn.daims_name, FileColumn.name, FileColumn.name_short, FileColumn.file_id).all()
+        colnames = sess.query(FileColumn.gsdm_name, FileColumn.name, FileColumn.name_short, FileColumn.file_id).all()
 
         # fill in long_to_short and short_to_long dicts
         for col in colnames:
@@ -123,22 +123,22 @@ class ValidationManager:
                 self.short_to_long_dict[col.file_id] = {}
             self.short_to_long_dict[col.file_id][col.name_short] = col.name
 
-            # Get daims_to_short_dict filled in
-            if not self.daims_to_short_dict.get(col.file_id):
-                self.daims_to_short_dict[col.file_id] = {}
-            clean_daims = StringCleaner.clean_string(col.daims_name, remove_extras=False)
-            self.daims_to_short_dict[col.file_id][clean_daims] = col.name_short
+            # Get gsdm_to_short_dict filled in
+            if not self.gsdm_to_short_dict.get(col.file_id):
+                self.gsdm_to_short_dict[col.file_id] = {}
+            clean_gsdm = StringCleaner.clean_string(col.gsdm_name, remove_extras=False)
+            self.gsdm_to_short_dict[col.file_id][clean_gsdm] = col.name_short
 
-            # Get short_to_daims_dict filled in
-            if not self.short_to_daims_dict.get(col.file_id):
-                self.short_to_daims_dict[col.file_id] = {}
-            self.short_to_daims_dict[col.file_id][col.name_short] = col.daims_name
+            # Get short_to_gsdm_dict filled in
+            if not self.short_to_gsdm_dict.get(col.file_id):
+                self.short_to_gsdm_dict[col.file_id] = {}
+            self.short_to_gsdm_dict[col.file_id][col.name_short] = col.gsdm_name
 
         # accounting for the column duns/uei <-> mismatch
         if self.short_to_long_dict:
             self.short_to_long_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'awardeeorrecipientuei'
-        if self.short_to_daims_dict:
-            self.short_to_daims_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'AwardeeOrRecipientUEI'
+        if self.short_to_gsdm_dict:
+            self.short_to_gsdm_dict[FILE_TYPE_DICT['fabs']]['uei'] = 'AwardeeOrRecipientUEI'
 
     def get_file_name(self, path):
         """ Return full path of error report based on provided name
@@ -239,7 +239,7 @@ class ValidationManager:
 
         # Get fields for this file
         self.fields = sess.query(FileColumn).filter(FileColumn.file_id == FILE_TYPE_DICT[self.file_type.name])\
-            .order_by(FileColumn.daims_name.asc()).all()
+            .order_by(FileColumn.gsdm_name.asc()).all()
         self.expected_headers, self.parsed_fields = parse_fields(sess, self.fields)
         self.csv_schema = {row.name_short: row for row in self.fields}
 
@@ -431,8 +431,8 @@ class ValidationManager:
         # Finally open the file for loading into the database with baseline validations
         self.reader.open_file(region_name, bucket_name, self.file_name, self.fields, bucket_name,
                               self.get_file_name(self.error_file_name),
-                              self.daims_to_short_dict[self.file_type.file_type_id],
-                              self.short_to_daims_dict[self.file_type.file_type_id],
+                              self.gsdm_to_short_dict[self.file_type.file_type_id],
+                              self.short_to_gsdm_dict[self.file_type.file_type_id],
                               is_local=self.is_local)
         # Going back to reprocess the header row
         self.reader.file.seek(0)

@@ -486,14 +486,14 @@ def valid_format(row):
 
 
 def update_field_name(row, short_cols):
-    """ Update all field names provided to match the lowercased DAIMS headers rather than the database names
+    """ Update all field names provided to match the lowercased GSDM headers rather than the database names
 
         Args:
             row: the dataframe row containing information about a cell, including the header and contents
-            short_cols: A dictionary of lowercased DAIMS headers keyed by database column names
+            short_cols: A dictionary of lowercased GSDM headers keyed by database column names
 
         Returns:
-            The DAIMS version of the header if it can be derived from the column list, otherwise the header provided
+            The GSDM version of the header if it can be derived from the column list, otherwise the header provided
     """
     if row['Field Name'] in short_cols:
         return short_cols[row['Field Name']]
@@ -520,7 +520,7 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
             required: A list of headers that represent the required fields in the file
             required_labels: A mapping of labels that will get added to required field errors in FABS submissions
             report_headers: The list of error/warning report headers in order
-            short_cols: A mapping of the database column names to the lowercased DAIMS headers
+            short_cols: A mapping of the database column names to the lowercased GSDM headers
             flex_data: the dataframe containing flex data for this file
             is_fabs: A boolean indicating if this is a FABS submission or not
 
@@ -562,7 +562,7 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
             type_labels: A mapping of labels that will get added to non-string field errors in FABS submissions
             report_headers: The list of error/warning report headers in order
             csv_schema: the schema containing the details about the columns for this file
-            short_cols: A mapping of the database column names to the lowercased DAIMS headers
+            short_cols: A mapping of the database column names to the lowercased GSDM headers
             flex_data: the dataframe containing flex data for this file
             is_fabs: A boolean indicating if this is a FABS submission or not
 
@@ -610,7 +610,7 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
             length_fields: A list of headers that represent the fields in the file with maximum lengths
             report_headers: The list of error/warning report headers in order
             csv_schema: the schema containing the details about the columns for this file
-            short_cols: A mapping of the database column names to the lowercased DAIMS headers
+            short_cols: A mapping of the database column names to the lowercased GSDM headers
             flex_data: the dataframe containing flex data for this file
             type_error_rows: A list of row numbers indicating what rows have type errors
 
@@ -659,7 +659,7 @@ def check_field_format(data, format_fields, report_headers, short_cols, flex_dat
             data: the dataframe containing the data for the submission
             format_fields: A list of headers that represent the format check fields in the file
             report_headers: The list of error/warning report headers in order
-            short_cols: A mapping of the database column names to the lowercased DAIMS headers
+            short_cols: A mapping of the database column names to the lowercased GSDM headers
             flex_data: the dataframe containing flex data for this file
 
         Returns:

@@ -24,7 +24,7 @@ The validation process for each submitted group of files happens in four steps:
         * is the data format appropriate for its data type?
     * The data from each batch is then loaded into the staging tables.
 3. SQL validation rules are performed on the data loaded into the staging tables:
-    * These encompass the business logic laid out in the DAIMS Schema rules.
+    * These encompass the business logic laid out in the GSDM Schema rules.
     * A list of all these rules can be found in [sqlRules.csv](config/sqlrules/sqlRules.csv)
 4. For DABS submissions, once the individual files have passed the previous validation steps for A/B/C/D1/D2, the validator runs a series of "cross-file" checks to ensure that data is consistent between the files.
     * These are also executed via SQL and listed in [sqlRules.csv](config/sqlrules/sqlRules.csv)

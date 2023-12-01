@@ -49,7 +49,7 @@ def test_no_perms_broker_user(create_session_mock, max_dict_mock, database, monk
     sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com"))\
         .delete(synchronize_session=False)
     sess.commit()
-    assert response['message'] == "There are no DATA Act Broker permissions assigned to this Service Account. You " \
+    assert response['message'] == "There are no Data Broker permissions assigned to this Service Account. You " \
                                   "may request permissions at https://community.max.gov/x/fJwuRQ"
 
 
