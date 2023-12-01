@@ -40,7 +40,5 @@ WHERE COALESCE(place_of_performance_code, '') <> ''
                     AND COALESCE(sc_2.census_year, 2010) < 2020) < 2
         )
     )
-    AND (CASE WHEN is_date(COALESCE(action_date, '0'))
-              THEN CAST(action_date AS DATE)
-              END) < CAST('01/03/2023' AS DATE)
+    AND cast_as_date(action_date) < '01/03/2023'
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
