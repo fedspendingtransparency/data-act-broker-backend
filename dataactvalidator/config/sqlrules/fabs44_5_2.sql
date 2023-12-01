@@ -13,9 +13,7 @@ FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(legal_entity_congressional, '') NOT IN ('', '90')
     AND COALESCE(legal_entity_zip5, '') <> ''
-    AND (CASE WHEN is_date(COALESCE(action_date, '0'))
-              THEN CAST(action_date AS DATE)
-              END) < CAST('01/03/2023' AS DATE)
+    AND cast_as_date(action_date) < '01/03/2023'
     AND CASE WHEN COALESCE(legal_entity_zip_last4, '') = ''
     THEN NOT EXISTS (
         SELECT 1

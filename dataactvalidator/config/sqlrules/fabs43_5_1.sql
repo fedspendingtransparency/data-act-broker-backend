@@ -11,9 +11,7 @@ WITH fabs43_5_1_{0} AS
         afa_generated_unique
     FROM fabs
     WHERE submission_id = {0}
-        AND (CASE WHEN is_date(COALESCE(action_date, '0'))
-              THEN CAST(action_date AS DATE)
-              END) >= CAST('01/03/2023' AS DATE)
+        AND cast_as_date(action_date) >= '01/03/2023'
         AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
         AND place_of_performance_congr <> '90')
 SELECT
