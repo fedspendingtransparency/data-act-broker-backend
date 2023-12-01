@@ -2,7 +2,7 @@
 -- PrimaryPlaceOfPerformanceCode with an ActionDate before 20230103, then the
 -- PrimaryPlaceOfPerformanceCongressionalDistrict should be associated with the provided PrimaryPlaceOfPerformanceZIP+4
 -- according to the historic USPS source data.
-WITH fabs43_5_2_{0} AS
+WITH fabs43_5_4_{0} AS
     (SELECT submission_id,
         row_number,
         place_of_performance_code,
@@ -25,7 +25,7 @@ SELECT
     place_of_performance_zip4a,
     action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM fabs43_5_2_{0} AS fabs
+FROM fabs43_5_4_{0} AS fabs
 WHERE CASE WHEN place_of_performance_zip4a ~ '^\d\d\d\d\d(\-?\d\d\d\d)?$'
     THEN NOT EXISTS (
         SELECT 1
