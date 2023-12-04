@@ -6,7 +6,7 @@ The following are explanations of the single and chained derivations used in the
 
 These are derivations that can happen in any order.
 
-**Note**: Any instance of `zips` that references congressional districts or county codes may use either `zips` or `zips_historical` depending on the `action_date`. See [zips_historical.md](zips_historical.md) for more details.
+**Note**: Any instance of `zips` that references congressional districts or county codes may use either `zips` or `zips_historical` depending on the `action_date`. See [historical_location.md](historical_location.md) for more details.
 
 - `derive_total_funding_amount`
 	- `federal_action_obligation` + `non_federal_funding_amount` => `total_funding_amount`
