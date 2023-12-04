@@ -8,7 +8,7 @@ The website that runs on these services is here: [https://broker.usaspending.gov
 
 The U.S. Department of the Treasury is building a suite of open-source tools to help federal agencies comply with the [DATA Act](http://fedspendingtransparency.github.io/about/ "Federal Spending Transparency Background") and to deliver the resulting standardized federal spending information back to agencies and to the public.
 
-One of these tools is the Data Broker. The Broker ingests federal spending data from agency award and financial systems, validates it, and standardizes it against the [common DATA Act model](http://fedspendingtransparency.github.io/data-model/ "data model"). Treasury will make a hosted version of the Broker freely available to agencies. Alternately, agencies can take this code and run the Broker locally.
+One of these tools is the Data Broker. The Broker ingests federal spending data from agency award and financial systems, validates it, and standardizes it against the [Governmentwide Spending Data Model](http://fedspendingtransparency.github.io/data-model/ "data model"). Treasury will make a hosted version of the Broker freely available to agencies. Alternately, agencies can take this code and run the Broker locally.
 
 The Broker contains:
 
