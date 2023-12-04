@@ -975,7 +975,7 @@ class ErrorWarningTests(BaseTestValidator):
 
         self.validator.fields = self.session.query(FileColumn) \
             .filter(FileColumn.file_id == FILE_TYPE_DICT[self.validator.file_type.name]) \
-            .order_by(FileColumn.daims_name.asc()).all()
+            .order_by(FileColumn.gsdm_name.asc()).all()
         self.validator.expected_headers, self.validator.parsed_fields = parse_fields(self.session,
                                                                                      self.validator.fields)
         self.validator.csv_schema = {row.name_short: row for row in self.validator.fields}
@@ -991,8 +991,8 @@ class ErrorWarningTests(BaseTestValidator):
         self.validator.filename = self.validator.reader.get_filename(None, None, self.validator.file_name)
         self.validator.reader.open_file(None, None, self.validator.file_name, self.validator.fields, None,
                                         self.validator.get_file_name(self.validator.error_file_name),
-                                        self.validator.daims_to_short_dict[self.validator.file_type.file_type_id],
-                                        self.validator.short_to_daims_dict[self.validator.file_type.file_type_id],
+                                        self.validator.gsdm_to_short_dict[self.validator.file_type.file_type_id],
+                                        self.validator.short_to_gsdm_dict[self.validator.file_type.file_type_id],
                                         is_local=self.validator.is_local)
 
         # Going back to reprocess the header row

@@ -1,4 +1,4 @@
-daimsname,fieldname,fieldname_short,required,data_type,field_length,padded_flag
+gsdmname,fieldname,fieldname_short,required,data_type,field_length,padded_flag
 AdjustmentsToUnobligatedBalanceBroughtForward_CPE,adjustmentstounobligatedbalancebroughtforward_cpe,adjustments_to_unobligated_cpe,TRUE,float,21,
 AgencyIdentifier,agencyidentifier,agency_identifier,TRUE,str,3,TRUE
 AllocationTransferAgencyIdentifier,allocationtransferagencyidentifier,allocation_transfer_agency,FALSE,str,3,TRUE

@@ -1,6 +1,6 @@
-# DATA Act Broker Amazon Web Services (AWS) Setup
+# Data Broker Amazon Web Services (AWS) Setup
 
-The directions below are optional when setting up the DATA Act Broker. You will only need to follow these instructions if you're planning to use AWS for broker file uploads, file storage, and session handling.
+The directions below are optional when setting up the Data Broker. You will only need to follow these instructions if you're planning to use AWS for broker file uploads, file storage, and session handling.
 
 Assumptions:
 
