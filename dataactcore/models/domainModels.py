@@ -628,6 +628,7 @@ class CDCityGrouped(Base):
     __tablename__ = "cd_city_grouped"
 
     cd_city_grouped_id = Column(Integer, primary_key=True)
+    city_code = Column(Text, index=True)
     city_name = Column(Text, index=True)
     state_abbreviation = Column(Text, index=True)
     congressional_district_no = Column(Text)
