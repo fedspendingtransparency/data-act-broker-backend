@@ -63,7 +63,7 @@ The complex rule validations (including both individual file and cross-file rule
 
 ### Scripts
 
-The `/dataactvalidator/scripts` folder contains the install scripts needed to setup the validator for a local install. For complete instructions on running your own copy of the validator and other Data Broker components, please refer to the [documentation in the DATA Act core repository](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "Data Broker installation guide").
+The `/dataactvalidator/scripts` folder contains the install scripts needed to setup the validator for a local install. For complete instructions on running your own copy of the validator and other Data Broker components, please refer to the [documentation in the Data Broker core repository](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "Data Broker installation guide").
 
 ## Automated Tests
 
