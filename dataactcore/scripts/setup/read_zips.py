@@ -9,7 +9,7 @@ import urllib.request
 import pandas as pd
 
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, update
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.broker_logging import configure_logging
@@ -378,13 +378,15 @@ def update_state_congr_table_census(census_file, sess):
         model,
         {"state_code": "state_code",
          "congressional_district_no": "congressional_district_no",
-         "census_year": "census_year"},
+         "census_year": "census_year",
+         "status": "status"},
         {'congressional_district_no': {"pad_to_length": 2}}
     )
 
     data.drop_duplicates(subset=['state_code', 'congressional_district_no'], inplace=True)
 
     data['combined_key'] = data['state_code'] + data['congressional_district_no']
+    new_districts = data[data['status'] == 'added']
 
     # Get a list of all existing unique keys in the state_congressional table
     key_query = sess.query(func.concat(StateCongressional.state_code,
@@ -393,11 +395,21 @@ def update_state_congr_table_census(census_file, sess):
     # Remove any values already in state_congressional
     data = data[~data['combined_key'].isin(key_list)]
 
-    # Drop the temporary column
+    # Drop the temporary columns
     data = data.drop(['combined_key'], axis=1)
+    data = data.drop(['status'], axis=1)
 
     table_name = model.__table__.name
     insert_dataframe(data, table_name, sess.connection())
+
+    # Update columns that were "added" this year to have the year 2020
+    for _, row in new_districts.iterrows():
+        update_new_cd_year = update(model).\
+            where(model.state_code == row['state_code'],
+                  model.congressional_district_no == row['congressional_district_no']).\
+            values(census_year=row['census_year'])
+        sess.execute(update_new_cd_year)
+
     sess.commit()
 
 
