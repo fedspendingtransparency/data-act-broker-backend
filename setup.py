@@ -25,7 +25,7 @@ setup(
     name='dataactbrokerbackend',
     version='0.0.1',
     description='Data Broker Backend',
-    long_description='The Data Broker API powers the DATA Act\'s data submission process.',
+    long_description='The Data Broker API powers the Data Broker\'s data submission process.',
     url='https://github.com/fedspendingtransparency/data-act-broker-backend.git',
     author='US Treasury',
     author_email='databroker@fiscal.treasury.gov',

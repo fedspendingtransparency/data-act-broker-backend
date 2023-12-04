@@ -1,12 +1,12 @@
-# DATA Act Validator
+# Data Broker Validator
 
-The DATA Act validator checks submitted DATA Act files against a set of rules to ensure that data submitted is correctly formatted with reasonable values and is not inconsistent with other sources.
+The Data Broker validator checks submitted Data Broker files against a set of rules to ensure that data submitted is correctly formatted with reasonable values and is not inconsistent with other sources.
 
 ## Background
 
 The U.S. Department of the Treasury is building a suite of open-source tools to help federal agencies comply with the [DATA Act](http://fedspendingtransparency.github.io/about/ "Federal Spending Transparency Background") and to deliver the resulting standardized federal spending information back to agencies and to the public.
 
-For more information about the DATA Act Broker codebase, please visit this repository's [main README](../README.md "DATA Act Broker Backend README").
+For more information about the Data Broker codebase, please visit this repository's [main README](../README.md "Data Broker Backend README").
 
 ## Process Overview
 The validation process begins with a job ID being pushed to the job manager, an AWS SQS queue. The validator is constantly polling the aforementioned queue, and when it receives a message (the job ID), it kicks of the validation process. First, the validator checks the job tracker to ensure that the job is of the correct type, and that all prerequisites are completed.
@@ -37,7 +37,7 @@ All warnings and errors are displayed on the data broker's website, and their de
 
 ## Validation details
 
-The basic schema checks (number 2, above) are defined as part of the detailed DATA Act schema.
+The basic schema checks (number 2, above) are defined as part of the detailed Data Broker` schema.
 
 **Note:** Any data that fails the basic schema checks will result in a validation error. The exception is field length check, which will result in a warning.
 
@@ -63,7 +63,7 @@ The complex rule validations (including both individual file and cross-file rule
 
 ### Scripts
 
-The `/dataactvalidator/scripts` folder contains the install scripts needed to setup the validator for a local install. For complete instructions on running your own copy of the validator and other DATA Act broker components, please refer to the [documentation in the DATA Act core repository](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
+The `/dataactvalidator/scripts` folder contains the install scripts needed to setup the validator for a local install. For complete instructions on running your own copy of the validator and other Data Broker components, please refer to the [documentation in the DATA Act core repository](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "Data Broker installation guide").
 
 ## Automated Tests
 

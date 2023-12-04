@@ -1,4 +1,4 @@
-Contributing Code to DATA Act Broker
+Contributing Code to Data Broker
 ====
 _Follow the development process and checks below in order to promote candidate code changes to production._
 
@@ -27,7 +27,7 @@ To run tests locally, see documentation for each app:
 
 At the conclusion of a sprint, new code merged into the `development` as part of approved PRs is merged into `staging`. It is then tested and merged in to `master` when ready, as part of its release to production.
 
-The DATA Act Broker contains several individual components. The section below walks through the process of getting the entire code base up and running.
+The Data Broker contains several individual components. The section below walks through the process of getting the entire code base up and running.
 
 ## Local Development Environment Setup
 _To run Broker locally, and test code changes, you must setup a local development environment_
@@ -36,7 +36,7 @@ Start by following instructions in [INSTALL.md](INSTALL.md "broker install guide
 
 _**Contributing to the Broker Website**_
 
-This setup should provide a running Broker frontend web application as a container, which you can browse to. If you want to contribute changes to the frontend application, see instructions for developing Broker Frontend in the [Broker web app code repository](https://github.com/fedspendingtransparency/data-act-broker-web-app "DATA Act broker web app").
+This setup should provide a running Broker frontend web application as a container, which you can browse to. If you want to contribute changes to the frontend application, see instructions for developing Broker Frontend in the [Broker web app code repository](https://github.com/fedspendingtransparency/data-act-broker-web-app "Data Broker web app").
 
 _**Pointing Containerized Broker at an Existing Postgres Database**_
 
@@ -89,7 +89,7 @@ Your prompt should then look as below to show you are _in_ the virtual environme
 
 ### Database Migrations
 
-If part of your DATA Act broker development involves changing the database models, use the following process for generating database migration files. We're using Alembic to create and run database migrations, which is installed as part of the broker.
+If part of your Data Broker development involves changing the database models, use the following process for generating database migration files. We're using Alembic to create and run database migrations, which is installed as part of the broker.
 
 #### Running Migrations
 
