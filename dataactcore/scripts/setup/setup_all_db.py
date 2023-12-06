@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     logger.info("Running script {}".format(os.path.basename(__file__)))
 
-    parser = argparse.ArgumentParser(description='Setup a DATA Act Broker database.')
+    parser = argparse.ArgumentParser(description='Setup a Data Broker database.')
     parser.add_argument('--db-name', '--dbname', help='Setup a database with this name', action='store')
     parser.add_argument('--no-data', help='Leave the database empty of data', action='store_true')
     setup_all_db(**vars(parser.parse_args()))

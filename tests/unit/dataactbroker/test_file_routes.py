@@ -1,4 +1,5 @@
 import json
+import os
 from unittest.mock import Mock
 
 from flask import g
@@ -121,35 +122,61 @@ def test_current_page(file_app, database):
     finished_job = JOB_STATUS_DICT['finished']
     waiting = JOB_STATUS_DICT['waiting']
 
-    job_a = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=csv_validation,
-                       number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_b = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=csv_validation,
-                       number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_c = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=csv_validation,
-                       number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_d1 = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=csv_validation,
-                        number_of_errors=0, file_size=123, job_status_id=finished_job)
-    job_d2 = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award'], job_type_id=csv_validation,
-                        number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_a_u = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload,
+                         number_of_errors=0, file_size=123, job_status_id=finished_job, filename='A.csv',
+                         original_filename='A.csv')
+    job_a_v = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=csv_validation,
+                         number_of_errors=0, file_size=123, job_status_id=finished_job, filename='A.csv',
+                         original_filename='A.csv')
+    job_b_u = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload,
+                         number_of_errors=0, file_size=123, job_status_id=finished_job, filename='B.csv',
+                         original_filename='B.csv')
+    job_b_v = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=csv_validation,
+                         number_of_errors=0, file_size=123, job_status_id=finished_job, filename='B.csv',
+                         original_filename='B.csv')
+    job_c_u = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload,
+                         number_of_errors=0, file_size=123, job_status_id=finished_job, filename='C.csv',
+                         original_filename='C.csv')
+    job_c_v = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=csv_validation,
+                         number_of_errors=0, file_size=123, job_status_id=finished_job, filename='C.csv',
+                         original_filename='C.csv')
+    job_d1_u = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload,
+                          number_of_errors=0, file_size=123, job_status_id=finished_job, filename='D1.csv',
+                          original_filename='D1.csv')
+    job_d1_v = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=csv_validation,
+                          number_of_errors=0, file_size=123, job_status_id=finished_job, filename='D1.csv',
+                          original_filename='D1.csv')
+    job_d2_u = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload,
+                          number_of_errors=0, file_size=123, job_status_id=finished_job, filename='D2.csv',
+                          original_filename='D2.csv')
+    job_d2_v = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['award'], job_type_id=csv_validation,
+                          number_of_errors=0, file_size=123, job_status_id=finished_job, filename='D2.csv',
+                          original_filename='D2.csv')
     job_e = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload,
-                       number_of_errors=0, file_size=123, job_status_id=finished_job)
+                       number_of_errors=0, file_size=123, job_status_id=finished_job, filename='E.csv')
     job_f = JobFactory(submission=sub, file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload, number_of_errors=0,
-                       file_size=123, job_status_id=finished_job)
+                       file_size=123, job_status_id=finished_job, filename='F.csv')
     job_cross_file = JobFactory(submission=sub, file_type_id=None, job_type_id=validation, number_of_errors=0,
                                 file_size=123, job_status_id=finished_job)
 
-    database.session.add_all([job_a, job_b, job_c, job_d1, job_d2, job_e, job_f, job_cross_file])
+    database.session.add_all([job_a_u, job_a_v, job_b_u, job_b_v, job_c_u, job_c_v, job_d1_u, job_d1_v, job_d2_u,
+                              job_d2_v, job_e, job_f, job_cross_file])
     database.session.commit()
 
     # Everything ok
-    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response = file_app.get(f"/v1/check_current_page/?submission_id={sub.submission_id}")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '5'
+
+    # Check for file URL
+    response = file_app.get(f"/v1/get_file_url/?submission_id={sub.submission_id}&file_type=A")
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert os.path.basename(response_json['url']) == 'A.csv'
 
     job_e.job_status_id = 6
     database.session.commit()
     # E or F failed
-    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response = file_app.get(f"/v1/check_current_page/?submission_id={sub.submission_id}")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '4'
 
@@ -158,28 +185,28 @@ def test_current_page(file_app, database):
     database.session.commit()
 
     # Restore job_e and create errors for cross_file
-    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response = file_app.get(f"/v1/check_current_page/?submission_id={sub.submission_id}")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '3'
 
-    job_d1.number_of_errors = 6
+    job_d1_v.number_of_errors = 6
     database.session.commit()
     # D file has errors
-    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response = file_app.get(f"/v1/check_current_page/?submission_id={sub.submission_id}")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '2'
 
-    job_c.number_of_errors = 6
+    job_c_v.number_of_errors = 6
     database.session.commit()
     # Fail C file validation
-    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response = file_app.get(f"/v1/check_current_page/?submission_id={sub.submission_id}")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '1'
 
     job_cross_file.job_status_id = waiting
-    job_d1.number_of_errors = 0
+    job_d1_v.number_of_errors = 0
     database.session.commit()
     # E and F generated with C file errors
-    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response = file_app.get(f"/v1/check_current_page/?submission_id={sub.submission_id}")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '1'

@@ -1,7 +1,7 @@
-DATA Act Broker Installation and Setup
+Data Broker Installation and Setup
 ====
 
-The easiest way to run a local DATA Act Broker is to use our Docker images. The images are a packaged version broker components that is pre-configured and will run in an isolated environment.
+The easiest way to run a local Data Broker is to use our Docker images. The images are a packaged version broker components that is pre-configured and will run in an isolated environment.
 
 _If you're a developer who wants to run the broker on your machine and make changes to the code, please see the project's contributing guide after completing this install guide: [CONTRIBUTING.md](CONTRIBUTING.md "project contributing guide")._
 
@@ -75,7 +75,7 @@ $ docker-compose version
 ```
 You should get valid responses from each command, reporting the version.
 
-Next, ensure you have the latest build of the DATA Act Broker images, based on your updated source code. Run the following to instruct docker to rebuild the images used by Broker from the source code.
+Next, ensure you have the latest build of the Data Broker images, based on your updated source code. Run the following to instruct docker to rebuild the images used by Broker from the source code.
 _NOTE: This uses **two** source code repositories that you downloaded at the beginning: `data-act-broker-backend` and `data-act-broker-web-app`_
 
 _:bulb: TIP: From this point forward you'll see syntax like `docker-compose -f docker-compose.yml -f docker-compose.frontend.yml <cmd> <args>`. Referencing the _two_ files with `-f` concatenates their contents together, allowing us to run the backend _and_ the frontend containers. If you only wanted to run commands for/against backend containers, you can drop the `-f` syntax, and just use `docker-compose <cmd> <args>`._

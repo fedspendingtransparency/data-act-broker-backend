@@ -1,16 +1,16 @@
-# The DATA Act Broker Application Programming Interface (API)
+# The DATA Broker Application Programming Interface (API)
 
-The DATA Act Broker API powers the DATA Act's data submission process.
+The DATA Broker API powers the Data Broker's data submission process.
 
 ## Background
 
 The U.S. Department of the Treasury is building a suite of open-source tools to help federal agencies comply with the [DATA Act](http://fedspendingtransparency.github.io/about/ "Federal Spending Transparency Background") and to deliver the resulting standardized federal spending information back to agencies and to the public.
 
-For more information about the DATA Act Broker codebase, please visit this repository's [main README](../README.md "DATA Act Broker Backend README").
+For more information about the Data Broker codebase, please visit this repository's [main README](../README.md "Data Broker Backend README").
 
 **A Note on CGAC/FREC**: In the vast majority of cases, top-level agencies identify themselves for purposes of DABS submissions or detached D1/D2 file generation by their 3-digit CGAC code. CGAC are issued and managed by OMB and are updated yearly in the A-11 circular appendix C. The CGAC is equivalent to the treasury concept of the Agency Identifier (AID) embedded in all Treasury Account Symbols (TAS).
 
-In a few cases, legitimately separate (at least for financial reporting purposes) agencies share a CGAC. To allow them to report as separate entities in the DATA Act Broker, we leveraged an internal Treasury element called the Financial Reporting Entity Code (FREC) that Treasury already uses to distinguish between these agencies with shared AID at the TAS level. This field comes from Treasury's CARS system.
+In a few cases, legitimately separate (at least for financial reporting purposes) agencies share a CGAC. To allow them to report as separate entities in the Data Broker, we leveraged an internal Treasury element called the Financial Reporting Entity Code (FREC) that Treasury already uses to distinguish between these agencies with shared AID at the TAS level. This field comes from Treasury's CARS system.
 These agencies, listed in the table below, should use this four-digit FREC code for purposes of identifying themselves in DABS instead of the CGAC they share with one or more agencies.
 The following is the complete list of agencies supported under the FREC paradigm in DABS. These agencies should always identify themselves to the Broker with the 4-digit FREC code instead of the 3 digit CGAC they share with other agencies.
 
@@ -44,16 +44,16 @@ dataactbroker/
 ```
 
 ### Scripts
-The `/dataactbroker/scripts` folder contains the install scripts needed to setup the broker API for a local install. For complete instructions on running your own copy of the API and other DATA Act broker components, please refer to the [documentation in the DATA Act core repository](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
+The `/dataactbroker/scripts` folder contains the install scripts needed to setup the broker API for a local install. For complete instructions on running your own copy of the API and other Data Broker components, please refer to the [documentation in the Data Broker core repository](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "Data Broker installation guide").
 
 ### Handlers
 The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from various routes files. Routes defined in these files may include the `@requires_login` and `@requires_submission_perms` tags to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tags are defined in `dataactbroker/permissions.py`.
 
 `account_handler.py` contains the functions to check logins and to log users out.
 
-`fileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
+`fileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the Data Broker Validator.
 
-## DATA Act Broker Route Documentation
+## Data Broker Route Documentation
 
 The base URL for all routes is `https://broker-api.usaspending.gov/`. This should be present ahead of all listed routes in order to use the Broker API (e.g. `https://broker-api.usaspending.gov/list_agencies`).
 

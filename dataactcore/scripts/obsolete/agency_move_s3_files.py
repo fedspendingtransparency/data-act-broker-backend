@@ -56,7 +56,7 @@ def move_published_agency_files(old_code, new_code):
 
 def main():
     """ Move all submission files in S3 for an agency that has changed its code """
-    parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
+    parser = argparse.ArgumentParser(description='Initialize the Data Broker.')
     parser.add_argument('-o', '--old_code', help='The old agency code to copy from', required=True)
     parser.add_argument('-n', '--new_code', help='The new agency code to move to', required=True)
     args = parser.parse_args()

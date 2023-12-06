@@ -246,7 +246,7 @@ def split_ppop_zip(sess, submission_id):
 
 def derive_ppop_location_data(sess, submission_id):
     """ Deriving place of performance location values from zip4
-        See zips_historical.md for information on zips_historical and zips_grouped_historical.
+        See historical_location.md for information on zips_historical and zips_grouped_historical.
 
         Args:
             sess: the current DB session
@@ -325,6 +325,54 @@ def derive_ppop_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation('Completed ppop congr info for 5-digit zip derivation, '
+                   'updated {}'.format(res.rowcount), submission_id, query_start)
+
+    query_start = datetime.now()
+    log_derivation('Beginning ppop congr info by county derivation', submission_id)
+    # Deriving congressional info for remaining blanks (with county code)
+    query = """
+        UPDATE tmp_fabs_{submission_id}
+        SET place_of_performance_congr = congressional_district_no
+        FROM cd_county_grouped
+        WHERE place_of_performance_congr IS NULL
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
+            AND LEFT(UPPER(place_of_performance_code), 2) = state_abbreviation
+            AND RIGHT(UPPER(place_of_performance_code), 3) = county_number;
+    """
+    res = sess.execute(query.format(submission_id=submission_id))
+    log_derivation('Completed ppop congr info for county derivation, '
+                   'updated {}'.format(res.rowcount), submission_id, query_start)
+
+    query_start = datetime.now()
+    log_derivation('Beginning ppop congr info by city derivation', submission_id)
+    # Deriving congressional info for remaining blanks (with city code)
+    query = """
+        UPDATE tmp_fabs_{submission_id}
+        SET place_of_performance_congr = congressional_district_no
+        FROM cd_city_grouped
+        WHERE place_of_performance_congr IS NULL
+            AND (UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dRT]$'
+                 OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]TS\d\d\d$')
+            AND LEFT(UPPER(place_of_performance_code), 2) = state_abbreviation
+            AND RIGHT(UPPER(place_of_performance_code), 5) = city_code;
+    """
+    res = sess.execute(query.format(submission_id=submission_id))
+    log_derivation('Completed ppop congr info by city derivation, '
+                   'updated {}'.format(res.rowcount), submission_id, query_start)
+
+    query_start = datetime.now()
+    log_derivation('Beginning ppop congr info by state derivation', submission_id)
+    # Deriving congressional info for remaining blanks (with state code)
+    query = """
+        UPDATE tmp_fabs_{submission_id}
+        SET place_of_performance_congr = congressional_district_no
+        FROM cd_state_grouped
+        WHERE place_of_performance_congr IS NULL
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\*\*\*$'
+            AND LEFT(UPPER(place_of_performance_code), 2) = state_abbreviation;
+    """
+    res = sess.execute(query.format(submission_id=submission_id))
+    log_derivation('Completed ppop congr info by state derivation, '
                    'updated {}'.format(res.rowcount), submission_id, query_start)
 
     query_start = datetime.now()
@@ -483,7 +531,7 @@ def derive_ppop_scope(sess, submission_id):
 
 def derive_le_location_data(sess, submission_id):
     """ Deriving place of performance location values
-        See zips_historical.md for information on zips_historical and zips_grouped_historical.
+        See historical_location.md for information on zips_historical and zips_grouped_historical.
 
         Args:
             sess: the current DB session
@@ -536,7 +584,7 @@ def derive_le_location_data(sess, submission_id):
 
     query_start = datetime.now()
     log_derivation('Beginning legal entity state derivation', submission_id)
-    # Deriving congressional info for remaining blanks (with zip code)
+    # Deriving state info for remaining blanks (with zip code)
     query = """
             UPDATE tmp_fabs_{submission_id}
             SET legal_entity_state_code = state_code
@@ -581,8 +629,8 @@ def derive_le_location_data(sess, submission_id):
                    'updated {}'.format(res.rowcount), submission_id, query_start)
 
     query_start = datetime.now()
-    log_derivation('Beginning historical legal entity county and state derivation', submission_id)
-    # Deriving county and state code info for remaining blanks (with zip code)
+    log_derivation('Beginning historical legal entity county', submission_id)
+    # Deriving county info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
         SET legal_entity_county_code = county_number
@@ -597,8 +645,8 @@ def derive_le_location_data(sess, submission_id):
                    'updated {}'.format(res.rowcount), submission_id, query_start)
 
     query_start = datetime.now()
-    log_derivation('Beginning historical legal entity county and state derivation', submission_id)
-    # Deriving county and state code info for remaining blanks (with zip code)
+    log_derivation('Beginning historical legal entity county', submission_id)
+    # Deriving county info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
         SET legal_entity_county_code = county_number

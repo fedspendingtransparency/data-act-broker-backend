@@ -17,7 +17,7 @@ to have permissions levels for multiple agencies.
 Additionally, these permission levels pertain only to and explain the behavior of the Broker application. They
 exist solely within the Broker database, independent from the system that manages the agency users and its roles.
 
-#### DABS (Data Act Broker Submissions)
+#### DABS (Data Broker Submissions)
 
 1. **Reader (R)**: View/download any DABS or FABS submission in the associated agency
 2. **Writer (W)**: May go through the submission process up to certifying (includes uploads, 

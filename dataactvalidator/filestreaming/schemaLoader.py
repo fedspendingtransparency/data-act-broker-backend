@@ -53,7 +53,7 @@ class SchemaLoader(object):
                             sess,
                             types,
                             file_type,
-                            record['daimsname'],
+                            record['gsdmname'],
                             FieldCleaner.clean_string(record["fieldname"]),
                             FieldCleaner.clean_string(record["fieldname_short"]),
                             record["required"],
@@ -85,7 +85,7 @@ class SchemaLoader(object):
         })
 
     @staticmethod
-    def add_column_by_file_type(sess, types, file_type, daims_name, field_name, field_name_short, required, field_type,
+    def add_column_by_file_type(sess, types, file_type, gsdm_name, field_name, field_name_short, required, field_type,
                                 padded_flag="False", field_length=None):
         """ Adds a new column to the schema
 
@@ -102,7 +102,7 @@ class SchemaLoader(object):
         new_column = FileColumn()
         new_column.file = file_type
         new_column.required = False
-        new_column.daims_name = daims_name
+        new_column.gsdm_name = gsdm_name
         new_column.name = field_name.lower().strip().replace(' ', '_')
         new_column.name_short = field_name_short.lower().strip().replace(' ', '_')
         field_type = field_type.upper()

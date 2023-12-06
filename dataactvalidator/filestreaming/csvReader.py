@@ -42,8 +42,8 @@ class CsvReader(object):
 
         return self.filename
 
-    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, daims_to_short_dict,
-                  short_to_daims_dict, is_local=False):
+    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, gsdm_to_short_dict,
+                  short_to_gsdm_dict, is_local=False):
         """ Opens file and prepares to read each record, mapping entries to specified column names
 
             Args:
@@ -53,8 +53,8 @@ class CsvReader(object):
                 csv_schema: list of FileColumn objects for this file type
                 bucket_name: bucket to send errors to
                 error_filename: filename for error report
-                daims_to_short_dict: mapping of daims to short schema column names
-                short_to_daims_dict: mapping of short to daims schema column names
+                gsdm_to_short_dict: mapping of GSDM to short schema column names
+                short_to_gsdm_dict: mapping of short to GSDM schema column names
                 is_local: Boolean of whether the app is being run locally or not
         """
 
@@ -85,8 +85,8 @@ class CsvReader(object):
 
         # create the header
         header_row = next(csv.reader([header_line], quotechar='"', dialect='excel', delimiter=self.delimiter))
-        daims_headers = use_daims_headers(header_row, daims_to_short_dict)
-        header_row = list(normalize_headers(header_row, daims_headers, daims_to_short_dict, self.header_dict))
+        gsdm_headers = use_gsdm_headers(header_row, gsdm_to_short_dict)
+        header_row = list(normalize_headers(header_row, gsdm_headers, gsdm_to_short_dict, self.header_dict))
         # Storing the flex fields for easy access
         self.flex_fields = [header for header in header_row if header.startswith('flex_')]
 
@@ -94,9 +94,9 @@ class CsvReader(object):
 
         self.column_count = len(header_row)
 
-        self.handle_missing_duplicate_headers(expected_header_counts, bucket_name, error_filename, short_to_daims_dict)
+        self.handle_missing_duplicate_headers(expected_header_counts, bucket_name, error_filename, short_to_gsdm_dict)
 
-        return daims_headers
+        return gsdm_headers
 
     @staticmethod
     def write_file_level_error(bucket_name, filename, header, error_content, is_local):
@@ -128,17 +128,17 @@ class CsvReader(object):
                     contents += bytes((",".join(line) + "\n").encode())
             s3client.put_object(Bucket=bucket_name, Key=filename, Body=contents)
 
-    def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename, short_to_daims_dict):
+    def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename, short_to_gsdm_dict):
         """ Check for missing or duplicated headers. If present, raise an exception with a meaningful message.
 
             Args:
                 expected_fields: a list of expected column headers
                 bucket_name: the name of the S3 bucket to write the error to
                 error_filename: the name of the error (including path) file to write to
-                short_to_daims_dict: mapping of short to daims schema column names
+                short_to_gsdm_dict: mapping of short to GSDM schema column names
         """
-        missing_headers = [short_to_daims_dict[cell] for cell, count in expected_fields.items() if count == 0]
-        duplicated_headers = [short_to_daims_dict[cell] for cell, count in expected_fields.items() if count > 1]
+        missing_headers = [short_to_gsdm_dict[cell] for cell, count in expected_fields.items() if count == 0]
+        duplicated_headers = [short_to_gsdm_dict[cell] for cell, count in expected_fields.items() if count > 1]
 
         if missing_headers or duplicated_headers:
             self.write_missing_duplicated_headers(missing_headers, duplicated_headers, bucket_name, error_filename)
@@ -206,35 +206,35 @@ class CsvReader(object):
             pass
 
 
-def use_daims_headers(header_row, daims_to_short_dict):
-    """ Check to see if header contains daims or short column names
+def use_gsdm_headers(header_row, gsdm_to_short_dict):
+    """ Check to see if header contains GSDM or short column names
 
         Args:
             header_row: an array of the file headers given
-            daims_to_short_dict: a dictionary containing a mapping from daims headers to short ones for this file type
+            gsdm_to_short_dict: a dictionary containing a mapping from GSDM headers to short ones for this file type
 
         Returns:
-            bool representing whether to use daims or short column names (True for daims)
+            bool representing whether to use GSDM or short column names (True for GSDM)
     """
     col_matches = 0
     for value in header_row:
-        if StringCleaner.clean_string(value, remove_extras=False) in daims_to_short_dict:
+        if StringCleaner.clean_string(value, remove_extras=False) in gsdm_to_short_dict:
             col_matches += 1
     # if most of column headers are in the long format, we'll treat the file as having long headers
     return col_matches > .5 * len(header_row)
 
 
-def normalize_headers(header_row, daims_headers, daims_to_short_dict, header_dict):
+def normalize_headers(header_row, gsdm_headers, gsdm_to_short_dict, header_dict):
     """ Clean the headers (lowercase) and convert them to short headers if we're given long headers
 
         Args:
             header_row: an array of the file headers given
-            daims_headers: boolean indicating if we're using the daims versions of the headers (True for daims)
-            daims_to_short_dict: a dictionary containing a mapping from daims headers to short ones for this file type
+            gsdm_headers: boolean indicating if we're using the GSDM versions of the headers (True for GSDM)
+            gsdm_to_short_dict: a dictionary containing a mapping from GSDM headers to short ones for this file type
             header_dict: a dictionary containing the mappings from original to cleaned headers
 
         Yields:
-            A string containing the cleaned header name (converted to short version if daims versions were provided and
+            A string containing the cleaned header name (converted to short version if GSDM versions were provided and
             there is a mapping for that header).
     """
     for original_header in header_row:
@@ -254,9 +254,9 @@ def normalize_headers(header_row, daims_headers, daims_to_short_dict, header_dic
             header = 'deobligationsrecoveriesrefundsofprioryearbytas_cpe'
 
         # yield the short header when applicable, otherwise yield the cleaned header, whatever it is
-        if daims_headers and header in daims_to_short_dict:
-            header_dict[original_header] = FieldCleaner.clean_name(daims_to_short_dict[header])
-            yield FieldCleaner.clean_name(daims_to_short_dict[header])
+        if gsdm_headers and header in gsdm_to_short_dict:
+            header_dict[original_header] = FieldCleaner.clean_name(gsdm_to_short_dict[header])
+            yield FieldCleaner.clean_name(gsdm_to_short_dict[header])
         else:
             header_dict[original_header] = header
             yield header

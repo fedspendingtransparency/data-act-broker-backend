@@ -321,6 +321,7 @@ class CDCityGroupedFactory(factory.Factory):
         model = domainModels.CDCityGrouped
 
     cd_city_grouped_id = None
+    city_code = fuzzy.FuzzyText()
     city_name = fuzzy.FuzzyText()
     state_abbreviation = fuzzy.FuzzyText()
     congressional_district_no = fuzzy.FuzzyText()

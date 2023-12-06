@@ -12,7 +12,7 @@ from dataactcore.scripts.setup.read_zips import (
 
 
 def test_parse_census_district_file(database):
-    census_file_mock = StringIO("""state_code,congressional_district_no,census_year\nA,1,20""")
+    census_file_mock = StringIO("""state_code,congressional_district_no,census_year,status\nA,1,20,removed""")
     sess = database.session
 
     update_state_congr_table_census(census_file_mock, sess)

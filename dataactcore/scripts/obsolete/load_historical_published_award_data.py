@@ -201,7 +201,7 @@ def process_file_chunk(sess, data, published_table, job, submission_id, file_typ
             submission_id: the submission associated with the file
             file_type_id: the file type id associated with the file
             rename_cols: mapping of columns that have been renamed over time
-            col_mapping: mapping of either daims name or long name to the short names
+            col_mapping: mapping of either GSDM name or long name to the short names
             all_cols: all the schema columns and deleted columns over time
             row_offset: with the chunking, indicates the row starting point in the file
             float_cols: columns that are floats (to remove the commas)
@@ -291,7 +291,7 @@ def load_updated_award_data(staging_table, published_table, file_type_id, intern
 
     # Load all published files with file_type_id matching the file_type_id
     file_columns = sess.query(FileColumn).filter(FileColumn.file_id == file_type_id).all()
-    daims_to_short = {f.daims_name.lower().strip(): f.name_short for f in file_columns}
+    gsdm_to_short = {f.gsdm_name.lower().strip(): f.name_short for f in file_columns}
     long_to_short = {f.name.lower().strip(): f.name_short for f in file_columns}
     float_cols = [f.name_short for f in file_columns if f.field_types_id == FIELD_TYPE_DICT['DECIMAL']]
 
@@ -318,7 +318,7 @@ def load_updated_award_data(staging_table, published_table, file_type_id, intern
             # Get file delimiter, get an array of the header row, and reset reader to start of file
             header_line = file.readline()
             delim = '|' if header_line.count('|') != 0 else ','
-            col_mapping = daims_to_short if ' ' in header_line else long_to_short
+            col_mapping = gsdm_to_short if ' ' in header_line else long_to_short
             file.seek(0)
 
             # Create dataframe from file

@@ -154,7 +154,7 @@ def load_submission_schedule():
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
+    parser = argparse.ArgumentParser(description='Initialize the Data Broker.')
     parser.add_argument('-i', '--initialize', help='Run all broker initialization tasks', action='store_true')
     parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
     parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')

@@ -1,4 +1,4 @@
-daimsname,fieldname,fieldname_short,required,data_type,field_length,padded_flag
+gsdmname,fieldname,fieldname_short,required,data_type,field_length,padded_flag
 ActionDate,actiondate,action_date,FALSE,str,8,
 ActionType,actiontype,action_type,FALSE,str,1,
 AssistanceType,assistancetype,assistance_type,FALSE,str,2,TRUE
