@@ -23,8 +23,8 @@ def test_success(database):
     """
         Test File C GrossOutlayAmountByAward_CPE balance for a TAS, DEFC, program activity code + name, object class
         code, direct/reimbursable flag, and Award ID combination should continue to be reported in subsequent periods
-        during the FY, once it has been submitted to DATA Act, unless the most recently reported outlay balance for this
-        award breakdown was zero. This only applies to File C outlays, not TOA.
+        during the FY, once it has been submitted to Data Broker, unless the most recently reported outlay balance for
+        this award breakdown was zero. This only applies to File C outlays, not TOA.
     """
     populate_publish_status(database)
     # Base submission
@@ -286,8 +286,8 @@ def test_failure(database):
     """
         Test fail File C GrossOutlayAmountByAward_CPE balance for a TAS, DEFC, program activity code + name, object
         class code, direct/reimbursable flag, and Award ID combination should continue to be reported in subsequent
-        periods during the FY, once it has been submitted to DATA Act, unless the most recently reported outlay balance
-        for this award breakdown was zero. This only applies to File C outlays, not TOA.
+        periods during the FY, once it has been submitted to Data Broker, unless the most recently reported outlay
+        balance for this award breakdown was zero. This only applies to File C outlays, not TOA.
     """
     populate_publish_status(database)
     # Base submission

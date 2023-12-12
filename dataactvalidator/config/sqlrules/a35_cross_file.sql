@@ -1,5 +1,6 @@
--- DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE in File A (appropriation) should equal USSGL
--- (4871_CPE + 4971_CPE + 4872_CPE + 4972_CPE) for the TAS in File B (object class program activity).
+-- The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations account file (A) does not equal
+-- the sum of the corresponding DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the object
+-- class and program activity file (B).
 WITH appropriation_a35_{0} AS
     (SELECT row_number,
         deobligations_recoveries_r_cpe,

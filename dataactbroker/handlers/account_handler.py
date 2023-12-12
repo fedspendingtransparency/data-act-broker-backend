@@ -446,7 +446,7 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
                        for group_name in max_group_list.split(',')
                        if group_name.startswith(prefix)]
     elif service_account_flag:
-        raise ValueError("There are no DATA Act Broker permissions assigned to this Service Account. You may request "
+        raise ValueError("There are no Data Broker permissions assigned to this Service Account. You may request "
                          "permissions at https://community.max.gov/x/fJwuRQ")
     else:
         group_names = []

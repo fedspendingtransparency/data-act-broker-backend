@@ -11,7 +11,7 @@ CONFIG_LOGGING = {}
 CONFIG_CATEGORIES = {"broker": CONFIG_BROKER, "services": CONFIG_SERVICES, "db": CONFIG_DB,
                      "logging": CONFIG_LOGGING}
 
-# set the location of the DATA Act broker config files
+# set the location of the Data Broker config files
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), 'config.yml')
 if "env" in os.environ:
     env = os.environ["env"]
@@ -33,7 +33,7 @@ for config_path in path_list:
             CONFIG_ALL = yaml.load(c, Loader=yaml.FullLoader) or {}
     except IOError:
         raise IOError('Error reading a config file. Please make sure this file exists'
-                      ' before starting the DATA Act broker: {}'.format(config_path))
+                      ' before starting the Data Broker: {}'.format(config_path))
 
     for category_name in CONFIG_CATEGORIES:
         CONFIG_CATEGORIES[category_name].update(CONFIG_ALL.get(category_name, {}))

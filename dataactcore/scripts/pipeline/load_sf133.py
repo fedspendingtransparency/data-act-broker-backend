@@ -370,7 +370,7 @@ def fix_broken_links(sess, metrics=None):
 
 if __name__ == '__main__':
     configure_logging()
-    parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
+    parser = argparse.ArgumentParser(description='Initialize the Data Broker.')
     parser.add_argument('-r', '--remote', help='Whether to run remote or not', action='store_true')
     parser.add_argument('-p', '--local_path', help='Local path of folder to check', type=str,
                         default=os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"), required=False)
