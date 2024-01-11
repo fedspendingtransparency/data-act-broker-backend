@@ -1,13 +1,13 @@
--- The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and AwardingSubTierAgencyCode must be
--- unique from currently published ones unless the record is a correction or deletion, if
--- CorrectionDeleteIndicator = C or D.
+-- The combination of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
+-- AwardingSubTierAgencyCode must be unique from currently published ones unless the record is a correction or deletion,
+-- if CorrectionDeleteIndicator = C or D.
 SELECT
     fabs.row_number,
     fabs.fain,
     fabs.award_modification_amendme,
     fabs.uri,
     fabs.awarding_sub_tier_agency_c,
-    fabs.cfda_number,
+    fabs.cfda_number AS "assistance_listing_number",
     fabs.correction_delete_indicatr,
     fabs.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs

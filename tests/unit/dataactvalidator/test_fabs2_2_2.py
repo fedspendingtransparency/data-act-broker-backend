@@ -6,13 +6,14 @@ _FILE = 'fabs2_2_2'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'fain', 'award_modification_amendme', 'uri', 'awarding_sub_tier_agency_c',
-                       'cfda_number', 'correction_delete_indicatr', 'uniqueid_AssistanceTransactionUniqueKey'}
+                       'assistance_listing_number', 'correction_delete_indicatr',
+                       'uniqueid_AssistanceTransactionUniqueKey'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+    """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
         AwardingSubTierAgencyCode must exist as a currently published record when the record is a correction (i.e., if
         CorrectionDeleteIndicator = C). Ignore all other CorrectionDeleteIndicators in this rule.
     """
@@ -32,7 +33,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+    """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
         AwardingSubTierAgencyCode must exist as a currently published record when the record is a correction (i.e., if
         CorrectionDeleteIndicator = C). Ignore all other CorrectionDeleteIndicators in this rule.
     """

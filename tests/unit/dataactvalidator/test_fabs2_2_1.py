@@ -6,13 +6,14 @@ _FILE = 'fabs2_2_1'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'fain', 'award_modification_amendme', 'uri', 'awarding_sub_tier_agency_c',
-                       'cfda_number', 'correction_delete_indicatr', 'uniqueid_AssistanceTransactionUniqueKey'}
+                       'assistance_listing_number', 'correction_delete_indicatr',
+                       'uniqueid_AssistanceTransactionUniqueKey'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
         AwardingSubTierAgencyCode must be unique from currently published ones unless the record is a correction or
         deletion (i.e., if CorrectionDeleteIndicator = C or D). Ignores inactive records
     """
@@ -36,9 +37,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and AwardingSubTierAgencyCode must
-        be unique from currently published ones unless the record is a correction or deletion
-        (i.e., if CorrectionDeleteIndicator = C or D).
+    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
+        AwardingSubTierAgencyCode must be unique from currently published ones unless the record is a correction or
+        deletion (i.e., if CorrectionDeleteIndicator = C or D).
     """
 
     fabs_1 = FABSFactory(afa_generated_unique='ama1asta1fain1uri1', correction_delete_indicatr=None)
