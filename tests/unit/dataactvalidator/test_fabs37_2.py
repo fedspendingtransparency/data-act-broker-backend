@@ -6,14 +6,14 @@ _FILE = 'fabs37_2'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'cfda_number', 'action_date', 'action_type', 'correction_delete_indicatr',
-                       'uniqueid_AssistanceTransactionUniqueKey'}
+    expected_subset = {'row_number', 'assistance_listing_number', 'action_date', 'action_type',
+                       'correction_delete_indicatr', 'uniqueid_AssistanceTransactionUniqueKey'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_pubished_date_success(database):
-    """ Test valid. For (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the ActionDate.
+    """ Test valid. For (ActionType = B, C, or D), the AssistanceListingNumber need NOT be active as of the ActionDate.
         Not apply to those with CorrectionDeleteIndicator = C.
         Active date: publish_date <= action_date <= archive_date (Fails validation if active).
     """
@@ -36,7 +36,7 @@ def test_pubished_date_success(database):
 
 
 def test_pubished_date_failure(database):
-    """ Test invalid. For (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the ActionDate.
+    """ Test invalid. For (ActionType = B, C, or D), the AssistanceListingNumber need NOT be active as of the ActionDate
         Not apply to those with CorrectionDeleteIndicator = C.
         Active date: publish_date <= action_date <= archive_date (Fails validation if active).
         If action date is < published_date, should trigger a warning.

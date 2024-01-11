@@ -1,5 +1,5 @@
--- For other assistance awards (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the ActionDate.
--- This does not apply to correction records (those with CorrectionDeleteIndicator = C).
+-- For other assistance awards (ActionType = B, C, or D), the AssistanceListingNumber need NOT be active as of the
+-- ActionDate. This does not apply to correction records (those with CorrectionDeleteIndicator = C).
 -- Should not be active (action_date <= archived_date and when archived date exists)
 -- If the ActionDate is < published_date, should trigger a warning.
 WITH fabs37_2_{0} AS
@@ -14,7 +14,7 @@ WITH fabs37_2_{0} AS
     WHERE submission_id = {0})
 SELECT
     row_number,
-    cfda_number,
+    cfda_number AS "assistance_listing_number",
     action_type,
     correction_delete_indicatr,
     action_date,
