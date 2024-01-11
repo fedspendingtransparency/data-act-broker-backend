@@ -6,13 +6,13 @@ _FILE = 'fabs37_3'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'cfda_number', 'uniqueid_AssistanceTransactionUniqueKey'}
+    expected_subset = {'row_number', 'assistance_listing_number', 'uniqueid_AssistanceTransactionUniqueKey'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ Test that no errors occur when the cfda_number exists. """
+    """ Test that no errors occur when the AssistanceListingNumber exists. """
 
     cfda = CFDAProgram(program_number=12.340)
     fabs_1 = FABSFactory(cfda_number='12.340', correction_delete_indicatr='')
@@ -24,7 +24,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test that its fails when cfda_number does not exists. """
+    """ Test that its fails when AssistanceListingNumber does not exists. """
 
     # test for cfda_number that doesn't exist in the table
     cfda = CFDAProgram(program_number=12.340)

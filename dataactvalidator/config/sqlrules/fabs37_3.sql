@@ -1,4 +1,4 @@
--- CFDA_Number must have been registered with CFDA.gov or registered as an Assistance Listing
+-- AssistanceListingNumber must have been registered with CFDA.gov or registered as an Assistance Listing
 -- on SAM.gov (post-May 2018) at some point in time.
 WITH fabs37_1_{0} AS
     (SELECT submission_id,
@@ -10,7 +10,7 @@ WITH fabs37_1_{0} AS
     WHERE submission_id = {0})
 SELECT
     row_number,
-    cfda_number,
+    cfda_number AS "assistance_listing_number",
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs37_1_{0} AS fabs
 WHERE fabs.row_number NOT IN (
