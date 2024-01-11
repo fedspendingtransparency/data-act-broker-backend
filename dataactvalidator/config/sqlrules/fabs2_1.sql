@@ -1,12 +1,12 @@
--- The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and AwardingSubTierAgencyCode must be
--- unique within the submission file.
+-- The combination of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
+-- AwardingSubTierAgencyCode must be unique within the submission file.
 SELECT
     row_number,
     fain,
     award_modification_amendme,
     uri,
     awarding_sub_tier_agency_c,
-    cfda_number,
+    cfda_number AS "assistance_listing_number",
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM (
     SELECT row_number,

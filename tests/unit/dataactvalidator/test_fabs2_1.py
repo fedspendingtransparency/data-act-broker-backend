@@ -6,13 +6,13 @@ _FILE = 'fabs2_1'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'fain', 'award_modification_amendme', 'uri', 'awarding_sub_tier_agency_c',
-                       'cfda_number', 'uniqueid_AssistanceTransactionUniqueKey'}
+                       'assistance_listing_number', 'uniqueid_AssistanceTransactionUniqueKey'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
         AwardingSubTierAgencyCode in a FABS submission are unique
     """
     fabs_1 = FABSFactory(afa_generated_unique='abc_def_ghi', correction_delete_indicatr=None)
@@ -24,7 +24,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
         AwardingSubTierAgencyCode in a FABS submission are not unique. Make sure casing is ignored.
     """
 
