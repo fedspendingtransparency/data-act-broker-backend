@@ -1,5 +1,5 @@
 -- For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically,
--- the CFDA_Number must be active as of the ActionDate. This does not apply to correction records
+-- the AssistanceListingNumber must be active as of the ActionDate. This does not apply to correction records
 -- (those with CorrectionDeleteIndicator = C and delete records).
 
 WITH fabs37_1_{0} AS
@@ -14,7 +14,7 @@ WITH fabs37_1_{0} AS
     WHERE submission_id = {0})
 SELECT
     row_number,
-    cfda_number,
+    cfda_number AS "assistance_listing_number",
     action_type,
     correction_delete_indicatr,
     action_date,

@@ -6,15 +6,15 @@ _FILE = 'fabs37_1'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'cfda_number', 'action_date', 'action_type', 'correction_delete_indicatr',
-                       'uniqueid_AssistanceTransactionUniqueKey'}
+    expected_subset = {'row_number', 'assistance_listing_number', 'action_date', 'action_type',
+                       'correction_delete_indicatr', 'uniqueid_AssistanceTransactionUniqueKey'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
     """ Test valid. For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically, the
-        CFDA_Number must be active as of the ActionDate. This does not apply to correction records
+        AssistanceListingNumber must be active as of the ActionDate. This does not apply to correction records
         (those with CorrectionDeleteIndicator = C and delete records).
     """
 
@@ -43,7 +43,7 @@ def test_success(database):
 
 def test_failure(database):
     """ Test invalid. For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically, the
-        CFDA_Number must be active as of the ActionDate. This does not apply to correction records
+        AssistanceListingNumber must be active as of the ActionDate. This does not apply to correction records
         (those with CorrectionDeleteIndicator = C and delete records).
     """
 
