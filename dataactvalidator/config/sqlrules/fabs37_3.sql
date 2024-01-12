@@ -10,7 +10,7 @@ WITH fabs37_3_{0} AS
     WHERE submission_id = {0})
 SELECT
     row_number,
-    cfda_number AS "assistance_listing_number",
+    cfda_number,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs37_3_{0} AS fabs
 WHERE fabs.row_number NOT IN (
