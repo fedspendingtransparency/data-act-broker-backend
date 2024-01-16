@@ -12,7 +12,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
         AwardingSubTierAgencyCode in a FABS submission are unique
     """
     fabs_1 = FABSFactory(afa_generated_unique='abc_def_ghi', correction_delete_indicatr=None)
@@ -24,7 +24,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, AssistanceListingNumber, and
         AwardingSubTierAgencyCode in a FABS submission are not unique. Make sure casing is ignored.
     """
 
