@@ -1,6 +1,6 @@
--- CFDA_Number must have been registered with CFDA.gov or registered as an Assistance Listing
+-- AssistanceListingNumber must have been registered with CFDA.gov or registered as an Assistance Listing
 -- on SAM.gov (post-May 2018) at some point in time.
-WITH fabs37_1_{0} AS
+WITH fabs37_3_{0} AS
     (SELECT submission_id,
         row_number,
         cfda_number,
@@ -12,10 +12,10 @@ SELECT
     row_number,
     cfda_number,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
-FROM fabs37_1_{0} AS fabs
+FROM fabs37_3_{0} AS fabs
 WHERE fabs.row_number NOT IN (
         SELECT DISTINCT sub_fabs.row_number
-        FROM fabs37_1_{0} AS sub_fabs
+        FROM fabs37_3_{0} AS sub_fabs
             JOIN cfda_program AS cfda
                 ON sub_fabs.cfda_number = to_char(cfda.program_number, 'FM00.000')
     )
