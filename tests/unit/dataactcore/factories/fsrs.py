@@ -60,7 +60,7 @@ class _GrantAttributes(_FSRSAttributes):
     awardee_address_country = fuzzy.FuzzyText()
     awardee_address_zip = fuzzy.FuzzyText()
     awardee_address_district = None
-    cfda_numbers = fuzzy.FuzzyText()
+    assistance_listing_numbers = fuzzy.FuzzyText()
     project_description = fuzzy.FuzzyText()
     compensation_q1 = fuzzy.FuzzyChoice((False, True))
     compensation_q2 = fuzzy.FuzzyChoice((False, True))
@@ -184,8 +184,8 @@ class SubawardFactory(factory.Factory):
     award_description = fuzzy.FuzzyText()
     naics = fuzzy.FuzzyText()
     naics_description = fuzzy.FuzzyText()
-    cfda_numbers = fuzzy.FuzzyText()
-    cfda_titles = fuzzy.FuzzyText()
+    assistance_listing_numbers = fuzzy.FuzzyText()
+    assistance_listing_titles = fuzzy.FuzzyText()
 
     subaward_type = fuzzy.FuzzyText()
     subaward_report_year = fuzzy.FuzzyText()
@@ -270,7 +270,7 @@ class SubawardFactory(factory.Factory):
     sub_funding_office_id = fuzzy.FuzzyText()
     sub_funding_office_name = fuzzy.FuzzyText()
     sub_naics = fuzzy.FuzzyText()
-    sub_cfda_numbers = fuzzy.FuzzyText()
+    sub_assistance_listing_numbers = fuzzy.FuzzyText()
     sub_dunsplus4 = fuzzy.FuzzyText()
     sub_recovery_subcontract_amt = fuzzy.FuzzyText()
     sub_recovery_model_q1 = fuzzy.FuzzyText()
