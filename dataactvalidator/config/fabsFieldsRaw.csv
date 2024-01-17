@@ -10,7 +10,7 @@ AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Conditional per Valida
 AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25
 BusinessFundsIndicator,business_funds_indicator,ASP: Conditional per Validation Rule,string,3
 BusinessTypes,business_types,ASP: Conditional per Validation Rule,string,3
-CFDA_Number,cfda_number,ASP: Required,string,7
+AssistanceListingNumber,assistance_listing_number,ASP: Required,string,7
 CorrectionDeleteIndicator,correction_delete_indicatr,ASP: Optional,string,1
 FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20
 FAIN,fain,ASP: Conditional per Validation Rule,string,30

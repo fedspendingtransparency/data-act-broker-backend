@@ -10,7 +10,7 @@ AwardingSubTierAgencyCode,awardingsubtieragencycode,awarding_sub_tier_agency_c,F
 AwardModificationAmendmentNumber,awardmodificationamendmentnumber,award_modification_amendme,FALSE,str,25,
 BusinessFundsIndicator,businessfundsindicator,business_funds_indicator,FALSE,str,3,
 BusinessTypes,businesstypes,business_types,FALSE,str,3,
-CFDA_Number,cfda_number,cfda_number,TRUE,str,7,
+AssistanceListingNumber,assistance_listing_number,assistance_listing_number,TRUE,str,7,
 CorrectionDeleteIndicator,correctiondeleteindicator,correction_delete_indicatr,FALSE,str,1,
 FaceValueOfDirectLoanOrLoanGuarantee,facevalueofdirectloanorloanguarantee,face_value_loan_guarantee,FALSE,float,20,
 FAIN,fain,fain,FALSE,str,30,
