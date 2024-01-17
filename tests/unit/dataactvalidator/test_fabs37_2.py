@@ -1,5 +1,5 @@
 from tests.unit.dataactcore.factories.staging import FABSFactory
-from dataactcore.models.domainModels import CFDAProgram
+from dataactcore.models.domainModels import AssistanceListing
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs37_2'
@@ -18,20 +18,27 @@ def test_pubished_date_success(database):
         Active date: publish_date <= action_date <= archive_date (Fails validation if active).
     """
 
-    cfda = CFDAProgram(program_number=12.340, published_date='20130427', archived_date='')
-    fabs_1 = FABSFactory(cfda_number='12.340', action_date='20140528', action_type='b', correction_delete_indicatr='B')
-    fabs_2 = FABSFactory(cfda_number='12.340', action_date='20140428', action_type='c', correction_delete_indicatr='')
-    fabs_3 = FABSFactory(cfda_number='12.340', action_date='20140428', action_type='D', correction_delete_indicatr=None)
+    assistance_listing = AssistanceListing(program_number=12.340, published_date='20130427', archived_date='')
+    fabs_1 = FABSFactory(assistance_listing_number='12.340', action_date='20140528', action_type='b',
+                         correction_delete_indicatr='B')
+    fabs_2 = FABSFactory(assistance_listing_number='12.340', action_date='20140428', action_type='c',
+                         correction_delete_indicatr='')
+    fabs_3 = FABSFactory(assistance_listing_number='12.340', action_date='20140428', action_type='D',
+                         correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
-    fabs_4 = FABSFactory(cfda_number='12.340', action_date='20120528', action_type='B', correction_delete_indicatr='d')
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, cfda])
+    fabs_4 = FABSFactory(assistance_listing_number='12.340', action_date='20120528', action_type='B',
+                         correction_delete_indicatr='d')
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, assistance_listing])
     assert errors == 0
 
-    cfda = CFDAProgram(program_number=12.350, published_date='20130427', archived_date='20140427')
-    fabs_1 = FABSFactory(cfda_number='12.350', action_date='20130528', action_type='b', correction_delete_indicatr='B')
-    fabs_2 = FABSFactory(cfda_number='12.350', action_date='20130428', action_type='C', correction_delete_indicatr='')
-    fabs_3 = FABSFactory(cfda_number='12.350', action_date='20130428', action_type='d', correction_delete_indicatr=None)
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, cfda])
+    assistance_listing = AssistanceListing(program_number=12.350, published_date='20130427', archived_date='20140427')
+    fabs_1 = FABSFactory(assistance_listing_number='12.350', action_date='20130528', action_type='b',
+                         correction_delete_indicatr='B')
+    fabs_2 = FABSFactory(assistance_listing_number='12.350', action_date='20130428', action_type='C',
+                         correction_delete_indicatr='')
+    fabs_3 = FABSFactory(assistance_listing_number='12.350', action_date='20130428', action_type='d',
+                         correction_delete_indicatr=None)
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, assistance_listing])
     assert errors == 0
 
 
@@ -42,16 +49,22 @@ def test_pubished_date_failure(database):
         If action date is < published_date, should trigger a warning.
     """
 
-    cfda = CFDAProgram(program_number=12.340, published_date='20130427', archived_date='')
-    fabs_1 = FABSFactory(cfda_number='12.340', action_date='20120528', action_type='b', correction_delete_indicatr='B')
-    fabs_2 = FABSFactory(cfda_number='12.340', action_date='20120427', action_type='C', correction_delete_indicatr='')
-    fabs_3 = FABSFactory(cfda_number='12.340', action_date='20120428', action_type='d', correction_delete_indicatr=None)
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, cfda])
+    assistance_listing = AssistanceListing(program_number=12.340, published_date='20130427', archived_date='')
+    fabs_1 = FABSFactory(assistance_listing_number='12.340', action_date='20120528', action_type='b',
+                         correction_delete_indicatr='B')
+    fabs_2 = FABSFactory(assistance_listing_number='12.340', action_date='20120427', action_type='C',
+                         correction_delete_indicatr='')
+    fabs_3 = FABSFactory(assistance_listing_number='12.340', action_date='20120428', action_type='d',
+                         correction_delete_indicatr=None)
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, assistance_listing])
     assert errors == 3
 
-    cfda = CFDAProgram(program_number=12.350, published_date='20130427', archived_date='20140528')
-    fabs_1 = FABSFactory(cfda_number='12.350', action_date='20120528', action_type='B', correction_delete_indicatr='B')
-    fabs_2 = FABSFactory(cfda_number='12.350', action_date='20150427', action_type='c', correction_delete_indicatr='')
-    fabs_3 = FABSFactory(cfda_number='12.350', action_date='20150428', action_type='D', correction_delete_indicatr=None)
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, cfda])
+    assistance_listing = AssistanceListing(program_number=12.350, published_date='20130427', archived_date='20140528')
+    fabs_1 = FABSFactory(assistance_listing_number='12.350', action_date='20120528', action_type='B',
+                         correction_delete_indicatr='B')
+    fabs_2 = FABSFactory(assistance_listing_number='12.350', action_date='20150427', action_type='c',
+                         correction_delete_indicatr='')
+    fabs_3 = FABSFactory(assistance_listing_number='12.350', action_date='20150428', action_type='D',
+                         correction_delete_indicatr=None)
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, assistance_listing])
     assert errors == 3

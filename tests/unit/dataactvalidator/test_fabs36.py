@@ -13,10 +13,10 @@ def test_column_headers(database):
 def test_success(database):
     """ Test valid. AssistanceListingNumber must be in XX.XXX format """
 
-    fabs_1 = FABSFactory(cfda_number='99.999', correction_delete_indicatr='')
-    fabs_2 = FABSFactory(cfda_number='12.345', correction_delete_indicatr='c')
+    fabs_1 = FABSFactory(assistance_listing_number='99.999', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(assistance_listing_number='12.345', correction_delete_indicatr='c')
     # Ignore correction delete indicator of D
-    fabs_3 = FABSFactory(cfda_number='1234', correction_delete_indicatr='d')
+    fabs_3 = FABSFactory(assistance_listing_number='1234', correction_delete_indicatr='d')
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3])
     assert errors == 0
@@ -25,11 +25,11 @@ def test_success(database):
 def test_failure(database):
     """ Test invalid. AssistanceListingNumber must be in XX.XXX format """
 
-    fabs_1 = FABSFactory(cfda_number='1234', correction_delete_indicatr='')
-    fabs_2 = FABSFactory(cfda_number='12.34567', correction_delete_indicatr=None)
-    fabs_3 = FABSFactory(cfda_number='12.3', correction_delete_indicatr='c')
-    fabs_4 = FABSFactory(cfda_number='123.456', correction_delete_indicatr='C')
-    fabs_5 = FABSFactory(cfda_number='ab.cdf', correction_delete_indicatr='')
+    fabs_1 = FABSFactory(assistance_listing_number='1234', correction_delete_indicatr='')
+    fabs_2 = FABSFactory(assistance_listing_number='12.34567', correction_delete_indicatr=None)
+    fabs_3 = FABSFactory(assistance_listing_number='12.3', correction_delete_indicatr='c')
+    fabs_4 = FABSFactory(assistance_listing_number='123.456', correction_delete_indicatr='C')
+    fabs_5 = FABSFactory(assistance_listing_number='ab.cdf', correction_delete_indicatr='')
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5])
     assert errors == 5

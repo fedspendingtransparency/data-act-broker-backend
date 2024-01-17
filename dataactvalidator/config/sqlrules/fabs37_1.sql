@@ -5,7 +5,7 @@
 WITH fabs37_1_{0} AS
     (SELECT submission_id,
         row_number,
-        cfda_number,
+        assistance_listing_number,
         action_type,
         correction_delete_indicatr,
         action_date,
@@ -14,7 +14,7 @@ WITH fabs37_1_{0} AS
     WHERE submission_id = {0})
 SELECT
     row_number,
-    cfda_number AS "assistance_listing_number",
+    assistance_listing_number,
     action_type,
     correction_delete_indicatr,
     action_date,
@@ -25,13 +25,13 @@ WHERE UPPER(fabs.action_type) IN ('A', 'E')
     AND fabs.row_number NOT IN (
         SELECT DISTINCT sub_fabs.row_number
         FROM fabs37_1_{0} AS sub_fabs
-            JOIN cfda_program AS cfda
-                ON sub_fabs.cfda_number = to_char(cfda.program_number, 'FM00.000')
-                AND ((cfda.published_date <= sub_fabs.action_date
-                        AND cfda.archived_date = ''
+            JOIN assistance_listing AS al
+                ON sub_fabs.assistance_listing_number = to_char(al.program_number, 'FM00.000')
+                AND ((al.published_date <= sub_fabs.action_date
+                        AND al.archived_date = ''
                     )
-                    OR (sub_fabs.action_date <= cfda.archived_date
-                        AND cfda.archived_date <> ''
+                    OR (sub_fabs.action_date <= al.archived_date
+                        AND al.archived_date <> ''
                     )
                 )
     );
