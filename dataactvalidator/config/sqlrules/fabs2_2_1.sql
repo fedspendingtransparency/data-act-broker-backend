@@ -7,7 +7,7 @@ SELECT
     fabs.award_modification_amendme,
     fabs.uri,
     fabs.awarding_sub_tier_agency_c,
-    fabs.cfda_number,
+    fabs.cfda_number AS "assistance_listing_number",
     fabs.correction_delete_indicatr,
     fabs.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs

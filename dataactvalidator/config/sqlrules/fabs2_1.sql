@@ -6,7 +6,7 @@ SELECT
     award_modification_amendme,
     uri,
     awarding_sub_tier_agency_c,
-    cfda_number,
+    cfda_number AS "assistance_listing_number",
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM (
     SELECT row_number,

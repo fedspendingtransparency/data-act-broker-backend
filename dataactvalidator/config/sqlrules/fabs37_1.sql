@@ -14,7 +14,7 @@ WITH fabs37_1_{0} AS
     WHERE submission_id = {0})
 SELECT
     row_number,
-    cfda_number,
+    cfda_number AS "assistance_listing_number",
     action_type,
     correction_delete_indicatr,
     action_date,
