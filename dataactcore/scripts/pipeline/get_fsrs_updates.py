@@ -71,75 +71,186 @@ def main():
         and also includes summary data about the award associated with the transaction.
     """
     results = sess.execute("""
-    WITH base_transaction AS (
-    SELECT fain,
-        MIN(pf_b.action_date) as base_date,
-        MIN(pf_b.period_of_performance_star) as earliest_start,
-        MAX(pf_b.period_of_performance_curr) as latest_end,
-        MAX(pf_b.modified_at) as max_mod,
-        SUM(CASE WHEN pf_b.is_active = True
-                    THEN pf_b.federal_action_obligation
-                    ELSE 0
-                    END) as obligation_sum,
-        CASE WHEN EXISTS (SELECT 1
-                            FROM published_fabs AS sub_pf_b
-                            WHERE is_active = True
-                            AND pf_b.fain = sub_pf_b.fain)
-            THEN True
-            ELSE False
-            END AS currently_active
-    FROM published_fabs AS pf_b
-    WHERE assistance_type IN ('02', '03', '04', '05')
-        AND record_type != 1
-    GROUP BY fain),
-    only_base AS (SELECT pf.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
+    WITH updated_transactions AS (
+        SELECT unique_award_key,
+            CASE WHEN action_type = 'A' THEN 1 ELSE 2 END AS action_sort
+        FROM published_fabs
+        WHERE updated_at >= {mod_date}),
+    base_transaction AS (
+        SELECT *
+        FROM (SELECT pf.unique_award_key,
+                pf.awarding_sub_tier_agency_c,
+                pf.action_date,
+                pf.assistance_type,
+                pf.assistance_type_desc,
+                pf.award_description,
+                pf.business_types,
+                pf.period_of_performance_star,
+                ROW_NUMBER() OVER (PARTITION BY
+                    pf.unique_award_key
+                    ORDER BY pf.action_date, action_sort, pf.award_modification_amendme NULLS FIRST, pf.uri, pf.cfda_number
+                ) AS row_number
+            FROM published_fabs AS pf
+            JOIN updated_transactions AS ut
+                ON ut.unique_award_key = pf.unique_award_key) AS duplicates
+        WHERE duplicates.row_number = 1),
+    latest_transaction AS (
+        SELECT *
+        FROM (SELECT pf.unique_award_key,
+                pf.action_date,
+                pf.action_type,
+                pf.cfda_number,
+                pf.assistance_type,
+                pf.assistance_type_desc,
+                pf.awardee_or_recipient_legal,
+                pf.uei,
+                pf.awarding_agency_code,
+                pf.awarding_agency_name,
+                pf.awarding_office_code,
+                pf.business_funds_indicator,
+                pf.business_types,
+                pf.fain,
+                pf.funding_office_code,
+                pf.funding_opportunity_goals,
+                pf.funding_opportunity_number,
+                pf.funding_sub_tier_agency_co,
+                pf.legal_entity_address_line1,
+                pf.legal_entity_address_line2,
+                pf.legal_entity_congressional,
+                pf.legal_entity_country_code,
+                pf.legal_entity_foreign_city,
+                pf.legal_entity_foreign_posta,
+                pf.legal_entity_foreign_provi,
+                pf.legal_entity_zip5,
+                pf.legal_entity_zip_last4,
+                pf.period_of_performance_curr,
+                pf.place_of_performance_congr,
+                pf.place_of_perform_country_c,
+                pf.place_of_performance_forei,
+                pf.place_of_perfor_state_code,
+                pf.place_of_performance_zip4a,
+                pf.record_type,
+                pf.sai_number,
+                pf.ultimate_parent_uei,
+                pf.uri,
+                ROW_NUMBER() OVER (PARTITION BY
+                    pf.unique_award_key
+                    ORDER BY pf.action_date DESC, action_sort DESC, pf.award_modification_amendme DESC NULLS LAST, pf.uri DESC, pf.cfda_number DESC
+                ) AS row_number
+            FROM published_fabs AS pf
+            JOIN updated_transactions AS ut
+                ON ut.unique_award_key = pf.unique_award_key) AS duplicates
+        WHERE duplicates.row_number = 1),
+    grouped_transaction AS (
+        SELECT unique_award_key,
+            MAX(pf.modified_at) AS max_modified_at,
+            MAX(pf.updated_at) AS max_updated_at,
+            SUM(CASE WHEN pf.is_active = True
+                        THEN pf.face_value_loan_guarantee
+                        ELSE 0
+                        END) AS total_face_value_of_direct_loan_or_loan_guarantee,
+            SUM(CASE WHEN pf.is_active = True
+                        THEN pf.federal_action_obligation
+                        ELSE 0
+                        END) AS total_federal_action_obligation,
+            SUM(CASE WHEN pf.is_active = True
+                        THEN CASE WHEN pf.assistance_type IN ('07', '08')
+                                THEN pf.original_loan_subsidy_cost
+                                ELSE pf.federal_action_obligation
+                                END
+                        ELSE 0
+                        END) AS total_generated_pragmatic_obligations,
+            SUM(CASE WHEN pf.is_active = True
+                        THEN pf.indirect_federal_sharing
+                        ELSE 0
+                        END) AS total_indirect_cost_federal_share_amount,
+            SUM(CASE WHEN pf.is_active = True
+                        THEN pf.non_federal_funding_amount
+                        ELSE 0
+                        END) AS total_non_federal_funding_amount,
+            SUM(CASE WHEN pf.is_active = True
+                        THEN pf.original_loan_subsidy_cost
+                        ELSE 0
+                        END) AS total_original_loan_subsidy_cost,
+            CASE WHEN EXISTS (
+                        SELECT 1
+                        FROM published_fabs AS sub_pf
+                        WHERE is_active = True
+                        AND pf.unique_award_key = sub_pf.unique_award_key
+                      )
+                THEN 'active'
+                ELSE 'inactive'
+                END AS is_active
         FROM published_fabs AS pf
-        JOIN base_transaction AS bt
-            ON bt.fain = pf.fain
-            AND bt.max_mod = pf.modified_at
-            AND pf.record_type != 1)
+        WHERE EXISTS (
+            SELECT 1
+            FROM updated_transactions
+            WHERE updated_transactions.unique_award_key = pf.unique_award_key
+        )
+        GROUP BY unique_award_key)
 
     SELECT
-        ob.fain AS federal_award_id,
-        CASE WHEN currently_active
-            THEN 'active'
-            ELSE 'inactive'
-            END AS status,
-        CASE WHEN CAST(ob.obligation_sum as double precision) > 25000 AND CAST(ob.base_date as DATE) > '10/01/2010'
-              THEN 'Eligible'
-            ELSE 'Ineligible'
-            END AS eligibility,
-        ob.sai_number,
-        ob.awarding_sub_tier_agency_c AS agency_code,
-        ob.awardee_or_recipient_uniqu AS duns_no,
-        NULL AS dunsplus4,
-        ob.uei AS uei,
-        ob.place_of_performance_city AS principal_place_cc,
-        CASE WHEN UPPER(LEFT(ob.place_of_performance_code, 2)) ~ '[A-Z]{2}'
-            THEN UPPER(LEFT(ob.place_of_performance_code, 2))
-            ELSE NULL
-            END AS principal_place_state_code,
-        ob.place_of_perform_country_c AS principal_place_country_code,
-        ob.place_of_performance_zip4a AS principal_place_zip,
-        ob.cfda_number AS cfda_program_num,
-        ob.earliest_start AS starting_date,
-        ob.latest_end AS ending_date,
-        ob.obligation_sum as total_fed_funding_amount,
-        ob.base_date AS base_obligation_date,
-        ob.award_description AS project_description,
-        ob.modified_at AS last_modified_date
-    FROM only_base AS ob
-    WHERE modified_at >= '""" + mod_date + "'")
+        gt.*,
+        bt.awarding_sub_tier_agency_c AS awarding_sub_tier_agency_code,
+        bt.action_date AS base_action_date,
+        bt.assistance_type AS base_assistance_type,
+        bt.assistance_type_desc AS base_assistance_type_description,
+        bt.award_description AS base_award_description,
+        bt.business_types AS base_business_types,
+        bt.period_of_performance_star AS base_period_of_performance_start_date,
+        lt.action_date AS latest_action_date,
+        lt.action_type AS latest_action_type,
+        lt.cfda_number AS latest_assistance_listing_number,
+        lt.assistance_type AS latest_assistance_type,
+        lt.assistance_type_desc AS latest_assistance_type_description,
+        lt.awardee_or_recipient_legal AS latest_awardee_or_recipient_legal_entity_name,
+        lt.uei AS latest_awardee_or_recipient_uei,
+        lt.awarding_agency_code AS latest_awarding_agency_code,
+        lt.awarding_agency_name AS latest_awarding_agency_name,
+        lt.awarding_office_code AS latest_awarding_office_code,
+        lt.business_funds_indicator AS latest_business_funds_indicator,
+        lt.business_types AS latest_business_types,
+        lt.fain AS latest_fain,
+        lt.funding_office_code AS latest_funding_office_code,
+        lt.funding_opportunity_goals AS latest_funding_opportunity_goals_text,
+        lt.funding_opportunity_number AS latest_funding_opportunity_number,
+        lt.funding_sub_tier_agency_co AS latest_funding_sub_tier_agency_code,
+        lt.legal_entity_address_line1 AS latest_legal_entity_address_line1,
+        lt.legal_entity_address_line2 AS latest_legal_entity_address_line2,
+        lt.legal_entity_congressional AS latest_legal_entity_congressional_district,
+        lt.legal_entity_country_code AS latest_legal_entity_country_code,
+        lt.legal_entity_foreign_city AS latest_legal_entity_foreign_city_name,
+        lt.legal_entity_foreign_posta AS latest_legal_entity_foreign_postal_code,
+        lt.legal_entity_foreign_provi AS latest_legal_entity_foreign_province_name,
+        lt.legal_entity_zip5 AS latest_legal_entity_zip5,
+        lt.legal_entity_zip_last4 AS latest_legal_entity_zip_last4,
+        lt.period_of_performance_curr AS latest_period_of_performance_current_end_date,
+        lt.place_of_performance_congr AS latest_primary_place_of_performance_congressional_district,
+        lt.place_of_perform_country_c AS latest_primary_place_of_performance_country_code,
+        lt.place_of_performance_forei AS latest_primary_place_of_performance_foreign_location_descr,
+        lt.place_of_perfor_state_code AS latest_primary_place_of_performance_state_postal_code,
+        lt.record_type AS latest_record_type,
+        lt.sai_number AS latest_sai_number,
+        lt.ultimate_parent_uei AS latest_ultimate_parent_uei,
+        lt.uri AS latest_uri,
+        lt.place_of_performance_zip4a AS latest_primary_place_of_performance_zip4
+    FROM latest_transaction AS lt
+    JOIN base_transaction AS bt
+        ON lt.unique_award_key = bt.unique_award_key
+    JOIN grouped_transaction AS gt
+        ON gt.unique_award_key = lt.unique_award_key""".format(mod_date=mod_date))
     logger.info("Completed SQL query, starting file writing")
 
     full_file_path = os.path.join(os.getcwd(), "fsrs_update.csv")
     with open(full_file_path, 'w', newline='') as csv_file:
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
-        headers = ['federal_award_id', 'status', 'eligibility', 'sai_number', 'agency_code', 'duns_no', 'dunsplus4',
-                   'uei', 'principal_place_cc', 'principal_place_state_code', 'principal_place_country_code',
-                   'principal_place_zip', 'cfda_program_num', 'starting_date', 'ending_date',
-                   'total_fed_funding_amount', 'base_obligation_date', 'project_description', 'last_modified_date']
+        headers = ['FAIN', 'status', 'sai_number', 'awarding_subtier_agency_code', 'base_assistance_type_code',
+                   'uei', 'primary_place_of_performance_city_name', 'primary_place_of_performance_state_code',
+                   'primary_place_of_performance_country_code', 'primary_place_of_performance_zip',
+                   'assistance_listing_code', 'base_period_of_performance_start_date',
+                   'period_of_performance_current_end_date', 'total_fed_funding_amount', 'base_action_date',
+                   'base_award_description', 'last_modified_date']
         out_csv.writerow(headers)
         for row in results:
             metrics_json['records_provided'] += 1
