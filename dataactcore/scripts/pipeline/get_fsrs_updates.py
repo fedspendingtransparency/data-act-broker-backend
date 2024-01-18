@@ -245,12 +245,30 @@ def main():
     with open(full_file_path, 'w', newline='') as csv_file:
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
-        headers = ['FAIN', 'status', 'sai_number', 'awarding_subtier_agency_code', 'base_assistance_type_code',
-                   'uei', 'primary_place_of_performance_city_name', 'primary_place_of_performance_state_code',
-                   'primary_place_of_performance_country_code', 'primary_place_of_performance_zip',
-                   'assistance_listing_code', 'base_period_of_performance_start_date',
-                   'period_of_performance_current_end_date', 'total_fed_funding_amount', 'base_action_date',
-                   'base_award_description', 'last_modified_date']
+        headers = ['unique_award_key', 'max_modified_at', 'max_updated_at',
+                   'total_face_value_of_direct_loan_or_loan_guarantee', 'total_federal_action_obligation',
+                   'total_generated_pragmatic_obligations', 'total_indirect_cost_federal_share_amount',
+                   'total_non_federal_funding_amount', 'total_original_loan_subsidy_cost', 'is_active',
+                   'awarding_sub_tier_agency_code', 'base_action_date', 'base_assistance_type',
+                   'base_assistance_type_description', 'base_award_description', 'base_business_types',
+                   'base_period_of_performance_start_date', 'latest_action_date', 'latest_action_type',
+                   'latest_assistance_listing_number', 'latest_assistance_type', 'latest_assistance_type_description',
+                   'latest_awardee_or_recipient_legal_entity_name', 'latest_awardee_or_recipient_uei',
+                   'latest_awarding_agency_code', 'latest_awarding_agency_name', 'latest_awarding_office_code',
+                   'latest_business_funds_indicator', 'latest_business_types', 'latest_fain',
+                   'latest_funding_office_code', 'latest_funding_opportunity_goals_text',
+                   'latest_funding_opportunity_number', 'latest_funding_sub_tier_agency_code',
+                   'latest_legal_entity_address_line1', 'latest_legal_entity_address_line2',
+                   'latest_legal_entity_congressional_district', 'latest_legal_entity_country_code',
+                   'latest_legal_entity_foreign_city_name', 'latest_legal_entity_foreign_postal_code',
+                   'latest_legal_entity_foreign_province_name', 'latest_legal_entity_zip5',
+                   'latest_legal_entity_zip_last4', 'latest_period_of_performance_current_end_date',
+                   'latest_primary_place_of_performance_congressional_district',
+                   'latest_primary_place_of_performance_country_code',
+                   'latest_primary_place_of_performance_foreign_location_descr',
+                   'latest_primary_place_of_performance_state_postal_code', 'latest_record_type',
+                   'latest_sai_number', 'latest_ultimate_parent_uei', 'latest_uri',
+                   'latest_primary_place_of_performance_zip4']
         out_csv.writerow(headers)
         for row in results:
             metrics_json['records_provided'] += 1
