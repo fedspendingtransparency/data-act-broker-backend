@@ -5,8 +5,7 @@
 WITH fabs37_2_{0} AS
     (SELECT submission_id,
         row_number,
-        assistance_listing
-        _number,
+        assistance_listing_number,
         action_type,
         correction_delete_indicatr,
         action_date,
