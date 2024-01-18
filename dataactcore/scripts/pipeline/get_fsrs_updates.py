@@ -75,7 +75,7 @@ def main():
         SELECT unique_award_key,
             CASE WHEN action_type = 'A' THEN 1 ELSE 2 END AS action_sort
         FROM published_fabs
-        WHERE updated_at >= {mod_date}),
+        WHERE updated_at >= '{mod_date}'),
     base_transaction AS (
         SELECT *
         FROM (SELECT pf.unique_award_key,
