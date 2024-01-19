@@ -1155,7 +1155,7 @@ def update_account_nums(model_class, submission_id):
         SET account_num = min_account_num
         FROM relevant_tas
         WHERE {model}.submission_id = {submission_id}
-            relevant_tas.tas = {model}.tas;
+            AND relevant_tas.tas = {model}.tas;
     """
     full_query = update_query.format(start=start_date, end=end_date, day_after_end=day_after_end,
                                      submission_id=submission_id, model=model_class.__table__.name)
