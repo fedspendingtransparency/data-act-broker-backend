@@ -88,7 +88,8 @@ def main():
                 pf.period_of_performance_star,
                 ROW_NUMBER() OVER (PARTITION BY
                     pf.unique_award_key
-                    ORDER BY pf.action_date, action_sort, pf.award_modification_amendme NULLS FIRST, pf.uri, pf.cfda_number
+                    ORDER BY pf.action_date, action_sort, pf.award_modification_amendme NULLS FIRST, pf.uri,
+                        pf.cfda_number
                 ) AS row_number
             FROM published_fabs AS pf
             JOIN updated_transactions AS ut
@@ -135,7 +136,8 @@ def main():
                 pf.uri,
                 ROW_NUMBER() OVER (PARTITION BY
                     pf.unique_award_key
-                    ORDER BY pf.action_date DESC, action_sort DESC, pf.award_modification_amendme DESC NULLS LAST, pf.uri DESC, pf.cfda_number DESC
+                    ORDER BY pf.action_date DESC, action_sort DESC, pf.award_modification_amendme DESC NULLS LAST,
+                        pf.uri DESC, pf.cfda_number DESC
                 ) AS row_number
             FROM published_fabs AS pf
             JOIN updated_transactions AS ut
