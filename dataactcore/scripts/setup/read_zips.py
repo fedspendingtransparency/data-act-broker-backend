@@ -422,9 +422,10 @@ def export_state_congr_table(sess):
     state_congr_filename = 'state_congressional.csv'
 
     logger.info("Exporting state_congressional table to {}".format(state_congr_filename))
-    query = sess.query(StateCongressional.state_code, StateCongressional.congressional_district_no,
+    query = sess.query(StateCongressional.state_code,
+                       StateCongressional.congressional_district_no.label("congressional_district"),
                        StateCongressional.census_year).filter(StateCongressional.congressional_district_no.isnot(None))
-    write_query_to_file(sess, query, state_congr_filename)
+    write_query_to_file(sess, query, state_congr_filename, generate_headers=True)
 
     logger.info("Uploading {} to {}".format(state_congr_filename, CONFIG_BROKER["public_files_bucket"]))
     s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
