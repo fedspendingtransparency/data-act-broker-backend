@@ -1,33 +1,21 @@
 WITH ap_sub_{0} AS (
-    SELECT piid,
-        parent_award_id,
-        awarding_sub_tier_agency_c
+    SELECT unique_award_key
     FROM award_procurement
     WHERE submission_id = {0}),
 afa_sub_{0} AS (
-    SELECT fain,
-        awarding_sub_tier_agency_c
+    SELECT unique_award_key
     FROM award_financial_assistance
     WHERE submission_id = {0}),
 submission_awards_{0} AS
     (SELECT *
     FROM subaward
-    WHERE EXISTS (SELECT 1
-        FROM ap_sub_{0} AS ap
-        WHERE UPPER(TRANSLATE(subaward.award_id, '-', '')) = UPPER(TRANSLATE(ap.piid, '-', ''))
-            AND UPPER(TRANSLATE(subaward.parent_award_id, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(ap.parent_award_id, '-', ''))
-            AND UPPER(subaward.awarding_sub_tier_agency_c) = UPPER(ap.awarding_sub_tier_agency_c)
-            AND subaward.subaward_type = 'sub-contract'
-    )
+    JOIN ap_sub_{0} USING (unique_award_key)
+    WHERE subaward_type = 'sub-contract'
     UNION
     SELECT *
     FROM subaward
-    WHERE EXISTS (SELECT 1
-        FROM afa_sub_{0} AS afa
-        WHERE UPPER(TRANSLATE(subaward.award_id, '-', '')) = UPPER(TRANSLATE(afa.fain, '-', ''))
-            AND UPPER(subaward.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(afa.awarding_sub_tier_agency_c)
-            AND subaward.subaward_type = 'sub-grant'
-    ))
+    JOIN afa_sub_{0} USING (unique_award_key)
+    WHERE subaward_type = 'sub-grant')
 SELECT
     unique_award_key AS "PrimeAwardUniqueKey",
     award_id AS "PrimeAwardID",
