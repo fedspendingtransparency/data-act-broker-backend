@@ -11,7 +11,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test valid. CFDA_Number must be in XX.XXX format """
+    """ Test valid. AssistanceListingNumber must be in XX.XXX format """
 
     fabs_1 = FABSFactory(cfda_number='99.999', correction_delete_indicatr='')
     fabs_2 = FABSFactory(cfda_number='12.345', correction_delete_indicatr='c')
@@ -23,7 +23,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test invalid. CFDA_Number must be in XX.XXX format """
+    """ Test invalid. AssistanceListingNumber must be in XX.XXX format """
 
     fabs_1 = FABSFactory(cfda_number='1234', correction_delete_indicatr='')
     fabs_2 = FABSFactory(cfda_number='12.34567', correction_delete_indicatr=None)

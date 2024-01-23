@@ -1,5 +1,5 @@
 -- For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically,
--- the CFDA_Number must be active as of the ActionDate. This does not apply to correction records
+-- the AssistanceListingNumber must be active as of the ActionDate. This does not apply to correction records
 -- (those with CorrectionDeleteIndicator = C and delete records).
 
 WITH fabs37_1_{0} AS
