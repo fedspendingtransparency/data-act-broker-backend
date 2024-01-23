@@ -645,54 +645,54 @@ def read_zips():
     with create_app().app_context():
         start_time = datetime.now()
         sess = GlobalDB.db().session
-
-        prep_temp_zip_cd_tables(sess)
-
-        if CONFIG_BROKER["use_aws"]:
-            zip_folder = CONFIG_BROKER["zip_folder"] + "/"
-            s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-            response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'], Prefix=zip_folder)
-            for obj in response.get('Contents', []):
-                if obj['Key'] != zip_folder:
-                    zip_4_file_path = s3_client.generate_presigned_url('get_object',
-                                                                       {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                        'Key': obj['Key']}, ExpiresIn=600)
-                    parse_zip4_file(urllib.request.urlopen(zip_4_file_path), sess)
-
-            # parse remaining 5 digit zips that weren't in the first file
-            citystate_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                             'Key': "ctystate.txt"}, ExpiresIn=600)
-            parse_citystate_file(urllib.request.urlopen(citystate_file), sess)
-        else:
-            base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
-            # creating the list while ignoring hidden files on mac
-            file_list = [f for f in os.listdir(base_path) if not re.match(r'^\.', f)]
-            for file in file_list:
-                parse_zip4_file(open(os.path.join(base_path, file)), sess)
-
-            # parse remaining 5 digit zips that weren't in the first file
-            citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
-            parse_citystate_file(open(citystate_file), sess)
-
-        generate_zips_grouped(sess)
-        generate_cd_state_grouped(sess)
-        generate_cd_zips_grouped(sess)
-        generate_cd_zips_grouped_historical(sess)
-        generate_cd_county_grouped(sess)
-        hot_swap_zip_cd_tables(sess)
-        update_external_data_load_date(start_time, datetime.now(), 'zip_code')
-
-        update_state_congr_table_current(sess)
-        if CONFIG_BROKER["use_aws"]:
-            census_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                          'Key': "census_congressional_districts.csv"},
-                                                           ExpiresIn=600)
-        else:
-            census_file = os.path.join(base_path, "census_congressional_districts.csv")
-        update_state_congr_table_census(census_file, sess)
+        #
+        # prep_temp_zip_cd_tables(sess)
+        #
+        # if CONFIG_BROKER["use_aws"]:
+        #     zip_folder = CONFIG_BROKER["zip_folder"] + "/"
+        #     s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        #     response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'], Prefix=zip_folder)
+        #     for obj in response.get('Contents', []):
+        #         if obj['Key'] != zip_folder:
+        #             zip_4_file_path = s3_client.generate_presigned_url('get_object',
+        #                                                                {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+        #                                                                 'Key': obj['Key']}, ExpiresIn=600)
+        #             parse_zip4_file(urllib.request.urlopen(zip_4_file_path), sess)
+        #
+        #     # parse remaining 5 digit zips that weren't in the first file
+        #     citystate_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+        #                                                                      'Key': "ctystate.txt"}, ExpiresIn=600)
+        #     parse_citystate_file(urllib.request.urlopen(citystate_file), sess)
+        # else:
+        #     base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
+        #     # creating the list while ignoring hidden files on mac
+        #     file_list = [f for f in os.listdir(base_path) if not re.match(r'^\.', f)]
+        #     for file in file_list:
+        #         parse_zip4_file(open(os.path.join(base_path, file)), sess)
+        #
+        #     # parse remaining 5 digit zips that weren't in the first file
+        #     citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
+        #     parse_citystate_file(open(citystate_file), sess)
+        #
+        # generate_zips_grouped(sess)
+        # generate_cd_state_grouped(sess)
+        # generate_cd_zips_grouped(sess)
+        # generate_cd_zips_grouped_historical(sess)
+        # generate_cd_county_grouped(sess)
+        # hot_swap_zip_cd_tables(sess)
+        # update_external_data_load_date(start_time, datetime.now(), 'zip_code')
+        #
+        # update_state_congr_table_current(sess)
+        # if CONFIG_BROKER["use_aws"]:
+        #     census_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+        #                                                                   'Key': "census_congressional_districts.csv"},
+        #                                                    ExpiresIn=600)
+        # else:
+        #     census_file = os.path.join(base_path, "census_congressional_districts.csv")
+        # update_state_congr_table_census(census_file, sess)
         if CONFIG_BROKER['use_aws']:
             export_state_congr_table(sess)
-        update_external_data_load_date(start_time, datetime.now(), 'congressional_district')
+        # update_external_data_load_date(start_time, datetime.now(), 'congressional_district')
 
         logger.info("Zipcode script complete")
 
