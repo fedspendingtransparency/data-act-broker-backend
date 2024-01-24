@@ -24,9 +24,8 @@ def test_update_account_nums_has_match_open_ended(database, factory):
     submission = SubmissionFactory(reporting_start_date=date(2010, 10, 1), reporting_end_date=date(2010, 10, 1))
     sess.add(submission)
     sess.flush()
-    tas = TASFactory(internal_start_date=date(2010, 9, 1))
-    model = factory(submission_id=submission.submission_id, **tas.component_dict())
-    assert model.account_num is None
+    tas = TASFactory(internal_start_date=date(2010, 9, 1), tas='ABC')
+    model = factory(submission_id=submission.submission_id, tas=tas.tas, account_num=None)
     sess.add_all([tas, model])
     sess.commit()
 
@@ -44,9 +43,8 @@ def test_update_account_nums_has_match_closed(database, factory):
     submission = SubmissionFactory(reporting_start_date=date(2010, 10, 10), reporting_end_date=date(2010, 10, 31))
     sess.add(submission)
     sess.flush()
-    tas = TASFactory(internal_start_date=date(2010, 9, 1), internal_end_date=date(2010, 10, 15))
-    model = factory(submission_id=submission.submission_id, **tas.component_dict())
-    assert model.account_num is None
+    tas = TASFactory(internal_start_date=date(2010, 9, 1), internal_end_date=date(2010, 10, 15), tas='ABC')
+    model = factory(submission_id=submission.submission_id, tas=tas.tas, account_num=None)
     sess.add_all([tas, model])
     sess.commit()
 
@@ -84,9 +82,8 @@ def test_update_account_nums_bad_dates(database, factory):
     submission = SubmissionFactory(reporting_start_date=date(2010, 10, 1), reporting_end_date=date(2010, 10, 1))
     sess.add(submission)
     sess.flush()
-    tas = TASFactory(internal_start_date=date(2011, 1, 1))
-    model = factory(submission_id=submission.submission_id, **tas.component_dict())
-    assert model.account_num is None
+    tas = TASFactory(internal_start_date=date(2011, 1, 1), tas='ABC')
+    model = factory(submission_id=submission.submission_id, tas=tas.tas, account_num=None)
     sess.add_all([tas, model])
     sess.commit()
 
