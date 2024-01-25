@@ -1,14 +1,14 @@
 """ Rename CFDA to AssistanceListing
 
 Revision ID: 9a5e71474232
-Revises: 1b55916099f4
+Revises: e7af56680794
 Create Date: 2024-01-17 20:01:34.004322
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '9a5e71474232'
-down_revision = '1b55916099f4'
+down_revision = 'e7af56680794'
 branch_labels = None
 depends_on = None
 
