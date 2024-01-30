@@ -127,7 +127,7 @@ class ObjectClassProgramActivity(Base):
     ussgl497200_downward_adjus_cpe = Column(Numeric)
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
-    tas = Column(Text, nullable=False, default=concat_tas)
+    tas = Column(Text, nullable=False, default=concat_tas, index=True)
     display_tas = Column(Text, default=concat_display_tas)
     account_num = Column(Integer, nullable=True)
     disaster_emergency_fund_code = Column(Text)
