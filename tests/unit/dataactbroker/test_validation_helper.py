@@ -170,10 +170,16 @@ def test_clean_numbers_vectorized_mixed_types():
 def test_concat_flex():
     # Tests a blank value, column sorting, ignoring row number, and the basic functionality
     flex_row = {'row_number': '4', 'col 3': None, 'col 2': 'B', 'col 1': 'A'}
+    flex_df = pd.DataFrame({'row_number': ['4'], 'col 3': [None], 'col 2': ['B'], 'col 1': ['A']})
     assert validation_helper.concat_flex(flex_row) == 'col 1: A, col 2: B, col 3: '
+    flex_df['concatted'] = flex_df.apply(lambda x: validation_helper.concat_flex(x), axis=1)
+    assert flex_df['concatted'][0] == 'col 1: A, col 2: B, col 3: '
 
     flex_row = {'just one': 'column'}
+    flex_df = pd.DataFrame({'just one': ['column']})
     assert validation_helper.concat_flex(flex_row) == 'just one: column'
+    flex_df['concatted'] = flex_df.apply(lambda x: validation_helper.concat_flex(x), axis=1)
+    assert flex_df['concatted'][0] == 'just one: column'
 
 
 def test_derive_unique_id():
