@@ -185,12 +185,13 @@ def concat_flex(row):
         on commas
 
         Args:
-            row: the dataframe row containing the submission row flex fields
+            row: the dataframe or dict row containing the submission row flex fields
 
         Returns:
             A concatenated list of "header: cell" pairs for the flex fields, joined by commas
     """
-    return ', '.join([name + ': ' + (row[name] or '') for name in row.keys().sort_values() if name != 'row_number'])
+    sorted_keys = row.keys().sort_values() if isinstance(row.keys(), pd.Index) else sorted(row.keys())
+    return ', '.join([name + ': ' + (row[name] or '') for name in sorted_keys if name != 'row_number'])
 
 
 def derive_unique_id(row, is_fabs):
