@@ -593,7 +593,7 @@ SELECT
     NULL AS "sub_funding_office_id",
     NULL AS "sub_funding_office_name",
     NULL AS "sub_naics",
-    fsrs_subgrant.assistance_listing_numbers AS "sub_assistance_listing_numbers",
+    fsrs_subgrant.cfda_numbers AS "sub_assistance_listing_numbers",
     fsrs_subgrant.dunsplus4 AS "sub_dunsplus4",
     NULL AS "sub_recovery_subcontract_amt",
     NULL AS "sub_recovery_model_q1",

@@ -56,12 +56,6 @@ def upgrade_data_broker():
     op.alter_column('published_fabs', 'cfda_title', new_column_name='assistance_listing_title')
     op.execute('ALTER INDEX ix_published_fabs_cfda_number RENAME TO ix_published_fabs_assistance_listing_number')
 
-    # FSRSGrant
-    op.alter_column('fsrs_grant', 'cfda_numbers', new_column_name='assistance_listing_numbers')
-
-    # FSRSSubgrant
-    op.alter_column('fsrs_subgrant', 'cfda_numbers', new_column_name='assistance_listing_numbers')
-
     # Subaward
     op.alter_column('subaward', 'cfda_numbers', new_column_name='assistance_listing_numbers')
     op.alter_column('subaward', 'cfda_titles', new_column_name='assistance_listing_titles')
@@ -106,12 +100,6 @@ def downgrade_data_broker():
     op.alter_column('published_fabs', 'assistance_listing_number', new_column_name='cfda_number')
     op.alter_column('published_fabs', 'assistance_listing_title', new_column_name='cfda_title')
     op.execute('ALTER INDEX ix_published_fabs_assistance_listing_number RENAME TO ix_published_fabs_cfda_number')
-
-    # FSRSGrant
-    op.alter_column('fsrs_grant', 'assistance_listing_numbers', new_column_name='cfda_numbers')
-
-    # FSRSSubgrant
-    op.alter_column('fsrs_subgrant', 'assistance_listing_numbers', new_column_name='cfda_numbers')
 
     # Subaward
     op.alter_column('subaward', 'assistance_listing_numbers', new_column_name='cfda_numbers')

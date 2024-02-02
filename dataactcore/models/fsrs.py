@@ -63,7 +63,7 @@ class _GrantAttributes(_FSRSAttributes):
     awardee_address_country = Column(String)
     awardee_address_zip = Column(String)
     awardee_address_district = Column(String, nullable=True)
-    assistance_listing_numbers = Column(String)
+    cfda_numbers = Column(String)
     project_description = Column(String)
     compensation_q1 = Column(Boolean)
     compensation_q2 = Column(Boolean)

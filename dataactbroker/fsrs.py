@@ -265,7 +265,7 @@ def to_prime_grant(soap_dict):
         Returns:
             Prime Grant object
     """
-    model_attrs = flatten_soap_dict(_primeGrant, _grantAddrs, 'assistance_listing_numbers', soap_dict)
+    model_attrs = flatten_soap_dict(_primeGrant, _grantAddrs, 'cfda_numbers', soap_dict)
     model_attrs['subawards'] = [to_subgrant(sub) for sub in soap_dict.get('subawardees', [])]
 
     debug_dict = {'id': model_attrs['id'], 'internal_id': model_attrs['internal_id'],
@@ -284,7 +284,7 @@ def to_subgrant(soap_dict):
         Returns:
             Subgrant object
     """
-    model_attrs = flatten_soap_dict(_subGrant, _grantAddrs, 'assistance_listing_numbers', soap_dict)
+    model_attrs = flatten_soap_dict(_subGrant, _grantAddrs, 'cfda_numbers', soap_dict)
     return FSRSSubgrant(**model_attrs)
 
 
