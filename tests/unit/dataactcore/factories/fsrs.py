@@ -60,7 +60,7 @@ class _GrantAttributes(_FSRSAttributes):
     awardee_address_country = fuzzy.FuzzyText()
     awardee_address_zip = fuzzy.FuzzyText()
     awardee_address_district = None
-    assistance_listing_numbers = fuzzy.FuzzyText()
+    cfda_numbers = fuzzy.FuzzyText()
     project_description = fuzzy.FuzzyText()
     compensation_q1 = fuzzy.FuzzyChoice((False, True))
     compensation_q2 = fuzzy.FuzzyChoice((False, True))
