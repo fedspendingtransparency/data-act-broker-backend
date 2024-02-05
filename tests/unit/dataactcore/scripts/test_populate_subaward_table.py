@@ -447,7 +447,7 @@ def compare_grant_results(sub, fabs_base, fabs_latest, fabs_grouped, grant, sub_
         'sub_funding_office_id': None,
         'sub_funding_office_name': None,
         'sub_naics': None,
-        'sub_assistance_listing_numbers': sub_grant.assistance_listing_numbers,
+        'sub_assistance_listing_numbers': sub_grant.cfda_numbers,
         'sub_dunsplus4': sub_grant.dunsplus4,
         'sub_recovery_subcontract_amt': None,
         'sub_recovery_model_q1': None,
@@ -527,7 +527,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        assistance_listing_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -572,7 +572,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        assistance_listing_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -617,7 +617,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        assistance_listing_numbers='00.003 Assistance Listing 3',
+        cfda_numbers='00.003 Assistance Listing 3',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -724,7 +724,7 @@ def test_fix_broken_links(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        assistance_listing_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -771,7 +771,7 @@ def test_fix_broken_links(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        assistance_listing_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -842,7 +842,7 @@ def test_fix_broken_links(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        assistance_listing_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -889,7 +889,7 @@ def test_fix_broken_links(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        assistance_listing_numbers='00.003 Assistance Listing 3',
+        cfda_numbers='00.003 Assistance Listing 3',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
