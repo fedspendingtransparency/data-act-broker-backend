@@ -61,8 +61,8 @@ SELECT
     program_title AS "PrimeAwardProjectTitle",
     naics AS "NAICS",
     naics_description AS "NAICS_Description",
-    cfda_numbers AS "CFDA_Numbers",
-    cfda_titles AS "CFDA_Titles",
+    assistance_listing_numbers AS "AssistanceListingNumbers",
+    assistance_listing_titles AS "AssistanceListingTitles",
 
     subaward_type AS "SubAwardType",
     internal_id AS "SubAwardReportID",

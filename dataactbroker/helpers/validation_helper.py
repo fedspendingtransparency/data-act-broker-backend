@@ -255,7 +255,7 @@ def derive_fabs_afa_generated_unique(row):
     return (row['awarding_sub_tier_agency_c'] or '-none-') + '_' + \
            (row['fain'] or '-none-') + '_' + \
            (row['uri'] or '-none-') + '_' + \
-           (row['cfda_number'] or '-none-') + '_' + \
+           (row['assistance_listing_number'] or '-none-') + '_' + \
            (row['award_modification_amendme'] or '-none-')
 
 

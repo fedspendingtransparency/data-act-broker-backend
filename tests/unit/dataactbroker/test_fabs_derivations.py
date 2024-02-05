@@ -8,9 +8,9 @@ from tests.unit.dataactcore.factories.domain import (ZipCityFactory, ZipsFactory
                                                      CDZipsGroupedFactory, CDZipsGroupedHistoricalFactory,
                                                      CDCountyGroupedFactory, CDCityGroupedFactory,
                                                      CDStateGroupedFactory, CityCodeFactory, SAMRecipientFactory,
-                                                     CFDAProgramFactory, CGACFactory, FRECFactory, SubTierAgencyFactory,
-                                                     OfficeFactory, StatesFactory, CountyCodeFactory,
-                                                     CountryCodeFactory)
+                                                     AssistanceListingFactory, CGACFactory, FRECFactory,
+                                                     SubTierAgencyFactory, OfficeFactory, StatesFactory,
+                                                     CountyCodeFactory, CountryCodeFactory)
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory
 
 
@@ -97,8 +97,8 @@ def initialize_db_values(db):
                                       high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
                                       high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
                                       high_comp_officer5_amount=None)
-    # CFDA
-    cfda = CFDAProgramFactory(program_number=12.345, program_title='CFDA Title')
+    # Assistance Listing
+    assistance_listing = AssistanceListingFactory(program_number=12.345, program_title='Assistance Listing Title')
     # Agencies
     cgac_1 = CGACFactory(cgac_code='000', agency_name='Test CGAC Agency')
     cgac_2 = CGACFactory(cgac_code='111', agency_name='Test CGAC Agency 2')
@@ -142,9 +142,9 @@ def initialize_db_values(db):
                         zips_grouped_2, zips_grouped_3, zips_grouped_historical_1, cd_zips_grouped_1, cd_zips_grouped_2,
                         cd_zips_grouped_3, cd_zips_grouped_historical, cd_county_grouped, cd_city_grouped_1,
                         cd_city_grouped_2, cd_state_grouped, zip_city, zip_city_2, zip_city_3, zip_city_4, city_code,
-                        state, county, country_1, country_2, recipient_1, recipient_2a, recipient_2b, recipient_3, cfda,
-                        cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier, frec_sub_tier, valid_office, invalid_office,
-                        pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6])
+                        state, county, country_1, country_2, recipient_1, recipient_2a, recipient_2b, recipient_3,
+                        assistance_listing, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier, frec_sub_tier, valid_office,
+                        invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6])
     db.session.commit()
 
 
@@ -153,12 +153,13 @@ def stringify(value):
     return '\'{}\''.format(value) if value else 'NULL'
 
 
-def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_code='12aB', sub_fund_agency_code=None,
-                        ppop_code='NY00000', ppop_zip4a=None, ppop_cd=None, le_zip5=None, le_zip4=None, record_type=2,
-                        award_mod_amend=None, fain=None, uri=None, cdi=None, awarding_office='03ab03',
-                        funding_office='03ab03', legal_congr=None, primary_place_country='USA', legal_country='USA',
-                        legal_foreign_city=None, action_type=None, assist_type=None, busi_type=None, busi_fund=None,
-                        uei=None, action_date='2023/02/02', submission_id=9999):
+def initialize_test_row(db, fao=None, nffa=None, assistance_listing_num='00.000', sub_tier_code='12aB',
+                        sub_fund_agency_code=None, ppop_code='NY00000', ppop_zip4a=None, ppop_cd=None, le_zip5=None,
+                        le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cdi=None,
+                        awarding_office='03ab03', funding_office='03ab03', legal_congr=None,
+                        primary_place_country='USA', legal_country='USA', legal_foreign_city=None, action_type=None,
+                        assist_type=None, busi_type=None, busi_fund=None, uei=None, action_date='2023/02/02',
+                        submission_id=9999):
     """ Initialize the values in the object being run through the fabs_derivations function """
     column_list = [col.key for col in PublishedFABS.__table__.columns]
     remove_cols = ['created_at', 'updated_at', 'modified_at', 'is_active', 'published_fabs_id']
@@ -182,21 +183,21 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
     db.session.execute(create_query.format(submission_id=submission_id, cols=col_string))
 
     insert_query = """
-        INSERT INTO tmp_fabs_{submission_id} (federal_action_obligation, non_federal_funding_amount, cfda_number,
-            awarding_sub_tier_agency_c, funding_sub_tier_agency_co, place_of_performance_code,
-            place_of_performance_zip4a, place_of_performance_congr, legal_entity_zip5, legal_entity_zip_last4,
-            record_type, award_modification_amendme, fain, uri, correction_delete_indicatr, awarding_office_code,
-            funding_office_code, legal_entity_congressional, place_of_perform_country_c, legal_entity_country_code,
-            legal_entity_foreign_city, uei, action_type, assistance_type, business_types,
+        INSERT INTO tmp_fabs_{submission_id} (federal_action_obligation, non_federal_funding_amount,
+            assistance_listing_number, awarding_sub_tier_agency_c, funding_sub_tier_agency_co,
+            place_of_performance_code, place_of_performance_zip4a, place_of_performance_congr, legal_entity_zip5,
+            legal_entity_zip_last4, record_type, award_modification_amendme, fain, uri, correction_delete_indicatr,
+            awarding_office_code, funding_office_code, legal_entity_congressional, place_of_perform_country_c,
+            legal_entity_country_code, legal_entity_foreign_city, uei, action_type, assistance_type, business_types,
             business_funds_indicator, action_date)
-        VALUES ({fao}, {nffa}, {cfda_num}, {sub_tier_code}, {sub_fund_agency_code}, {ppop_code}, {ppop_zip4a},
-            {ppop_cd}, {le_zip5}, {le_zip4}, {record_type}, {award_mod_amend}, {fain}, {uri}, {cdi}, {awarding_office},
-            {funding_office}, {legal_congr}, {primary_place_country}, {legal_country}, {legal_foreign_city},
-            {uei}, {action_type}, {assist_type}, {busi_type}, {busi_fund}, {action_date})
+        VALUES ({fao}, {nffa}, {assistance_listing_num}, {sub_tier_code}, {sub_fund_agency_code}, {ppop_code},
+            {ppop_zip4a}, {ppop_cd}, {le_zip5}, {le_zip4}, {record_type}, {award_mod_amend}, {fain}, {uri}, {cdi},
+            {awarding_office}, {funding_office}, {legal_congr}, {primary_place_country}, {legal_country},
+            {legal_foreign_city}, {uei}, {action_type}, {assist_type}, {busi_type}, {busi_fund}, {action_date})
     """.format(submission_id=submission_id,
                fao=fao if fao else 'NULL',
                nffa=nffa if nffa else 'NULL',
-               cfda_num=stringify(cfda_num),
+               assistance_listing_num=stringify(assistance_listing_num),
                sub_tier_code=stringify(sub_tier_code),
                sub_fund_agency_code=stringify(sub_fund_agency_code),
                ppop_code=stringify(ppop_code),
@@ -258,22 +259,22 @@ def test_total_funding_amount(database):
     assert fabs_obj.total_funding_amount == '112.4'
 
 
-def test_cfda_title(database):
+def test_assistance_listing_title(database):
     initialize_db_values(database)
 
-    # when cfda_number isn't in the database
+    # when assistance_listing_number isn't in the database
     submission_id = initialize_test_row(database, submission_id=2)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.cfda_title is None
+    assert fabs_obj.assistance_listing_title is None
 
-    # when cfda_number is in the database
-    submission_id = initialize_test_row(database, cfda_num='12.345', submission_id=3)
+    # when assistance_listing_number is in the database
+    submission_id = initialize_test_row(database, assistance_listing_num='12.345', submission_id=3)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.cfda_title == 'CFDA Title'
+    assert fabs_obj.assistance_listing_title == 'Assistance Listing Title'
 
 
 def test_awarding_agency_cgac(database):
@@ -380,7 +381,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_performance_congr == '03'
 
     # when ppop_zip4a is 5 digits
-    submission_id = initialize_test_row(database, ppop_zip4a='12345', submission_id=4)
+    submission_id = initialize_test_row(database, ppop_zip4a='12345', ppop_code='NY00000', submission_id=4)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)

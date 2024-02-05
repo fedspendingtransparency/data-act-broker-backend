@@ -427,9 +427,9 @@ class HistoricDUNS(Base):
 Index("ix_historic_duns_uei_upper", sa.func.upper(HistoricDUNS.uei))
 
 
-class CFDAProgram(Base):
-    __tablename__ = "cfda_program"
-    cfda_program_id = Column(Integer, primary_key=True)
+class AssistanceListing(Base):
+    __tablename__ = "assistance_listing"
+    assistance_listing_id = Column(Integer, primary_key=True)
     program_number = Column(Float, nullable=False, index=True, unique=True)
     program_title = Column(Text)
     popular_name = Column(Text)
@@ -684,7 +684,7 @@ class FundingOpportunity(Base):
     funding_opportunity_id = Column(Integer, primary_key=True)
     funding_opportunity_number = Column(Text, nullable=False, index=True)
     title = Column(Text)
-    cfda_numbers = Column(ARRAY(Text))
+    assistance_listing_numbers = Column(ARRAY(Text))
     agency_name = Column(Text)
     status = Column(Text)
     open_date = Column(Date)

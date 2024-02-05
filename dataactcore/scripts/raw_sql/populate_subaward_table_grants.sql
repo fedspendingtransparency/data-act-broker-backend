@@ -40,8 +40,8 @@ CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
         pf.place_of_perform_county_na AS place_of_perform_county_na,
         pf.place_of_performance_congr AS place_of_performance_congr,
         pf.action_date AS action_date,
-        pf.cfda_number AS cfda_number,
-        pf.cfda_title AS cfda_title,
+        pf.assistance_listing_number AS assistance_listing_number,
+        pf.assistance_listing_title AS assistance_listing_title,
         pf.federal_action_obligation AS federal_action_obligation,
         pf.high_comp_officer1_full_na AS high_comp_officer1_full_na,
         pf.high_comp_officer1_amount AS high_comp_officer1_amount,
@@ -158,12 +158,12 @@ CREATE INDEX ix_latest_aw_pf_fain_upp_trans ON latest_aw_pf (UPPER(TRANSLATE(fai
 CREATE TEMPORARY TABLE grouped_aw_pf ON COMMIT DROP AS
     (SELECT pf.fain,
         pf.awarding_sub_tier_agency_c,
-        array_agg(DISTINCT pf.cfda_number) AS cfda_nums,
-        array_agg(DISTINCT cfda.program_title) AS cfda_names,
+        array_agg(DISTINCT pf.assistance_listing_number) AS assistance_listing_nums,
+        array_agg(DISTINCT al.program_title) AS assistance_listing_names,
         SUM(pf.federal_action_obligation) AS award_amount
      FROM aw_pf AS pf
-     LEFT OUTER JOIN cfda_program AS cfda
-        ON to_char(cfda.program_number, 'FM00.000') = pf.cfda_number
+     LEFT OUTER JOIN assistance_listing AS al
+        ON to_char(al.program_number, 'FM00.000') = pf.assistance_listing_number
      GROUP BY fain, awarding_sub_tier_agency_c
      );
 CREATE INDEX ix_grouped_aw_pf_fain_upp_trans ON grouped_aw_pf (UPPER(TRANSLATE(fain, '-', '')));
@@ -346,8 +346,8 @@ INSERT INTO subaward (
     "award_description",
     "naics",
     "naics_description",
-    "cfda_numbers",
-    "cfda_titles",
+    "assistance_listing_numbers",
+    "assistance_listing_titles",
     "prime_id",
     "internal_id",
     "date_submitted",
@@ -430,7 +430,7 @@ INSERT INTO subaward (
     "sub_funding_office_id",
     "sub_funding_office_name",
     "sub_naics",
-    "sub_cfda_numbers",
+    "sub_assistance_listing_numbers",
     "sub_dunsplus4",
     "sub_recovery_subcontract_amt",
     "sub_recovery_model_q1",
@@ -498,8 +498,8 @@ SELECT
     bap.award_description AS "award_description",
     NULL AS "naics",
     NULL AS "naics_description",
-    ARRAY_TO_STRING(gap.cfda_nums, ', ') AS "cfda_numbers",
-    ARRAY_TO_STRING(gap.cfda_names, ', ') AS "cfda_titles",
+    ARRAY_TO_STRING(gap.assistance_listing_nums, ', ') AS "assistance_listing_numbers",
+    ARRAY_TO_STRING(gap.assistance_listing_names, ', ') AS "assistance_listing_titles",
     fsrs_grant.id AS "prime_id",
     fsrs_grant.internal_id AS "internal_id",
     fsrs_grant.date_submitted AS "date_submitted",
@@ -593,7 +593,7 @@ SELECT
     NULL AS "sub_funding_office_id",
     NULL AS "sub_funding_office_name",
     NULL AS "sub_naics",
-    fsrs_subgrant.cfda_numbers AS "sub_cfda_numbers",
+    fsrs_subgrant.cfda_numbers AS "sub_assistance_listing_numbers",
     fsrs_subgrant.dunsplus4 AS "sub_dunsplus4",
     NULL AS "sub_recovery_subcontract_amt",
     NULL AS "sub_recovery_model_q1",

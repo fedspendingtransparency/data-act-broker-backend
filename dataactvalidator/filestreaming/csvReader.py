@@ -252,6 +252,8 @@ def normalize_headers(header_row, gsdm_headers, gsdm_to_short_dict, header_dict)
             header = 'place_of_performance_zip4a'
         elif header == 'deobligationsrecoveriesrefundsbytas_cpe':
             header = 'deobligationsrecoveriesrefundsofprioryearbytas_cpe'
+        elif header == 'cfda_number':
+            header = 'assistancelistingnumber'
 
         # yield the short header when applicable, otherwise yield the cleaned header, whatever it is
         if gsdm_headers and header in gsdm_to_short_dict:
