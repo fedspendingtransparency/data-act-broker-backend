@@ -24,17 +24,17 @@ BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
 BUCKET_PREFIX = 'fsrs_award_extracts/'
 
 
-def get_award_updates(sess, mod_date):
+def get_award_updates(mod_date):
     """ Runs the SQL to extract new award information for FSRS
 
         Args:
-            sess: the database connection
             mod_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
 
         Returns:
             The results of the SQL query
     """
     logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
+    sess = GlobalDB.db().session
     # Query Summary:
     # Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day
     # and also includes summary data about the award associated with the transaction.
@@ -141,8 +141,7 @@ def main():
 
     metrics_json['start_date'] = mod_date
 
-    sess = GlobalDB.db().session
-    results = get_award_updates(sess, mod_date)
+    results = get_award_updates(mod_date)
     logger.info("Completed SQL query, starting file writing")
 
     full_file_path = os.path.join(os.getcwd(), "fsrs_update.csv")

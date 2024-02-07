@@ -13,7 +13,7 @@ def test_ignore_earlier_date(database):
     sess.add_all([pf1, pf2])
     sess.commit()
 
-    results = get_award_updates(sess, '02/03/2024')
+    results = get_award_updates('02/03/2024')
     result_list = results.all()
 
     assert len(result_list) == 1
@@ -27,7 +27,7 @@ def test_ignore_assistance_type(database):
     sess.add_all([pf1, pf2])
     sess.commit()
 
-    results = get_award_updates(sess, '02/03/2024')
+    results = get_award_updates('02/03/2024')
     result_list = results.all()
 
     assert len(result_list) == 1
@@ -41,7 +41,7 @@ def test_ignore_record_type(database):
     sess.add_all([pf1, pf2])
     sess.commit()
 
-    results = get_award_updates(sess, '02/03/2024')
+    results = get_award_updates('02/03/2024')
     result_list = results.all()
 
     assert len(result_list) == 1
@@ -61,7 +61,7 @@ def test_status(database):
     sess.add_all([pf1, pf2, pf3, pf4])
     sess.commit()
 
-    results = get_award_updates(sess, '02/03/2024')
+    results = get_award_updates('02/03/2024')
     result_list = results.all()
 
     assert len(result_list) == 2
@@ -93,7 +93,7 @@ def test_grouping(database):
     sess.add_all([pf1, pf2, pf3, pf4])
     sess.commit()
 
-    results = get_award_updates(sess, '02/03/2024')
+    results = get_award_updates('02/03/2024')
     result_list = results.all()
 
     assert len(result_list) == 1
