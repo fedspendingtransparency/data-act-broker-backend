@@ -38,66 +38,88 @@ def get_award_updates(mod_date):
     # Query Summary:
     # Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day
     # and also includes summary data about the award associated with the transaction.
-    results = sess.execute("""
-        WITH base_transaction AS (
-        SELECT fain,
-            MIN(pf_b.action_date) as base_date,
-            MIN(pf_b.period_of_performance_star) as earliest_start,
-            MAX(pf_b.period_of_performance_curr) as latest_end,
-            MAX(pf_b.modified_at) as max_mod,
-            SUM(CASE WHEN pf_b.is_active = True
-                        THEN pf_b.federal_action_obligation
-                        ELSE 0
-                        END) as obligation_sum,
-            CASE WHEN EXISTS (SELECT 1
-                                FROM published_fabs AS sub_pf_b
-                                WHERE is_active = True
-                                AND pf_b.fain = sub_pf_b.fain)
-                THEN True
-                ELSE False
-                END AS currently_active
-        FROM published_fabs AS pf_b
-        WHERE assistance_type IN ('02', '03', '04', '05')
-            AND record_type != 1
-        GROUP BY fain),
-        only_base AS (SELECT pf.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
+    results = sess.execute(f"""
+        WITH updated_transactions AS (
+            SELECT unique_award_key,
+                afa_generated_unique,
+                fain,
+                award_modification_amendme,
+                action_date,
+                is_active,
+                sai_number,
+                awarding_agency_code,
+                awarding_agency_name,
+                uei,
+                place_of_performance_city,
+                place_of_perfor_state_code,
+                place_of_perform_country_c,
+                place_of_performance_congr,
+                place_of_perform_county_co,
+                place_of_perform_county_na,
+                place_of_performance_zip4a,
+                assistance_listing_number,
+                period_of_performance_star,
+                period_of_performance_curr,
+                assistance_type,
+                record_type,
+                business_types,
+                award_description,
+                original_loan_subsidy_cost,
+                federal_action_obligation
+            FROM published_fabs
+            WHERE updated_at >= '{mod_date}'),
+        grouped_transaction AS (
+            SELECT unique_award_key,
+                MIN(action_date) AS base_obligation_date,
+                MAX(updated_at) AS last_modified_date
             FROM published_fabs AS pf
-            JOIN base_transaction AS bt
-                ON bt.fain = pf.fain
-                AND bt.max_mod = pf.modified_at
-                AND pf.record_type != 1)
-
+            WHERE EXISTS (
+                SELECT 1
+                FROM published_fabs AS updated
+                WHERE updated.unique_award_key = pf.unique_award_key
+                    AND updated.updated_at >= '{mod_date}'
+            )
+            GROUP BY unique_award_key)
+        
         SELECT
-            ob.fain AS federal_award_id,
-            CASE WHEN currently_active
+            ut.afa_generated_unique,
+            ut.unique_award_key,
+            ut.fain AS federal_award_id,
+            ut.award_modification_amendme AS modification_number,
+            ut.action_date,
+            CASE WHEN ut.is_active
                 THEN 'active'
                 ELSE 'inactive'
                 END AS status,
-            CASE WHEN CAST(ob.obligation_sum as double precision) > 25000 AND CAST(ob.base_date as DATE) > '10/01/2010'
-                  THEN 'Eligible'
-                ELSE 'Ineligible'
-                END AS eligibility,
-            ob.sai_number,
-            ob.awarding_sub_tier_agency_c AS agency_code,
-            ob.awardee_or_recipient_uniqu AS duns_no,
-            NULL AS dunsplus4,
-            ob.uei AS uei,
-            ob.place_of_performance_city AS principal_place_cc,
-            CASE WHEN UPPER(LEFT(ob.place_of_performance_code, 2)) ~ '[A-Z]{2}'
-                THEN UPPER(LEFT(ob.place_of_performance_code, 2))
-                ELSE NULL
-                END AS principal_place_state_code,
-            ob.place_of_perform_country_c AS principal_place_country_code,
-            ob.place_of_performance_zip4a AS principal_place_zip,
-            ob.cfda_number AS cfda_program_num,
-            ob.earliest_start AS starting_date,
-            ob.latest_end AS ending_date,
-            ob.obligation_sum as total_fed_funding_amount,
-            ob.base_date AS base_obligation_date,
-            ob.award_description AS project_description,
-            ob.modified_at AS last_modified_date
-        FROM only_base AS ob
-        WHERE modified_at >= '""" + mod_date + "'")
+            NULL AS eligibility,
+            ut.sai_number,
+            ut.awarding_agency_code AS agency_code,
+            ut.awarding_agency_name AS agency_name,
+            ut.uei,
+            ut.place_of_performance_city AS principal_place_city_name,
+            ut.place_of_perfor_state_code AS principal_place_state_code,
+            ut.place_of_perform_country_c AS principal_place_country_code,
+            ut.place_of_performance_congr AS principal_place_congressional_district,
+            ut.place_of_perform_county_co AS principal_place_county_code,
+            ut.place_of_perform_county_na AS principal_place_county_name,
+            ut.place_of_performance_zip4a AS principal_place_zip,
+            ut.assistance_listing_number,
+            ut.period_of_performance_star AS starting_date,
+            ut.period_of_performance_curr AS ending_date,
+            ut.assistance_type,
+            ut.record_type,
+            ut.business_types,
+            CASE WHEN ut.assistance_type IN ('07', '08')
+                THEN ut.original_loan_subsidy_cost
+                ELSE ut.federal_action_obligation
+                END AS obligation_amount,
+            NULL AS total_fed_funding_amount,
+            gt.base_obligation_date,
+            ut.award_description AS project_description,
+            gt.last_modified_date
+        FROM updated_transactions AS ut
+        JOIN grouped_transaction AS gt
+            ON gt.unique_award_key = ut.unique_award_key;""")
     return results
 
 
@@ -148,9 +170,12 @@ def main():
     with open(full_file_path, 'w', newline='') as csv_file:
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
-        headers = ['federal_award_id', 'status', 'eligibility', 'sai_number', 'agency_code', 'duns_no', 'dunsplus4',
-                   'uei', 'principal_place_cc', 'principal_place_state_code', 'principal_place_country_code',
-                   'principal_place_zip', 'cfda_program_num', 'starting_date', 'ending_date',
+        headers = ['afa_generated_unique', 'unique_award_key', 'federal_award_id', 'modification_number', 'action_date',
+                   'eligibility', 'sai_number', 'agency_code', 'agency_name', 'uei', 'principal_place_city_name',
+                   'principal_place_state_code', 'principal_place_country_code',
+                   'principal_place_congressional_district', 'principal_place_county_code',
+                   'principal_place_county_name', 'principal_place_zip', 'assistance_listing_number', 'starting_date',
+                   'ending_date', 'assistance_type', 'record_type', 'business_types', 'obligation_amount',
                    'total_fed_funding_amount', 'base_obligation_date', 'project_description', 'last_modified_date']
         out_csv.writerow(headers)
         for row in results:
