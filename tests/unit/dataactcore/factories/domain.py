@@ -111,10 +111,10 @@ class ObjectClassFactory(factory.Factory):
     object_class_name = fuzzy.FuzzyText()
 
 
-class CFDAProgramFactory(factory.Factory):
+class AssistanceListingFactory(factory.Factory):
     class Meta:
-        model = domainModels.CFDAProgram
-    cfda_program_id = None
+        model = domainModels.AssistanceListing
+    assistance_listing_id = None
     program_number = fuzzy.FuzzyDecimal(0, 99, 3)
     program_title = fuzzy.FuzzyText()
     popular_name = fuzzy.FuzzyText()
@@ -403,7 +403,7 @@ class FundingOpportunityFactory(factory.Factory):
     funding_opportunity_id = None
     funding_opportunity_number = fuzzy.FuzzyText()
     title = fuzzy.FuzzyText()
-    cfda_numbers = ['12.345', '98.765']
+    assistance_listing_numbers = ['12.345', '98.765']
     agency_name = fuzzy.FuzzyText()
     status = fuzzy.FuzzyText()
     open_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
