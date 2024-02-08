@@ -121,7 +121,7 @@ def main():
             END AS principal_place_state_code,
         ob.place_of_perform_country_c AS principal_place_country_code,
         ob.place_of_performance_zip4a AS principal_place_zip,
-        ob.cfda_number AS cfda_program_num,
+        ob.assistance_listing_number AS cfda_program_num,
         ob.earliest_start AS starting_date,
         ob.latest_end AS ending_date,
         ob.obligation_sum as total_fed_funding_amount,
