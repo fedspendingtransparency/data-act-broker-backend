@@ -70,7 +70,7 @@ def get_award_updates(mod_date):
             WHERE updated_at >= '{mod_date}'),
         grouped_transaction AS (
             SELECT unique_award_key,
-                MIN(action_date) AS base_obligation_date,
+                MIN(cast_as_date(action_date)) AS base_obligation_date,
                 MAX(updated_at) AS last_modified_date
             FROM published_fabs AS pf
             WHERE EXISTS (
@@ -80,13 +80,13 @@ def get_award_updates(mod_date):
                     AND updated.updated_at >= '{mod_date}'
             )
             GROUP BY unique_award_key)
-        
+
         SELECT
             ut.afa_generated_unique,
             ut.unique_award_key,
             ut.fain AS federal_award_id,
             ut.award_modification_amendme AS modification_number,
-            ut.action_date,
+            to_char(cast_as_date(ut.action_date), 'YYYY-MM-DD') AS action_date,
             CASE WHEN ut.is_active
                 THEN 'active'
                 ELSE 'inactive'
@@ -104,8 +104,8 @@ def get_award_updates(mod_date):
             ut.place_of_perform_county_na AS principal_place_county_name,
             ut.place_of_performance_zip4a AS principal_place_zip,
             ut.assistance_listing_number,
-            ut.period_of_performance_star AS starting_date,
-            ut.period_of_performance_curr AS ending_date,
+            to_char(cast_as_date(ut.period_of_performance_star), 'YYYY-MM-DD') AS starting_date,
+            to_char(cast_as_date(ut.period_of_performance_curr), 'YYYY-MM-DD') AS ending_date,
             ut.assistance_type,
             ut.record_type,
             ut.business_types,
@@ -114,9 +114,9 @@ def get_award_updates(mod_date):
                 ELSE ut.federal_action_obligation
                 END AS obligation_amount,
             NULL AS total_fed_funding_amount,
-            gt.base_obligation_date,
+            to_char(gt.base_obligation_date, 'YYYY-MM-DD') AS base_obligation_date,
             ut.award_description AS project_description,
-            gt.last_modified_date
+            to_char(gt.last_modified_date, 'YYYY-MM-DD') AS last_modified_date
         FROM updated_transactions AS ut
         JOIN grouped_transaction AS gt
             ON gt.unique_award_key = ut.unique_award_key;""")
