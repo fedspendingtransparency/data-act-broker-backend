@@ -14,7 +14,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import FileGeneration
 from dataactcore.models.validationModels import RuleSetting
 from dataactcore.scripts.setup.load_agencies import load_agency_data
-from dataactcore.scripts.pipeline.load_cfda_data import load_cfda_program
+from dataactcore.scripts.pipeline.load_assistance_listing_data import load_assistance_listing
 from dataactcore.scripts.setup.load_country_codes import load_country_codes
 from dataactcore.scripts.setup.load_defc import load_defc
 from dataactcore.scripts.setup.load_funding_opportunity_number import load_funding_opportunity_number_data
@@ -94,11 +94,11 @@ def load_rule_settings():
 
 
 def load_domain_value_files(base_path, force=False):
-    """Load domain values (Country codes, Program Activity, Object Class, CFDA)."""
+    """Load domain values (Country codes, Program Activity, Object Class, Assistance Listing)."""
     logger.info('Loading Object Class')
     load_object_class(base_path)
-    logger.info('Loading CFDA Program')
-    load_cfda_program(base_path)
+    logger.info('Loading Assistance Listing')
+    load_assistance_listing(base_path)
     logger.info('Loading Program Activity')
     load_program_activity_data(base_path)
     logger.info('Loading Country codes')
@@ -164,7 +164,8 @@ def main():
                         action='store_true')
     parser.add_argument('-cc', '--update_country_codes', help='update country codes', action='store_true')
     parser.add_argument('-oc', '--update_object_class', help='load object class to database', action='store_true')
-    parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
+    parser.add_argument('-al', '--assistance_listing_load', help='Load Assistance Listing to database',
+                        action='store_true')
     parser.add_argument('-pa', '--program_activity', help='Load program activity to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
@@ -223,8 +224,8 @@ def main():
     if args.update_object_class:
         load_object_class(validator_config_path)
 
-    if args.cfda_load:
-        load_cfda_program(validator_config_path)
+    if args.assistance_listing_load:
+        load_assistance_listing(validator_config_path)
 
     if args.program_activity:
         load_program_activity_data(validator_config_path)

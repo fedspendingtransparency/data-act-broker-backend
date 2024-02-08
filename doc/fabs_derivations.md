@@ -10,8 +10,8 @@ These are derivations that can happen in any order.
 
 - `derive_total_funding_amount`
 	- `federal_action_obligation` + `non_federal_funding_amount` => `total_funding_amount`
-- `derive_cfda`
-	- `cfda.program_title` => `cfda_title`
+- `derive_assistance_listing`
+	- `assistance_listing.program_title` => `assistance_listing_title`
 - `derive_awarding_agency_data`
 	- `office.sub_tier_code` => `awarding_sub_tier_agency_c`
     - (based on `awarding_sub_tier_agency_c`)

@@ -362,7 +362,7 @@ BUSINESS_CATEGORY_FIELDS = ['airport_authority', 'alaskan_native_owned_corpo', '
 EXTERNAL_DATA_TYPE = [
     LookupType(1, 'usps_download', 'external data load type for downloading zip files'),
     LookupType(2, 'program_activity_upload', 'program activity file loaded into S3'),
-    LookupType(3, 'cfda', 'GSA CFDA loaded'),
+    LookupType(3, 'assistance_listing', 'GSA Assistance Listing loaded'),
     LookupType(4, 'agency', 'IAE agency data loaded'),
     LookupType(5, 'tas', 'FRB CARS/TAS data loaded'),
     LookupType(6, 'city', 'USGS city data loaded'),

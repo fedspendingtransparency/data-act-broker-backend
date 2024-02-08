@@ -155,7 +155,7 @@ if __name__ == '__main__':
                             func.concat(func.coalesce(FABS.awarding_sub_tier_agency_c, '-none-'), '_',
                                         func.coalesce(FABS.fain, '-none-'), '_',
                                         func.coalesce(FABS.uri, '-none-'), '_',
-                                        func.coalesce(FABS.cfda_number, '-none-'), '_',
+                                        func.coalesce(FABS.assistance_listing_number, '-none-'), '_',
                                         func.coalesce(FABS.award_modification_amendme, '-none-')))
 
         # published FABS
@@ -178,7 +178,7 @@ if __name__ == '__main__':
                             func.concat(func.coalesce(PublishedFABS.awarding_sub_tier_agency_c, '-none-'), '_',
                                         func.coalesce(PublishedFABS.fain, '-none-'), '_',
                                         func.coalesce(PublishedFABS.uri, '-none-'), '_',
-                                        func.coalesce(PublishedFABS.cfda_number, '-none-'), '_',
+                                        func.coalesce(PublishedFABS.assistance_listing_number, '-none-'), '_',
                                         func.coalesce(PublishedFABS.award_modification_amendme, '-none-')))
 
         sess.close()

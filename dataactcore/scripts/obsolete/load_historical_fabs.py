@@ -130,8 +130,8 @@ def format_fabs_data(data, sess, fips_state_list, state_code_list, sub_tier_list
             'federal_award_mod': 'award_modification_amendme',
             'rec_flag': 'business_funds_indicator',
             'recipient_type': 'business_types',
-            'cfda_program_num': 'cfda_number',
-            'cfda_program_title': 'cfda_title',
+            'cfda_program_num': 'assistance_listing_number',
+            'cfda_program_title': 'assistance_listing_title',
             'correction_late_ind': 'correction_delete_indicatr',
             'face_loan_guran': 'face_value_loan_guarantee',
             'federal_award_id': 'fain',
@@ -487,8 +487,8 @@ def generate_unique_string(row):
     ama = row['award_modification_amendme'] if row['award_modification_amendme'] is not None else '-none-'
     fain = row['fain'] if row['fain'] is not None else '-none-'
     uri = row['uri'] if row['uri'] is not None else '-none-'
-    cfda = row['cfda_number'] if row['cfda_number'] is not None else '-none-'
-    return astac + '_' + fain + '_' + uri + '_' + cfda + '_' + ama
+    assistance_listing = row['assistance_listing_number'] if row['assistance_listing_number'] is not None else '-none-'
+    return astac + '_' + fain + '_' + uri + '_' + assistance_listing + '_' + ama
 
 
 def set_active_rows(sess):

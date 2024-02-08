@@ -206,7 +206,7 @@ def test_derive_fabs_afa_generated_unique():
     row = {'awarding_sub_tier_agency_c': '0123',
            'fain': 'FAIN',
            'uri': 'URI',
-           'cfda_number': '4567',
+           'assistance_listing_number': '4567',
            'award_modification_amendme': '0'}
     assert validation_helper.derive_fabs_afa_generated_unique(row) == '0123_FAIN_URI_4567_0'
 
@@ -214,7 +214,7 @@ def test_derive_fabs_afa_generated_unique():
     row = {'awarding_sub_tier_agency_c': '0123',
            'fain': None,
            'uri': 'URI',
-           'cfda_number': '4567',
+           'assistance_listing_number': '4567',
            'award_modification_amendme': None}
     assert validation_helper.derive_fabs_afa_generated_unique(row) == '0123_-none-_URI_4567_-none-'
 
@@ -222,7 +222,7 @@ def test_derive_fabs_afa_generated_unique():
     row = {'awarding_sub_tier_agency_c': None,
            'fain': None,
            'uri': None,
-           'cfda_number': None,
+           'assistance_listing_number': None,
            'award_modification_amendme': None}
     assert validation_helper.derive_fabs_afa_generated_unique(row) == '-none-_-none-_-none-_-none-_-none-'
 

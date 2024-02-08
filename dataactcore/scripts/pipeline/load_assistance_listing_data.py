@@ -14,13 +14,13 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.broker_logging import configure_logging
-from dataactcore.models.domainModels import CFDAProgram
+from dataactcore.models.domainModels import AssistanceListing
 from dataactvalidator.health_check import create_app
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe, format_date
 
 logger = logging.getLogger(__name__)
 
-S3_CFDA_FILE = '{}/cfda.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
+S3_ASSISTANCE_LISTING_FILE = '{}/assistance_listing.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
 
 DATA_CLEANING_MAP = {
     "program_title": "program_title",
@@ -66,28 +66,28 @@ DATA_CLEANING_MAP = {
 }
 
 
-def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program.csv"):
-    """ Load cfda program.
+def load_assistance_listing(base_path, load_local=False, local_file_name="assistance_listing.csv"):
+    """ Load assistance listing.
 
         Args:
-            base_path: directory that contains the cfda values files.
+            base_path: directory that contains the assistance listing values files.
             load_local: boolean indicating whether to load from a local file or not
             local_file_name: the name of the file if loading locally
     """
     local_now = datetime.now()
     if not load_local:
-        logger.info("Fetching CFDA file from {}".format(S3_CFDA_FILE))
-        tmp_name = str(time.time()).replace(".", "") + "_cfda_program.csv"
+        logger.info("Fetching Assistance Listing file from {}".format(S3_ASSISTANCE_LISTING_FILE))
+        tmp_name = str(time.time()).replace(".", "") + "_assistance_listing.csv"
         filename = os.path.join(base_path, tmp_name)
-        r = requests.get(S3_CFDA_FILE, allow_redirects=True)
+        r = requests.get(S3_ASSISTANCE_LISTING_FILE, allow_redirects=True)
         open(filename, 'wb').write(r.content)
     else:
         filename = os.path.join(base_path, local_file_name)
-    logger.info('Loading CFDA program file: ' + filename)
-    model = CFDAProgram
+    logger.info('Loading assistance listing file: ' + filename)
+    model = AssistanceListing
 
     metrics_json = {
-        'script_name': 'load_cfda_data.py',
+        'script_name': 'load_assistance_listing_data.py',
         'start_time': str(local_now),
         'new_records': 0
     }
@@ -112,7 +112,7 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         import_data["archived_date"] = format_date(import_data["archived_date"])
         table_name = model.__table__.name
         # Check if there is new data to load
-        new_data = check_dataframe_diff(import_data, model, ['cfda_program_id'], ['program_number'],
+        new_data = check_dataframe_diff(import_data, model, ['assistance_listing_id'], ['program_number'],
                                         lambda_funcs=[('program_number', fix_program_number)])
         if new_data:
             # insert to db
@@ -121,26 +121,27 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
             sess.commit()
 
             # If we've updated the data at all, update the external data load date
-            update_external_data_load_date(local_now, datetime.now(), 'cfda')
+            update_external_data_load_date(local_now, datetime.now(), 'assistance_listing')
     if not load_local:
         os.remove(filename)
     if new_data:
         logger.info('{} records inserted to {}'.format(num, table_name))
         metrics_json['new_records'] = num
     else:
-        logger.info("Skipped cfda load, no new data.")
+        logger.info("Skipped assistance listing load, no new data.")
         sys.exit(3)
 
     metrics_json['duration'] = str(datetime.now() - local_now)
 
-    with open('load_cfda_data_metrics.json', 'w+') as metrics_file:
+    with open('load_assistance_listing_data_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
 
 
 def main():
-    # Can be run from CLI as:  python load_cfda_data.py '/data-act/backend/dataactvalidator/config' True  'filename.csv'
+    # Can be run from CLI as:
+    #     python load_assistance_listing_data.py '/data-act/backend/dataactvalidator/config' True 'filename.csv'
     # (or similar)
-    load_cfda_program(*sys.argv[1:])
+    load_assistance_listing(*sys.argv[1:])
 
 
 if __name__ == '__main__':
