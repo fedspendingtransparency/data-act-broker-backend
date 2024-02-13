@@ -49,26 +49,26 @@ def derive_total_funding_amount(sess, submission_id):
                    'updated {}'.format(res.rowcount), submission_id, start_time)
 
 
-def derive_cfda(sess, submission_id):
-    """ Deriving cfda title from cfda number using cfda program table.
+def derive_assistance_listing(sess, submission_id):
+    """ Deriving assistance listing title from assistance listing number using assistance listing table.
 
         Args:
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    # TODO: Put the warning back in somehow, maybe do a distinct select of all empty cfda titles
+    # TODO: Put the warning back in somehow, maybe do a distinct select of all empty assistance listing titles
     start_time = datetime.now()
-    log_derivation('Beginning cfda_title derivation', submission_id)
+    log_derivation('Beginning assistance_listing_title derivation', submission_id)
 
     query = """
         UPDATE tmp_fabs_{submission_id} AS pf
-        SET cfda_title = cfda.program_title
-        FROM cfda_program AS cfda
-        WHERE pf.cfda_number = to_char(cfda.program_number, 'FM00.000');
+        SET assistance_listing_title = al.program_title
+        FROM assistance_listing AS al
+        WHERE pf.assistance_listing_number = to_char(al.program_number, 'FM00.000');
     """
     res = sess.execute(query.format(submission_id=submission_id))
 
-    log_derivation('Completed cfda_title derivation, '
+    log_derivation('Completed assistance_listing_title derivation, '
                    'updated {}'.format(res.rowcount), submission_id, start_time)
 
 
@@ -1240,7 +1240,7 @@ def fabs_derivations(sess, submission_id):
     # TODO: Decide if we want to log each SQL query (including start/end or just the end) or just each function
     derive_total_funding_amount(sess, submission_id)
 
-    derive_cfda(sess, submission_id)
+    derive_assistance_listing(sess, submission_id)
 
     derive_awarding_agency_data(sess, submission_id)
 

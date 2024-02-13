@@ -58,7 +58,7 @@ def load_funding_opportunity_number_data(force_reload=False):
         {
             'number': 'funding_opportunity_number',
             'title': 'title',
-            'cfdalist': 'cfda_numbers',
+            'cfdalist': 'assistance_listing_numbers',
             'agency': 'agency_name',
             'oppstatus': 'status',
             'opendate': 'open_date',

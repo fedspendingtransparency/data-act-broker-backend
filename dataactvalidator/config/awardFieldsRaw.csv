@@ -20,8 +20,8 @@ BusinessFundsIndicator,business_funds_indicator,ASP: Optional,string,3
 BusinessFundsIndicatorDescriptionTag,business_funds_ind_desc,ASP: Optional,string,
 BusinessTypes,business_types,ASP: Optional,string,3
 BusinessTypesDescriptionTag,business_types_desc,ASP: Optional,string,
-CFDA_Number,cfda_number,ASP: Required,string,7
-CFDA_Title,cfda_title,ASP: Derived,string,100
+AssistanceListingNumber,assistance_listing_number,ASP: Required,string,7
+AssistanceListingTitle,assistance_listing_title,ASP: Derived,string,100
 CorrectionDeleteIndicator,correction_delete_indicatr,ASP: Optional,string,1
 CorrectionDeleteIndicatorDescriptionTag,correction_delete_ind_desc,ASP: Optional,string,
 FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20

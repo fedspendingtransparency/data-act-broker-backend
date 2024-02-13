@@ -8,7 +8,7 @@ FABSREQ6,"This field is required for all submissions but was not provided in thi
 FABSREQ7,"This field is required for all submissions but was not provided in this row (AssistanceType).",fabs,assistance_type,requirement
 FABSREQ8,"This field is required for all submissions but was not provided in this row (ActionDate).",fabs,action_date,requirement
 FABSREQ9,"This field is required for all submissions but was not provided in this row (AwardeeOrRecipientLegalEntityName).",fabs,awardee_or_recipient_legal,requirement
-FABSREQ10,"This field is required for all submissions but was not provided in this row (AssistanceListingNumber).",fabs,cfda_number,requirement
+FABSREQ10,"This field is required for all submissions but was not provided in this row (AssistanceListingNumber).",fabs,assistance_listing_number,requirement
 FABSTYPE1,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line (FederalActionObligation).",fabs,federal_action_obligation,type
 FABSTYPE2,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line (NonFederalFundingAmount).",fabs,non_federal_funding_amount,type
 FABSTYPE3,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line (FaceValueOfDirectLoanOrLoanGuarantee).",fabs,face_value_loan_guarantee,type

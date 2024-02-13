@@ -52,8 +52,8 @@ CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
         pf.place_of_perform_county_na AS place_of_perform_county_na,
         pf.place_of_performance_congr AS place_of_performance_congr,
         pf.action_date AS action_date,
-        pf.cfda_number AS cfda_number,
-        pf.cfda_title AS cfda_title,
+        pf.assistance_listing_number AS assistance_listing_number,
+        pf.assistance_listing_title AS assistance_listing_title,
         pf.federal_action_obligation AS federal_action_obligation,
         pf.high_comp_officer1_full_na AS high_comp_officer1_full_na,
         pf.high_comp_officer1_amount AS high_comp_officer1_amount,
@@ -169,12 +169,12 @@ CREATE INDEX ix_latest_aw_pf_fain_upp_trans ON latest_aw_pf (UPPER(TRANSLATE(fai
 CREATE TEMPORARY TABLE grouped_aw_pf ON COMMIT DROP AS
     (SELECT pf.fain,
         pf.awarding_sub_tier_agency_c,
-        array_agg(DISTINCT pf.cfda_number) AS cfda_nums,
-        array_agg(DISTINCT cfda.program_title) AS cfda_names,
+        array_agg(DISTINCT pf.assistance_listing_number) AS assistance_listing_nums,
+        array_agg(DISTINCT al.program_title) AS assistance_listing_names,
         SUM(pf.federal_action_obligation) AS award_amount
      FROM aw_pf AS pf
-     LEFT OUTER JOIN cfda_program AS cfda
-        ON to_char(cfda.program_number, 'FM00.000') = pf.cfda_number
+     LEFT OUTER JOIN assistance_listing AS al
+        ON to_char(al.program_number, 'FM00.000') = pf.assistance_listing_number
      GROUP BY fain, awarding_sub_tier_agency_c
      );
 CREATE INDEX ix_grouped_aw_pf_fain_upp_trans ON grouped_aw_pf (UPPER(TRANSLATE(fain, '-', '')));
@@ -246,8 +246,8 @@ SET
     place_of_performance_county_name = lap.place_of_perform_county_na,
     place_of_perform_congressio = lap.place_of_performance_congr,
     award_description = bap.award_description,
-    cfda_numbers = ARRAY_TO_STRING(gap.cfda_nums, ', '),
-    cfda_titles = ARRAY_TO_STRING(gap.cfda_names, ', '),
+    assistance_listing_numbers = ARRAY_TO_STRING(gap.assistance_listing_nums, ', '),
+    assistance_listing_titles = ARRAY_TO_STRING(gap.assistance_listing_names, ', '),
     high_comp_officer1_full_na = lap.high_comp_officer1_full_na,
     high_comp_officer1_amount = lap.high_comp_officer1_amount,
     high_comp_officer2_full_na = lap.high_comp_officer2_full_na,

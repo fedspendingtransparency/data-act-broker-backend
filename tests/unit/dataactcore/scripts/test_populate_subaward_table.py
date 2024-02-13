@@ -7,12 +7,12 @@ from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcure
                                                    FSRSSubgrantFactory)
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory, DetachedAwardProcurementFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
-from tests.unit.dataactcore.factories.domain import (SAMRecipientFactory, CFDAProgramFactory, CountryCodeFactory,
+from tests.unit.dataactcore.factories.domain import (SAMRecipientFactory, AssistanceListingFactory, CountryCodeFactory,
                                                      CountyCodeFactory, ZipsFactory, ZipsGroupedFactory)
 
 
-def extract_cfda(field, type):
-    """ Helper function representing the cfda psql functions """
+def extract_assistance_listing(field, type):
+    """ Helper function representing the assistance listing psql functions """
     extracted_values = []
     if field:
         entries = [entry.strip() for entry in field.split(';')]
@@ -33,12 +33,12 @@ def reference_data(sess):
     dom_county_zip5 = CountyCodeFactory(county_number='543', county_name='DOM COUNTY ZIP5', state_code='VA')
     dom_county_zip9 = CountyCodeFactory(county_number='987', county_name='DOM COUNTY ZIP9', state_code='VA')
     int_country = CountryCodeFactory(country_code='INT', country_code_2_char='IT', country_name='INTERNATIONAL')
-    cfda_1 = CFDAProgramFactory(program_number='10.000', program_title='TEST NUMBER 1')
-    cfda_2 = CFDAProgramFactory(program_number='20.000', program_title='TEST NUMBER 2')
+    assistance_listing_1 = AssistanceListingFactory(program_number='10.000', program_title='TEST NUMBER 1')
+    assistance_listing_2 = AssistanceListingFactory(program_number='20.000', program_title='TEST NUMBER 2')
     sess.add_all([parent_recipient, recipient, dom_country, dom_zip5, dom_zip9, dom_county_zip5, dom_county_zip9,
-                  int_country, cfda_1, cfda_2])
+                  int_country, assistance_listing_1, assistance_listing_2])
     return (parent_recipient, recipient, dom_country, dom_zip5, dom_zip9, dom_county_zip5, dom_county_zip9, int_country,
-            cfda_1, cfda_2)
+            assistance_listing_1, assistance_listing_2)
 
 
 def compare_contract_results(sub, d1, contract, sub_contract, dom_country, dom_zip, dom_county, int_country, created_at,
@@ -96,8 +96,8 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, dom_z
         'award_description': d1.award_description,
         'naics': d1.naics,
         'naics_description': d1.naics_description,
-        'cfda_numbers': None,
-        'cfda_titles': None,
+        'assistance_listing_numbers': None,
+        'assistance_listing_titles': None,
 
         'subaward_type': 'sub-contract',
         'subaward_report_year': contract.report_period_year,
@@ -181,7 +181,7 @@ def compare_contract_results(sub, d1, contract, sub_contract, dom_country, dom_z
         'sub_funding_office_id': sub_contract.funding_office_id,
         'sub_funding_office_name': sub_contract.funding_office_name,
         'sub_naics': sub_contract.naics,
-        'sub_cfda_numbers': None,
+        'sub_assistance_listing_numbers': None,
         'sub_dunsplus4': None,
         'sub_recovery_subcontract_amt': sub_contract.recovery_subcontract_amt,
         'sub_recovery_model_q1': str(sub_contract.recovery_model_q1).lower(),
@@ -447,7 +447,7 @@ def compare_grant_results(sub, fabs_base, fabs_latest, fabs_grouped, grant, sub_
         'sub_funding_office_id': None,
         'sub_funding_office_name': None,
         'sub_naics': None,
-        'sub_cfda_numbers': sub_grant.cfda_numbers,
+        'sub_assistance_listing_numbers': sub_grant.cfda_numbers,
         'sub_dunsplus4': sub_grant.dunsplus4,
         'sub_recovery_subcontract_amt': None,
         'sub_recovery_model_q1': None,
@@ -467,8 +467,8 @@ def compare_grant_results(sub, fabs_base, fabs_latest, fabs_grouped, grant, sub_
             dash_compare &= (da_value.replace('-', '') == sub.__dict__[da_name].replace('-', ''))
 
     array_attrs = {
-        'cfda_numbers': fabs_grouped['cfda_num'],
-        'cfda_titles': fabs_grouped['cfda_title']
+        'assistance_listing_numbers': fabs_grouped['assistance_listing_num'],
+        'assistance_listing_titles': fabs_grouped['assistance_listing_title']
     }
     array_compare = True
     for ar_name, ar_value in array_attrs.items():
@@ -492,7 +492,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sess.commit()
 
     (parent_recipient, recipient, dom_country, dom_zip5, dom_zip9, dom_county_zip5, dom_county_zip9, int_country,
-     cfda_1, cfda_2) = reference_data(sess)
+     assistance_listing_1, assistance_listing_2) = reference_data(sess)
 
     # Setup - create awards, procurements, subcontracts
     sub = SubmissionFactory(submission_id=1)
@@ -506,7 +506,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei=recipient.uei,
         is_active=True,
         action_date='2020-01-01',
-        cfda_number=cfda_1.program_number
+        assistance_listing_number=assistance_listing_1.program_number
     )
     fabs_non_pop_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
@@ -517,7 +517,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei=recipient.uei,
         is_active=True,
         action_date='2020-01-02',
-        cfda_number=cfda_2.program_number
+        assistance_listing_number=assistance_listing_2.program_number
     )
     grant_non_pop_subtier = FSRSGrantFactory(
         id=3,
@@ -527,7 +527,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -551,7 +551,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei=recipient.uei,
         is_active=True,
         action_date='2020-01-01',
-        cfda_number=cfda_1.program_number
+        assistance_listing_number=assistance_listing_1.program_number
     )
     fabs_non_null_sub_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
@@ -562,7 +562,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei=recipient.uei,
         is_active=True,
         action_date='2020-01-02',
-        cfda_number=cfda_2.program_number
+        assistance_listing_number=assistance_listing_2.program_number
     )
     grant_non_null_sub = FSRSGrantFactory(
         id=2,
@@ -572,7 +572,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -596,7 +596,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei=recipient.uei,
         is_active=True,
         action_date='2020-01-01',
-        cfda_number=cfda_1.program_number
+        assistance_listing_number=assistance_listing_1.program_number
     )
     fabs_agg_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
@@ -607,7 +607,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         uei=recipient.uei,
         is_active=True,
         action_date='2020-01-02',
-        cfda_number=cfda_2.program_number
+        assistance_listing_number=assistance_listing_2.program_number
     )
     grant_agg = FSRSGrantFactory(
         id=1,
@@ -617,7 +617,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        cfda_numbers='00.003 CFDA 3',
+        cfda_numbers='00.003 Assistance Listing 3',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -643,12 +643,12 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     for fabs in all_fabs:
         if fabs.fain not in fabs_grouped.keys():
             fabs_grouped[fabs.fain] = {'award_amount': fabs.federal_action_obligation,
-                                       'cfda_num': fabs.cfda_number,
-                                       'cfda_title': cfda_1.program_title}
+                                       'assistance_listing_num': fabs.assistance_listing_number,
+                                       'assistance_listing_title': assistance_listing_1.program_title}
         else:
             fabs_grouped[fabs.fain]['award_amount'] += fabs.federal_action_obligation
-            fabs_grouped[fabs.fain]['cfda_num'] += ', ' + fabs.cfda_number
-            fabs_grouped[fabs.fain]['cfda_title'] += ', ' + cfda_2.program_title
+            fabs_grouped[fabs.fain]['assistance_listing_num'] += ', ' + fabs.assistance_listing_number
+            fabs_grouped[fabs.fain]['assistance_listing_title'] += ', ' + assistance_listing_2.program_title
 
     # Gather the sql
     populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id, grant_non_null_sub.id])
@@ -684,7 +684,7 @@ def test_fix_broken_links(database, monkeypatch):
     sess.commit()
 
     (parent_recipient, recipient, dom_country, dom_zip5, dom_zip9, dom_county_zip5, dom_county_zip9, int_country,
-     cfda_1, cfda_2) = reference_data(sess)
+     assistance_listing_1, assistance_listing_2) = reference_data(sess)
     min_date = '2019-06-06'
     award_updated_at = '2019-06-07'
 
@@ -702,7 +702,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-01',
-        cfda_number=cfda_1.program_number
+        assistance_listing_number=assistance_listing_1.program_number
     )
     fabs_non_pop_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
@@ -714,7 +714,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-02',
-        cfda_number=cfda_2.program_number
+        assistance_listing_number=assistance_listing_2.program_number
     )
     grant_non_pop_subtier = FSRSGrantFactory(
         id=4,
@@ -724,7 +724,7 @@ def test_fix_broken_links(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -749,7 +749,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-01',
-        cfda_number=cfda_1.program_number
+        assistance_listing_number=assistance_listing_1.program_number
     )
     fabs_non_null_subtier_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
@@ -761,7 +761,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-02',
-        cfda_number=cfda_2.program_number
+        assistance_listing_number=assistance_listing_2.program_number
     )
     grant_non_null_subtier = FSRSGrantFactory(
         id=3,
@@ -771,7 +771,7 @@ def test_fix_broken_links(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -796,7 +796,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-01',
-        cfda_number=cfda_1.program_number
+        assistance_listing_number=assistance_listing_1.program_number
     )
     fabs_non_other_2 = PublishedFABSFactory(
         submission_id=sub2.submission_id,
@@ -808,7 +808,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-02',
-        cfda_number=cfda_2.program_number
+        assistance_listing_number=assistance_listing_2.program_number
     )
     fabs_non_other_dup = PublishedFABSFactory(
         submission_id=sub3.submission_id,
@@ -820,7 +820,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-01',
-        cfda_number=cfda_1.program_number
+        assistance_listing_number=assistance_listing_1.program_number
     )
     fabs_non_other_dup_2 = PublishedFABSFactory(
         submission_id=sub3.submission_id,
@@ -832,7 +832,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-02',
-        cfda_number=cfda_2.program_number
+        assistance_listing_number=assistance_listing_2.program_number
     )
     grant_non_other = FSRSGrantFactory(
         id=2,
@@ -842,7 +842,7 @@ def test_fix_broken_links(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        cfda_numbers='00.001 Assistance Listing 1; 00.002 Assistance Listing 2',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -867,7 +867,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-01',
-        cfda_number=cfda_1.program_number
+        assistance_listing_number=assistance_listing_1.program_number
     )
     fabs_agg_2 = PublishedFABSFactory(
         submission_id=sub.submission_id,
@@ -879,7 +879,7 @@ def test_fix_broken_links(database, monkeypatch):
         is_active=True,
         updated_at=award_updated_at,
         action_date='2020-01-02',
-        cfda_number=cfda_2.program_number
+        assistance_listing_number=assistance_listing_2.program_number
     )
     grant_agg = FSRSGrantFactory(
         id=1,
@@ -889,7 +889,7 @@ def test_fix_broken_links(database, monkeypatch):
         principle_place_country=dom_country.country_code,
         uei_number=recipient.uei,
         parent_uei=parent_recipient.uei,
-        cfda_numbers='00.003 CFDA 3',
+        cfda_numbers='00.003 Assistance Listing 3',
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
@@ -995,12 +995,12 @@ def test_fix_broken_links(database, monkeypatch):
     for fabs in all_fabs:
         if fabs.fain not in fabs_grouped.keys():
             fabs_grouped[fabs.fain] = {'award_amount': fabs.federal_action_obligation,
-                                       'cfda_num': fabs.cfda_number,
-                                       'cfda_title': cfda_1.program_title}
+                                       'assistance_listing_num': fabs.assistance_listing_number,
+                                       'assistance_listing_title': assistance_listing_1.program_title}
         else:
             fabs_grouped[fabs.fain]['award_amount'] += fabs.federal_action_obligation
-            fabs_grouped[fabs.fain]['cfda_num'] += ', ' + fabs.cfda_number
-            fabs_grouped[fabs.fain]['cfda_title'] += ', ' + cfda_2.program_title
+            fabs_grouped[fabs.fain]['assistance_listing_num'] += ', ' + fabs.assistance_listing_number
+            fabs_grouped[fabs.fain]['assistance_listing_title'] += ', ' + assistance_listing_2.program_title
 
     populate_subaward_table(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
     populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id,
