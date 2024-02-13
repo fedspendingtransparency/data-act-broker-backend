@@ -15,7 +15,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 
 '''
-This script is used to pull updated financial assistance records (from --date to present) for FSRS.
+This script is used to pull updated financial assistance records (from --date to present) for SAM.
 It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_PREFIX}) for the most
 recent file that was uploaded, and use the boto3 response for --date.
 '''
@@ -25,7 +25,7 @@ BUCKET_PREFIX = 'fsrs_award_extracts/'
 
 
 def get_award_updates(mod_date):
-    """ Runs the SQL to extract new award information for FSRS
+    """ Runs the SQL to extract new award information for SAM
 
         Args:
             mod_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
@@ -206,13 +206,13 @@ def main():
                         help='Specify modified date in mm/dd/yyyy format. Overrides --auto option.',
                         nargs=1, type=str)
     parser.add_argument('--auto',
-                        help='Polls S3 for the most recently uploaded FABS_for_FSRS file, '
+                        help='Polls S3 for the most recently uploaded FABS_for_SAM file, '
                              + 'and uses that as the modified date.',
                         action='store_true')
     args = parser.parse_args()
 
     metrics_json = {
-        'script_name': 'get_fsrs_updates.py',
+        'script_name': 'generate_sam_fabs_export.py',
         'start_time': str(now),
         'records_provided': 0,
         'start_date': ''
@@ -221,8 +221,8 @@ def main():
     if args.auto:
         s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
         extract_bucket = s3_resource.Bucket(BUCKET_NAME)
-        all_fsrs_extracts = extract_bucket.objects.filter(Prefix=BUCKET_PREFIX)
-        mod_date = max(all_fsrs_extracts, key=lambda k: k.last_modified).last_modified.strftime("%m/%d/%Y")
+        all_sam_extracts = extract_bucket.objects.filter(Prefix=BUCKET_PREFIX)
+        mod_date = max(all_sam_extracts, key=lambda k: k.last_modified).last_modified.strftime("%m/%d/%Y")
 
     if args.date:
         arg_date = args.date[0]
@@ -242,7 +242,7 @@ def main():
     results = get_award_updates(mod_date)
     logger.info("Completed SQL query, starting file writing")
 
-    full_file_path = os.path.join(os.getcwd(), "fsrs_update.csv")
+    full_file_path = os.path.join(os.getcwd(), "sam_update.csv")
     with open(full_file_path, 'w', newline='') as csv_file:
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
@@ -273,7 +273,7 @@ def main():
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 
-    with open('get_fsrs_updates_metrics.json', 'w+') as metrics_file:
+    with open('generate_sam_fabs_export_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
     logger.info("Script complete")
 

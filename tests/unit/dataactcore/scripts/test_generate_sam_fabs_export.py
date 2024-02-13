@@ -1,7 +1,6 @@
 from datetime import date, datetime, timedelta
-from decimal import Decimal
 
-from dataactcore.scripts.pipeline.get_fsrs_updates import get_award_updates
+from dataactcore.scripts.pipeline.generate_sam_fabs_export import get_award_updates
 
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory
 
