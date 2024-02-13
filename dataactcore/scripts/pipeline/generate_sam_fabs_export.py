@@ -36,8 +36,7 @@ def get_award_updates(mod_date):
     logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
     sess = GlobalDB.db().session
     # Query Summary:
-    # Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day
-    # and also includes summary data about the award associated with the transaction.
+    # Each row is the latest instance of any transaction that has been updated since the specified mod_date
     results = sess.execute(f"""
         WITH updated_transactions AS (
             SELECT *
@@ -246,24 +245,7 @@ def main():
     with open(full_file_path, 'w', newline='') as csv_file:
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
-        headers = ['afa_generated_unique', 'unique_award_key', 'federal_award_id', 'modification_number', 'action_date',
-                   'status', 'eligibility', 'sai_number', 'uei', 'parent_uei', 'vendor_name', 'parent_company_name',
-                   'awarding_department_code', 'awarding_department_name', 'awarding_subtier_agency_code',
-                   'awarding_subtier_agency_name', 'awarding_office_code', 'awarding_office_name',
-                   'funding_department_code', 'funding_department_name', 'funding_subtier_agency_code',
-                   'funding_subtier_agency_name', 'funding_office_code', 'funding_office_name',
-                   'principal_place_city_name', 'principal_place_state_code', 'principal_place_country_code',
-                   'principal_place_congressional_district', 'principal_place_county_code',
-                   'principal_place_county_name', 'principal_place_zip5', 'principal_place_zip_last4',
-                   'recipient_street_address', 'recipient_street_address2', 'recipient_city', 'recipient_state_code',
-                   'recipient_state_name', 'recipient_zip5', 'recipient_zip_last4', 'recipient_congressional_district',
-                   'recipient_country_code', 'recipient_country_name', 'assistance_listing_number', 'starting_date',
-                   'ending_date', 'assistance_type', 'record_type', 'business_types', 'business_types_description',
-                   'obligation_amount', 'total_fed_funding_amount', 'base_obligation_date', 'project_description',
-                   'last_modified_date', 'top_pay_employee1_name', 'top_pay_employee1_amount', 'top_pay_employee2_name',
-                   'top_pay_employee2_amount', 'top_pay_employee3_name', 'top_pay_employee3_amount',
-                   'top_pay_employee4_name', 'top_pay_employee4_amount', 'top_pay_employee5_name',
-                   'top_pay_employee5_amount']
+        headers = list(results.keys())
         out_csv.writerow(headers)
         for row in results:
             metrics_json['records_provided'] += 1
