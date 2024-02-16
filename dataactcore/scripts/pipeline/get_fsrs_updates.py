@@ -141,7 +141,6 @@ def main():
 
     metrics_json['start_date'] = mod_date
 
-
     results = get_award_updates(mod_date)
     logger.info("Completed SQL query, starting file writing")
 
