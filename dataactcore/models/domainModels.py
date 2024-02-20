@@ -654,7 +654,12 @@ class DEFC(Base):
     __tablename__ = "defc"
     defc_id = Column(Integer, primary_key=True)
     code = Column(Text, nullable=False, index=True, unique=True)
+    public_laws = Column(ARRAY(Text))
+    public_law_short_titles = Column(ARRAY(Text))
     group = Column(Text)
+    urls = Column(ARRAY(Text))
+    is_valid = Column(Boolean, nullable=False, default=True, server_default="True")
+    earliest_pl_action_date = Column(DateTime)
 
 
 class ExternalDataType(Base):
