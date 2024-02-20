@@ -24,6 +24,83 @@ BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
 BUCKET_PREFIX = 'fsrs_award_extracts/'
 
 
+def get_award_updates(mod_date):
+    """ Runs the SQL to extract new award information for FSRS
+
+        Args:
+            mod_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
+
+        Returns:
+            The results of the SQL query
+    """
+    logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
+    sess = GlobalDB.db().session
+    # Query Summary:
+    # Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day
+    # and also includes summary data about the award associated with the transaction.
+    results = sess.execute("""
+        WITH base_transaction AS (
+        SELECT fain,
+            MIN(pf_b.action_date) as base_date,
+            MIN(pf_b.period_of_performance_star) as earliest_start,
+            MAX(pf_b.period_of_performance_curr) as latest_end,
+            MAX(pf_b.modified_at) as max_mod,
+            SUM(CASE WHEN pf_b.is_active = True
+                        THEN pf_b.federal_action_obligation
+                        ELSE 0
+                        END) as obligation_sum,
+            CASE WHEN EXISTS (SELECT 1
+                                FROM published_fabs AS sub_pf_b
+                                WHERE is_active = True
+                                AND pf_b.fain = sub_pf_b.fain)
+                THEN True
+                ELSE False
+                END AS currently_active
+        FROM published_fabs AS pf_b
+        WHERE assistance_type IN ('02', '03', '04', '05')
+            AND record_type != 1
+        GROUP BY fain),
+        only_base AS (SELECT pf.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
+            FROM published_fabs AS pf
+            JOIN base_transaction AS bt
+                ON bt.fain = pf.fain
+                AND bt.max_mod = pf.modified_at
+                AND pf.record_type != 1)
+
+        SELECT
+            ob.fain AS federal_award_id,
+            CASE WHEN currently_active
+                THEN 'active'
+                ELSE 'inactive'
+                END AS status,
+            CASE WHEN CAST(ob.obligation_sum as double precision) > 25000 AND CAST(ob.base_date as DATE) > '10/01/2010'
+                  THEN 'Eligible'
+                ELSE 'Ineligible'
+                END AS eligibility,
+            ob.sai_number,
+            ob.awarding_sub_tier_agency_c AS agency_code,
+            ob.awardee_or_recipient_uniqu AS duns_no,
+            NULL AS dunsplus4,
+            ob.uei AS uei,
+            ob.place_of_performance_city AS principal_place_cc,
+            CASE WHEN UPPER(LEFT(ob.place_of_performance_code, 2)) ~ '[A-Z]{2}'
+                THEN UPPER(LEFT(ob.place_of_performance_code, 2))
+                ELSE NULL
+                END AS principal_place_state_code,
+            ob.place_of_perform_country_c AS principal_place_country_code,
+            ob.place_of_performance_zip4a AS principal_place_zip,
+            ob.assistance_listing_number AS cfda_program_num,
+            ob.earliest_start AS starting_date,
+            ob.latest_end AS ending_date,
+            ob.obligation_sum as total_fed_funding_amount,
+            ob.base_date AS base_obligation_date,
+            ob.award_description AS project_description,
+            ob.modified_at AS last_modified_date
+        FROM only_base AS ob
+        WHERE modified_at >= '""" + mod_date + "'")
+    return results
+
+
 def main():
     now = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Pull')
@@ -52,8 +129,8 @@ def main():
     if args.date:
         arg_date = args.date[0]
         given_date = arg_date.split('/')
-        if not re.match('^\d{2}$', given_date[0]) or not re.match('^\d{2}$', given_date[1])\
-                or not re.match('^\d{4}$', given_date[2]):
+        if not re.match(r'^\d{2}$', given_date[0]) or not re.match(r'^\d{2}$', given_date[1])\
+                or not re.match(r'^\d{4}$', given_date[2]):
             logger.error("Date " + arg_date + " not in proper mm/dd/yyyy format")
             return
         mod_date = arg_date
@@ -64,72 +141,7 @@ def main():
 
     metrics_json['start_date'] = mod_date
 
-    logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
-    sess = GlobalDB.db().session
-    """ Query Summary:
-        Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day
-        and also includes summary data about the award associated with the transaction.
-    """
-    results = sess.execute("""
-    WITH base_transaction AS (
-    SELECT fain,
-        MIN(pf_b.action_date) as base_date,
-        MIN(pf_b.period_of_performance_star) as earliest_start,
-        MAX(pf_b.period_of_performance_curr) as latest_end,
-        MAX(pf_b.modified_at) as max_mod,
-        SUM(CASE WHEN pf_b.is_active = True
-                    THEN pf_b.federal_action_obligation
-                    ELSE 0
-                    END) as obligation_sum,
-        CASE WHEN EXISTS (SELECT 1
-                            FROM published_fabs AS sub_pf_b
-                            WHERE is_active = True
-                            AND pf_b.fain = sub_pf_b.fain)
-            THEN True
-            ELSE False
-            END AS currently_active
-    FROM published_fabs AS pf_b
-    WHERE assistance_type IN ('02', '03', '04', '05')
-        AND record_type != 1
-    GROUP BY fain),
-    only_base AS (SELECT pf.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
-        FROM published_fabs AS pf
-        JOIN base_transaction AS bt
-            ON bt.fain = pf.fain
-            AND bt.max_mod = pf.modified_at
-            AND pf.record_type != 1)
-
-    SELECT
-        ob.fain AS federal_award_id,
-        CASE WHEN currently_active
-            THEN 'active'
-            ELSE 'inactive'
-            END AS status,
-        CASE WHEN CAST(ob.obligation_sum as double precision) > 25000 AND CAST(ob.base_date as DATE) > '10/01/2010'
-              THEN 'Eligible'
-            ELSE 'Ineligible'
-            END AS eligibility,
-        ob.sai_number,
-        ob.awarding_sub_tier_agency_c AS agency_code,
-        ob.awardee_or_recipient_uniqu AS duns_no,
-        NULL AS dunsplus4,
-        ob.uei AS uei,
-        ob.place_of_performance_city AS principal_place_cc,
-        CASE WHEN UPPER(LEFT(ob.place_of_performance_code, 2)) ~ '[A-Z]{2}'
-            THEN UPPER(LEFT(ob.place_of_performance_code, 2))
-            ELSE NULL
-            END AS principal_place_state_code,
-        ob.place_of_perform_country_c AS principal_place_country_code,
-        ob.place_of_performance_zip4a AS principal_place_zip,
-        ob.assistance_listing_number AS cfda_program_num,
-        ob.earliest_start AS starting_date,
-        ob.latest_end AS ending_date,
-        ob.obligation_sum as total_fed_funding_amount,
-        ob.base_date AS base_obligation_date,
-        ob.award_description AS project_description,
-        ob.modified_at AS last_modified_date
-    FROM only_base AS ob
-    WHERE modified_at >= '""" + mod_date + "'")
+    results = get_award_updates(mod_date)
     logger.info("Completed SQL query, starting file writing")
 
     full_file_path = os.path.join(os.getcwd(), "fsrs_update.csv")
