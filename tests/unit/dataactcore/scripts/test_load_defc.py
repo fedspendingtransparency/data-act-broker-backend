@@ -5,7 +5,7 @@ import re
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.scripts.setup import load_defc
-from dataactcore.models.domainModels import DEFC, ExternalDataLoadDate
+from dataactcore.models.domainModels import DEFC, ExternalDataType, ExternalDataLoadDate
 
 
 def mock_request_to_govinfo(url):
@@ -123,12 +123,22 @@ def test_add_defc_outliers():
     pd.testing.assert_frame_equal(load_defc.add_defc_outliers(test_df), expected_df)
 
 
+def add_relevant_data_types(sess):
+    data_types = sess.query(ExternalDataType).all()
+    if len(data_types) == 0:
+        defc = ExternalDataType(external_data_type_id=20, name="defc",
+                                description="disaster emergency fund code data loaded")
+        sess.add(defc)
+        sess.commit()
+
+
 def test_load_defc(database, monkeypatch):
     """ Test actually loading the defc data """
     monkeypatch.setattr(load_defc, 'CONFIG_BROKER', {'use_aws': False})
     monkeypatch.setattr('dataactcore.scripts.setup.load_defc.get_with_exception_hand', mock_request_to_govinfo)
 
     sess = database.session
+    add_relevant_data_types(sess)
 
     base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
     load_defc.load_defc(base_path)
