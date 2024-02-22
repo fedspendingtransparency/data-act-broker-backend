@@ -1,6 +1,7 @@
 import boto3
 import io
 import itertools
+import json
 import logging
 import numpy as np
 import os
@@ -53,7 +54,6 @@ def get_defc_file(base_path):
         defc_file = io.BytesIO(response['Body'].read())
     else:
         defc_file = os.path.join(base_path, DEFC_FILE_NAME)
-
     return defc_file
 
 
@@ -145,6 +145,7 @@ def apply_defc_derivations(defc_df):
         Returns:
             the same dataframe with additional derived columns
     """
+    logger.info('Deriving Public Law Data')
     defc_df = defc_df.merge(defc_df["Public Law"].apply(derive_pls_data), on='Public Law')
     # Ideally we would just update the data inplace
     # but since we're basing the merge and derivations off the original Public Law,
@@ -195,9 +196,18 @@ def load_defc(base_path, force_reload=False):
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
     start_time = datetime.now()
+    metrics_json = {
+        'script_name': 'load_defc.py',
+        'start_time': str(start_time),
+        'records_received': 0,
+        'new_defc': [],
+        'total_defc_count': 0
+    }
+
+    logger.info('Getting raw DEFC file')
     defc_file = get_defc_file(base_path)
 
-    logger.info('Loading defc data')
+    logger.info('Parsing DEFC data')
     with create_app().app_context():
         try:
             raw_data = pd.read_csv(defc_file, dtype=str, na_filter=False)
@@ -211,18 +221,23 @@ def load_defc(base_path, force_reload=False):
             logger.error('Missing required headers. Required headers include: %s' % str(VALID_HEADERS))
             exit_if_nonlocal(4)
             return
-
+        metrics_json['records_received'] = len(raw_data)
         # Creating a dataframe of the export csv first and then copying columns to match the database
         raw_data = raw_data.rename(columns={
             'DEFC_CODE': 'DEFC',
             'DEFC_TITLE': 'Public Law'
         })
+
+        logger.info('Applying derivations')
         raw_data = apply_defc_derivations(raw_data)
+
+        logger.info('Adding DEFC outliers')
         raw_data = add_defc_outliers(raw_data)
 
         # Clear any lingering np.nan's
         raw_data = raw_data.replace({np.nan: None})
 
+        logger.info('Checking for differences in DEFC data')
         defc_mapping = {
             'defc': 'code',
             'public_law': 'public_laws',
@@ -235,16 +250,25 @@ def load_defc(base_path, force_reload=False):
         data = clean_data(raw_data, DEFC, defc_mapping, {})
         diff_found = check_dataframe_diff(data, DEFC, ['defc_id'], ['code'], date_format='%m/%d/%y')
 
+        sess = GlobalDB.db().session
         if force_reload or diff_found:
-            sess = GlobalDB.db().session
-            # delete any data in the DEFC table
+
+            # The only diff should be whenever a new code is added. Noting it here
+            if diff_found:
+                incoming_defcs = list(data['code'])
+                curr_defcs = [result[0] for result in sess.query(DEFC.code).all()]
+                diff_defcs = list(set(incoming_defcs) - set(curr_defcs))
+                metrics_json['new_defc'] = diff_defcs
+                logger.info(f'Difference found: {diff_defcs}')
+
+            logger.info('Deleting old DEFC data from Broker')
             sess.query(DEFC).delete()
 
-            # insert data into table
+            logger.info('Adding new DEFC data to Broker')
             num = insert_dataframe(data, DEFC.__table__.name, sess.connection())
-            logger.info('{} records inserted to defc'.format(num))
             sess.commit()
             update_external_data_load_date(start_time, datetime.now(), 'defc')
+            logger.info('{} records inserted to DEFC'.format(num))
 
             # convert the arrays to pipe-delimited strings
             defc_delim = '|'
@@ -256,10 +280,20 @@ def load_defc(base_path, force_reload=False):
                             'Earliest Public Law Enactment Date']
             raw_data = raw_data[header_order]
             export_name = 'def_codes.csv'
-            logger.info('Exporting loaded DFEC file to {}'.format(export_name))
+            logger.info('Exporting loaded DEFC file to {}'.format(export_name))
             raw_data.to_csv(export_name, index=0)
         else:
             logger.info('No differences found, skipping defc table reload.')
+
+    total_defc_count = sess.query(DEFC).count()
+    metrics_json['total_defc_count'] = total_defc_count
+
+    end_time = datetime.now()
+    metrics_json['end_time'] = str(end_time)
+    metrics_json['duration'] = str(end_time - start_time)
+
+    with open('load_defc_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics_json, metrics_file)
 
 
 if __name__ == '__main__':
