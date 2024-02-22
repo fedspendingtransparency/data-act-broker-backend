@@ -125,7 +125,7 @@ def derive_pls_data(public_law):
         if date_approved:
             dates_approved.append(date_approved)
     if len(pl_nums) == 0:
-        public_laws = [public_law]
+        public_laws = pl_short_titles = [public_law]
 
     return pd.Series({
         'Public Law': public_law,
@@ -191,6 +191,7 @@ def load_defc(base_path, force_reload=False):
     """ Loads the DEFC data.
 
         Args:
+            base_path: the path to the local DEFC file (usually validator config)
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
     start_time = datetime.now()
@@ -263,5 +264,8 @@ def load_defc(base_path, force_reload=False):
 
 if __name__ == '__main__':
     configure_logging()
+
     reload = '--force' in sys.argv
-    load_defc(reload)
+    basePath = CONFIG_BROKER["path"]
+    validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
+    load_defc(validator_config_path, reload)
