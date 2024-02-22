@@ -83,7 +83,7 @@ def derive_pl_data(public_law):
             short_title = short_title.replace(char, '')
 
         date_approved = govinfo_data['dcMD']['dateIssued']
-        date_approved = datetime.strptime(date_approved, '%Y-%m-%d').strftime('%m/%d/%y')
+        date_approved = datetime.strptime(date_approved, '%Y-%m-%d').strftime('%m/%d/%Y')
 
         url = govinfo_data['download']['pdflink']
         url = f'http:{url}'
