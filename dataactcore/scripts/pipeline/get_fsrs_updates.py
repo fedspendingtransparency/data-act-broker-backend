@@ -75,7 +75,7 @@ def get_award_updates(mod_date):
                 ON gv.fain = pf.fain
                 AND gv.max_updated = pf.updated_at
                 AND pf.record_type != 1)
-        
+
         SELECT
             ob.fain AS federal_award_id,
             CASE WHEN currently_active
