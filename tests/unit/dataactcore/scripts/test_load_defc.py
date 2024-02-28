@@ -32,7 +32,7 @@ def test_derive_pl_data(monkeypatch):
     short_title, url, date_approved = load_defc.derive_pl_data('123-456')
     assert short_title == 'Test Short Title 123-456'
     assert url == 'http://test-pdf-link.gov/123/456/123-456.pdf'
-    assert date_approved == '01/02/23'
+    assert date_approved == '2123-01-02'
 
     short_title, url, date_approved = load_defc.derive_pl_data('0-123')
     assert short_title == ''
@@ -49,7 +49,7 @@ def test_derive_pls_data(monkeypatch):
         'Public Laws': ['Non-emergency P.L. 123-456', 'Non-emergency P.L. 789-12', 'Non-emergency P.L. 0-111'],
         'Public Law Short Title': ['Test Short Title 123-456', 'Test Short Title 789-12', ''],
         'URLs': ['http://test-pdf-link.gov/123/456/123-456.pdf', 'http://test-pdf-link.gov/789/12/789-12.pdf', ''],
-        'Earliest Public Law Enactment Date': '01/02/23'
+        'Earliest Public Law Enactment Date': '2123-01-02'
     })
     pd.testing.assert_series_equal(load_defc.derive_pls_data('Nonemergency PLs 123-456, 789-12, 0-111'),
                                    expected_series)
@@ -60,7 +60,7 @@ def test_derive_pls_data(monkeypatch):
                         'Wildfire Suppression P.L. 0-111'],
         'Public Law Short Title': ['Test Short Title 123-456', 'Test Short Title 789-12', ''],
         'URLs': ['http://test-pdf-link.gov/123/456/123-456.pdf', 'http://test-pdf-link.gov/789/12/789-12.pdf', ''],
-        'Earliest Public Law Enactment Date': '01/02/23'
+        'Earliest Public Law Enactment Date': '2123-01-02'
     })
 
     pd.testing.assert_series_equal(load_defc.derive_pls_data('Wildfire Suppression PLs 123-456, 789-12, 0-111'),
@@ -85,7 +85,7 @@ def test_apply_defc_derivations(monkeypatch):
                                    ['Test Short Title 123-456', 'Test Short Title 789-12', '']],
         'URLs': [['http://test-pdf-link.gov/123/456/123-456.pdf', 'http://test-pdf-link.gov/789/12/789-12.pdf', ''],
                  ['http://test-pdf-link.gov/123/456/123-456.pdf', 'http://test-pdf-link.gov/789/12/789-12.pdf', '']],
-        'Earliest Public Law Enactment Date': ['01/02/23', '01/02/23'],
+        'Earliest Public Law Enactment Date': ['2123-01-02', '2123-01-02'],
         'Group Name': ['covid_19', 'infrastructure'],
         'Is Valid': [True, True]
     })
