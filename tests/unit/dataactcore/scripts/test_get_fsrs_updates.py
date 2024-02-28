@@ -8,8 +8,8 @@ from tests.unit.dataactcore.factories.staging import PublishedFABSFactory
 
 def test_ignore_earlier_date(database):
     sess = database.session
-    pf1 = PublishedFABSFactory(modified_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='tooearly')
-    pf2 = PublishedFABSFactory(modified_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='justright')
+    pf1 = PublishedFABSFactory(updated_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='tooearly')
+    pf2 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='justright')
     sess.add_all([pf1, pf2])
     sess.commit()
 
@@ -22,8 +22,8 @@ def test_ignore_earlier_date(database):
 
 def test_ignore_assistance_type(database):
     sess = database.session
-    pf1 = PublishedFABSFactory(modified_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='rightassist')
-    pf2 = PublishedFABSFactory(modified_at=date(2024, 2, 4), record_type=2, assistance_type='01', fain='badassist')
+    pf1 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='rightassist')
+    pf2 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='01', fain='badassist')
     sess.add_all([pf1, pf2])
     sess.commit()
 
@@ -36,8 +36,8 @@ def test_ignore_assistance_type(database):
 
 def test_ignore_record_type(database):
     sess = database.session
-    pf1 = PublishedFABSFactory(modified_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='rightrecord')
-    pf2 = PublishedFABSFactory(modified_at=date(2024, 2, 4), record_type=1, assistance_type='04', fain='badrecord')
+    pf1 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='rightrecord')
+    pf2 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=1, assistance_type='04', fain='badrecord')
     sess.add_all([pf1, pf2])
     sess.commit()
 
@@ -50,13 +50,13 @@ def test_ignore_record_type(database):
 
 def test_status(database):
     sess = database.session
-    pf1 = PublishedFABSFactory(modified_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='activerecord',
+    pf1 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='activerecord',
                                is_active=False)
-    pf2 = PublishedFABSFactory(modified_at=date(2024, 1, 4), record_type=2, assistance_type='04', fain='activerecord',
+    pf2 = PublishedFABSFactory(updated_at=date(2024, 1, 4), record_type=2, assistance_type='04', fain='activerecord',
                                is_active=True)
-    pf3 = PublishedFABSFactory(modified_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='inactiverecord',
+    pf3 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='inactiverecord',
                                is_active=False)
-    pf4 = PublishedFABSFactory(modified_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='inactiverecord',
+    pf4 = PublishedFABSFactory(updated_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='inactiverecord',
                                is_active=False)
     sess.add_all([pf1, pf2, pf3, pf4])
     sess.commit()
@@ -74,19 +74,19 @@ def test_status(database):
 
 def test_grouping(database):
     sess = database.session
-    pf1 = PublishedFABSFactory(modified_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='record',
+    pf1 = PublishedFABSFactory(updated_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='record',
                                period_of_performance_star=date(2000, 3, 22),
                                period_of_performance_curr=date(2025, 9, 5),
                                is_active=True, federal_action_obligation=25.5)
-    pf2 = PublishedFABSFactory(modified_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='record',
+    pf2 = PublishedFABSFactory(updated_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='record',
                                period_of_performance_star=date(2003, 3, 22),
                                period_of_performance_curr=date(2035, 8, 5),
                                is_active=True, federal_action_obligation=30.25)
-    pf3 = PublishedFABSFactory(modified_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='record',
+    pf3 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='record',
                                period_of_performance_star=date(2023, 3, 22),
                                period_of_performance_curr=date(2025, 9, 5),
                                is_active=True, federal_action_obligation=4.3)
-    pf4 = PublishedFABSFactory(modified_at=date(2024, 1, 4), record_type=2, assistance_type='04', fain='record',
+    pf4 = PublishedFABSFactory(updated_at=date(2024, 1, 4), record_type=2, assistance_type='04', fain='record',
                                period_of_performance_star=date(2023, 3, 22),
                                period_of_performance_curr=date(2025, 9, 5),
                                is_active=False, federal_action_obligation=100)
