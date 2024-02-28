@@ -115,9 +115,8 @@ def get_award_updates(mod_date):
             FROM published_fabs AS pf
             WHERE EXISTS (
                 SELECT 1
-                FROM published_fabs AS updated
+                FROM updated_transactions AS updated
                 WHERE updated.unique_award_key = pf.unique_award_key
-                    AND updated.updated_at >= '{mod_date}'
             )
             GROUP BY unique_award_key)
 
