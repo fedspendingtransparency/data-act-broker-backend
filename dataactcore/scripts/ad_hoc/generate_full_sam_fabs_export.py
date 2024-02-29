@@ -1,5 +1,3 @@
-import argparse
-import re
 import logging
 import os
 import csv
@@ -131,16 +129,6 @@ def get_awards():
     return results
 
 
-def test_query():
-    sess = GlobalDB.db().session
-    # Query Summary:
-    # Each row is the latest instance of any transaction that has been updated since the specified mod_date
-    results = sess.execute(f"""
-            SELECT *
-            FROM states;""")
-    return results
-
-
 def main():
     now = datetime.datetime.now()
 
@@ -150,7 +138,7 @@ def main():
         'records_provided': 0,
     }
 
-    results = test_query()
+    results = get_awards()
     logger.info('Completed SQL query, starting file writing')
 
     full_file_path = os.path.join(os.getcwd(), 'sam_full_dump.csv')
