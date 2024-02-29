@@ -166,8 +166,8 @@ def main():
     csv_file.close()
 
     if CONFIG_BROKER["use_aws"]:
-        s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        s3client.put_object(Bucket=BUCKET_NAME, Key=f'{BUCKET_PREFIX}sam_full_dump.csv', Body=csv_file)
+        s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        s3.upload_file(full_file_path, BUCKET_NAME, f'{BUCKET_PREFIX}sam_full_dump.csv')
         os.remove(full_file_path)
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
