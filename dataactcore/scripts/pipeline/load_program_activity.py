@@ -5,14 +5,13 @@ import pandas as pd
 import numpy as np
 import boto3
 import datetime
-import sys
 import json
 import re
 import argparse
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.interfaces.function_bag import update_external_data_load_date, log_blank_file, exit_if_nonlocal
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
@@ -261,16 +260,6 @@ def convert_fyq_to_fyp(fyq):
         fyq = fyq[:-1] + period
         return fyq
     return fyq
-
-
-def log_blank_file():
-    """ Helper function for specific reused log message """
-    logger.error('File was blank! Not loaded, routine aborted.')
-
-
-def exit_if_nonlocal(exit_code):
-    if not CONFIG_BROKER['local']:
-        sys.exit(exit_code)
 
 
 if __name__ == '__main__':

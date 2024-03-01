@@ -126,34 +126,34 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
     """
     # incoming .csvs often have extraneous blank rows at the end,
     # so get rid of those
-
-    data.dropna(inplace=True, how='all')
+    clean_df = data.copy(deep=True)
+    clean_df.dropna(inplace=True, how='all')
 
     # clean the dataframe column names
-    data.rename(columns=clean_col_names, inplace=True)
+    clean_df.rename(columns=clean_col_names, inplace=True)
     # make sure all values in fieldMap parameter are in the dataframe/csv file
     for field in field_map:
-        if field not in list(data.columns):
+        if field not in list(clean_df.columns):
             raise ValueError("{} is required for loading table{}".format(field, model))
     # toss out any columns from the csv that aren't in the fieldMap parameter
-    data = data[list(field_map.keys())]
+    clean_df = clean_df[list(field_map.keys())]
     # rename columns as specified in fieldMap
-    data = data.rename(columns=field_map)
+    clean_df = clean_df.rename(columns=field_map)
 
     # trim all columns
-    data = data.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
+    clean_df = clean_df.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
     if len(required_values) > 0:
         # if file is blank, immediately fail
-        if data.empty or len(data.shape) < 2:
+        if clean_df.empty or len(clean_df.shape) < 2:
             raise FailureThresholdExceededException(0)
         # check the columns that must have a valid value, and if they have white space,
         # replace with NaN so that dropna finds them.
         for value in required_values:
-            data[value].replace('', np.nan, inplace=True)
+            clean_df[value].replace('', np.nan, inplace=True)
         # drop any rows that are missing required data
-        cleaned = data.dropna(subset=required_values)
-        dropped = data[np.invert(data.index.isin(cleaned.index))]
+        cleaned = clean_df.dropna(subset=required_values)
+        dropped = clean_df[np.invert(clean_df.index.isin(cleaned.index))]
         # log every dropped row
         for index, row in dropped.iterrows():
             logger.info(
@@ -161,27 +161,27 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
                 format(row['fiscal_year_period'], row['agency_id'], row['allocation_transfer_id'],
                        row['account_number'], row['program_activity_code'], row['program_activity_name']))
 
-        if (len(dropped.index) / len(data.index)) > FAILURE_THRESHOLD_PERCENTAGE:
+        if (len(dropped.index) / len(clean_df.index)) > FAILURE_THRESHOLD_PERCENTAGE:
             raise FailureThresholdExceededException(len(dropped.index))
         logger.info("{} total rows dropped due to faulty data".format(len(dropped.index)))
-        data = cleaned
+        clean_df = cleaned
 
     # apply column options as specified in fieldOptions param
     for col, options in field_options.items():
         if 'pad_to_length' in options:
             # pad to specified length
-            data[col] = data[col].apply(pad_function, args=(options['pad_to_length'], options.get('keep_null')))
+            clean_df[col] = clean_df[col].apply(pad_function, args=(options['pad_to_length'], options.get('keep_null')))
         if options.get('strip_commas'):
             # remove commas for specified column
             # get rid of commas in dollar amounts
-            data[col] = data[col].str.replace(",", "")
+            clean_df[col] = clean_df[col].str.replace(",", "")
 
     # add created_at and updated_at columns
     now = datetime.utcnow()
-    data = data.assign(created_at=now, updated_at=now)
+    clean_df = clean_df.assign(created_at=now, updated_at=now)
     if return_dropped_count:
-        return len(dropped.index), data
-    return data
+        return len(dropped.index), clean_df
+    return clean_df
 
 
 def format_date(value):

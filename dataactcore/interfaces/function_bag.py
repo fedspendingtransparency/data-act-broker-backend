@@ -1,5 +1,6 @@
 import logging
 from operator import attrgetter
+import sys
 import time
 import uuid
 from datetime import datetime
@@ -759,3 +760,13 @@ def update_external_data_load_date(start_time, end_time, data_type):
         last_stored_obj.last_load_date_start = start_time
         last_stored_obj.last_load_date_end = end_time
     sess.commit()
+
+
+def log_blank_file():
+    """ Helper function for specific reused log message """
+    logger.error('File was blank! Not loaded, routine aborted.')
+
+
+def exit_if_nonlocal(exit_code):
+    if not CONFIG_BROKER['local']:
+        sys.exit(exit_code)

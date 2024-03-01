@@ -5,7 +5,7 @@ import pytest
 import os
 
 from dataactcore.scripts.pipeline import load_program_activity
-from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.interfaces import function_bag
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataType
 
 
@@ -64,16 +64,16 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
     expected_date = datetime.datetime(1970, 1, 1, 0, 0, 0)
     assert stored_date == expected_date
 
-    update_external_data_load_date(datetime.datetime(2017, 12, 31, 0, 0, 0), datetime.datetime(2017, 12, 31, 0, 0, 0),
-                                   'program_activity_upload')
+    function_bag.update_external_data_load_date(datetime.datetime(2017, 12, 31, 0, 0, 0),
+                                                datetime.datetime(2017, 12, 31, 0, 0, 0), 'program_activity_upload')
 
     stored_date = load_program_activity.get_stored_pa_last_upload()
     expected_date = datetime.datetime(2017, 12, 31, 0, 0, 0)
     assert stored_date == expected_date
 
     # repeat this, because the first time, there is no stored object, but now test with one that already exists.
-    update_external_data_load_date(datetime.datetime(2016, 12, 31, 0, 0, 0), datetime.datetime(2016, 12, 31, 0, 0, 0),
-                                   'program_activity_upload')
+    function_bag.update_external_data_load_date(datetime.datetime(2016, 12, 31, 0, 0, 0),
+                                                datetime.datetime(2016, 12, 31, 0, 0, 0), 'program_activity_upload')
 
     stored_date = load_program_activity.get_stored_pa_last_upload()
     expected_date = datetime.datetime(2016, 12, 31, 0, 0, 0)
@@ -128,7 +128,8 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
 def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
                                                 mocked_set_stored_date, monkeypatch):
     """ Test actually loading the program activity data """
-    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False, 'local': False})
+    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
+    monkeypatch.setattr(function_bag, 'CONFIG_BROKER', {'local': False})
 
     mocked_get_pa_file.return_value = StringIO(
         """AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,PA_TITLE,FYQ"""
@@ -153,7 +154,8 @@ def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_c
 def test_load_program_activity_data_no_header(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
                                               mocked_set_stored_date, monkeypatch):
     """ Test actually loading the program activity data """
-    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False, 'local': False})
+    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
+    monkeypatch.setattr(function_bag, 'CONFIG_BROKER', {'local': False})
 
     mocked_get_pa_file.return_value = StringIO(
         """2000,000,111,0000,1111,Test Name,FY15Q1"""
@@ -178,7 +180,8 @@ def test_load_program_activity_data_no_header(mocked_get_pa_file, mocked_get_cur
 def test_load_program_activity_data_empty_file(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
                                                mocked_set_stored_date, monkeypatch):
     """ Test actually loading the program activity data """
-    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False, 'local': False})
+    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
+    monkeypatch.setattr(function_bag, 'CONFIG_BROKER', {'local': False})
 
     mocked_get_pa_file.return_value = StringIO("")
 

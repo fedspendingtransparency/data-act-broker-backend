@@ -1,7 +1,9 @@
-import requests
-import xmltodict
+import json
 import logging
+import requests
+import sys
 import time
+import xmltodict
 
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
@@ -66,3 +68,50 @@ def get_xml_with_exception_hand(url_string, namespaces, expect_entries=True):
                 logger.info('Connection to feed lost, maximum retry attempts exceeded.')
                 raise e
     return resp
+
+
+# TODO: Refacator to use backoff
+def get_with_exception_hand(url_string):
+    """ Retrieve data from API, allow for multiple retries and timeouts
+
+        Args:
+            url_string: URL to make the request to
+
+        Returns:
+            API response from the URL
+    """
+    exception_retries = -1
+    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+    request_timeout = 60
+    response_dict = None
+
+    def handle_resp(exception_retries, request_timeout):
+        exception_retries += 1
+        request_timeout += 60
+        if exception_retries < len(retry_sleep_times):
+            logger.info('Sleeping {}s and then retrying with a max wait of {}s...'
+                        .format(retry_sleep_times[exception_retries], request_timeout))
+            time.sleep(retry_sleep_times[exception_retries])
+            return exception_retries, request_timeout
+        else:
+            logger.error('Maximum retry attempts exceeded.')
+            sys.exit(2)
+
+    while exception_retries < len(retry_sleep_times):
+        try:
+            resp = requests.get(url_string, timeout=request_timeout)
+            response_dict = json.loads(resp.text)
+            # We get errors back as regular JSON, need to catch them somewhere
+            if response_dict.get('error'):
+                err = response_dict.get('error')
+                message = response_dict.get('message')
+                logger.warning('Error processing response: {} {}'.format(err, message))
+                exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)
+                continue
+            break
+        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
+                requests.exceptions.ReadTimeout, json.decoder.JSONDecodeError) as e:
+            logger.exception(e)
+            exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)
+
+    return response_dict
