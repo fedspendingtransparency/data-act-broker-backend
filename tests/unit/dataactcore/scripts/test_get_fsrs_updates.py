@@ -100,3 +100,17 @@ def test_grouping(database):
     assert result_list[0].starting_date == '2000-03-22'
     assert result_list[0].ending_date == '2035-08-05'
     assert result_list[0].total_fed_funding_amount == Decimal('60.05')
+
+
+def test_dedupe(database):
+    sess = database.session
+    pf1 = PublishedFABSFactory(updated_at=date(2024, 2, 5), record_type=2, assistance_type='04', fain='record')
+    pf2 = PublishedFABSFactory(updated_at=date(2024, 2, 5), record_type=2, assistance_type='04', fain='record')
+    pf3 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='record2')
+    sess.add_all([pf1, pf2, pf3])
+    sess.commit()
+
+    results = get_award_updates('02/03/2024')
+    result_list = results.all()
+
+    assert len(result_list) == 2
