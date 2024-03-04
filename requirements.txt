@@ -8,7 +8,7 @@ billiard==3.3.0.23
 blinker==1.4
 boto3==1.28.64
 bz2file==0.98
-cffi==1.13
+cffi==1.15
 click==6.6
 colorama==0.3.3
 coverage==5.3
@@ -44,14 +44,14 @@ py==1.10.0
 pycodestyle==2.6.0
 pycparser==2.14
 pyflakes==2.2.0
-pytest==6.0.2
+pytest==7.0.0
 pytest-cov==2.10.1
 python-dateutil==2.8.2
 python-editor==1.0.1
 python-json-logger==0.1.5 
 python-logstash==0.4.6
 pytz==2020.1
-PyYAML==5.4.0
+PyYAML==6.0
 ratelimit==2.2.1
 requests==2.25.1
 s3transfer==0.7.0
