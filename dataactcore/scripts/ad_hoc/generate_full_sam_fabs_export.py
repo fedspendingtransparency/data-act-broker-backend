@@ -22,7 +22,7 @@ BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
 BUCKET_PREFIX = 'sam_award_extracts/'
 
 
-def get_awards():
+def get_transactions():
     """ Runs the SQL to extract all active transaction information for SAM
 
         Returns:
@@ -32,7 +32,7 @@ def get_awards():
     sess = GlobalDB.db().session
     # Query Summary:
     # Each row is the latest instance of any transaction that has been updated since the specified mod_date
-    results = sess.execute(f"""
+    results = sess.execute("""
         WITH grouped_transaction AS (
             SELECT unique_award_key,
                 MIN(cast_as_date(action_date)) AS base_obligation_date,
@@ -44,7 +44,7 @@ def get_awards():
             FROM published_fabs AS pf
             WHERE is_active IS TRUE
             GROUP BY unique_award_key)
-        
+
         SELECT
             ut.afa_generated_unique,
             ut.unique_award_key,
@@ -55,7 +55,8 @@ def get_awards():
                 THEN 'active'
                 ELSE 'inactive'
                 END AS status,
-            CASE WHEN CAST(gt.obligation_sum as double precision) > 25000 AND CAST(gt.base_obligation_date as DATE) > '10/01/2010'
+            CASE WHEN CAST(gt.obligation_sum as double precision) > 25000
+                        AND CAST(gt.base_obligation_date as DATE) > '10/01/2010'
                     THEN 'Eligible'
                     ELSE 'Ineligible'
             END AS eligibility,
@@ -138,10 +139,10 @@ def main():
         'records_provided': 0,
     }
 
-    results = get_awards()
+    results = get_transactions()
     logger.info('Completed SQL query, starting file writing')
 
-    full_file_path = os.path.join(os.getcwd(), 'sam_full_dump.csv')
+    full_file_path = os.path.join(os.getcwd(), 'sam_full_fabs_dump.csv')
     with open(full_file_path, 'w', newline='') as csv_file:
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
@@ -155,7 +156,7 @@ def main():
 
     if CONFIG_BROKER["use_aws"]:
         s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        s3.upload_file(full_file_path, BUCKET_NAME, f'{BUCKET_PREFIX}sam_full_dump.csv')
+        s3.upload_file(full_file_path, BUCKET_NAME, f'{BUCKET_PREFIX}sam_full_fabs_dump.csv')
         os.remove(full_file_path)
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
