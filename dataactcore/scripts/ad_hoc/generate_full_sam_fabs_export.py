@@ -1,5 +1,3 @@
-import argparse
-import re
 import logging
 import os
 import csv
@@ -21,103 +19,30 @@ recent file that was uploaded, and use the boto3 response for --date.
 '''
 
 BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
-BUCKET_PREFIX = 'fsrs_award_extracts/'
+BUCKET_PREFIX = 'sam_award_extracts/'
 
 
-def get_award_updates(mod_date):
-    """ Runs the SQL to extract new award information for SAM
-
-        Args:
-            mod_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
+def get_transactions():
+    """ Runs the SQL to extract all active transaction information for SAM
 
         Returns:
             The results of the SQL query
     """
-    logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
+    logger.info('Starting SQL query of active financial assistance records...')
     sess = GlobalDB.db().session
     # Query Summary:
     # Each row is the latest instance of any transaction that has been updated since the specified mod_date
-    results = sess.execute(f"""
-        WITH updated_transactions AS (
-            SELECT *
-            FROM (SELECT unique_award_key,
-                    afa_generated_unique,
-                    fain,
-                    award_modification_amendme,
-                    action_date,
-                    is_active,
-                    sai_number,
-                    awarding_agency_code,
-                    awarding_agency_name,
-                    awarding_sub_tier_agency_c,
-                    awarding_sub_tier_agency_n,
-                    awarding_office_code,
-                    awarding_office_name,
-                    funding_agency_code,
-                    funding_agency_name,
-                    funding_sub_tier_agency_co,
-                    funding_sub_tier_agency_na,
-                    funding_office_code,
-                    funding_office_name,
-                    uei,
-                    ultimate_parent_uei,
-                    awardee_or_recipient_legal,
-                    ultimate_parent_legal_enti,
-                    place_of_performance_city,
-                    place_of_perfor_state_code,
-                    place_of_perform_country_c,
-                    place_of_performance_congr,
-                    place_of_perform_county_co,
-                    place_of_perform_county_na,
-                    place_of_performance_zip5,
-                    place_of_perform_zip_last4,
-                    legal_entity_address_line1,
-                    legal_entity_address_line2,
-                    legal_entity_city_name,
-                    legal_entity_state_code,
-                    legal_entity_state_name,
-                    legal_entity_zip5,
-                    legal_entity_zip_last4,
-                    legal_entity_congressional,
-                    legal_entity_country_code,
-                    legal_entity_country_name,
-                    assistance_listing_number,
-                    period_of_performance_star,
-                    period_of_performance_curr,
-                    assistance_type,
-                    record_type,
-                    business_types,
-                    business_types_desc,
-                    award_description,
-                    original_loan_subsidy_cost,
-                    federal_action_obligation,
-                    high_comp_officer1_full_na,
-                    high_comp_officer1_amount,
-                    high_comp_officer2_full_na,
-                    high_comp_officer2_amount,
-                    high_comp_officer3_full_na,
-                    high_comp_officer3_amount,
-                    high_comp_officer4_full_na,
-                    high_comp_officer4_amount,
-                    high_comp_officer5_full_na,
-                    high_comp_officer5_amount,
-                    ROW_NUMBER() OVER (PARTITION BY
-                        UPPER(afa_generated_unique)
-                        ORDER BY updated_at DESC
-                    ) AS row_num
-                FROM published_fabs
-                WHERE updated_at >= '{mod_date}') duplicates
-            WHERE duplicates.row_num = 1),
-        grouped_transaction AS (
+    results = sess.execute("""
+        WITH grouped_transaction AS (
             SELECT unique_award_key,
                 MIN(cast_as_date(action_date)) AS base_obligation_date,
-                MAX(updated_at) AS last_modified_date
+                MAX(updated_at) AS last_modified_date,
+                SUM(CASE WHEN pf.assistance_type IN ('07', '08')
+                            THEN pf.original_loan_subsidy_cost
+                            ELSE pf.federal_action_obligation
+                            END) as obligation_sum
             FROM published_fabs AS pf
-            WHERE EXISTS (
-                SELECT 1
-                FROM updated_transactions AS updated
-                WHERE updated.unique_award_key = pf.unique_award_key
-            )
+            WHERE is_active IS TRUE
             GROUP BY unique_award_key)
 
         SELECT
@@ -130,7 +55,11 @@ def get_award_updates(mod_date):
                 THEN 'active'
                 ELSE 'inactive'
                 END AS status,
-            NULL AS eligibility,
+            CASE WHEN CAST(gt.obligation_sum as double precision) > 25000
+                        AND CAST(gt.base_obligation_date as DATE) > '10/01/2010'
+                    THEN 'Eligible'
+                    ELSE 'Ineligible'
+            END AS eligibility,
             ut.sai_number,
             ut.uei,
             ut.ultimate_parent_uei AS parent_uei,
@@ -174,10 +103,13 @@ def get_award_updates(mod_date):
             ut.business_types,
             ut.business_types_desc AS business_types_description,
             CASE WHEN ut.assistance_type IN ('07', '08')
-                THEN ut.original_loan_subsidy_cost
-                ELSE ut.federal_action_obligation
+                    THEN ut.original_loan_subsidy_cost
+                    ELSE ut.federal_action_obligation
                 END AS obligation_amount,
-            NULL AS total_fed_funding_amount,
+            SUM(CASE WHEN ut.assistance_type IN ('07', '08')
+                    THEN ut.original_loan_subsidy_cost
+                    ELSE ut.federal_action_obligation
+                END) OVER (PARTITION BY ut.unique_award_key ORDER BY ut.action_date ASC) AS total_fed_funding_amount,
             to_char(gt.base_obligation_date, 'YYYY-MM-DD') AS base_obligation_date,
             ut.award_description AS project_description,
             to_char(gt.last_modified_date, 'YYYY-MM-DD') AS last_modified_date,
@@ -191,56 +123,26 @@ def get_award_updates(mod_date):
             ut.high_comp_officer4_amount AS top_pay_employee4_amount,
             ut.high_comp_officer5_full_na AS top_pay_employee5_name,
             ut.high_comp_officer5_amount AS top_pay_employee5_amount
-        FROM updated_transactions AS ut
+        FROM published_fabs AS ut
         JOIN grouped_transaction AS gt
-            ON gt.unique_award_key = ut.unique_award_key;""")
+            ON gt.unique_award_key = ut.unique_award_key
+        WHERE is_active IS TRUE;""")
     return results
 
 
 def main():
     now = datetime.datetime.now()
-    parser = argparse.ArgumentParser(description='Pull')
-    parser.add_argument('--date',
-                        help='Specify modified date in mm/dd/yyyy format. Overrides --auto option.',
-                        nargs=1, type=str)
-    parser.add_argument('--auto',
-                        help='Polls S3 for the most recently uploaded FABS_for_SAM file, '
-                             + 'and uses that as the modified date.',
-                        action='store_true')
-    args = parser.parse_args()
 
     metrics_json = {
-        'script_name': 'generate_sam_fabs_export.py',
+        'script_name': 'generate_full_sam_fabs_export.py',
         'start_time': str(now),
         'records_provided': 0,
-        'start_date': ''
     }
 
-    if args.auto:
-        s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
-        extract_bucket = s3_resource.Bucket(BUCKET_NAME)
-        all_sam_extracts = extract_bucket.objects.filter(Prefix=BUCKET_PREFIX)
-        mod_date = max(all_sam_extracts, key=lambda k: k.last_modified).last_modified.strftime("%m/%d/%Y")
+    results = get_transactions()
+    logger.info('Completed SQL query, starting file writing')
 
-    if args.date:
-        arg_date = args.date[0]
-        given_date = arg_date.split('/')
-        if not re.match(r'^\d{2}$', given_date[0]) or not re.match(r'^\d{2}$', given_date[1])\
-                or not re.match(r'^\d{4}$', given_date[2]):
-            logger.error("Date " + arg_date + " not in proper mm/dd/yyyy format")
-            return
-        mod_date = arg_date
-
-    if not mod_date:
-        logger.error("Date or auto setting is required.")
-        return
-
-    metrics_json['start_date'] = mod_date
-
-    results = get_award_updates(mod_date)
-    logger.info("Completed SQL query, starting file writing")
-
-    full_file_path = os.path.join(os.getcwd(), "sam_update.csv")
+    full_file_path = os.path.join(os.getcwd(), 'sam_full_fabs_dump.csv')
     with open(full_file_path, 'w', newline='') as csv_file:
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
@@ -252,9 +154,14 @@ def main():
     # close file
     csv_file.close()
 
+    if CONFIG_BROKER["use_aws"]:
+        s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        s3.upload_file(full_file_path, BUCKET_NAME, f'{BUCKET_PREFIX}sam_full_fabs_dump.csv')
+        os.remove(full_file_path)
+
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 
-    with open('generate_sam_fabs_export_metrics.json', 'w+') as metrics_file:
+    with open('generate_full_sam_fabs_export_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
     logger.info("Script complete")
 
