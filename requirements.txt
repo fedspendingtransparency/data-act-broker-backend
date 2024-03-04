@@ -65,7 +65,7 @@ WebOb==1.8.6
 WebTest==2.0.35
 Werkzeug==0.15.5
 xmlrunner==1.7.7
-xmltodict==0.10.2
+xmltodict==0.13.0
 
 # botocore hasn't been updated with a fix for md5s and python3.9
 -e git+https://github.com/fedspendingtransparency/botocore-python39-md5.git@md5-fix#egg=botocore
