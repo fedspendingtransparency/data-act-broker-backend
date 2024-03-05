@@ -91,8 +91,7 @@ def load_funding_opportunity_number_data(force_reload=False):
             fon_filename = 'funding_opportunity_numbers.csv'
 
             fon_data.to_csv(fon_filename, index=False, quoting=csv.QUOTE_ALL, header=True,
-                            columns=['funding_opportunity_number', 'title', 'assistance_listing_numbers', 'agency_name',
-                                     'status', 'open_date', 'close_date', 'doc_type'])
+                            columns=['funding_opportunity_number'])
 
             logger.info("Uploading {} to {}".format(fon_filename, CONFIG_BROKER["public_files_bucket"]))
             s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
