@@ -40,7 +40,7 @@ def get_award_updates(mod_date):
     # and also includes summary data about the award associated with the transaction.
     results = sess.execute(f"""
         WITH updated_transactions AS (
-            SELECT fain
+            SELECT DISTINCT fain
             FROM published_fabs AS pf_b
             WHERE assistance_type IN ('02', '03', '04', '05')
                 AND record_type != 1
@@ -69,12 +69,24 @@ def get_award_updates(mod_date):
                 WHERE ut.fain = pf.fain
             )
             GROUP BY fain),
-        only_base AS (SELECT pf.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
-            FROM published_fabs AS pf
-            JOIN grouped_values AS gv
-                ON gv.fain = pf.fain
-                AND gv.max_updated = pf.updated_at
-                AND pf.record_type != 1)
+        only_base AS (
+            SELECT *
+            FROM (SELECT pf.*,
+                    base_date,
+                    earliest_start,
+                    latest_end,
+                    currently_active,
+                    obligation_sum,
+                    ROW_NUMBER() OVER (PARTITION BY
+                        UPPER(pf.fain)
+                        ORDER BY updated_at DESC
+                    ) AS row_num
+                FROM published_fabs AS pf
+                JOIN grouped_values AS gv
+                    ON gv.fain = pf.fain
+                    AND gv.max_updated = pf.updated_at
+                    AND pf.record_type != 1) AS duplicates
+            WHERE duplicates.row_num = 1)
 
         SELECT
             ob.fain AS federal_award_id,
@@ -105,7 +117,7 @@ def get_award_updates(mod_date):
             ob.base_date AS base_obligation_date,
             ob.award_description AS project_description,
             ob.updated_at AS last_modified_date
-        FROM only_base AS ob;""")
+        FROM only_base AS ob; """)
     return results
 
 
