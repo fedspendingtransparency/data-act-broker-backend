@@ -85,7 +85,7 @@ def get_award_updates(mod_date):
                 JOIN grouped_values AS gv
                     ON gv.fain = pf.fain
                     AND gv.max_updated = pf.updated_at
-                    AND pf.record_type != 1) duplicates
+                    AND pf.record_type != 1) AS duplicates
             WHERE duplicates.row_num = 1)
 
         SELECT
