@@ -1,13 +1,18 @@
 import logging
 import pandas as pd
 import datetime
+import csv
+import boto3
+import os
 import json
 import requests
 import argparse
 
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import FundingOpportunity
 
@@ -82,6 +87,21 @@ def load_funding_opportunity_number_data(force_reload=False):
 
         num = insert_dataframe(fon_data, FundingOpportunity.__table__.name, sess.connection())
         sess.commit()
+
+        if CONFIG_BROKER["use_aws"]:
+            fon_filename = 'funding_opportunity_numbers.csv'
+
+            fon_data.to_csv(fon_filename, index=False, quoting=csv.QUOTE_ALL, header=True,
+                            columns=['funding_opportunity_number'])
+
+            logger.info("Uploading {} to {}".format(fon_filename, CONFIG_BROKER["public_files_bucket"]))
+            s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            s3.upload_file('funding_opportunity_numbers.csv', CONFIG_BROKER["public_files_bucket"],
+                           'broker_reference_data/funding_opportunity_numbers.csv')
+            os.remove(fon_filename)
+
+        # Updating data load dates if the load successfully added new funding opportunity numbers
+        update_external_data_load_date(now, datetime.datetime.now(), 'funding_opportunity_number')
 
         logger.info('{} records inserted to {}'.format(num, FundingOpportunity.__table__.name))
         metrics_json['records_inserted'] = num
