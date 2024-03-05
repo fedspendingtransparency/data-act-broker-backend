@@ -95,7 +95,7 @@ def load_funding_opportunity_number_data(force_reload=False):
 
             logger.info("Uploading {} to {}".format(fon_filename, CONFIG_BROKER["public_files_bucket"]))
             s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-            s3.upload_file('country_codes.csv', CONFIG_BROKER["public_files_bucket"],
+            s3.upload_file('funding_opportunity_numbers.csv', CONFIG_BROKER["public_files_bucket"],
                            'broker_reference_data/funding_opportunity_numbers.csv')
             os.remove(fon_filename)
 
