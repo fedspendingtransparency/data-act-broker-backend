@@ -100,7 +100,7 @@ def load_funding_opportunity_number_data(force_reload=False):
                            'broker_reference_data/funding_opportunity_numbers.csv')
             os.remove(fon_filename)
 
-        # Updating data load dates if the load successfully added new country codes
+        # Updating data load dates if the load successfully added new funding opportunity numbers
         update_external_data_load_date(now, datetime.datetime.now(), 'funding_opportunity_number')
 
         logger.info('{} records inserted to {}'.format(num, FundingOpportunity.__table__.name))
