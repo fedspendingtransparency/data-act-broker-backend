@@ -294,6 +294,10 @@ def load_defc(base_path, force_reload=False):
     with open('load_defc_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
 
+    if not (force_reload or diff_found):
+        exit_if_nonlocal(3)
+        return
+
 
 if __name__ == '__main__':
     configure_logging()
