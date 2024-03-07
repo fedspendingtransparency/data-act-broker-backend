@@ -38,34 +38,55 @@ def get_award_updates(mod_date):
     # Query Summary:
     # Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day
     # and also includes summary data about the award associated with the transaction.
-    results = sess.execute("""
-        WITH base_transaction AS (
-        SELECT fain,
-            MIN(pf_b.action_date) as base_date,
-            MIN(pf_b.period_of_performance_star) as earliest_start,
-            MAX(pf_b.period_of_performance_curr) as latest_end,
-            MAX(pf_b.modified_at) as max_mod,
-            SUM(CASE WHEN pf_b.is_active = True
-                        THEN pf_b.federal_action_obligation
-                        ELSE 0
-                        END) as obligation_sum,
-            CASE WHEN EXISTS (SELECT 1
-                                FROM published_fabs AS sub_pf_b
-                                WHERE is_active = True
-                                AND pf_b.fain = sub_pf_b.fain)
-                THEN True
-                ELSE False
-                END AS currently_active
-        FROM published_fabs AS pf_b
-        WHERE assistance_type IN ('02', '03', '04', '05')
-            AND record_type != 1
-        GROUP BY fain),
-        only_base AS (SELECT pf.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
+    results = sess.execute(f"""
+        WITH updated_transactions AS (
+            SELECT DISTINCT fain
+            FROM published_fabs AS pf_b
+            WHERE assistance_type IN ('02', '03', '04', '05')
+                AND record_type != 1
+                AND updated_at >= '{mod_date}'),
+        grouped_values AS (
+            SELECT fain,
+                MIN(pf.action_date) as base_date,
+                MIN(pf.period_of_performance_star) as earliest_start,
+                MAX(pf.period_of_performance_curr) as latest_end,
+                MAX(pf.updated_at) as max_updated,
+                SUM(CASE WHEN pf.is_active = True
+                            THEN pf.federal_action_obligation
+                            ELSE 0
+                            END) as obligation_sum,
+                CASE WHEN EXISTS (SELECT 1
+                                    FROM published_fabs AS sub_pf
+                                    WHERE is_active = True
+                                    AND pf.fain = sub_pf.fain)
+                    THEN True
+                    ELSE False
+                    END AS currently_active
             FROM published_fabs AS pf
-            JOIN base_transaction AS bt
-                ON bt.fain = pf.fain
-                AND bt.max_mod = pf.modified_at
-                AND pf.record_type != 1)
+            WHERE EXISTS (
+                SELECT 1
+                FROM updated_transactions AS ut
+                WHERE ut.fain = pf.fain
+            )
+            GROUP BY fain),
+        only_base AS (
+            SELECT *
+            FROM (SELECT pf.*,
+                    base_date,
+                    earliest_start,
+                    latest_end,
+                    currently_active,
+                    obligation_sum,
+                    ROW_NUMBER() OVER (PARTITION BY
+                        UPPER(pf.fain)
+                        ORDER BY updated_at DESC
+                    ) AS row_num
+                FROM published_fabs AS pf
+                JOIN grouped_values AS gv
+                    ON gv.fain = pf.fain
+                    AND gv.max_updated = pf.updated_at
+                    AND pf.record_type != 1) AS duplicates
+            WHERE duplicates.row_num = 1)
 
         SELECT
             ob.fain AS federal_award_id,
@@ -83,7 +104,7 @@ def get_award_updates(mod_date):
             NULL AS dunsplus4,
             ob.uei AS uei,
             ob.place_of_performance_city AS principal_place_cc,
-            CASE WHEN UPPER(LEFT(ob.place_of_performance_code, 2)) ~ '[A-Z]{2}'
+            CASE WHEN UPPER(LEFT(ob.place_of_performance_code, 2)) ~ '[A-Z]{{2}}'
                 THEN UPPER(LEFT(ob.place_of_performance_code, 2))
                 ELSE NULL
                 END AS principal_place_state_code,
@@ -95,9 +116,8 @@ def get_award_updates(mod_date):
             ob.obligation_sum as total_fed_funding_amount,
             ob.base_date AS base_obligation_date,
             ob.award_description AS project_description,
-            ob.modified_at AS last_modified_date
-        FROM only_base AS ob
-        WHERE modified_at >= '""" + mod_date + "'")
+            ob.updated_at AS last_modified_date
+        FROM only_base AS ob; """)
     return results
 
 
