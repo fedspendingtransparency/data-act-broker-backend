@@ -6,9 +6,8 @@ Specifically leveraging the Datadog tracing client.
 import logging
 
 from ddtrace import tracer
-from ddtrace.constants import ANALYTICS_SAMPLE_RATE_KEY
+from ddtrace.constants import ANALYTICS_SAMPLE_RATE_KEY, USER_REJECT
 from ddtrace.ext import SpanTypes
-from ddtrace.ext.priority import USER_REJECT
 from ddtrace.internal.writer import AgentWriter
 from ddtrace.span import Span
 from typing import Optional, Callable
@@ -41,7 +40,7 @@ class DatadogEagerlyDropTraceFilter:
 
     @classmethod
     def drop(cls, span: Span):
-        tracer.get_call_context().sampling_priority = USER_REJECT
+        tracer.current_trace_context().sampling_priority = USER_REJECT
         span.set_tag(cls.EAGERLY_DROP_TRACE_KEY, True)
 
     def process_trace(self, trace):
