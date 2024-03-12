@@ -393,7 +393,12 @@ class DEFCFactory(factory.Factory):
 
     defc_id = None
     code = fuzzy.FuzzyText()
+    public_laws = ['PL 123-3', 'PL 456-12']
+    public_law_short_titles = ['123-3 A', '456-12 B']
     group = fuzzy.FuzzyText()
+    urls = ['http://test-url.com/A/', 'http://test-url.com/B/']
+    is_valid = True
+    earliest_pl_action_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
 
 
 class FundingOpportunityFactory(factory.Factory):
