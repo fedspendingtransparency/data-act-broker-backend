@@ -14,6 +14,11 @@ def remove_metrics_file():
         os.remove('load_program_activity_metrics.json')
 
 
+def remove_exported_file():
+    if os.path.isfile('program_activity.csv'):
+        os.remove('program_activity.csv')
+
+
 def add_relevant_data_types(sess):
     data_types = sess.query(ExternalDataType).all()
     if len(data_types) == 0:
@@ -49,6 +54,44 @@ def test_get_program_activity_file_local(monkeypatch):
     pa_file = load_program_activity.get_program_activity_file('local_path')
 
     assert pa_file == 'local_path/DATA Act Program Activity List for Treas.csv'
+
+    remove_metrics_file()
+
+
+@patch('dataactcore.interfaces.function_bag.update_external_data_load_date')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_stored_pa_last_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_date_of_current_pa_upload')
+@patch('dataactcore.scripts.pipeline.load_program_activity.get_program_activity_file')
+def test_export_program_activity(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
+                                 mocked_set_stored_date, database, monkeypatch):
+    """ Test exporting the program activity """
+
+    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
+    mocked_get_pa_file.return_value = StringIO(
+        "AGENCY,OMB_BUREAU_TITLE_OPTNL,OMB_ACCOUNT_TITLE_OPTNL,AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,"
+        "PA_TITLE,FYQ\n"
+        "Test Agency,Test Office,Test Account,2000,000,111,0000,1111,Test Name,FY15P03\n"
+        "Test Agency,Test Office,Test Account,2000,000,111,0000,1111,Test Name 2,FY15Q2"
+    )
+
+    mocked_get_current_date.return_value = datetime.datetime(2017, 12, 31, 0, 0, 0)
+    mocked_get_stored_date.return_value = datetime.datetime(2016, 12, 31, 0, 0, 0)
+    mocked_set_stored_date.return_value = None
+
+    sess = database.session
+    add_relevant_data_types(sess)
+
+    load_program_activity.load_program_activity_data('some_path', force_reload=True, export=True)
+
+    export_path = 'program_activity.csv'
+    with open(export_path, 'r') as export_pa:
+        actual_headers = export_pa.readline()
+    remove_exported_file()
+
+    expected_headers = ('REPORTING_PERIOD,AGENCY_IDENTIFIER_NAME,ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE,'
+                        'AGENCY_IDENTIFIER_CODE,MAIN_ACCOUNT_CODE,PROGRAM_ACTIVITY_NAME,PROGRAM_ACTIVITY_CODE,'
+                        'OMB_BUREAU_TITLE_OPTNL,OMB_ACCOUNT_TITLE_OPTNL\n')
+    assert expected_headers == actual_headers
 
     remove_metrics_file()
 
@@ -92,8 +135,10 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
 
     mocked_get_pa_file.return_value = StringIO(
-        """AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,PA_TITLE,FYQ\n2000,000,111,0000,1111,Test Name,FY15P03\n
-        2000,000,111,0000,1111,Test Name 2,FY15Q2"""
+        "AGENCY,OMB_BUREAU_TITLE_OPTNL,OMB_ACCOUNT_TITLE_OPTNL,AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,"
+        "PA_TITLE,FYQ\n"
+        "Test Agency,Test Office,Test Account,2000,000,111,0000,1111,Test Name,FY15P03\n"
+        "Test Agency,Test Office,Test Account,2000,000,111,0000,1111,Test Name 2,FY15Q2"
     )
 
     mocked_get_current_date.return_value = datetime.datetime(2017, 12, 31, 0, 0, 0)
@@ -132,7 +177,8 @@ def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_c
     monkeypatch.setattr(function_bag, 'CONFIG_BROKER', {'local': False})
 
     mocked_get_pa_file.return_value = StringIO(
-        """AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,PA_TITLE,FYQ"""
+        "AGENCY,OMB_BUREAU_TITLE_OPTNL,OMB_ACCOUNT_TITLE_OPTNL,AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,"
+        "PA_TITLE,FYQ"
     )
 
     mocked_get_current_date.return_value = datetime.datetime(2017, 12, 31, 0, 0, 0)
@@ -158,7 +204,7 @@ def test_load_program_activity_data_no_header(mocked_get_pa_file, mocked_get_cur
     monkeypatch.setattr(function_bag, 'CONFIG_BROKER', {'local': False})
 
     mocked_get_pa_file.return_value = StringIO(
-        """2000,000,111,0000,1111,Test Name,FY15Q1"""
+        "Test Agency,Test Office,Test Account,2000,000,111,0000,1111,Test Name,FY15Q1"
     )
 
     mocked_get_current_date.return_value = datetime.datetime(2017, 12, 31, 0, 0, 0)
