@@ -15,7 +15,8 @@ Flask-Login==0.6.3
 future==1.0.0
 marshmallow==3.21.1
 numpy==1.26.4
-pandas==2.2.1
+# Keeping pandas before 2.2.0 which requires SQLAlchemy to be 2.0.0
+pandas==2.1.4
 psutil==5.9.8
 pytest==8.0.2
 pytest-cov==4.1.0
@@ -23,6 +24,7 @@ python-dateutil==2.9.0
 PyYAML==6.0.1
 ratelimit==2.2.1
 requests==2.31.0
+# Keeping SQLAlchemy before 2.0.0 before major changes
 SQLAlchemy==1.4.52
 SQLAlchemy-Utils==0.41.1
 suds-py3==1.4.5.0
