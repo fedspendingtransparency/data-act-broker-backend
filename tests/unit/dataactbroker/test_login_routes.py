@@ -11,6 +11,8 @@ CAIA_RESPONSE_NO_PERMS = make_caia_user_dict("[]")
 CAIA_RESPONSE_W_PERMS = make_caia_user_dict("CGAC-999-R")
 CAIA_TOKEN_DICT = make_caia_token_dict('123456789')
 
+EXAMPLE_API_PROXY_TOKEN = 'test-token'
+
 MAX_RESPONSE_NO_PERMS = {
     "cas:serviceResponse": {
         "cas:authenticationSuccess": {
@@ -118,12 +120,12 @@ def test_w_perms_broker_user_caia(create_session_mock, revoke_caia_mock, caia_to
 
 
 @patch('dataactbroker.handlers.account_handler.AccountHandler.create_session_and_response')
-def test_proxy_login_success(create_session_mock, database):
+def test_proxy_login_success(create_session_mock, monkeypatch, database):
     sess = GlobalDB.db().session
     test_user = User(email='test-user@email.com')
     sess.add(test_user)
 
-    ah = proxy_login_func(create_session_mock)
+    ah = proxy_login_func(create_session_mock, monkeypatch, EXAMPLE_API_PROXY_TOKEN)
     res = ah.proxy_login({})
 
     # This is to prevent an integrity error with other tests that create users.
@@ -134,8 +136,8 @@ def test_proxy_login_success(create_session_mock, database):
 
 
 @patch('dataactbroker.handlers.account_handler.AccountHandler.create_session_and_response')
-def test_proxy_login_invalid_user(create_session_mock, database):
-    ah = proxy_login_func(create_session_mock)
+def test_proxy_login_invalid_user(create_session_mock, monkeypatch, database):
+    ah = proxy_login_func(create_session_mock, monkeypatch, EXAMPLE_API_PROXY_TOKEN)
     res = ah.proxy_login({})
     response = json.loads(res.get_data().decode("utf-8"))
 
@@ -145,6 +147,15 @@ def test_proxy_login_invalid_user(create_session_mock, database):
         .delete(synchronize_session=False)
 
     assert response['message'] == "Invalid email"
+
+
+@patch('dataactbroker.handlers.account_handler.AccountHandler.create_session_and_response')
+def test_proxy_login_invalid_token(create_session_mock, monkeypatch):
+    ah = proxy_login_func(create_session_mock, monkeypatch, 'different token')
+    res = ah.proxy_login({})
+    response = json.loads(res.get_data().decode("utf-8"))
+
+    assert response['message'] == "Invalid token"
 
 
 def max_login_func(create_session_mock, max_dict_mock, monkeypatch, max_response):
@@ -172,11 +183,12 @@ def caia_login_func(create_session_mock, revoke_caia_mock, caia_token_mock, caia
     return ah
 
 
-def proxy_login_func(create_session_mock):
+def proxy_login_func(create_session_mock, monkeypatch, token):
     def json_return():
-        return {"email": "test-user@email.com"}
+        return {"email": "test-user@email.com", "token": token}
     request = type('Request', (object,), {"is_json": True, "headers": {"Content-Type": "application/json"},
                                           "get_json": json_return})
     ah = account_handler.AccountHandler(request=request)
+    monkeypatch.setattr(account_handler, 'CONFIG_BROKER', {"api_proxy_token": EXAMPLE_API_PROXY_TOKEN})
     create_session_mock.return_value = LOGIN_RESPONSE
     return ah

@@ -116,6 +116,10 @@ class AccountHandler:
             safe_dictionary = RequestDictionary(self.request)
 
             email = safe_dictionary.get_value('email')
+            token = safe_dictionary.get_value('token')
+
+            if token != CONFIG_BROKER['api_proxy_token']:
+                raise ValueError("Invalid token")
 
             try:
                 user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one()
