@@ -127,7 +127,7 @@ class AccountHandler:
                 raise ValueError("Invalid email")
 
             try:
-                return self.create_session_and_response(session, user)
+                return self.create_session_and_response(session, user, user_details=False)
             except ValueError as ve:
                 LoginSession.logout(session)
                 raise ve
@@ -291,18 +291,21 @@ class AccountHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR, error=str(e))
 
     @staticmethod
-    def create_session_and_response(session, user):
+    def create_session_and_response(session, user, user_details=True):
         """ Create a session.
 
             Args:
                 session: Session object from flask
                 user: Users object
+                user_details: whether to include the user details in the response
 
             Returns:
                 JsonResponse containing the JSON for the user
         """
         LoginSession.login(session, user.user_id)
         data = json_for_user(user, session['sid'])
+        if not user_details:
+            data = {k: v for k, v in data.items() if k in ['session_id']}
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
 
