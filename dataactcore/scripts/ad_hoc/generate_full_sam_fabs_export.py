@@ -130,7 +130,7 @@ def main():
         'start_time': str(now)
     }
 
-    local_file = "".join([CONFIG_BROKER['broker_files'], 'sam_full_fabs_dump.csv'])
+    local_file = os.path.join(os.getcwd(), 'sam_full_fabs_dump.csv')
     file_path = f'{BUCKET_PREFIX}sam_full_fabs_dump.csv' if CONFIG_BROKER['use_aws'] else local_file
 
     logger.info('Starting SQL query of active financial assistance records and writing file')
