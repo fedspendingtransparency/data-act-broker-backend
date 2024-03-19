@@ -1,6 +1,6 @@
 from datetime import date
 
-from dataactcore.scripts.ad_hoc.generate_full_sam_fabs_export import get_transactions
+from dataactcore.scripts.ad_hoc.generate_full_sam_fabs_export import FULL_DUMP_QUERY
 
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory
 
@@ -12,7 +12,7 @@ def test_ignore_inactive(database):
     sess.add_all([pf1, pf2])
     sess.commit()
 
-    results = get_transactions()
+    results = sess.execute(FULL_DUMP_QUERY)
     result_list = results.all()
 
     assert len(result_list) == 1
@@ -35,7 +35,7 @@ def test_cumulative_sum(database):
     sess.add_all([pf1, pf2, pf3, pf4, pf5])
     sess.commit()
 
-    results = get_transactions()
+    results = sess.execute(FULL_DUMP_QUERY)
     result_list = results.all()
 
     assert len(result_list) == 5

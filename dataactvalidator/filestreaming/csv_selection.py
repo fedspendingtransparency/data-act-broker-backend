@@ -47,7 +47,7 @@ def write_csv(file_name, upload_name, is_local, header, body):
 
 
 def write_stream_query(sess, query, local_filename, upload_name, is_local, header=None, generate_headers=False,
-                       generate_string=True, is_certified=False, file_format='csv'):
+                       generate_string=True, is_certified=False, file_format='csv', bucket=None):
     """ Write file locally from a query, then stream it to S3
 
         Args:
@@ -61,6 +61,7 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
             generate_string: whether to extract the raw query from the queryset (default True)
             is_certified: True if writing to the certified bucket, False otherwise (default False)
             file_format: determines if the file generated is a txt or a csv (default csv)
+            bucket: A specific bucket name to overwrite the general use cases with
     """
     if is_local:
         local_filename = upload_name
@@ -81,7 +82,7 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
     })
 
     if not is_local:
-        upload_file_to_s3(upload_name, local_filename, is_certified=is_certified)
+        upload_file_to_s3(upload_name, local_filename, is_certified=is_certified, bucket=bucket)
         os.remove(local_filename)
 
 
@@ -128,13 +129,14 @@ def write_query_to_file(sess, query, local_filename, header=None, generate_heade
     os.remove(temp_sql_file_path)
 
 
-def upload_file_to_s3(upload_name, local_file, is_certified=False):
+def upload_file_to_s3(upload_name, local_file, is_certified=False, bucket=None):
     """ Upload file to S3
 
         Args:
             upload_name: file name to be used as S3 key
             local_file: full path of local file
             is_certified: True if writing to the certified bucket, False otherwise (default False)
+            bucket: A specific bucket name to overwrite the general use cases with
     """
     path, file_name = upload_name.rsplit('/', 1)
     logger.debug({
@@ -145,7 +147,9 @@ def upload_file_to_s3(upload_name, local_file, is_certified=False):
 
     s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
 
-    if is_certified:
+    if bucket:
+        bucket_name = bucket
+    elif is_certified:
         bucket_name = CONFIG_BROKER["certified_bucket"]
     else:
         bucket_name = CONFIG_BROKER["aws_bucket"]
@@ -169,7 +173,7 @@ def generate_temp_query_file(query, header=True, delimiter=','):
     with open(temp_sql_file_path, 'w') as file:
         with_header = ' HEADER' if header else ''
         format_delimiter = 'delimiter \'|\' ' if delimiter == '|' else ''
-        file.write('\\copy ({}) To STDOUT with {}CSV{}'.format(query, format_delimiter, with_header))
+        file.write('\\copy ({}) To STDOUT with {}CSV{}'.format(query.replace('\n', ''), format_delimiter, with_header))
 
     return temp_sql_file, temp_sql_file_path
 
