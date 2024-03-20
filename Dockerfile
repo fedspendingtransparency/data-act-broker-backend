@@ -10,7 +10,7 @@ RUN pip install unittest-xml-reporting setuptools==68.1.2
 COPY requirements.txt /data-act/backend/requirements.txt
 COPY server_requirements.txt /data-act/backend/server_requirements.txt
 
-RUN pip install --upgrade pip==22.2
+RUN pip install --upgrade pip
 RUN pip install -r /data-act/backend/requirements.txt
 RUN pip install -r /data-act/backend/server_requirements.txt
 
