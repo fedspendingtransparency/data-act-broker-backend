@@ -6,6 +6,7 @@ Specifically leveraging the Datadog tracing client.
 import logging
 
 from ddtrace import tracer
+from ddtrace.filters import TraceFilter
 from ddtrace.constants import ANALYTICS_SAMPLE_RATE_KEY, USER_REJECT
 from ddtrace.ext import SpanTypes
 from ddtrace.internal.writer import AgentWriter
@@ -23,9 +24,10 @@ def _activate_trace_filter(filter_class: Callable) -> None:
             tracer._filters.append(filter_class())
         else:
             tracer._filters = [filter_class()]
+        tracer.configure(settings={'FILTERS': tracer._filters})
 
 
-class DatadogEagerlyDropTraceFilter:
+class DatadogEagerlyDropTraceFilter(TraceFilter):
     """
     A trace filter that eagerly drops a trace, by filtering it out before sending it on to the Datadog Server API.
     It uses the `self.EAGERLY_DROP_TRACE_KEY` as a sentinel value. If present within any span's tags, the whole
@@ -104,7 +106,7 @@ class SubprocessTrace:
             _logger.warning("TRACER: finished exit handler")  # TODO:remove
 
 
-class DatadogLoggingTraceFilter:
+class DatadogLoggingTraceFilter(TraceFilter):
     """Debugging utility filter that can log trace spans"""
 
     _log = logging.getLogger(f"{__name__}.DatadogLoggingTraceFilter")
@@ -120,7 +122,7 @@ class DatadogLoggingTraceFilter:
             trace_id = span.trace_id or "???"
             if not span.get_tag(DatadogEagerlyDropTraceFilter.EAGERLY_DROP_TRACE_KEY):
                 logged = True
-                self._log.info(f"----[SPAN#{trace_id}]" + "-" * 40 + f"\n{span.pprint()}")
+                self._log.info(f"----[SPAN#{trace_id}]" + "-" * 40 + f"\n{span._pprint()}")
         if logged:
             self._log.info(f"====[END TRACE#{trace_id}]" + "=" * 35)
         return trace
