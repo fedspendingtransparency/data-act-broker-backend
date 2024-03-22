@@ -178,6 +178,9 @@ def load_boc(sess, filename, fiscal_year, fiscal_period, force_load=False, metri
     boc_data['disaster_emergency_fund_code'] = boc_data['disaster_emergency_fund_code']. \
         apply(lambda x: x.replace('QQQ', 'Q') if x else None)
 
+    now = datetime.utcnow()
+    boc_data = boc_data.assign(created_at=now, updated_at=now)
+
     # insert to db
     table_name = GTASBOC.__table__.name
     num = insert_dataframe(boc_data, table_name, sess.connection())
