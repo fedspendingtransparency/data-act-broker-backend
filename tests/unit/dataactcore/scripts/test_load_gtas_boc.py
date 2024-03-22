@@ -19,11 +19,11 @@ def test_load_sf133_local(database):
 
     # Picking one of the lines to do spot checks on
     single_check = sess.query(GTASBOC).filter_by(agency_identifier='025').one()
-    assert single_check.display_tas == '025-X-0107-000'
+    assert single_check.display_tas == '025-X-0102-000'
     assert single_check.dollar_amount == Decimal('474.64')
     assert single_check.fiscal_year == 2023
     assert single_check.period == 9
 
     # Checking that DEFC QQQ got renamed to Q
     dupe_check = sess.query(GTASBOC).filter_by(disaster_emergency_fund_code='Q').one()
-    assert dupe_check.amount == Decimal('21409.92')
+    assert dupe_check.dollar_amount == Decimal('21409.92')
