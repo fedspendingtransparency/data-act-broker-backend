@@ -247,8 +247,7 @@ def load_defc(base_path, force_reload=False):
             'earliest_public_law_enactment_date': 'earliest_pl_action_date'
         }
         data = clean_data(raw_data, DEFC, defc_mapping, {})
-        diff_found = check_dataframe_diff(data, DEFC, ['defc_id'], ['code'], date_format='%m/%d/%y')
-
+        diff_found = check_dataframe_diff(data, DEFC, ['defc_id'], ['code'], date_format='%Y-%m-%d')
         sess = GlobalDB.db().session
         if force_reload or diff_found:
 
@@ -293,6 +292,10 @@ def load_defc(base_path, force_reload=False):
 
     with open('load_defc_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
+
+    if not (force_reload or diff_found):
+        exit_if_nonlocal(3)
+        return
 
 
 if __name__ == '__main__':
