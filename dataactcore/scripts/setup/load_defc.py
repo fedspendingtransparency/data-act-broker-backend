@@ -299,6 +299,6 @@ if __name__ == '__main__':
     configure_logging()
 
     reload = '--force' in sys.argv
-    basePath = CONFIG_BROKER["path"]
-    validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
+    base_path = CONFIG_BROKER["path"]
+    validator_config_path = os.path.join(base_path, "dataactvalidator", "config")
     load_defc(validator_config_path, reload)

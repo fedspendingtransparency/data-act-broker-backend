@@ -5,7 +5,7 @@ import traceback
 import flask
 import decimal
 
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 
 
 logger = logging.getLogger(__name__)
@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 class JsonResponse:
     """ Used to create an http response object containing JSON """
-    debugMode = True
+    debug_mode = True
 
     @staticmethod
     def create(code, dictionary_data):
         """
         Creates a JSON response object
-        if debugMode is enabled errors are added
+        if debug_mode is enabled errors are added
         """
         jsondata = flask.Response()
         jsondata.headers["Content-Type"] = "application/json"
@@ -47,9 +47,9 @@ class JsonResponse:
         trace = traceback.extract_tb(exception.__traceback__, 10)
         logger.exception('Route Error')
         response_dict["message"] = str(exception)
-        if JsonResponse.debugMode:
+        if JsonResponse.debug_mode:
             response_dict["errorType"] = str(type(exception))
-            if isinstance(exception, ResponseException) and exception.wrappedException:
+            if isinstance(exception, ResponseError) and exception.wrappedException:
                 response_dict["wrappedType"] = str(type(exception.wrappedException))
                 response_dict["wrappedMessage"] = str(exception.wrappedException)
             response_dict["trace"] = [str(entry) for entry in trace]

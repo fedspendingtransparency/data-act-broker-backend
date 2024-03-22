@@ -111,8 +111,8 @@ def test_drop_key_on_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCapt
     assert test_msg in caplog.text, "caplog.text did not seem to capture logging output during test"
     assert f"SPAN#{trace_id1}" not in caplog.text, "span marker still logged when should have been dropped"
     assert f"TRACE#{trace_id1}" not in caplog.text, "trace marker still logged when should have been dropped"
-    assert (f"resource=\'{test}_resource\'" not in caplog.text,
-            "traced resource still logged when should have been dropped")
+    assert f"resource=\'{test}_resource\'" not in caplog.text, \
+           "traced resource still logged when should have been dropped"
     assert test_msg2 in caplog.text
     assert f"SPAN#{trace_id2}" in caplog.text, "span marker not found in logging output"
     assert f"TRACE#{trace_id2}" in caplog.text, "trace marker not found in logging output"

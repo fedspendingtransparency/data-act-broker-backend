@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactvalidator.validation_handlers import validationManager
 
 from tests.unit.dataactcore.factories.domain import TASFactory
@@ -99,7 +99,7 @@ def test_attempt_validate_deleted_job():
     validation_manager = validationManager.ValidationManager(is_local=CONFIG_BROKER['local'])
     try:
         validation_manager.validate_job(12345678901234567890)
-    except ResponseException as e:
+    except ResponseError as e:
         error = e
 
     assert error is not None

@@ -56,8 +56,8 @@ target_metadata = {key: value[1].Base.metadata for (key, value) in db_dict.items
 for (key, value) in db_dict.items():
     # key = db-related names expected by Alembic config/scripts
     # value[0] = actual db names as set in broker config file
-    baseUrl = db_uri(value[0])
-    config.set_section_option(key, 'sqlalchemy.url', baseUrl)
+    base_url = db_uri(value[0])
+    config.set_section_option(key, 'sqlalchemy.url', base_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
