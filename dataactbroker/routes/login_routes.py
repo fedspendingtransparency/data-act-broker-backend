@@ -13,6 +13,11 @@ def add_login_routes(app, bcrypt):
         account_manager = AccountHandler(request, bcrypt=bcrypt)
         return account_manager.login(session)
 
+    @app.route("/v1/proxy_login/", methods=["POST"])
+    def proxy_login():
+        account_manager = AccountHandler(request)
+        return account_manager.proxy_login(session)
+
     @app.route("/v1/max_login/", methods=["POST"])
     @deprecate_route("MAX login will no longer be supported on October 1st, 2023."
                      " Instead, CAIA login is supported now (via /v1/caia_login) and will be the only option then.")
