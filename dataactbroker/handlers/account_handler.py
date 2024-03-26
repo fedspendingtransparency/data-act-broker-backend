@@ -100,6 +100,52 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
+    def proxy_login(self, session):
+        """ Logs a user via the API proxy
+
+            Args:
+                session: the Session object from flask
+
+            Returns:
+                A JsonResponse containing the user information or details on which error occurred, such as whether a
+                type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
+                different, unexpected error occurred.
+        """
+        try:
+            sess = GlobalDB.db().session
+            safe_dictionary = RequestDictionary(self.request)
+
+            email = safe_dictionary.get_value('email')
+            token = safe_dictionary.get_value('token')
+
+            if token != CONFIG_BROKER['api_proxy_token']:
+                raise ValueError("Invalid token")
+
+            try:
+                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one()
+            except Exception:
+                raise ValueError("Invalid email")
+
+            try:
+                return self.create_session_and_response(session, user, user_details=False)
+            except ValueError as ve:
+                LoginSession.logout(session)
+                raise ve
+            except Exception as e:
+                LoginSession.logout(session)
+                raise e
+
+        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly
+        except (TypeError, KeyError, NotImplementedError) as e:
+            # Return a 400 with appropriate message
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+        except ValueError as e:
+            # Return a 401 for login denied
+            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED)
+        except Exception as e:
+            # Return 500
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+
     def max_login(self, session):
         """ Logs a user in if their password matches using MAX
 
@@ -245,18 +291,21 @@ class AccountHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR, error=str(e))
 
     @staticmethod
-    def create_session_and_response(session, user):
+    def create_session_and_response(session, user, user_details=True):
         """ Create a session.
 
             Args:
                 session: Session object from flask
                 user: Users object
+                user_details: whether to include the user details in the response
 
             Returns:
                 JsonResponse containing the JSON for the user
         """
         LoginSession.login(session, user.user_id)
         data = json_for_user(user, session['sid'])
+        if not user_details:
+            data = {k: v for k, v in data.items() if k in ['session_id']}
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
 
