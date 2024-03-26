@@ -29,6 +29,7 @@ tests/stats
 tests/test-reports/
 dataactvalidator/responseErrorLog
 dataactvalidator/config/sf_133*.csv
+dataactvalidator/config/OMB_Extract_BOC*.txt
 dataactvalidator/config/GTAS_FE_DA_*.csv
 runBothTestPackages.py
 dataactcore/local_config.yml

@@ -4,9 +4,15 @@ import requests
 import sys
 import time
 import xmltodict
+import os
+import boto3
+import glob
 
+from collections import namedtuple
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
+
+from dataactcore.config import CONFIG_BROKER
 
 
 logger = logging.getLogger(__name__)
@@ -115,3 +121,38 @@ def get_with_exception_hand(url_string):
             exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)
 
     return response_dict
+
+
+def get_prefixed_file_list(file_path, aws_prefix, bucket_name='sf_133_bucket', file_extension='csv'):
+    """ Get a list of files starting with the given prefix
+
+        Args:
+            file_path: path to where files are stored
+            aws_prefix: prefix to filter which files to pull from AWS
+            bucket_name: name of the bucket from which to pull the files
+            file_extension: the extension of the files to look for
+
+        Returns:
+            A list of tuples containing information about existing
+    """
+    FileInfo = namedtuple('FileInfo', ['full_file', 'file'])
+    if file_path is not None:
+        logger.info('Loading local files')
+        # get list of prefixed files in the specified local directory
+        found_files = glob.glob(os.path.join(file_path, f'{aws_prefix}*.{file_extension}'))
+        file_list = [FileInfo(file_info, os.path.basename(file_info)) for file_info in found_files]
+    else:
+        logger.info("Loading Files")
+        if CONFIG_BROKER["use_aws"]:
+            # get list of prefixed files in the config bucket on S3
+            s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER[bucket_name], Prefix=aws_prefix)
+            file_list = []
+            for obj in response.get('Contents', []):
+                file_url = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER[bucket_name],
+                                                                           'Key': obj['Key']}, ExpiresIn=600)
+                file_list.append(FileInfo(file_url, obj['Key']))
+        else:
+            file_list = []
+
+    return file_list
