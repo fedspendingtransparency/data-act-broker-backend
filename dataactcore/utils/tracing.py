@@ -96,12 +96,12 @@ class SubprocessTrace:
             # span data that is to be flushed (sent to the server)
             self.span.__exit__(exc_type, exc_val, exc_tb)
         finally:
-            writer_type = type(tracer.writer)
+            writer_type = type(tracer._writer)
             if writer_type is AgentWriter:
-                tracer.writer.flush_queue()
+                tracer._writer.flush_queue()
             else:
                 _logger.warning(
-                    f"Unexpected Datadog tracer.writer type of {writer_type} found. Not flushing trace spans."
+                    f"Unexpected Datadog tracer._writer type of {writer_type} found. Not flushing trace spans."
                 )
             _logger.warning("TRACER: finished exit handler")  # TODO:remove
 
