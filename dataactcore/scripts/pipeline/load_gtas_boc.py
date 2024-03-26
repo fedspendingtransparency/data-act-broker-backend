@@ -21,7 +21,6 @@ from dataactcore.utils.loader_utils import insert_dataframe
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
-logging.getLogger('requests').setLevel(logging.WARNING)
 
 
 def load_all_boc(boc_path=None, force_load=False, aws_prefix='OMB_Extract_BOC'):
@@ -46,10 +45,10 @@ def load_all_boc(boc_path=None, force_load=False, aws_prefix='OMB_Extract_BOC'):
         boc_list = get_prefixed_file_list(boc_path, aws_prefix, file_extension='txt')
         boc_re = re.compile(r'OMB_Extract_BOC_(?P<year>\d{4})_(?P<period>\d{2})\.txt')
         for boc in boc_list:
-            # for each SF file, parse out fiscal year and period and call the SF 133 loader
+            # for each BOC file, parse out fiscal year and period and call the BOC loader
             file_match = boc_re.match(boc.file)
             if not file_match:
-                logger.info('Skipping SF 133 file with invalid name: %s', boc.full_file)
+                logger.info('Skipping GTAS BOC file with invalid name: %s', boc.full_file)
                 continue
             logger.info('Starting %s...', boc.full_file)
             load_boc(sess, boc.full_file, file_match.group('year'), file_match.group('period'),

@@ -149,11 +149,9 @@ def get_prefixed_file_list(file_path, aws_prefix, bucket_name='sf_133_bucket', f
             response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER[bucket_name], Prefix=aws_prefix)
             file_list = []
             for obj in response.get('Contents', []):
-                if obj['Key'] != 'sf_133':
-                    file_url = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER[bucket_name],
-                                                                               'Key': obj['Key']},
-                                                                ExpiresIn=600)
-                    file_list.append(FileInfo(file_url, obj['Key']))
+                file_url = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER[bucket_name],
+                                                                           'Key': obj['Key']}, ExpiresIn=600)
+                file_list.append(FileInfo(file_url, obj['Key']))
         else:
             file_list = []
 
