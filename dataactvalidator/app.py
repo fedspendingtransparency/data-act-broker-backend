@@ -17,7 +17,7 @@ from dataactcore.interfaces.function_bag import mark_job_status, write_file_erro
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.jobModels import Job, FileGeneration
 from dataactcore.models.lookups import JOB_STATUS_DICT
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.tracing import DatadogEagerlyDropTraceFilter, SubprocessTrace
 from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher
@@ -174,8 +174,8 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                 span.resource = f"file_generation/{file_generation.file_type}"
                 span.set_tags(file_gen_data)
             elif file_generation is None:
-                raise ResponseException('FileGeneration ID {} not found in database'.format(file_gen_id),
-                                        StatusCode.CLIENT_ERROR, None)
+                raise ResponseError('FileGeneration ID {} not found in database'.format(file_gen_id),
+                                    StatusCode.CLIENT_ERROR, None)
 
             file_generation_manager = FileGenerationManager(sess, g.is_local, file_generation=file_generation)
             file_generation_manager.generate_file()
@@ -211,9 +211,9 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
             except Exception:
                 pass
 
-            # ResponseExceptions only occur at very specific times, and should not affect the Validator's
+            # ResponseErrors only occur at very specific times, and should not affect the Validator's
             # future attempts at handling messages from SQS
-            if not isinstance(e, ResponseException):
+            if not isinstance(e, ResponseError):
                 raise e
 
 
@@ -274,10 +274,10 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                 span.resource = job.job_type.name + (f"/{job.file_type.name}" if job.file_type else "")
                 span.set_tags(job_data)
             elif job is None:
-                validation_error_type = ValidationError.jobError
+                validation_error_type = ValidationError.job_error
                 write_file_error(job_id, None, validation_error_type)
-                raise ResponseException('Job ID {} not found in database'.format(job_id),
-                                        StatusCode.CLIENT_ERROR, None, validation_error_type)
+                raise ResponseError('Job ID {} not found in database'.format(job_id),
+                                    StatusCode.CLIENT_ERROR, None, validation_error_type)
 
             mark_job_status(job_id, 'ready')
 
@@ -291,7 +291,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                 validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES['error_report_path'])
                 validation_manager.validate_job(job.job_id)
 
-        except (ResponseException, csv.Error, pd.errors.ParserError, UnicodeDecodeError, ValueError) as e:
+        except (ResponseError, csv.Error, pd.errors.ParserError, UnicodeDecodeError, ValueError) as e:
             # Handle exceptions explicitly raised during validation
             error_data = {
                 'message': 'An exception occurred in the Validator',
@@ -307,11 +307,11 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                 sess.refresh(job)
                 job.error_message = str(e)
                 if job.filename is not None:
-                    error_type = ValidationError.unknownError
+                    error_type = ValidationError.unknown_error
                     extra_info = None
                     if isinstance(e, UnicodeDecodeError):
-                        error_type = ValidationError.encodingError
-                    elif isinstance(e, ResponseException):
+                        error_type = ValidationError.encoding_error
+                    elif isinstance(e, ResponseError):
                         error_type = e.errorType
                         extra_info = e.extraInfo
 

@@ -1,7 +1,11 @@
+os: linux
+
+dist: bionic
+
 language: python
 
 python:
-  - '3.9.13'
+  - '3.10'
 
 env:
   global:
@@ -11,7 +15,7 @@ env:
   - ERROR_REPORT_PATH_ESCAPED="dataactcore\/tmp\/"
 
 before_install:
-  - pip install setuptools==57.5.0
+  - pip install setuptools==60.8.2
 
 install:
   # NOTE: no pip install needed as long as the one of the docker containers started below builds the
@@ -32,7 +36,7 @@ before_script:
   - 'sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml'
   - 'sed -i.bak -E "s/error_report_path:.*$/error_report_path: ${ERROR_REPORT_PATH_ESCAPED}/" dataactcore/local_config.yml'
   # Start a containerized database to use for tests, which also pulls pip packages required for build as the image is built
-  - docker-compose up -d dataact-broker-db dataact-broker-init-db
+  - docker-compose up -d --quiet-pull dataact-broker-db dataact-broker-init-db
 
 script:
   # Comment these out if we need to run in the Docker image
@@ -40,8 +44,8 @@ script:
   #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
   #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
   - flake8
-  - pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
-  - pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  - pytest tests/unit --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  - pytest tests/integration --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
 
 after_script:
   - docker-compose down

@@ -6,7 +6,7 @@ from webargs import fields as webargs_fields, flaskparser
 from dataactbroker.handlers.agency_handler import get_sub_tiers_from_perms
 from dataactbroker.permissions import requires_login, separate_affiliations
 
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 
 webargs_parser = flaskparser.FlaskParser(unknown=INCLUDE)
@@ -20,7 +20,7 @@ def convert_to_submission_id(fn):
             The submission ID that was found
 
         Raises:
-            ResponseException: If a submission_id or submission parameter is not found
+            ResponseError: If a submission_id or submission parameter is not found
     """
     @wraps(fn)
     @requires_login     # check login before checking submission_id
@@ -35,7 +35,7 @@ def convert_to_submission_id(fn):
             if submission_id is not None:
                 break
         if submission_id is None:
-            raise ResponseException("submission_id is required", StatusCode.CLIENT_ERROR)
+            raise ResponseError("submission_id is required", StatusCode.CLIENT_ERROR)
         return fn(submission_id, *args, **kwargs)
     return wrapped
 

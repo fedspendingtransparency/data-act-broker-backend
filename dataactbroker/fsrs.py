@@ -174,17 +174,17 @@ _contract = ('company_name', 'parent_company_name', 'naics', 'funding_office_id'
 _grant = ('dunsplus4', 'awardee_name', 'project_description', 'compensation_q1', 'compensation_q2', 'federal_agency_id',
           'federal_agency_name')
 _prime = ('internal_id', 'date_submitted', 'report_period_mon', 'report_period_year')
-_primeContract = _common + _contract + _prime + (
+_prime_contract = _common + _contract + _prime + (
     'id', 'contract_number', 'idv_reference_number', 'report_type', 'contract_agency_code', 'contract_idv_agency_code',
     'contracting_office_aid', 'contracting_office_aname', 'contracting_office_id', 'contracting_office_name',
     'treasury_symbol', 'dollar_obligated', 'date_signed', 'transaction_type', 'program_title')
-_subContract = _common + _contract + (
+_sub_contract = _common + _contract + (
     'subcontract_amount', 'subcontract_date', 'subcontract_num', 'overall_description', 'recovery_subcontract_amt')
-_primeGrant = _common + _grant + _prime + ('id', 'fain', 'total_fed_funding_amount', 'obligation_date')
-_subGrant = _common + _grant + ('subaward_amount', 'subaward_date', 'subaward_num')
+_prime_grant = _common + _grant + _prime + ('id', 'fain', 'total_fed_funding_amount', 'obligation_date')
+_sub_grant = _common + _grant + ('subaward_amount', 'subaward_date', 'subaward_num')
 # Address fields
-_contractAddrs = ('principle_place', 'company_address')
-_grantAddrs = ('principle_place', 'awardee_address')
+_contract_addrs = ('principle_place', 'company_address')
+_grant_addrs = ('principle_place', 'awardee_address')
 
 
 def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
@@ -233,7 +233,7 @@ def to_prime_contract(soap_dict):
         Returns:
             Prime Contract object
     """
-    model_attrs = flatten_soap_dict(_primeContract, _contractAddrs, 'bus_types', soap_dict)
+    model_attrs = flatten_soap_dict(_prime_contract, _contract_addrs, 'bus_types', soap_dict)
     model_attrs['subawards'] = [to_subcontract(sub) for sub in soap_dict.get('subcontractors', [])]
 
     debug_dict = {'id': model_attrs['id'], 'internal_id': model_attrs['internal_id'],
@@ -252,7 +252,7 @@ def to_subcontract(soap_dict):
         Returns:
             Subcontract object
     """
-    model_attrs = flatten_soap_dict(_subContract, _contractAddrs, 'bus_types', soap_dict)
+    model_attrs = flatten_soap_dict(_sub_contract, _contract_addrs, 'bus_types', soap_dict)
     return FSRSSubcontract(**model_attrs)
 
 
@@ -265,7 +265,7 @@ def to_prime_grant(soap_dict):
         Returns:
             Prime Grant object
     """
-    model_attrs = flatten_soap_dict(_primeGrant, _grantAddrs, 'cfda_numbers', soap_dict)
+    model_attrs = flatten_soap_dict(_prime_grant, _grant_addrs, 'cfda_numbers', soap_dict)
     model_attrs['subawards'] = [to_subgrant(sub) for sub in soap_dict.get('subawardees', [])]
 
     debug_dict = {'id': model_attrs['id'], 'internal_id': model_attrs['internal_id'],
@@ -284,7 +284,7 @@ def to_subgrant(soap_dict):
         Returns:
             Subgrant object
     """
-    model_attrs = flatten_soap_dict(_subGrant, _grantAddrs, 'cfda_numbers', soap_dict)
+    model_attrs = flatten_soap_dict(_sub_grant, _grant_addrs, 'cfda_numbers', soap_dict)
     return FSRSSubgrant(**model_attrs)
 
 

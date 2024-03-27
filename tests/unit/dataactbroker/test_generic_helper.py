@@ -10,7 +10,7 @@ from dataactbroker.helpers.generic_helper import (year_period_to_dates, generate
                                                   zip_dir)
 from dataactcore.models.jobModels import FileGeneration
 
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 
 legal_dates = {
     dt.datetime(2017, 2, 2, 16, 43, 28, 377373): 2017,
@@ -45,21 +45,21 @@ def test_year_period_to_dates_period_failure():
     error_text = 'Period must be an integer 2-12.'
 
     # Test period that's too high
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         year_period_to_dates(2017, 13)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == error_text
 
     # Test period that's too low
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         year_period_to_dates(2017, 1)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == error_text
 
     # Test null period
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         year_period_to_dates(2017, None)
 
     assert resp_except.value.status == 400
@@ -69,14 +69,14 @@ def test_year_period_to_dates_period_failure():
 def test_year_period_to_dates_year_failure():
     error_text = 'Year must be in YYYY format.'
     # Test null year
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         year_period_to_dates(None, 2)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == error_text
 
     # Test invalid year
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         year_period_to_dates(999, 2)
 
     assert resp_except.value.status == 400

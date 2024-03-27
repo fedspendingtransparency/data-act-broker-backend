@@ -33,7 +33,7 @@ if __name__ == '__main__':
         if not config_valid():
             logger.error("No config for broker/fsrs/[service]/wsdl")
             sys.exit(1)
-        elif not(args.max_procurement_id or args.max_grant_id):
+        elif not (args.max_procurement_id or args.max_grant_id):
             logger.error("Must run one either/both of procurement and grant backfills")
             sys.exit(1)
         else:

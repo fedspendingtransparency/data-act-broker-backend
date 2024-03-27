@@ -27,7 +27,7 @@ from dataactcore.broker_logging import configure_logging
 from dataactcore.models.userModel import User
 
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 
 logger = logging.getLogger(__name__)
@@ -140,13 +140,13 @@ def create_app():
     def root():
         return "Broker is running"
 
-    @flask_app.errorhandler(ResponseException)
+    @flask_app.errorhandler(ResponseError)
     def handle_response_exception(exception):
         return JsonResponse.error(exception, exception.status)
 
     @flask_app.errorhandler(Exception)
     def handle_exception(exception):
-        wrapped = ResponseException(str(exception), StatusCode.INTERNAL_ERROR, type(exception))
+        wrapped = ResponseError(str(exception), StatusCode.INTERNAL_ERROR, type(exception))
         return JsonResponse.error(wrapped, wrapped.status)
 
     # Add routes for modules here

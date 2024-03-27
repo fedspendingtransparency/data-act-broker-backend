@@ -6,7 +6,7 @@ import multiprocessing as mp
 import pytest
 
 from logging.handlers import QueueHandler
-from _pytest.logging import LogCaptureFixture
+from pytest import LogCaptureFixture
 from ddtrace.ext import SpanTypes
 
 from dataactcore.utils.tracing import DatadogEagerlyDropTraceFilter, DatadogLoggingTraceFilter, SubprocessTrace
@@ -21,7 +21,7 @@ def datadog_tracer() -> ddtrace.Tracer:
     ddtrace.tracer.enabled = tracer_state
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def caplog(caplog):
     """A decorator (pattern) fixture around the pytest caplog fixture that adds the ability to temporarily alter
     loggers with propagate=False to True for duration of the test, so their output is propagated to the caplog log
@@ -64,7 +64,7 @@ def test_logging_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureF
     assert test_msg in caplog.text, "caplog.text did not seem to capture logging output during test"
     assert f"SPAN#{trace_id}" in caplog.text, "span marker not found in logging output"
     assert f"TRACE#{trace_id}" in caplog.text, "trace marker not found in logging output"
-    assert f"resource {test}_resource" in caplog.text, "traced resource not found in logging output"
+    assert f"resource='{test}_resource'" in caplog.text, "traced resource not found in logging output"
 
 
 def test_drop_key_on_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixture):
@@ -111,11 +111,12 @@ def test_drop_key_on_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCapt
     assert test_msg in caplog.text, "caplog.text did not seem to capture logging output during test"
     assert f"SPAN#{trace_id1}" not in caplog.text, "span marker still logged when should have been dropped"
     assert f"TRACE#{trace_id1}" not in caplog.text, "trace marker still logged when should have been dropped"
-    assert f"resource {test}_resource" in caplog.text, "traced resource still logged when should have been dropped"
+    assert f"resource='{test}_resource'" not in caplog.text, \
+           "traced resource still logged when should have been dropped"
     assert test_msg2 in caplog.text
     assert f"SPAN#{trace_id2}" in caplog.text, "span marker not found in logging output"
     assert f"TRACE#{trace_id2}" in caplog.text, "trace marker not found in logging output"
-    assert f"resource {test}_resource2" in caplog.text, "traced resource not found in logging output"
+    assert f"resource='{test}_resource2'" in caplog.text, "traced resource not found in logging output"
     assert DatadogEagerlyDropTraceFilter.EAGERLY_DROP_TRACE_KEY not in caplog.text
 
 

@@ -13,10 +13,10 @@ from pip.download import PipSession
 here = path.abspath(path.dirname(__file__))
 
 # Get path from current file location
-dirPath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-requirementsPath = os.path.join(dirPath, "requirements.txt")
+dir_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+requirements_path = os.path.join(dir_path, "requirements.txt")
 # parse_requirements() returns generator of pip.req.InstallRequirement objects
-install_reqs = parse_requirements(requirementsPath, session=PipSession())
+install_reqs = parse_requirements(requirements_path, session=PipSession())
 
 # Create the list of requirements
 reqs = [str(ir.req) for ir in install_reqs]

@@ -32,7 +32,7 @@ from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramA
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
@@ -710,7 +710,7 @@ def move_published_data(sess, submission_id, direction='publish'):
             direction: The direction to move the published data (publish or revert)
 
         Raises:
-            ResponseException if a value other than "publish" or "revert" is specified for the direction.
+            ResponseError if a value other than "publish" or "revert" is specified for the direction.
     """
     table_types = {'appropriation': [Appropriation, PublishedAppropriation, 'submission'],
                    'object_class_program_activity': [ObjectClassProgramActivity, PublishedObjectClassProgramActivity,
@@ -736,7 +736,7 @@ def move_published_data(sess, submission_id, direction='publish'):
             source_table = table_object[1]
             target_table = table_object[0]
         else:
-            raise ResponseException('Direction to move data must be publish or revert.', status=StatusCode.CLIENT_ERROR)
+            raise ResponseError('Direction to move data must be publish or revert.', status=StatusCode.CLIENT_ERROR)
 
         logger.info({
             'message': 'Deleting old data from {} table'.format(target_table.__table__.name),
@@ -1048,15 +1048,15 @@ def revert_to_published(submission, file_manager):
             A JsonResponse containing a success message
 
         Raises:
-            ResponseException: if submission provided is a FABS submission or is not in an "updated" status
+            ResponseError: if submission provided is a FABS submission or is not in an "updated" status
     """
 
     if submission.is_fabs:
-        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     if submission.publish_status_id != PUBLISH_STATUS_DICT['updated']:
-        raise ResponseException('Submission has not been published or has not been updated since publication.',
-                                status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Submission has not been published or has not been updated since publication.',
+                            status=StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
     submission.publish_status_id = PUBLISH_STATUS_DICT['reverting']

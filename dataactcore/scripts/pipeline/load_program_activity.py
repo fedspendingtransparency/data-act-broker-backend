@@ -17,7 +17,7 @@ from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDat
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
-from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
+from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
                     ['agency_id', 'program_activity_code', 'account_number', 'program_activity_name'],
                     True
                 )
-            except FailureThresholdExceededException as e:
+            except FailureThresholdExceededError as e:
                 if e.count == 0:
                     log_blank_file()
                     exit_if_nonlocal(4)

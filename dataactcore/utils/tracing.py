@@ -6,9 +6,9 @@ Specifically leveraging the Datadog tracing client.
 import logging
 
 from ddtrace import tracer
-from ddtrace.constants import ANALYTICS_SAMPLE_RATE_KEY
+from ddtrace.filters import TraceFilter
+from ddtrace.constants import ANALYTICS_SAMPLE_RATE_KEY, USER_REJECT
 from ddtrace.ext import SpanTypes
-from ddtrace.ext.priority import USER_REJECT
 from ddtrace.internal.writer import AgentWriter
 from ddtrace.span import Span
 from typing import Optional, Callable
@@ -24,9 +24,10 @@ def _activate_trace_filter(filter_class: Callable) -> None:
             tracer._filters.append(filter_class())
         else:
             tracer._filters = [filter_class()]
+        tracer.configure(settings={'FILTERS': tracer._filters})
 
 
-class DatadogEagerlyDropTraceFilter:
+class DatadogEagerlyDropTraceFilter(TraceFilter):
     """
     A trace filter that eagerly drops a trace, by filtering it out before sending it on to the Datadog Server API.
     It uses the `self.EAGERLY_DROP_TRACE_KEY` as a sentinel value. If present within any span's tags, the whole
@@ -41,7 +42,7 @@ class DatadogEagerlyDropTraceFilter:
 
     @classmethod
     def drop(cls, span: Span):
-        tracer.get_call_context().sampling_priority = USER_REJECT
+        tracer.current_trace_context().sampling_priority = USER_REJECT
         span.set_tag(cls.EAGERLY_DROP_TRACE_KEY, True)
 
     def process_trace(self, trace):
@@ -95,17 +96,17 @@ class SubprocessTrace:
             # span data that is to be flushed (sent to the server)
             self.span.__exit__(exc_type, exc_val, exc_tb)
         finally:
-            writer_type = type(tracer.writer)
+            writer_type = type(tracer._writer)
             if writer_type is AgentWriter:
-                tracer.writer.flush_queue()
+                tracer._writer.flush_queue()
             else:
                 _logger.warning(
-                    f"Unexpected Datadog tracer.writer type of {writer_type} found. Not flushing trace spans."
+                    f"Unexpected Datadog tracer._writer type of {writer_type} found. Not flushing trace spans."
                 )
             _logger.warning("TRACER: finished exit handler")  # TODO:remove
 
 
-class DatadogLoggingTraceFilter:
+class DatadogLoggingTraceFilter(TraceFilter):
     """Debugging utility filter that can log trace spans"""
 
     _log = logging.getLogger(f"{__name__}.DatadogLoggingTraceFilter")
@@ -121,7 +122,7 @@ class DatadogLoggingTraceFilter:
             trace_id = span.trace_id or "???"
             if not span.get_tag(DatadogEagerlyDropTraceFilter.EAGERLY_DROP_TRACE_KEY):
                 logged = True
-                self._log.info(f"----[SPAN#{trace_id}]" + "-" * 40 + f"\n{span.pprint()}")
+                self._log.info(f"----[SPAN#{trace_id}]" + "-" * 40 + f"\n{span._pprint()}")
         if logged:
             self._log.info(f"====[END TRACE#{trace_id}]" + "=" * 35)
         return trace

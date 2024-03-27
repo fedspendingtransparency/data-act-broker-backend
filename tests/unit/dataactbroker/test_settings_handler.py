@@ -9,7 +9,7 @@ from dataactcore.models.domainModels import is_not_distinct_from
 from dataactbroker.handlers import settings_handler
 from dataactbroker.handlers.dashboard_handler import generate_file_type
 from dataactcore.scripts.initialize import load_default_rule_settings
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 
 
 def rule_settings_endpoint(agency_code, file):
@@ -83,7 +83,7 @@ def test_list_rule_settings_input_errors(database):
     def test_failure(agency_code, file):
         try:
             settings_handler.list_rule_settings(agency_code=agency_code, file=file)
-        except ResponseException as e:
+        except ResponseError as e:
             return e
 
     results = test_failure(agency_code=None, file=None)
@@ -321,7 +321,7 @@ def test_save_rule_settings(database):
         {'label': 'A1', 'impact': 'medium'}
     ]
     expected_error_text = 'Rules list provided doesn\'t match the rules expected: A4'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         save_rule_settings_endpoint(agency_code='1125', file='A', errors=errors, warnings=warnings)
     assert str(resp_except.value) == expected_error_text
 
@@ -333,7 +333,7 @@ def test_save_rule_settings(database):
         {'label': 'A3', 'impact': 'high'}
     ]
     expected_error_text = 'Rules list provided doesn\'t match the rules expected: A3'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         save_rule_settings_endpoint(agency_code='1125', file='A', errors=errors, warnings=warnings)
     assert str(resp_except.value) == expected_error_text
 
@@ -347,7 +347,7 @@ def test_save_rule_settings(database):
         {'label': 'A1'}
     ]
     expected_error_text = 'Rule setting must have each of the following: '
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         save_rule_settings_endpoint(agency_code='1125', file='A', errors=errors, warnings=warnings)
     assert str(resp_except.value).startswith(expected_error_text)
 
@@ -360,7 +360,7 @@ def test_save_rule_settings(database):
         {'impact': 'low'}
     ]
     expected_error_text = 'Rules list provided doesn\'t match the rules expected: A3'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         save_rule_settings_endpoint(agency_code='1125', file='A', errors=errors, warnings=warnings)
     assert str(resp_except.value).startswith(expected_error_text)
 
@@ -374,6 +374,6 @@ def test_save_rule_settings(database):
         {'label': 'A1', 'impact': 'medium'}
     ]
     expected_error_text = 'Invalid impact: 3'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         save_rule_settings_endpoint(agency_code='1125', file='A', errors=errors, warnings=warnings)
     assert str(resp_except.value).startswith(expected_error_text)

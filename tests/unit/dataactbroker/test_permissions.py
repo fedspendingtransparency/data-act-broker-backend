@@ -6,7 +6,7 @@ import pytest
 from dataactbroker import permissions
 from dataactcore.models.lookups import ALL_PERMISSION_TYPES_DICT, PERMISSION_TYPE_DICT
 from dataactcore.models.userModel import UserAffiliation
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.user import UserFactory
@@ -418,5 +418,5 @@ def test_requires_submission_perm_no_submission(database, test_app):
     fn = permissions.requires_submission_perms('writer')(Mock())
     # Does not raise exception
     fn(sub.submission_id)
-    with pytest.raises(ResponseException):
+    with pytest.raises(ResponseError):
         fn(sub.submission_id + 1)   # different submission id

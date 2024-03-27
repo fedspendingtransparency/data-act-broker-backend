@@ -15,16 +15,16 @@ class SesEmail(object):
 
         Class Attributes:
             is_local: A boolean indicating if the application is being run locally or not
-            emailLog: A string indicating the name of the email log file for local emails
+            email_log: A string indicating the name of the email log file for local emails
 
         Constants:
             SIGNING_KEY: A string containing the signing key
             is_local: A boolean determining if the app is running locally or not
-            emailLog: A string containing the name of the local log file to write the email to
+            email_log: A string containing the name of the local log file to write the email to
     """
 
     is_local = False
-    emailLog = "Email.log"
+    email_log = "Email.log"
 
     def __init__(self, to_address, from_address, content="", subject="", template_type=None, parameters=None):
         """ Creates an email object to be sent
@@ -83,4 +83,4 @@ class SesEmail(object):
         else:
             new_email_text = "\n\n".join(["", "Time", str(datetime.datetime.now()), "Subject", self.subject, "From",
                                          self.from_address, "To", self.to_address, "Content", self.content])
-            open(SesEmail.emailLog, "a").write(new_email_text)
+            open(SesEmail.email_log, "a").write(new_email_text)

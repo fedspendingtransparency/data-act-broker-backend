@@ -2,7 +2,7 @@ version: '3'
 services:
   dataact-broker-db:
     container_name: dataact-broker-db
-    image: postgres:10.6-alpine
+    image: postgres:13.8-alpine
     restart: on-failure:3 # 3 max attempt, and then it will stop restarting
     environment:
       POSTGRES_USER: admin

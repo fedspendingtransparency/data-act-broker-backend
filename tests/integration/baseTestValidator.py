@@ -22,8 +22,8 @@ from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
 from dataactcore.scripts.setup.database_setup import create_database, run_migrations
 import dataactcore.config
 
-basePath = CONFIG_BROKER["path"]
-validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
+base_path = CONFIG_BROKER["path"]
+validator_config_path = os.path.join(base_path, "dataactvalidator", "config")
 
 
 class BaseTestValidator(unittest.TestCase):

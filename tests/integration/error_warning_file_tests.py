@@ -1015,7 +1015,7 @@ class ErrorWarningTests(BaseTestValidator):
         with self.assertRaises(Exception) as val_except:
             # making the reader object a list of strings instead, causing the inner function to break
             self.validator.parallel_data_loading(self.session, broken_chunks, file_row_count)
-        self.assertTrue(type(val_except.exception) == AttributeError)
+        self.assertTrue(isinstance(val_except.exception, AttributeError))
         self.assertTrue(str(val_except.exception) == "'str' object has no attribute 'empty'")
 
         # Check to see the processes are killed

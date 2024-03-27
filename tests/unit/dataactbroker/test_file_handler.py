@@ -18,7 +18,7 @@ from dataactcore.interfaces.function_bag import filename_fyp_sub_format
 from dataactcore.models.jobModels import PublishedFilesHistory, Submission, Job, FormatChangeDate
 from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT,
                                         FILE_TYPE_DICT_LETTER_ID, FILE_TYPE_DICT_LETTER)
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, PublishHistoryFactory, CommentFactory,
@@ -590,7 +590,7 @@ def test_comments(database):
     }
 
     sub1.publish_status_id = PUBLISH_STATUS_DICT['publishing']
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         fileHandler.update_submission_comments(sub1, {}, CONFIG_BROKER['local'])
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission must not be publishing, certifying, or reverting when updating ' \
@@ -794,7 +794,7 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
     # - can span a single quarter only
     # - must end with month = 3, 6, 9, or 12
     fh = fileHandler.FileHandler(Mock())
-    with pytest.raises(ResponseException):
+    with pytest.raises(ResponseError):
         fh.check_submission_dates(start_date, end_date, quarter_flag, submission)
 
 

@@ -40,7 +40,7 @@ from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.models.validationModels import RuleSql, ValidationLabel
 
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import report_file_name
 from dataactcore.utils.loader_utils import insert_dataframe
@@ -393,7 +393,7 @@ class ValidationManager:
         # Extension Check
         extension = os.path.splitext(self.file_name)[1]
         if not extension or extension.lower() not in ['.csv', '.txt']:
-            raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.fileTypeError)
+            raise ResponseError('', StatusCode.CLIENT_ERROR, None, ValidationError.file_type_error)
 
         # Base file check
         file_row_count, self.short_pop_rows, self.long_pop_rows, self.short_null_rows, self.long_null_rows = \
@@ -463,7 +463,7 @@ class ValidationManager:
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
-            raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
+            raise ResponseError('', StatusCode.CLIENT_ERROR, None, ValidationError.row_count_error)
 
         # Add a warning if the file is blank
         if self.file_type.file_type_id in (FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
@@ -472,14 +472,14 @@ class ValidationManager:
             empty_file = {
                 'Unique ID': '',
                 'Field Name': 'Blank File',
-                'Rule Message': ValidationError.blankFileErrorMsg,
+                'Rule Message': ValidationError.blank_file_error_msg,
                 'Value Provided': '',
                 'Expected Value': '',
                 'Difference': '',
                 'Flex Field': '',
                 'Row Number': None,
                 'Rule Label': 'DABSBLANK',
-                'error_type': ValidationError.blankFileError
+                'error_type': ValidationError.blank_file_error
             }
             empty_file_df = pd.DataFrame([empty_file], columns=list(self.report_headers + ['error_type']))
             record_row_error(self.error_list, self.job.job_id, self.file_name, empty_file['Field Name'],
@@ -994,7 +994,7 @@ class ValidationManager:
             warning_file_path = ''.join([CONFIG_SERVICES['error_report_path'], warning_file_name])
 
             # open error report and gather failed rules within it
-            with open(error_file_path, 'w', newline='') as error_file,\
+            with open(error_file_path, 'w', newline='') as error_file, \
                     open(warning_file_path, 'w', newline='') as warning_file:
                 error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
                 warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
@@ -1073,23 +1073,23 @@ class ValidationManager:
         # Get the job
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
-            raise ResponseException('Job ID {} not found in database'.format(job_id), StatusCode.CLIENT_ERROR, None,
-                                    ValidationError.jobError)
+            raise ResponseError('Job ID {} not found in database'.format(job_id), StatusCode.CLIENT_ERROR, None,
+                                ValidationError.job_error)
 
         # Make sure job's prerequisites are complete
         if not run_job_checks(job_id):
-            validation_error_type = ValidationError.jobError
+            validation_error_type = ValidationError.job_error
             write_file_error(job_id, None, validation_error_type)
-            raise ResponseException('Prerequisites for Job ID {} are not complete'.format(job_id),
-                                    StatusCode.CLIENT_ERROR, None, validation_error_type)
+            raise ResponseError('Prerequisites for Job ID {} are not complete'.format(job_id),
+                                StatusCode.CLIENT_ERROR, None, validation_error_type)
 
         # Make sure this is a validation job
         if job.job_type.name in ('csv_record_validation', 'validation'):
             job_type_name = job.job_type.name
         else:
-            validation_error_type = ValidationError.jobError
+            validation_error_type = ValidationError.job_error
             write_file_error(job_id, None, validation_error_type)
-            raise ResponseException(
+            raise ResponseError(
                 'Job ID {} is not a validation job (job type is {})'.format(job_id, job.job_type.name),
                 StatusCode.CLIENT_ERROR, None, validation_error_type)
 
@@ -1100,7 +1100,7 @@ class ValidationManager:
         elif job_type_name == 'validation':
             self.run_cross_validation(job)
         else:
-            raise ResponseException('Bad job type for validator', StatusCode.INTERNAL_ERROR)
+            raise ResponseError('Bad job type for validator', StatusCode.INTERNAL_ERROR)
 
         # Update last validated date
         job.last_validated = datetime.utcnow()

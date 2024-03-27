@@ -12,7 +12,7 @@ from dataactbroker.helpers.generation_helper import (
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.jobModels import FileGeneration
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, FileGenerationFactory
 
@@ -644,7 +644,7 @@ def test_check_generation_prereqs_bad_type(database):
     sess.add(sub)
     sess.commit()
 
-    with pytest.raises(ResponseException):
+    with pytest.raises(ResponseError):
         check_generation_prereqs(sub.submission_id, 'B')
 
 
