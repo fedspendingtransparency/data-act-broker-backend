@@ -1,2 +1,2 @@
 supervisor==4.1.0
-uwsgi==2.0.20
+pyuwsgi==2.0.23
