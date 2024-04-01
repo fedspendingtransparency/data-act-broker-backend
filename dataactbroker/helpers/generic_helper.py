@@ -14,7 +14,7 @@ from urllib.request import HTTPBasicAuthHandler
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
 
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 
 logger = logging.getLogger(__name__)
@@ -107,10 +107,10 @@ def year_period_to_dates(year, period):
     """
     # Make sure year is in the proper format
     if not year or not re.match(r'^\d{4}$', str(year)):
-        raise ResponseException('Year must be in YYYY format.', StatusCode.CLIENT_ERROR)
+        raise ResponseError('Year must be in YYYY format.', StatusCode.CLIENT_ERROR)
     # Make sure period is a number 2-12
     if not period or period not in list(range(2, 13)):
-        raise ResponseException('Period must be an integer 2-12.', StatusCode.CLIENT_ERROR)
+        raise ResponseError('Period must be an integer 2-12.', StatusCode.CLIENT_ERROR)
 
     # Set the actual month, add 12 if it's negative so it loops around and adjusts the year
     month = period - 3

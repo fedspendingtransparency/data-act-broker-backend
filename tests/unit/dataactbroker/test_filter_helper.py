@@ -7,7 +7,7 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.models.validationModels import RuleSql
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.user import UserFactory
@@ -72,7 +72,7 @@ def test_agency_filter(database):
     # throw in one that doesn't fit the agency format
     agency_list = ['089', '1125', '3']
     expected_response = 'All codes in the agency_codes filter must be valid agency codes'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         filters_helper.agency_filter(sess, base_query, cgac_model=Submission, frec_model=Submission,
                                      agency_list=agency_list)
     assert resp_except.value.status == 400
@@ -80,7 +80,7 @@ def test_agency_filter(database):
 
     # throw in one that just doesn't exist
     agency_list = ['089', '1125', '012']
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         filters_helper.agency_filter(sess, base_query, cgac_model=Submission, frec_model=Submission,
                                      agency_list=agency_list)
     assert resp_except.value.status == 400
@@ -252,7 +252,7 @@ def test_file_filter_wrong_file_model(database):
     # should break cause
     error_text = 'Invalid file model. Use one of the following instead: ErrorMetadata, PublishedErrorMetadata, ' \
                  'RuleSetting, RuleSql.'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         filters_helper.file_filter(base_query, Submission, [])
     assert str(resp_except.value) == error_text
 

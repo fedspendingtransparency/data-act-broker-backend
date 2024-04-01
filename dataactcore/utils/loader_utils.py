@@ -9,7 +9,7 @@ from pandas import isnull
 from pandas.io.sql import SQLTable
 from sqlalchemy.engine import Connection
 from typing import List, Iterable
-from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
+from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
         if return_dropped_count argument is True
 
     Raises:
-        FailureThresholdExceededException: If too many rows have been discarded during processing, fail the routine.
+        FailureThresholdExceededError: If too many rows have been discarded during processing, fail the routine.
            Also fail if the file is blank.
 
     """
@@ -146,7 +146,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
     if len(required_values) > 0:
         # if file is blank, immediately fail
         if clean_df.empty or len(clean_df.shape) < 2:
-            raise FailureThresholdExceededException(0)
+            raise FailureThresholdExceededError(0)
         # check the columns that must have a valid value, and if they have white space,
         # replace with NaN so that dropna finds them.
         for value in required_values:
@@ -162,7 +162,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
                        row['account_number'], row['program_activity_code'], row['program_activity_name']))
 
         if (len(dropped.index) / len(clean_df.index)) > FAILURE_THRESHOLD_PERCENTAGE:
-            raise FailureThresholdExceededException(len(dropped.index))
+            raise FailureThresholdExceededError(len(dropped.index))
         logger.info("{} total rows dropped due to faulty data".format(len(dropped.index)))
         clean_df = cleaned
 
