@@ -85,7 +85,7 @@ if __name__ == '__main__':
         award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
         award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
 
-        sub_tier_list, country_list, state_code_list, county_by_name, county_by_code,\
+        sub_tier_list, country_list, state_code_list, county_by_name, county_by_code, \
             exec_comp_dict = create_lookups(sess)
 
         # Query FPDS for every unique row in the provided csv

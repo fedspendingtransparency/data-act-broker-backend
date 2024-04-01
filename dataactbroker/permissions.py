@@ -13,7 +13,7 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import (ALL_PERMISSION_TYPES_DICT, PERMISSION_SHORT_DICT, DABS_PERMISSION_ID_LIST,
                                         FABS_PERMISSION_ID_LIST)
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 
@@ -134,7 +134,7 @@ def requires_submission_perms(perm, check_owner=True, check_fabs=None):
             initially provided)
 
         Raises:
-            ResponseException: If the user doesn't have permission to access the submission at the level requested
+            ResponseError: If the user doesn't have permission to access the submission at the level requested
                 or the submission doesn't exist.
     """
     def inner(fn):
@@ -146,12 +146,12 @@ def requires_submission_perms(perm, check_owner=True, check_fabs=None):
 
             if submission is None:
                 # @todo - why don't we use 404s?
-                raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
+                raise ResponseError('No such submission', StatusCode.CLIENT_ERROR)
 
             permission = check_fabs if check_fabs and submission.is_fabs else perm
             if not active_user_can_on_submission(permission, submission, check_owner):
-                raise ResponseException("User does not have permission to access that submission",
-                                        StatusCode.PERMISSION_DENIED)
+                raise ResponseError("User does not have permission to access that submission",
+                                    StatusCode.PERMISSION_DENIED)
             return fn(submission, *args, **kwargs)
         return wrapped
     return inner
@@ -168,7 +168,7 @@ def requires_agency_perms(perm):
             The args/kwargs that were initially provided
 
         Raises:
-            ResponseException: If the user doesn't have permission to access the submission at the level requested
+            ResponseError: If the user doesn't have permission to access the submission at the level requested
                 or no valid agency code was provided.
     """
     def inner(fn):
@@ -183,8 +183,8 @@ def requires_agency_perms(perm):
             # Ensure there is either an existing_submission_id, a cgac_code, or a frec_code
             if req_args['existing_submission_id'] is None and req_args['cgac_code'] is None and \
                req_args['frec_code'] is None:
-                raise ResponseException('Missing required parameter: cgac_code, frec_code, or existing_submission_id',
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseError('Missing required parameter: cgac_code, frec_code, or existing_submission_id',
+                                    StatusCode.CLIENT_ERROR)
 
             # Use codes based on existing Submission if existing_submission_id is provided, otherwise use CGAC or FREC
             if req_args['existing_submission_id'] is not None:
@@ -192,8 +192,8 @@ def requires_agency_perms(perm):
             else:
                 # Check permissions for the agency
                 if not active_user_can(perm, cgac_code=req_args['cgac_code'], frec_code=req_args['frec_code']):
-                    raise ResponseException("User does not have permissions to write to that agency",
-                                            StatusCode.PERMISSION_DENIED)
+                    raise ResponseError("User does not have permissions to write to that agency",
+                                        StatusCode.PERMISSION_DENIED)
             return fn(*args, **kwargs)
         return wrapped
     return inner
@@ -210,7 +210,7 @@ def requires_agency_code_perms(perm):
             The args/kwargs that were initially provided
 
         Raises:
-            ResponseException: If the user doesn't have permission to access the submission at the level requested
+            ResponseError: If the user doesn't have permission to access the submission at the level requested
                 or no valid agency code was provided.
     """
     def inner(fn):
@@ -226,11 +226,11 @@ def requires_agency_code_perms(perm):
                     break
             # Ensure there is an agency_code
             if agency_code is None:
-                raise ResponseException('Missing required parameter: agency_code', StatusCode.CLIENT_ERROR)
+                raise ResponseError('Missing required parameter: agency_code', StatusCode.CLIENT_ERROR)
 
             # Check permissions for the agency
             if not active_user_can(perm, cgac_code=agency_code, frec_code=agency_code):
-                raise ResponseException("User does not have permissions for that agency", StatusCode.PERMISSION_DENIED)
+                raise ResponseError("User does not have permissions for that agency", StatusCode.PERMISSION_DENIED)
             return fn(*args, **kwargs)
         return wrapped
     return inner
@@ -247,7 +247,7 @@ def requires_sub_agency_perms(perm):
             The args/kwargs that were initially provided
 
         Raises:
-            ResponseException: If the user doesn't have permission to access the submission at the level requested
+            ResponseError: If the user doesn't have permission to access the submission at the level requested
                 or no valid agency code was provided.
     """
     def inner(fn):
@@ -261,17 +261,17 @@ def requires_sub_agency_perms(perm):
                     'existing_submission_id': RequestDictionary.derive(request).get('existing_submission_id', None)
                 }
             except (ValueError, TypeError) as e:
-                raise ResponseException(e, StatusCode.CLIENT_ERROR)
+                raise ResponseError(e, StatusCode.CLIENT_ERROR)
             except BadRequest:
-                raise ResponseException('Bad request: agency_code or existing_submission_id not included properly',
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseError('Bad request: agency_code or existing_submission_id not included properly',
+                                    StatusCode.CLIENT_ERROR)
 
             if req_args['agency_code'] is None and req_args['existing_submission_id'] is None:
-                raise ResponseException('Missing required parameter: agency_code or existing_submission_id',
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseError('Missing required parameter: agency_code or existing_submission_id',
+                                    StatusCode.CLIENT_ERROR)
             if not isinstance(req_args['agency_code'], str) and not isinstance(req_args['existing_submission_id'], str):
-                raise ResponseException('Bad request: agency_code or existing_submission_id'
-                                        + 'required and must be strings', StatusCode.CLIENT_ERROR)
+                raise ResponseError('Bad request: agency_code or existing_submission_id'
+                                    + 'required and must be strings', StatusCode.CLIENT_ERROR)
             if req_args['existing_submission_id'] is not None:
                 check_existing_submission_perms(perm, req_args['existing_submission_id'])
             else:
@@ -279,14 +279,14 @@ def requires_sub_agency_perms(perm):
                     filter(SubTierAgency.sub_tier_agency_code == req_args['agency_code']).one_or_none()
 
                 if sub_tier_agency is None:
-                    raise ResponseException('sub_tier_agency must be a valid sub_tier_agency_code',
-                                            StatusCode.CLIENT_ERROR)
+                    raise ResponseError('sub_tier_agency must be a valid sub_tier_agency_code',
+                                        StatusCode.CLIENT_ERROR)
 
                 cgac_code = sub_tier_agency.cgac.cgac_code if sub_tier_agency.cgac_id else None
                 frec_code = sub_tier_agency.frec.frec_code if sub_tier_agency.frec_id else None
                 if not active_user_can(perm, cgac_code=cgac_code, frec_code=frec_code):
-                    raise ResponseException("User does not have permissions to write to that subtier agency",
-                                            StatusCode.PERMISSION_DENIED)
+                    raise ResponseError("User does not have permissions to write to that subtier agency",
+                                        StatusCode.PERMISSION_DENIED)
 
             return fn(*args, **kwargs)
         return wrapped
@@ -326,7 +326,7 @@ def check_existing_submission_perms(perm, submission_id):
             submission_id: the ID of the Submission that the user input
 
         Raises:
-            ResponseException: If the user doesn't have permission to access the submission at the level requested
+            ResponseError: If the user doesn't have permission to access the submission at the level requested
                 or no valid agency code was provided.
     """
     sess = GlobalDB.db().session
@@ -334,10 +334,10 @@ def check_existing_submission_perms(perm, submission_id):
 
     # Ensure submission exists
     if submission is None:
-        raise ResponseException("existing_submission_id must be a valid submission_id",
-                                StatusCode.CLIENT_ERROR)
+        raise ResponseError("existing_submission_id must be a valid submission_id",
+                            StatusCode.CLIENT_ERROR)
 
     # Check permissions for the submission
     if not active_user_can_on_submission(perm, submission):
-        raise ResponseException("User does not have permissions to write to that submission",
-                                StatusCode.PERMISSION_DENIED)
+        raise ResponseError("User does not have permissions to write to that submission",
+                            StatusCode.PERMISSION_DENIED)

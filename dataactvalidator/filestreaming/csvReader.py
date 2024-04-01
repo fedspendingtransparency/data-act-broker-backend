@@ -5,7 +5,7 @@ import boto3
 from collections import OrderedDict
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
@@ -76,8 +76,8 @@ class CsvReader(object):
         if self.is_finished:
             # Write header error for no header row
             self.write_file_level_error(bucket_name, error_filename, ["Error Type"], ["No header row"], self.is_local)
-            raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR,
-                                    ValueError, ValidationError.singleRow)
+            raise ResponseError("CSV file must have a header", StatusCode.CLIENT_ERROR,
+                                ValueError, ValidationError.single_row)
 
         self.delimiter = "|" if header_line.count("|") > header_line.count(",") else ","
         self.csv_reader = csv.reader(self.file, quotechar='"', dialect='excel', delimiter=self.delimiter)
@@ -112,7 +112,7 @@ class CsvReader(object):
         if is_local:
             with CsvLocalWriter(filename, header) as writer:
                 for line in error_content:
-                    if type(line) == str:
+                    if isinstance(line, str):
                         writer.write([line])
                     else:
                         writer.write(line)
@@ -122,7 +122,7 @@ class CsvReader(object):
             # add headers
             contents = bytes((",".join(header) + "\n").encode())
             for line in error_content:
-                if type(line) == str:
+                if isinstance(line, str):
                     contents += bytes((line + "\n").encode())
                 else:
                     contents += bytes((",".join(line) + "\n").encode())
@@ -277,10 +277,10 @@ def raise_missing_duplicated_exception(missing_headers, duplicated_headers):
         extra_info['missing_headers'] = missing_str
 
     if error_string:
-        raise ResponseException(
+        raise ResponseError(
             "Errors in header row: " + str(error_string),
             StatusCode.CLIENT_ERROR,
             ValueError,
-            ValidationError.headerError,
+            ValidationError.header_error,
             **extra_info
         )

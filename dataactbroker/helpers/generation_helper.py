@@ -16,7 +16,7 @@ from dataactcore.models import lookups
 from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.jobModels import FileGeneration, Job, Submission
 from dataactcore.utils import fileA
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
@@ -43,8 +43,8 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None,
             element_numbers: determines if the alternate headers with FPDS element numbers should be used
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
-        raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
-                                StatusCode.CLIENT_ERROR)
+        raise ResponseError("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                            StatusCode.CLIENT_ERROR)
 
     # Update the Job's start and end dates
     sess = GlobalDB.db().session
@@ -130,8 +130,8 @@ def start_a_generation(job, start_date, end_date, agency_code):
             agency_code: Agency code for A file generations
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
-        raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
-                                StatusCode.CLIENT_ERROR)
+        raise ResponseError("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                            StatusCode.CLIENT_ERROR)
 
     # Update the Job's start and end dates
     sess = GlobalDB.db().session
@@ -405,7 +405,7 @@ def check_generation_prereqs(submission_id, file_type):
             [lookups.FILE_TYPE_DICT['appropriations'], lookups.FILE_TYPE_DICT['program_activity'],
              lookups.FILE_TYPE_DICT['award_financial']])).count()
     elif file_type != 'A':
-        raise ResponseException('Invalid type for file generation', StatusCode.CLIENT_ERROR)
+        raise ResponseError('Invalid type for file generation', StatusCode.CLIENT_ERROR)
 
     return unfinished_prereqs == 0
 

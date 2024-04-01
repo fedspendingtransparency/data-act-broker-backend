@@ -2,7 +2,7 @@ import logging
 from sqlalchemy import and_
 
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactcore.interfaces.db import GlobalDB
@@ -54,15 +54,15 @@ def list_rule_settings(agency_code, file):
             Ordered list of rules prioritized by an agency
 
         Raises:
-            ResponseException if invalid agency code or file type
+            ResponseError if invalid agency code or file type
     """
     sess = GlobalDB.db().session
 
     if file not in FILE_TYPES:
-        raise ResponseException('Invalid file type: {}'.format(file), StatusCode.CLIENT_ERROR)
+        raise ResponseError('Invalid file type: {}'.format(file), StatusCode.CLIENT_ERROR)
     if (sess.query(CGAC).filter(CGAC.cgac_code == agency_code).count() == 0) and \
             (sess.query(FREC).filter(FREC.frec_code == agency_code).count() == 0):
-        raise ResponseException('Invalid agency_code: {}'.format(agency_code), StatusCode.CLIENT_ERROR)
+        raise ResponseError('Invalid agency_code: {}'.format(agency_code), StatusCode.CLIENT_ERROR)
 
     # Get the base query with the file filter
     rule_settings_query = sess.query(RuleSetting.priority, RuleSql.rule_label, RuleImpact.name,
@@ -105,15 +105,15 @@ def validate_rule_dict(rule_dict):
             rule_dict: the rule dict provided
 
         Raises:
-            ResponseException if rule dict is invalid
+            ResponseError if rule dict is invalid
     """
     rule_dict_keys = {'label', 'impact'}
     if not rule_dict_keys <= set(rule_dict.keys()):
-        raise ResponseException('Rule setting must have each of the following: {}'.format(', '.join(rule_dict_keys)),
-                                StatusCode.CLIENT_ERROR)
+        raise ResponseError('Rule setting must have each of the following: {}'.format(', '.join(rule_dict_keys)),
+                            StatusCode.CLIENT_ERROR)
 
     if rule_dict['impact'] not in RULE_IMPACT_DICT:
-        raise ResponseException('Invalid impact: {}'.format(rule_dict['impact']), StatusCode.CLIENT_ERROR)
+        raise ResponseError('Invalid impact: {}'.format(rule_dict['impact']), StatusCode.CLIENT_ERROR)
 
 
 def save_rule_settings(agency_code, file, errors, warnings):
@@ -126,13 +126,13 @@ def save_rule_settings(agency_code, file, errors, warnings):
             warnings: list of warning objects and their settings
 
         Raises:
-            ResponseException if invalid agency code or rule dict
+            ResponseError if invalid agency code or rule dict
     """
     sess = GlobalDB.db().session
 
     if (sess.query(CGAC).filter(CGAC.cgac_code == agency_code).count() == 0) and \
             (sess.query(FREC).filter(FREC.frec_code == agency_code).count() == 0):
-        raise ResponseException('Invalid agency_code: {}'.format(agency_code), StatusCode.CLIENT_ERROR)
+        raise ResponseError('Invalid agency_code: {}'.format(agency_code), StatusCode.CLIENT_ERROR)
 
     has_settings = agency_has_settings(sess=sess, agency_code=agency_code, file=file)
 
@@ -148,7 +148,7 @@ def save_rule_settings(agency_code, file, errors, warnings):
         rule_labels = [rule['label'] for rule in rules if 'label' in rule]
         if sorted(rule_labels) != sorted(rule_label_mapping):
             logger.info('{} {}'.format(sorted(rule_labels), sorted(rule_label_mapping)))
-            raise ResponseException(
+            raise ResponseError(
                 'Rules list provided doesn\'t match the rules expected: {}'.format(', '.join(rule_labels)),
                 StatusCode.CLIENT_ERROR)
 

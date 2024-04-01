@@ -6,7 +6,7 @@ from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.errorModels import PublishedErrorMetadata, ErrorMetadata
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import RuleSql, RuleSetting
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 
 
@@ -22,7 +22,7 @@ def agency_filter(sess, query, cgac_model, frec_model, agency_list):
             agency_list: list of strings representing the agency codes to filter with
 
         Raises:
-            ResponseException: if any of the strings in the agency_list are invalid
+            ResponseError: if any of the strings in the agency_list are invalid
 
         Returns:
             the same queryset provided with agency filters included
@@ -33,16 +33,16 @@ def agency_filter(sess, query, cgac_model, frec_model, agency_list):
     frec_codes = [frec_code for frec_code in agency_list if isinstance(frec_code, str) and len(frec_code) == 4]
 
     if len(cgac_codes) + len(frec_codes) != len(agency_list):
-        raise ResponseException('All codes in the agency_codes filter must be valid agency codes',
-                                StatusCode.CLIENT_ERROR)
+        raise ResponseError('All codes in the agency_codes filter must be valid agency codes',
+                            StatusCode.CLIENT_ERROR)
     # If the number of CGACs or FRECs returned from a query using the codes doesn't match the length of
     # each list (ignoring duplicates) then something included wasn't a valid agency
     cgac_list = set(cgac_codes)
     frec_list = set(frec_codes)
     if (cgac_list and sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list)) or \
             (frec_list and sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list)):
-        raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
-                                StatusCode.CLIENT_ERROR)
+        raise ResponseError("All codes in the agency_codes filter must be valid agency codes",
+                            StatusCode.CLIENT_ERROR)
     if len(cgac_list) > 0:
         agency_filters.append(cgac_model.cgac_code.in_(cgac_list))
     if len(frec_list) > 0:
@@ -96,7 +96,7 @@ def file_filter(query, file_model, files):
     if file_model not in model_file_type_id:
         valid_file_models = [model_file_type.__name__ for model_file_type in model_file_type_id.keys()]
         error_message = 'Invalid file model. Use one of the following instead: {}.'
-        raise ResponseException(error_message.format(', '.join(sorted(valid_file_models))))
+        raise ResponseError(error_message.format(', '.join(sorted(valid_file_models))))
 
     file_type_filters = []
     if files:

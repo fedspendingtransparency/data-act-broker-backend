@@ -1,16 +1,14 @@
-from collections import namedtuple
 from datetime import date, datetime
-import glob
 import logging
 import os
 import re
 import json
 import argparse
 
-import boto3
 import pandas as pd
 
 from dataactbroker.helpers.generic_helper import format_internal_tas
+from dataactbroker.helpers.script_helper import get_prefixed_file_list
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
@@ -46,7 +44,7 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False, aws_prefix='sf_133',
         sess = GlobalDB.db().session
 
         # get a list of SF 133 files to load
-        sf133_list = get_sf133_list(sf133_path, aws_prefix=aws_prefix)
+        sf133_list = get_prefixed_file_list(sf133_path, aws_prefix)
         sf_re = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
         for sf133 in sf133_list:
             # for each SF file, parse out fiscal year and period and call the SF 133 loader
@@ -288,41 +286,6 @@ def clean_sf133_data(filename, sf133_data):
     return data
 
 
-def get_sf133_list(sf133_path, aws_prefix='sf_133'):
-    """ Get the list of SF133 files to load
-
-        Args:
-            sf133_path: path to where SF133 files are stored
-            aws_prefix: prefix to filter which files to pull from AWS
-
-        Returns:
-            A list of tuples containing information about existing SF133 files
-    """
-    SF133File = namedtuple('SF133', ['full_file', 'file'])
-    if sf133_path is not None:
-        logger.info('Loading local SF-133')
-        # get list of SF 133 files in the specified local directory
-        sf133_files = glob.glob(os.path.join(sf133_path, 'sf_133*.csv'))
-        sf133_list = [SF133File(sf133, os.path.basename(sf133)) for sf133 in sf133_files]
-    else:
-        logger.info("Loading SF-133")
-        if CONFIG_BROKER["use_aws"]:
-            # get list of SF 133 files in the config bucket on S3
-            s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-            response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'], Prefix=aws_prefix)
-            sf133_list = []
-            for obj in response.get('Contents', []):
-                if obj['Key'] != 'sf_133':
-                    file_url = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                               'Key': obj['Key']},
-                                                                ExpiresIn=600)
-                    sf133_list.append(SF133File(file_url, obj['Key']))
-        else:
-            sf133_list = []
-
-    return sf133_list
-
-
 def rederive_tas_fields(sess, metrics=None):
     """ Using the already derived account_num to update the TAS components for out-of-date SF133 records
 
@@ -385,6 +348,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not args.remote:
-        load_all_sf133(args.local_path, args.force, None, args.fix_links, args.update_tas_fields)
+        load_all_sf133(args.local_path, args.force, args.aws_prefix, args.fix_links, args.update_tas_fields)
     else:
         load_all_sf133(None, args.force, args.aws_prefix, args.fix_links, args.update_tas_fields)
