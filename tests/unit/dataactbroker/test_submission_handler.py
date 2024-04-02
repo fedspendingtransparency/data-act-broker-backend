@@ -21,7 +21,7 @@ from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramA
                                               PublishedAppropriation, PublishedObjectClassProgramActivity,
                                               PublishedAwardFinancial, FlexField, PublishedFlexField, TotalObligations,
                                               PublishedTotalObligations)
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
@@ -1095,7 +1095,7 @@ def test_revert_submission_fabs_submission(database):
     sess.commit()
 
     file_handler = fileHandler.FileHandler({}, is_local=True)
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         revert_to_published(sub, file_handler)
 
     assert resp_except.value.status == 400
@@ -1114,14 +1114,14 @@ def test_revert_submission_not_updated_submission(database):
 
     file_handler = fileHandler.FileHandler({}, is_local=True)
     # Published submission
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         revert_to_published(sub1, file_handler)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission has not been published or has not been updated since publication.'
 
     # Unpublished submission
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         revert_to_published(sub2, file_handler)
 
     assert resp_except.value.status == 400

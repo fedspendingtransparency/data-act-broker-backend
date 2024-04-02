@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class SchemaLoader(object):
     """Load schema from corresponding .csv and insert related validation rules to the db."""
     # TODO: add schema to .csv mapping to the db instead of hard-coding here.
-    fieldFiles = {
+    field_files = {
         "appropriations": "appropFields.csv",
         "award": "awardFields.csv",
         "award_financial": "awardFinancialFields.csv",
@@ -146,8 +146,8 @@ class SchemaLoader(object):
     @classmethod
     def load_all_from_path(cls, path):
         # Load field definitions into validation DB
-        for key in cls.fieldFiles:
-            filepath = os.path.join(path, cls.fieldFiles[key])
+        for key in cls.field_files:
+            filepath = os.path.join(path, cls.field_files[key])
             cls.load_fields(key, filepath)
 
 

@@ -49,7 +49,7 @@ from dataactcore.utils import fileD2
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
@@ -154,7 +154,7 @@ class FileHandler:
                 request_params: the object containing the request params for the API call
 
             Raises:
-                ResponseException: if not all required params are present in a new submission or none of the params
+                ResponseError: if not all required params are present in a new submission or none of the params
                     are present in a re-upload for an existing submission
         """
         existing_submission_id = request_params.get('existing_submission_id')
@@ -166,18 +166,18 @@ class FileHandler:
                     param_count -= 1
 
         if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES) - 1:
-            raise ResponseException('Must include files B and C for a new submission', StatusCode.CLIENT_ERROR)
+            raise ResponseError('Must include files B and C for a new submission', StatusCode.CLIENT_ERROR)
 
         if existing_submission_id and param_count == 0:
-            raise ResponseException('Must include at least one file for an existing submission',
-                                    StatusCode.CLIENT_ERROR)
+            raise ResponseError('Must include at least one file for an existing submission',
+                                StatusCode.CLIENT_ERROR)
 
         # Make sure all files are CSV or TXT files and not something else
         for file_type in request_params.get('_files'):
             file = request_params['_files'].get(file_type)
             extension = file.filename.split('.')[-1]
             if not extension or extension.lower() not in ['csv', 'txt']:
-                raise ResponseException('All submitted files must be CSV or TXT format', StatusCode.CLIENT_ERROR)
+                raise ResponseError('All submitted files must be CSV or TXT format', StatusCode.CLIENT_ERROR)
 
     def submit(self, sess):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -216,15 +216,15 @@ class FileHandler:
                 existing_submission_obj = sess.query(Submission).filter_by(submission_id=existing_submission_id).one()
                 # If the existing submission is a FABS submission, stop everything
                 if existing_submission_obj.is_fabs:
-                    raise ResponseException('Existing submission must be a DABS submission', StatusCode.CLIENT_ERROR)
+                    raise ResponseError('Existing submission must be a DABS submission', StatusCode.CLIENT_ERROR)
                 if existing_submission_obj.publish_status_id in (PUBLISH_STATUS_DICT['publishing'],
                                                                  PUBLISH_STATUS_DICT['reverting']):
-                    raise ResponseException('Existing submission must not be publishing, certifying, or reverting',
-                                            StatusCode.CLIENT_ERROR)
+                    raise ResponseError('Existing submission must not be publishing, certifying, or reverting',
+                                        StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 for job in jobs:
                     if job.job_status_id == JOB_STATUS_DICT['running']:
-                        raise ResponseException('Submission already has a running job', StatusCode.CLIENT_ERROR)
+                        raise ResponseError('Submission already has a running job', StatusCode.CLIENT_ERROR)
             else:
                 existing_submission = None
                 existing_submission_obj = None
@@ -235,7 +235,7 @@ class FileHandler:
                     submission_data[submission_field] = request_value
                 # all of those fields are required unless existing_submission_id is present
                 elif 'existing_submission_id' not in request_params:
-                    raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+                    raise ResponseError('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
             if not existing_submission:
                 # Stripping off all extra whitespace so we don't create bad cgac/frec references. If it results in an
@@ -249,11 +249,11 @@ class FileHandler:
                 cgac_code = submission_data['cgac_code'] or ''
                 frec_code = submission_data['frec_code'] or ''
                 if cgac_code != '' and frec_code != '':
-                    raise ResponseException('New DABS submissions must have either a CGAC or a FREC code but not both',
-                                            StatusCode.CLIENT_ERROR)
+                    raise ResponseError('New DABS submissions must have either a CGAC or a FREC code but not both',
+                                        StatusCode.CLIENT_ERROR)
                 if cgac_code == '' and frec_code == '':
-                    raise ResponseException('New DABS submissions must have either a CGAC or a FREC code',
-                                            StatusCode.CLIENT_ERROR)
+                    raise ResponseError('New DABS submissions must have either a CGAC or a FREC code',
+                                        StatusCode.CLIENT_ERROR)
 
             # make sure submission dates are valid
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
@@ -281,8 +281,8 @@ class FileHandler:
                 # If it's a quarterly submission that is FY22 or later (starting FY22 all submissions must be monthly),
                 # throw an error
                 if reporting_fiscal_year >= 2022 and submission_data['is_quarter_format']:
-                    raise ResponseException('Quarterly submissions may not be created for FY22 or later',
-                                            StatusCode.CLIENT_ERROR)
+                    raise ResponseError('Quarterly submissions may not be created for FY22 or later',
+                                        StatusCode.CLIENT_ERROR)
                 # If there are already published submissions in this period/quarter, force the new submission to be a
                 # test
                 if len(submission_data['published_submission_ids']) > 0:
@@ -382,7 +382,7 @@ class FileHandler:
             json_response = JsonResponse.create(StatusCode.OK, api_response)
         except (ValueError, TypeError, NotImplementedError) as e:
             json_response = JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        except ResponseException as e:
+        except ResponseError as e:
             # call error route directly, status code depends on exception
             json_response = JsonResponse.error(e, e.status)
         except Exception as e:
@@ -423,14 +423,14 @@ class FileHandler:
                 The start and end dates in datetime format of the submission
 
             Raises:
-                ResponseException: Required values were not provided, date was improperly formatted, start date is
+                ResponseError: Required values were not provided, date was improperly formatted, start date is
                     after end date, quarterly submission does not span the required amount of time, or end month
                     is not a valid final month of a quarter
         """
         # if any of the date fields are none, there should be an existing submission otherwise, we shouldn't be here
         if None in (start_date, end_date, is_quarter) and existing_submission is None:
-            raise ResponseException('An existing submission is required when start/end date '
-                                    'or is_quarter aren\'t supplied', StatusCode.INTERNAL_ERROR)
+            raise ResponseError('An existing submission is required when start/end date '
+                                'or is_quarter aren\'t supplied', StatusCode.INTERNAL_ERROR)
 
         # Convert submission start/end dates from the request into Python date objects. If a date is missing, grab it
         # from the existing submission. Note: a previous check ensures that there's an existing submission when the
@@ -446,12 +446,12 @@ class FileHandler:
             else:
                 end_date = existing_submission.reporting_end_date
         except ValueError:
-            raise ResponseException('Date must be provided as MM/YYYY', StatusCode.CLIENT_ERROR, ValueError)
+            raise ResponseError('Date must be provided as MM/YYYY', StatusCode.CLIENT_ERROR, ValueError)
 
         # The front-end is doing date checks, but we'll also do a few server side to ensure everything is correct when
         # clients call the API directly
         if start_date > end_date:
-            raise ResponseException(
+            raise ResponseError(
                 'Submission start date {} is after the end date {}'.format(start_date, end_date),
                 StatusCode.CLIENT_ERROR)
 
@@ -463,9 +463,9 @@ class FileHandler:
             is_quarter = existing_submission.is_quarter_format
         if is_quarter:
             if relativedelta(end_date + relativedelta(months=1), start_date).months != 3:
-                raise ResponseException('Quarterly submission must span 3 months', StatusCode.CLIENT_ERROR)
+                raise ResponseError('Quarterly submission must span 3 months', StatusCode.CLIENT_ERROR)
             if end_date.month % 3 != 0:
-                raise ResponseException(
+                raise ResponseError(
                     'Invalid end month for a quarterly submission: {}'.format(end_date.month), StatusCode.CLIENT_ERROR)
 
         # Change end_date date to the final date
@@ -496,7 +496,7 @@ class FileHandler:
             if (submission.is_fabs and not active_user_can_on_submission('editfabs', submission)) or \
                     (not submission.is_fabs and not active_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
-                raise ResponseException('Cannot finalize a job for a different agency', StatusCode.CLIENT_ERROR)
+                raise ResponseError('Cannot finalize a job for a different agency', StatusCode.CLIENT_ERROR)
             # Change job status to finished
             if job.job_type_id == JOB_TYPE_DICT['file_upload']:
                 mark_job_status(job_id, 'finished')
@@ -506,11 +506,11 @@ class FileHandler:
                 response_dict['submission_id'] = job.submission_id
                 return JsonResponse.create(StatusCode.OK, response_dict)
             else:
-                raise ResponseException('Wrong job type for finalize route', StatusCode.CLIENT_ERROR)
+                raise ResponseError('Wrong job type for finalize route', StatusCode.CLIENT_ERROR)
 
         except (ValueError, TypeError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        except ResponseException as e:
+        except ResponseError as e:
             return JsonResponse.error(e, e.status)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
@@ -559,13 +559,13 @@ class FileHandler:
                     one()
                 # If the existing submission is a DABS submission, stop everything
                 if not existing_submission_obj.is_fabs:
-                    raise ResponseException('Existing submission must be a FABS submission', StatusCode.CLIENT_ERROR)
+                    raise ResponseError('Existing submission must be a FABS submission', StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 if existing_submission_obj.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
-                    raise ResponseException('FABS submission has already been published', StatusCode.CLIENT_ERROR)
+                    raise ResponseError('FABS submission has already been published', StatusCode.CLIENT_ERROR)
                 for job in jobs:
                     if job.job_status_id == JOB_STATUS_DICT['running']:
-                        raise ResponseException('Submission already has a running job', StatusCode.CLIENT_ERROR)
+                        raise ResponseError('Submission already has a running job', StatusCode.CLIENT_ERROR)
 
                 # set all jobs to their initial status of "waiting"
                 jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
@@ -632,7 +632,7 @@ class FileHandler:
             json_response = self.finalize(job_dict['fabs_id'])
         except (ValueError, TypeError, NotImplementedError) as e:
             json_response = JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        except ResponseException as e:
+        except ResponseError as e:
             # call error route directly, status code depends on exception
             json_response = JsonResponse.error(e, e.status)
         except Exception as e:
@@ -667,16 +667,16 @@ class FileHandler:
                 A JsonResponse object containing the submission ID or the details of the error
 
             Raises:
-                ResponseException: if the submission being published isn't a FABS submission, the submission is
+                ResponseError: if the submission being published isn't a FABS submission, the submission is
                     already in the process of being published, or the submission has already been published
         """
         # Check to make sure it's a valid d2 submission who hasn't already started a publish process
         if not submission.is_fabs:
-            raise ResponseException('Submission is not a FABS submission', StatusCode.CLIENT_ERROR)
+            raise ResponseError('Submission is not a FABS submission', StatusCode.CLIENT_ERROR)
         if submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']:
-            raise ResponseException('Submission is already publishing', StatusCode.CLIENT_ERROR)
+            raise ResponseError('Submission is already publishing', StatusCode.CLIENT_ERROR)
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
-            raise ResponseException('Submission has already been published', StatusCode.CLIENT_ERROR)
+            raise ResponseError('Submission has already been published', StatusCode.CLIENT_ERROR)
         if submission.test_submission:
             raise ValueError('Test submissions cannot be published')
 
@@ -686,7 +686,7 @@ class FileHandler:
         unfinished_jobs = sess.query(Job).filter(Job.submission_id == submission_id,
                                                  Job.job_status_id != JOB_STATUS_DICT['finished']).count()
         if unfinished_jobs > 0:
-            raise ResponseException('Submission has unfinished jobs and cannot be published', StatusCode.CLIENT_ERROR)
+            raise ResponseError('Submission has unfinished jobs and cannot be published', StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission that has only finished jobs, we can start the process
         log_derivation('Starting FABS submission publishing', submission_id)
@@ -713,11 +713,11 @@ class FileHandler:
                 sub_list = []
                 for sub in publishing_subs:
                     sub_list.append(str(sub.submission_id))
-                raise ResponseException('1 or more rows in this submission are currently publishing (in a separate '
-                                        'submission). To prevent duplicate records, please wait for the other '
-                                        'submission(s) to finish publishing before trying to publish. IDs of '
-                                        'submissions affecting this publish attempt: {}'.format(', '.join(sub_list)),
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseError('1 or more rows in this submission are currently publishing (in a separate '
+                                    'submission). To prevent duplicate records, please wait for the other '
+                                    'submission(s) to finish publishing before trying to publish. IDs of '
+                                    'submissions affecting this publish attempt: {}'.format(', '.join(sub_list)),
+                                    StatusCode.CLIENT_ERROR)
 
             # check to make sure no new entries have been published that collide with the new rows
             # (correction_delete_indicatr is not C or D)
@@ -730,11 +730,11 @@ class FileHandler:
                           PublishedFABS.is_active.is_(True))).\
                 count()
             if colliding_rows > 0:
-                raise ResponseException('1 or more rows in this submission were already published (in a separate '
-                                        'submission). This occurred in the time since your validations were completed. '
-                                        'To prevent duplicate records, this submission must be revalidated in order to '
-                                        'publish.',
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseError('1 or more rows in this submission were already published (in a separate '
+                                    'submission). This occurred in the time since your validations were completed. '
+                                    'To prevent duplicate records, this submission must be revalidated in order to '
+                                    'publish.',
+                                    StatusCode.CLIENT_ERROR)
 
             total_count = sess.query(FABS).filter_by(is_valid=True, submission_id=submission_id).count()
             log_derivation('Starting derivations for FABS submission (total count: {})'.format(total_count),
@@ -948,7 +948,7 @@ class FileHandler:
 
             # we want to return response exceptions in such a way that we can see the message, not catching it
             # separately because we still want to rollback the changes and set the status to unpublished
-            if type(e) == ResponseException:
+            if isinstance(e, ResponseError):
                 return JsonResponse.error(e, e.status)
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
@@ -989,7 +989,7 @@ class FileHandler:
                 submission: submission this file map is for
 
             Raises:
-                ResponseException: If a new submission is being made but not all the file types in the file_type_list
+                ResponseError: If a new submission is being made but not all the file types in the file_type_list
                     are included in the request_params
         """
         for file_type in file_type_list:
@@ -1357,8 +1357,8 @@ def update_submission_comments(submission, comment_request, is_local):
     """
     # If the submission is in flux, return an error
     if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
-        raise ResponseException('Submission must not be publishing, certifying, or reverting when updating comments',
-                                StatusCode.CLIENT_ERROR)
+        raise ResponseError('Submission must not be publishing, certifying, or reverting when updating comments',
+                            StatusCode.CLIENT_ERROR)
 
     # If the submission has been published, set its status to updated when new comments are made.
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
@@ -1763,7 +1763,7 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             The query updated with the valid provided filters
 
         Raises:
-            ResponseException - invalid type is provided for one of the filters or the contents are invalid
+            ResponseError - invalid type is provided for one of the filters or the contents are invalid
     """
     sess = GlobalDB.db().session
     # Checking for submission ID filter
@@ -1773,10 +1773,10 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             try:
                 sub_list = [int(sub_id) for sub_id in sub_list]
             except ValueError:
-                raise ResponseException('All submission_ids must be valid submission IDs', StatusCode.CLIENT_ERROR)
+                raise ResponseError('All submission_ids must be valid submission IDs', StatusCode.CLIENT_ERROR)
             query = query.filter(Submission.submission_id.in_(sub_list))
         elif sub_list:
-            raise ResponseException('submission_ids filter must be null or an array', StatusCode.CLIENT_ERROR)
+            raise ResponseError('submission_ids filter must be null or an array', StatusCode.CLIENT_ERROR)
     # Date range filter
     if 'last_modified_range' in filters:
         mod_dates = filters['last_modified_range']
@@ -1787,34 +1787,34 @@ def add_list_submission_filters(query, filters, submission_updated_view):
 
             # Make sure that, if it has content, at least start_date or end_date is part of this filter
             if not start_date and not end_date:
-                raise ResponseException('At least start_date or end_date must be provided when using '
-                                        'last_modified_range filter', StatusCode.CLIENT_ERROR)
+                raise ResponseError('At least start_date or end_date must be provided when using '
+                                    'last_modified_range filter', StatusCode.CLIENT_ERROR)
 
             # Start and end dates, when provided must be in the format MM/DD/YYYY format
             if (start_date and not StringCleaner.is_date(start_date)) or\
                     (end_date and not StringCleaner.is_date(end_date)):
-                raise ResponseException('Start or end date cannot be parsed into a date of format MM/DD/YYYY',
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseError('Start or end date cannot be parsed into a date of format MM/DD/YYYY',
+                                    StatusCode.CLIENT_ERROR)
             # Make sure start date is not greater than end date when both are provided (checking for >= because we add a
             # day)
             start_date = datetime.strptime(start_date, '%m/%d/%Y') if start_date else None
             end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1) if end_date else None
             if start_date and end_date and start_date >= end_date:
-                raise ResponseException('Last modified start date cannot be greater than the end date',
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseError('Last modified start date cannot be greater than the end date',
+                                    StatusCode.CLIENT_ERROR)
             if start_date:
                 query = query.filter(submission_updated_view.updated_at >= start_date)
             if end_date:
                 query = query.filter(submission_updated_view.updated_at < end_date)
         elif mod_dates:
-            raise ResponseException('last_modified_range filter must be null or an object', StatusCode.CLIENT_ERROR)
+            raise ResponseError('last_modified_range filter must be null or an object', StatusCode.CLIENT_ERROR)
     # Agency code filter
     if 'agency_codes' in filters:
         agency_list = filters['agency_codes']
         if agency_list and isinstance(agency_list, list):
             query = agency_filter(sess, query, CGAC, FREC, agency_list)
         elif agency_list:
-            raise ResponseException('agency_codes filter must be null or an array', StatusCode.CLIENT_ERROR)
+            raise ResponseError('agency_codes filter must be null or an array', StatusCode.CLIENT_ERROR)
     # File name filter
     if 'file_names' in filters:
         file_list = filters['file_names']
@@ -1834,7 +1834,7 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             # Use the subquery to filter by those submission IDs.
             query = query.filter(Submission.submission_id.in_(sub_query))
         elif file_list:
-            raise ResponseException('file_names filter must be null or an array', StatusCode.CLIENT_ERROR)
+            raise ResponseError('file_names filter must be null or an array', StatusCode.CLIENT_ERROR)
     # User ID filter
     if 'user_ids' in filters:
         user_list = filters['user_ids']
@@ -1842,17 +1842,17 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             try:
                 user_list = [int(user_id) for user_id in user_list]
             except ValueError:
-                raise ResponseException('All user_ids must be valid user IDs', StatusCode.CLIENT_ERROR)
+                raise ResponseError('All user_ids must be valid user IDs', StatusCode.CLIENT_ERROR)
             query = query.filter(Submission.user_id.in_(user_list))
         elif user_list:
-            raise ResponseException('user_ids filter must be null or an array', StatusCode.CLIENT_ERROR)
+            raise ResponseError('user_ids filter must be null or an array', StatusCode.CLIENT_ERROR)
     # Test submission filter
     if 'submission_type' in filters:
         submission_type = filters['submission_type']
         if str(submission_type).upper() in ['TEST', 'CERTIFIABLE']:
             query = query.filter(Submission.test_submission.is_(submission_type.upper() == 'TEST'))
         else:
-            raise ResponseException('submission_type filter must be "test" or "certifiable"', StatusCode.CLIENT_ERROR)
+            raise ResponseError('submission_type filter must be "test" or "certifiable"', StatusCode.CLIENT_ERROR)
     return query
 
 
@@ -1931,7 +1931,7 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
     if filters:
         try:
             query = add_list_submission_filters(query, filters, submission_updated_view)
-        except (ResponseException, ValueError) as e:
+        except (ResponseError, ValueError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
     # Determine what to order by, default to "modified"
@@ -2170,7 +2170,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
 
     # determine type of request
     if sub_type not in ['dabs', 'fabs']:
-        raise ResponseException('Type must be either \'dabs\' or \'fabs\'')
+        raise ResponseError('Type must be either \'dabs\' or \'fabs\'')
 
     # figure out what to return based on the request
     filters_provided = []

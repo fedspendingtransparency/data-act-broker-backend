@@ -35,8 +35,8 @@ from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 
 logger = logging.getLogger(__name__)
-basePath = CONFIG_BROKER["path"]
-validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
+base_path = CONFIG_BROKER["path"]
+validator_config_path = os.path.join(base_path, "dataactvalidator", "config")
 
 
 def setup_db():

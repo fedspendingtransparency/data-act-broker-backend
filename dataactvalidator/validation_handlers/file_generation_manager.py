@@ -10,7 +10,7 @@ from dataactcore.interfaces.function_bag import (mark_job_status, filename_fyp_s
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import DETACHED_FILENAMES, SUBMISSION_FILENAMES
 from dataactcore.utils import fileA, fileD1, fileD2, fileE_F
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
 
@@ -93,7 +93,7 @@ class FileGenerationManager:
 
             if self.job.file_type.letter_name == 'A':
                 if not agency_code:
-                    raise ResponseException('Agency code not provided for an A file generation')
+                    raise ResponseError('Agency code not provided for an A file generation')
 
                 self.generate_a_file(agency_code, file_path)
             else:
@@ -105,7 +105,7 @@ class FileGenerationManager:
         else:
             e = 'No FileGeneration object for D file generation.' if self.file_type in ['D1', 'D2'] else \
                 'Cannot generate file for {} file type.'.format(self.file_type if self.file_type else 'empty')
-            raise ResponseException(e)
+            raise ResponseError(e)
 
         logger.info(log_data)
 
@@ -133,7 +133,7 @@ class FileGenerationManager:
         elif self.file_type == 'D2':
             file_utils = fileD2
         else:
-            raise ResponseException('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(
+            raise ResponseError('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(
                 self.file_type))
         headers = [val[header_index] for key, val in file_utils.mapping.items()]
 
