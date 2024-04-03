@@ -365,7 +365,7 @@ def get_submission_files(jobs):
     """
     job_list = []
     for job in jobs:
-        if job.filename not in job_list:
+        if job.filename and job.filename not in job_list:
             job_list.append(job.filename)
     return job_list
 
