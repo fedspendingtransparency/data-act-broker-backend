@@ -59,6 +59,7 @@ class RuleSql(Base):
     query_name = Column(Text)
     expected_value = Column(Text)
     category = Column(Text)
+    sensitive = Column(Boolean, nullable=False, server_default='False')
 
 
 class ValidationLabel(Base):
