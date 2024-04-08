@@ -79,7 +79,8 @@ FILE_TYPE = [
     LookupFileType(5, 'award_procurement', '', 'D1', 5, True, AwardProcurement),
     LookupFileType(6, 'executive_compensation', '', 'E', None, False, None),
     LookupFileType(7, 'sub_award', '', 'F', None, False, None),
-    LookupFileType(8, 'fabs', '', 'FABS', None, False, FABS)
+    LookupFileType(8, 'fabs', '', 'FABS', None, False, FABS),
+    LookupFileType(9, 'boc_comparison', '', 'BOC', None, False, None)
 ]
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
@@ -101,6 +102,7 @@ SUBMISSION_FILENAMES = {
 }
 DETACHED_FILENAMES = {
     'A': 'File-A_{FYP}_{timestamp}.csv',
+    'BOC': 'BOC-Comparison_{FYP}_{timestamp}.csv',
     'D1': 'File-D1_{start}_{end}_{agency_type}_{timestamp}{ext}',
     'D2': 'File-D2_{start}_{end}_{agency_type}_{timestamp}{ext}'
 }
