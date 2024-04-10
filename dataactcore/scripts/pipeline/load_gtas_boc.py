@@ -126,7 +126,7 @@ def load_boc(sess, filename, fiscal_year, fiscal_period, force_load=False, metri
         'credit_cohort_year': 4,
         'disaster_emergency_fund_code': 3,
         'reduction_type': 3,
-        'budget_object_class': 3
+        'budget_object_class': 4
     }
     boc_col_types = {
         'fiscal_year': int,
