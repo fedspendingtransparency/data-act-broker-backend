@@ -261,7 +261,7 @@ def initial_query(session, model, summed_boc_model, period, year):
             year: year to display in the file
 
         Returns:
-            The base query (a select from the tas/gtas tables with the specified columns).
+            The base query.
     """
     return session.query(
         model.display_tas,
