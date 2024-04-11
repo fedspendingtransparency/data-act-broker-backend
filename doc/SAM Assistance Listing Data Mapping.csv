@@ -1,0 +1,44 @@
+﻿Assistance Listing File,"Broker ""assistance_listing"" Table"
+,created_at
+,updated_at
+,assistance_listing_id
+Program Title,program_number
+Program Number,program_title
+Popular Name (020),popular_name
+Federal Agency (030),federal_agency
+Authorization (040),authorization
+Objectives (050),objectives
+Types of Assistance (060),types_of_assistance
+Uses and Use Restrictions (070),uses_and_use_restrictions
+Applicant Eligibility (081),applicant_eligibility
+Beneficiary Eligibility (082),beneficiary_eligibility
+Credentials/Documentation (083),credentials_documentation
+Preapplication Coordination (091),preapplication_coordination
+Application Procedures (092),application_procedures
+Award Procedure (093),award_procedure
+Deadlines (094),deadlines
+Range of Approval/Disapproval Time (095),range_of_approval_disapproval_time
+Website Address (153),website_address
+Formula and Matching Requirements (101),formula_and_matching_requirements
+Length and Time Phasing of Assistance (102),length_and_time_phasing_of_assistance
+Reports (111),reports
+Audits (112),audits
+Records (113),records
+Account Identification (121),account_identification
+Obligations (122),obligations
+Range and Average of Financial Assistance (123),range_and_average_of_financial_assistance
+Appeals (096),appeals
+Renewals (097),renewals
+Program Accomplishments (130),program_accomplishments
+"Regulations, Guidelines, and Literature (140)",regulations_guidelines_and_literature
+"Regional or, Local Office (151)",regional_or_local_office
+Headquarters Office (152),headquarters_office
+Related Programs (160),related_programs
+Examples of Funded Projects (170),examples_of_funded_projects
+Criteria for Selecting Proposals (180),criteria_for_selecting_proposals
+URL,url
+Recovery,recovery
+OMB Agency Code,omb_agency_code
+OMB Bureau Code,omb_bureau_code
+Published Date,published_date
+Archived Date,archived_date
