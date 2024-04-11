@@ -66,11 +66,11 @@ def query_data(session, agency_code, period, year):
     # Create the CTE of only the laterally displayed USSGL values in the given submission
     ussgl_pub_file_b = ussgl_published_file_b_cte(session, ussgl_vals, summed_pub_b.c)
 
-    rows = initial_query(session, ussgl_pub_file_b.c, period, year).\
-        filter(func.coalesce(boc_model.fiscal_year, year) == year,
-               func.coalesce(boc_model.period, period) == period,
-               or_(ussgl_pub_file_b.c.dollar_amount != 0,
-                   (func.coalesce(boc_model.dollar_amount, 0) * case([(boc_model.debit_credit == 'D', 1)], else_=-1)) != 0))
+    summed_gtas_boc = sum_gtas_boc(session, period, year)
+
+    rows = initial_query(session, ussgl_pub_file_b.c, summed_gtas_boc, period, year).\
+        filter(or_(ussgl_pub_file_b.c.dollar_amount != 0,
+                   func.coalesce(summed_gtas_boc.c.sum_dollar_amount, 0) != 0))
 
     return rows
 
@@ -228,14 +228,42 @@ def ussgl_published_file_b_cte(session, ussgl_vals, model):
     return cte_query
 
 
-def initial_query(session, model, period, year):
+def sum_gtas_boc(session, period, year):
+    """ Sums the GTAS BOC data for the given year/period to ignore PYA since we don't have that to compare to
+
+        Args:
+            session: The current DB session
+            period: The period for which to get data
+            year: the year for which to get data
+
+        Returns:
+            A CTE containing the summed data for GTAS BOC for the given year/period
+    """
+    sum_boc = session.query(
+        boc_model.display_tas,
+        boc_model.disaster_emergency_fund_code,
+        boc_model.budget_object_class,
+        boc_model.reimbursable_flag,
+        boc_model.begin_end,
+        boc_model.ussgl_number,
+        func.sum(boc_model.dollar_amount * case([(boc_model.debit_credit == 'D', 1)], else_=-1)).
+        label('sum_dollar_amount')
+    ).filter(boc_model.fiscal_year == year, boc_model.period == period).\
+        group_by(boc_model.display_tas, boc_model.disaster_emergency_fund_code, boc_model.budget_object_class,
+                 boc_model.reimbursable_flag, boc_model.begin_end, boc_model.ussgl_number).\
+        cte('summed_gtas_boc')
+    return sum_boc
+
+
+def initial_query(session, model, summed_boc_model, period, year):
     """ Creates the initial query for BOC files.
 
         Args:
             session: The current DB session
             model: subquery model to get data from
-            period: The period for which to get data
-            year: the year for which to get data
+            summed_boc_model: subquery model of the BOC data summed together
+            period: period to display in the file
+            year: year to display in the file
 
         Returns:
             The base query (a select from the tas/gtas tables with the specified columns).
@@ -254,16 +282,17 @@ def initial_query(session, model, period, year):
             model.disaster_emergency_fund_code,
             literal(None).label('prior_year_adjustment'),
             model.begin_end_indicator.label('begin_end'),
-            boc_model.fiscal_year.label('reporting_fiscal_year'),
-            boc_model.period.label('reporting_fiscal_period'),
+            literal(year).label('reporting_fiscal_year'),
+            literal(period).label('reporting_fiscal_period'),
             model.ussgl_account_number.label('ussgl_account_num'),
-            (func.coalesce(boc_model.dollar_amount, 0) * case([(boc_model.debit_credit == 'D', 1)], else_=-1)).label('dollar_amount_gtas'),
+            func.coalesce(summed_boc_model.c.sum_dollar_amount, 0).label('dollar_amount_gtas'),
             model.dollar_amount.label('dollar_amount_broker'),
-            ((func.coalesce(boc_model.dollar_amount, 0) * case([(boc_model.debit_credit == 'D', 1)], else_=-1)) - model.dollar_amount).label('dollar_amount_diff'),
-            model.row_numbers.label('file_b_rows')).\
-        outerjoin(boc_model, and_(model.display_tas == boc_model.display_tas,
-                                  model.disaster_emergency_fund_code == boc_model.disaster_emergency_fund_code,
-                                  model.object_class == boc_model.budget_object_class,
-                                  model.by_direct_reimbursable_fun == boc_model.reimbursable_flag,
-                                  model.begin_end_indicator == boc_model.begin_end,
-                                  model.ussgl_account_number == boc_model.ussgl_number))
+            (func.coalesce(summed_boc_model.c.sum_dollar_amount, 0) - model.dollar_amount).label('dollar_amount_diff'),
+            model.row_numbers.label('file_b_rows')
+    ).outerjoin(summed_boc_model,
+                and_(model.display_tas == summed_boc_model.c.display_tas,
+                     model.disaster_emergency_fund_code == summed_boc_model.c.disaster_emergency_fund_code,
+                     model.object_class == summed_boc_model.c.budget_object_class,
+                     model.by_direct_reimbursable_fun == summed_boc_model.c.reimbursable_flag,
+                     model.begin_end_indicator == summed_boc_model.c.begin_end,
+                     model.ussgl_account_number == summed_boc_model.c.ussgl_number))
