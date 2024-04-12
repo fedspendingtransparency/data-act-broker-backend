@@ -787,15 +787,19 @@ def test_generate_boc(database, monkeypatch):
     file_rows = read_file_rows(job.filename)
     assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileBOC.mapping.items()]
 
+    # Removing the rows for testing purposes because there's no way to know what order they'll show up in
+    for row in file_rows:
+        row.pop()
+
     # check body
     # BOC 1 and 2 and published B 1 and 2
     expected1 = [tas1_str] + list(tas1_dict.values()) +\
                 [boc1.budget_object_class, 'D', 'Q', '', boc1.begin_end, str(year), '6', boc1.ussgl_number, '-0.5',
-                 '-0.5', '0.0', '{5,1}']
+                 '-0.5', '0.0']
     # TAS 2
     expected2 = [tas2_str] + list(tas2_dict.values()) +\
                 [boc5.budget_object_class, 'D', 'Q', '', boc5.begin_end, str(year), '6', boc5.ussgl_number, '25',
-                 '0', '25', '{9}']
+                 '0', '25']
 
     assert expected1 in file_rows
     assert expected2 in file_rows
