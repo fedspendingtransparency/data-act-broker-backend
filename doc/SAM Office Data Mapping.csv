@@ -1,0 +1,12 @@
+﻿Federal Hierarchy Feed,"Broker ""office"" Table"
+,created_at
+,updated_at
+,office_id
+orglist.org.aacofficecode,office_code
+orglist.org.fhorgname,office_name
+orglist.org.agencycode,sub_tier_code
+(CGAC/FREC based on orglist.org.cgaclist and orlist.org.agencycode),agency_code
+orglist.org.fhorgofficetypelist.officetype == 'contract_awards',contract_awards_office
+orglist.org.fhorgofficetypelist.officetype == 'contract_funding',contract_funding_office
+orglist.org.fhorgofficetypelist.officetype == 'financial_assistance_awards',financial_assistance_awards_office
+orglist.org.fhorgofficetypelist.officetype == 'financial_assistance_funding',financial_assistance_funding_office
