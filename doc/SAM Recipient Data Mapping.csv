@@ -1,0 +1,41 @@
+﻿SAM Recipient Files,Column Number in File,"Broker ""sam_recipient"" Table"
+,,sam_recipient_id
+UNIQUE ENTITY ID,1,uei
+(formerly AWARDEE OR RECIPIENT UNIQUE),2,awardee_or_recipient_uniqu
+LEGAL BUSINESS NAME,12,legal_business_name
+DBA NAME,13,dba_name
+ACTIVATION DATE,11,activation_date
+(based on file name date when deleted),,deactivation_date
+INITIAL REGISTRATION DATE,8,registration_date
+REGISTRATION EXPIRATION DATE,9,expiration_date
+LAST UPDATE DATE,10,last_sam_mod_date
+PHYSICAL ADDRESS LINE 1,16,address_line_1
+PHYSICAL ADDRESS LINE 2,17,address_line_2
+PHYSICAL ADDRESS CITY,18,city
+PHYSICAL ADDRESS PROVINCE OR STATE,19,state
+PHYSICAL ADDRESS ZIP/POSTAL CODE,20,zip
+PHYSICAL ADDRESS ZIP CODE +4,21,zip4
+PHYSICAL ADDRESS COUNTRY CODE,22,country_code
+PHYSICAL ADDRESS CONGRESSIONAL DISTRICT,23,congressional_district
+ENTITY STRUCTURE,30,entity_structure
+(based on BUS TYPE STRING),,business_types_codes
+BUS TYPE STRING,34,business_types
+ULTIMATE PARENT UNIQUE ENTITY ID,201,ultimate_parent_uei
+(formerly ULTIMATE PARENT AWARDEE OR RECIPIENT UNIQUE),202,ultimate_parent_unique_ide
+ULTIMATE PARENT LEGAL BUSINESS NAME,200,ultimate_parent_legal_enti
+(based on legacy recipient data) ,,historic
+,,
+SAM Executive Compensation File,,
+UNIQUE ENTITY ID,1,uei (matching recipient file)
+(formerly AWARDEE OR RECIPIENT UNIQUE),2,awardee_or_recipient_uniqu (if not matching on UEI)
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer1_full_na
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer1_amount
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer2_full_na
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer2_amount
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer3_full_na
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer3_amount
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer4_full_na
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer4_amount
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer5_full_na
+EXEC COMP STRING (split by ~ and ^),92,high_comp_officer5_amount
+(based on filename date),,last_exec_comp_mod_date
