@@ -125,12 +125,14 @@ def test_fail_ignore_optional_2021(database):
     database.session.flush()
 
     op = ObjectClassProgramActivityFactory(account_num=tas.account_num, program_activity_code='1',
-                                           program_activity_name='PA1', object_class='1')
+                                           program_activity_name='PA1', object_class='1',
+                                           disaster_emergency_fund_code='s')
 
     af = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='1', program_activity_name='PA1',
-                               object_class='1')
+                               object_class='1', disaster_emergency_fund_code='s')
     af2 = AwardFinancialFactory(account_num=tas.account_num, program_activity_code='OPTN',
-                                program_activity_name='FIELD IS optional PRIOR TO FY21', object_class='1')
+                                program_activity_name='FIELD IS optional PRIOR TO FY21', object_class='1',
+                                disaster_emergency_fund_code='s')
 
     sub = SubmissionFactory(reporting_fiscal_year=2021)
 

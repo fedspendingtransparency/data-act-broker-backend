@@ -15,7 +15,7 @@ from dataactcore.interfaces.function_bag import mark_job_status, filename_fyp_su
 from dataactcore.models import lookups
 from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.jobModels import FileGeneration, Job, Submission
-from dataactcore.utils import fileA
+from dataactcore.utils import fileA, fileBOC
 from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
@@ -120,14 +120,14 @@ def start_e_f_generation(job):
     logger.debug(log_data)
 
 
-def start_a_generation(job, start_date, end_date, agency_code):
+def start_dabs_generation(job, start_date, end_date, agency_code):
     """ Validates the start and end dates of the generation and sends the job information to SQS.
 
         Args:
             job: File generation job to start
             start_date: String to parse as the start date of the generation
             end_date: String to parse as the end date of the generation
-            agency_code: Agency code for A file generations
+            agency_code: Agency code for DABS-related file generations
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
         raise ResponseError("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
@@ -547,7 +547,7 @@ def reset_generation_jobs(sess, job):
 
 
 def a_file_query(query_utils):
-    """ Retrieve D1 or D2 data.
+    """ Retrieve File A data.
 
             Args:
                 query_utils: object containing:
@@ -560,4 +560,22 @@ def a_file_query(query_utils):
                 A queryset
         """
     rows = fileA.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"], query_utils["year"])
+    return rows
+
+
+def boc_file_query(query_utils):
+    """ Retrieve BOC comparison data.
+
+            Args:
+                query_utils: object containing:
+                    sess: database session
+                    agency_code: FREC or CGAC code for generation
+                    start: beginning of period for BOC comparison file
+                    end: end of period for BOC comparison file
+
+            Return:
+                A queryset
+        """
+    rows = fileBOC.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"],
+                              query_utils["year"])
     return rows

@@ -220,7 +220,7 @@ def failed_edits_details(session, tas_gtas, period, year):
 
 
 def initial_query(session, model, year):
-    """ Creates the initial query for D2 files.
+    """ Creates the initial query for A files.
 
         Args:
             session: The current DB session

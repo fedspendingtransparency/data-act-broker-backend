@@ -1338,7 +1338,7 @@ def get_submission_comments(submission):
             JsonResponse object with the contents of the comments in a key/value pair of letter/comments
     """
     sess = GlobalDB.db().session
-    result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values() if letter != 'FABS'}
+    result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values() if letter not in ('FABS', 'BOC')}
     result['submission_comment'] = ''
     comments = sess.query(Comment).filter_by(submission_id=submission.submission_id)
     for comment in comments:
@@ -1375,7 +1375,7 @@ def update_submission_comments(submission, comment_request, is_local):
 
     comments = []
     for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
-        if letter in comments_json and letter != 'FABS':
+        if letter in comments_json and letter not in ('FABS', 'BOC'):
             comments.append(Comment(
                 submission_id=submission.submission_id,
                 file_type_id=file_type_id,
@@ -1652,7 +1652,7 @@ def get_status(submission, file_type=''):
         job_dict['cross'] = []
         response_dict['cross'] = response_template.copy()
         for ft in FILE_TYPE_DICT:
-            if ft != 'fabs':
+            if ft not in ('fabs', 'boc_comparison'):
                 job_dict[ft] = []
                 response_dict[ft] = response_template.copy()
 
