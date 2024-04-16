@@ -36,7 +36,7 @@ db_columns = [key for key in mapping]
 
 
 def query_data(session, agency_code, period, year):
-    """ Request A file data
+    """ Request BOC comparison file data
 
         Args:
             session: DB session
