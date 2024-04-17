@@ -117,11 +117,10 @@ def create_app():
 
         content_type = request.headers.get('Content-Type')
 
-        request_body_raw = request.get_data(cache=False, as_text=True)
-        request_body = {}
-
         # If the request is a POST we want to log the request body
         if request.method == 'POST' and content_type and 'login' not in request.url.lower():
+            request_body = {}
+
             # If request is json, turn it into a dict
             if 'application/json' in content_type:
                 request_body = json.loads(request.get_data().decode('utf8'))
@@ -130,12 +129,11 @@ def create_app():
                 for key in request.form.keys():
                     request_body[key] = request.form[key]
 
-        request_dict = {
-            'message': 'Request ' + request.url,
-            'body': request_body,
-            'body_raw': request_body_raw
-        }
-        logger.info(request_dict)
+            request_dict = {
+                'message': 'Request body for ' + request.url,
+                'body': request_body
+            }
+            logger.info(request_dict)
 
     # Root will point to index.html
     @flask_app.route("/", methods=["GET"])
