@@ -24,12 +24,13 @@ This route sends a request to the backend to generate the relevant file for the 
     - `D1`: generate a D1 file
     - `D2`: generate a D2 file
     - `A`: generate an A file
+    - `BOC`: generate a BOC comparison file
 - `cgac_code`: (string) The cgac of the agency for which to generate the files. Required if `frec_code` is not provided.
 - `frec_code`: (string) The frec of the agency for which to generate the files. Required if `cgac_code` is not provided.
-- `start`: (string) The start date of the requested date range, in `MM/DD/YYYY` string format. Required for D file generation, ignored in A file generation.
-- `end`: (string) The end date of the requested date range, in `MM/DD/YYYY` string format. Required for D file generation, ignored in A file generation.
-- `year`: (integer) Indicates the year for which to generate an A file. Required for A file generation, ignored in D file generation.
-- `period`: (integer) Indicates the period for which to generate an A file. Required for A file generation, ignored in D file generation.
+- `start`: (string) The start date of the requested date range, in `MM/DD/YYYY` string format. Required for D file generation, ignored in A and BOC file generation.
+- `end`: (string) The end date of the requested date range, in `MM/DD/YYYY` string format. Required for D file generation, ignored in A and BOC file generation.
+- `year`: (integer) Indicates the year for which to generate an A or BOC comparison file. Required for A and BOC file generation, ignored in D file generation.
+- `period`: (integer) Indicates the period for which to generate an A or BOC comparison file. Required for A and BOC file generation, ignored in D file generation.
     - Allowed values: 2-12
     - 2 indicates November of the previous year, 12 indicates September of the selected year
 - `agency_type`: (string) Indicates if the file generated should be based on awarding or funding agency. Used only in D file generation. Defaults to `awarding` if not provided. Only allowed values are:
@@ -68,6 +69,7 @@ If the file has not finished generating when this returns, further checks for wh
     - `D1`
     - `D2`
     - `A`
+    - `BOC`
 - `url`: (string) a signed S3 URL from which the generated file can be downloaded. This will be the string `"#"` if the file is not in the `finished` state.
 - `size`: (integer) the size of the generated file in bytes
 - `start`: (string) the file start date, in `MM/DD/YYYY` format. If not a D1/D2 file, this key will not be returned.
@@ -81,5 +83,6 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
     - Invalid `file_type` parameter
     - Missing cgac or frec code
     - Missing start/end date OR period/year (depending on generation type)
+    - No BOC data and/or no published submission for the selected year/period/agency (only for BOC generation)
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission

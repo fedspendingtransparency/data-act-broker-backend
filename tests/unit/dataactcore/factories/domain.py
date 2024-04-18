@@ -26,6 +26,48 @@ class SF133Factory(factory.Factory):
     amount = 0
 
 
+class GTASBOCFactory(factory.Factory):
+    class Meta:
+        model = domainModels.GTASBOC
+
+    gtas_boc_id = None
+    agency_identifier = fuzzy.FuzzyText()
+    allocation_transfer_agency = fuzzy.FuzzyText()
+    availability_type_code = fuzzy.FuzzyText()
+    beginning_period_of_availa = fuzzy.FuzzyText()
+    ending_period_of_availabil = fuzzy.FuzzyText()
+    main_account_code = fuzzy.FuzzyText()
+    sub_account_code = fuzzy.FuzzyText()
+    tas = fuzzy.FuzzyText()
+    display_tas = fuzzy.FuzzyText()
+    fiscal_year = fuzzy.FuzzyInteger(2010, 2040)
+    period = fuzzy.FuzzyInteger(1, 12)
+    ussgl_number = fuzzy.FuzzyText()
+    dollar_amount = fuzzy.FuzzyDecimal(0, 99, 2)
+    debit_credit = fuzzy.FuzzyText()
+    begin_end = fuzzy.FuzzyText()
+    authority_type = fuzzy.FuzzyText()
+    reimbursable_flag = fuzzy.FuzzyText()
+    apportionment_cat_code = fuzzy.FuzzyText()
+    apportionment_cat_b_prog = fuzzy.FuzzyText()
+    program_report_cat_number = fuzzy.FuzzyText()
+    federal_nonfederal = fuzzy.FuzzyText()
+    trading_partner_agency_ide = fuzzy.FuzzyText()
+    trading_partner_mac = fuzzy.FuzzyText()
+    year_of_budget_auth_code = fuzzy.FuzzyText()
+    availability_time = fuzzy.FuzzyText()
+    bea_category = fuzzy.FuzzyText()
+    borrowing_source = fuzzy.FuzzyText()
+    exchange_or_nonexchange = fuzzy.FuzzyText()
+    custodial_noncustodial = fuzzy.FuzzyText()
+    budget_impact = fuzzy.FuzzyText()
+    prior_year_adjustment_code = fuzzy.FuzzyText()
+    credit_cohort_year = fuzzy.FuzzyInteger(1, 9999)
+    disaster_emergency_fund_code = fuzzy.FuzzyText()
+    reduction_type = fuzzy.FuzzyText()
+    budget_object_class = fuzzy.FuzzyText()
+
+
 class CGACFactory(factory.Factory):
     class Meta:
         model = domainModels.CGAC

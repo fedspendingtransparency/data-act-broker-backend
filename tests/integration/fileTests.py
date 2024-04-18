@@ -772,7 +772,7 @@ class FileTests(BaseTestAPI):
         json = response.json
 
         # create list of all file types including cross other than fabs
-        file_type_keys = {k if k != 'fabs' else 'cross' for k in FILE_TYPE_DICT}
+        file_type_keys = {k if k not in ('fabs', 'boc_comparison') else 'cross' for k in FILE_TYPE_DICT}
         response_keys = {k for k in json.keys()}
         self.assertEqual(file_type_keys, response_keys)
 
@@ -1140,7 +1140,7 @@ class FileTests(BaseTestAPI):
         response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file_type: Must be one of: appropriations, award, award_financial, '
-                                                   'award_procurement, fabs, program_activity.')
+                                                   'award_procurement, boc_comparison, fabs, program_activity.')
 
     def test_submission_report_url_invalid_cross(self):
         """ Test that invalid cross_types cause an error """

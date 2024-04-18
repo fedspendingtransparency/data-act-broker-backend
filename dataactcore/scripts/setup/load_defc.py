@@ -74,7 +74,7 @@ def derive_pl_data(public_law):
     congress, law_number = public_law.split('-')
     govinfo_url = f'https://www.govinfo.gov/wssearch/getContentDetail?packageId=PLAW-{congress}publ{law_number}'
     govinfo_data = get_with_exception_hand(govinfo_url)
-    if govinfo_data:
+    if govinfo_data and 'title' in govinfo_data:
         short_title = govinfo_data['title']
         # Cutting out the 'Public Law <congress> - <law> - '
         short_title = short_title[11 + len(congress) + 3 + len(law_number) + 3:]

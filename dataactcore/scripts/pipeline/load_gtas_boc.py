@@ -13,7 +13,7 @@ from dataactbroker.helpers.script_helper import get_prefixed_file_list
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.interfaces.function_bag import update_external_data_load_date, exit_if_nonlocal
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import GTASBOC, concat_display_tas_dict
 from dataactcore.utils.loader_utils import insert_dataframe
@@ -61,6 +61,10 @@ def load_all_boc(boc_path=None, force_load=False, aws_prefix='OMB_Extract_BOC'):
     with open('load_gtas_boc_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
     logger.info('BOC loading script complete')
+
+    if metrics_json['records_inserted'] == 0:
+        exit_if_nonlocal(3)
+        return
 
 
 def load_boc(sess, filename, fiscal_year, fiscal_period, force_load=False, metrics=None):
@@ -126,7 +130,7 @@ def load_boc(sess, filename, fiscal_year, fiscal_period, force_load=False, metri
         'credit_cohort_year': 4,
         'disaster_emergency_fund_code': 3,
         'reduction_type': 3,
-        'budget_object_class': 3
+        'budget_object_class': 4
     }
     boc_col_types = {
         'fiscal_year': int,
