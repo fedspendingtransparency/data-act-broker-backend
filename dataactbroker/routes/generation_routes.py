@@ -77,7 +77,7 @@ def add_generation_routes(app, is_local, server_path):
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
     @parser.use_kwargs({
-        'file_type': webargs_fields.String(required=True, validate=webargs_validate.OneOf(('A', 'D1', 'D2'))),
+        'file_type': webargs_fields.String(required=True, validate=webargs_validate.OneOf(('A', 'D1', 'D2', 'BOC'))),
         'cgac_code': webargs_fields.String(),
         'frec_code': webargs_fields.String(),
         'start': webargs_fields.String(),

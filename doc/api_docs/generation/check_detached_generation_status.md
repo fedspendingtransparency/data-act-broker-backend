@@ -35,6 +35,7 @@ This route returns either a signed S3 URL to the generated file or, if the file 
     - `D1`
     - `D2`
     - `A`
+    - `BOC`
 - `url`: (string) a signed S3 URL from which the generated file can be downloaded. This will be the string `"#"` if the file is not in the `finished` state.
 - `size`: (integer) the size of the generated file in bytes
 - `start`: (string) the file start date, in `MM/DD/YYYY` format. If not a D1/D2 file, this key will not be returned.
