@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class SQLLoader:
     sql_rules_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "sqlrules")
     headers = ['rule_label', 'rule_error_message', 'rule_cross_file_flag', 'file_type', 'severity_name', 'query_name',
-               'target_file', 'expected_value', 'category']
+               'target_file', 'expected_value', 'category', 'sensitive']
 
     @classmethod
     def read_sql_str(cls, filename):
@@ -41,7 +41,7 @@ class SQLLoader:
                 {'rule_label': 'rule_label', 'rule_error_message': 'rule_error_message', 'query_name': 'query_name',
                  'expected_value': 'expected_value', 'category': 'category', 'file_type': 'file_type',
                  'target_file': 'target_file', 'rule_cross_file_flag': 'rule_cross_file_flag',
-                 'severity_name': 'severity_name'},
+                 'severity_name': 'severity_name', 'sensitive': 'sensitive'},
                 {}
             )
 
@@ -56,6 +56,7 @@ class SQLLoader:
                                                                                       flag in ('true', 't', 'y', 'yes'))
             sql_data['rule_severity_id'] = sql_data['severity_name'].apply(lambda severity_name:
                                                                            RULE_SEVERITY_DICT.get(severity_name, None))
+            sql_data['sensitive'] = sql_data['sensitive'].apply(lambda flag: flag in ('true', 't', 'y', 'yes'))
             if sql_data['rule_severity_id'].isnull().values.any():
                 raise Exception('Invalid severity_name value found in sqlLoader Must be one of the following: {}'
                                 .format(', '.join(list(RULE_SEVERITY_DICT.keys()))))

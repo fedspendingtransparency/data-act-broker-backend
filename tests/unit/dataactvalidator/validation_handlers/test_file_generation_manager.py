@@ -9,7 +9,7 @@ from unittest.mock import Mock
 from dataactbroker.helpers import generation_helper
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactcore.models.stagingModels import DetachedAwardProcurement, PublishedFABS
 from dataactcore.models.domainModels import SF133, concat_tas_dict, concat_display_tas_dict
 
@@ -19,9 +19,10 @@ from dataactvalidator.validation_handlers.file_generation_manager import FileGen
 from tests.unit.dataactcore.factories.job import (JobFactory, FileGenerationFactory, SubmissionFactory,
                                                   SubmissionWindowScheduleFactory)
 from tests.unit.dataactcore.factories.domain import (TASFactory, SF133Factory, SAMRecipientFactory, CGACFactory,
-                                                     FRECFactory, TASFailedEditsFactory)
+                                                     FRECFactory, TASFailedEditsFactory, GTASBOCFactory)
 from tests.unit.dataactcore.factories.staging import (AwardFinancialAssistanceFactory, AwardProcurementFactory,
-                                                      DetachedAwardProcurementFactory, PublishedFABSFactory)
+                                                      DetachedAwardProcurementFactory, PublishedFABSFactory,
+                                                      PublishedObjectClassProgramActivityFactory)
 
 
 d1_booleans = ['small_business_competitive', 'city_local_government', 'county_local_government',
@@ -693,6 +694,115 @@ def test_generate_a_gtas_status(database, monkeypatch):
     assert expected_8 in file_rows_2
     assert expected_9 in file_rows_3
     assert expected_10 in file_rows_4
+
+
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
+def test_generate_boc(database, monkeypatch):
+    sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
+    agency_cgac = '097'
+    year = 2017
+    sub_id = 99
+
+    tas1_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas1_str = concat_display_tas_dict(tas1_dict)
+
+    tas2_dict = {
+        'allocation_transfer_agency': '',
+        'agency_identifier': '017',
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_display_tas_dict(tas2_dict)
+
+    # The first two will be combined into a single row, one credit and one debit. The third is a different begin_end
+    # indicator so it will be a separate row. The fourth is a different USSGL number entirely. The fifth is a different
+    # TAS. The sixth is a different period and should not be used at all despite matching exactly with the 5th otherwise
+    boc1 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=1.5, ussgl_number='480100',
+                          begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', **tas1_dict)
+    boc2 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=2, ussgl_number='480100',
+                          begin_end='B', debit_credit='C', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', **tas1_dict)
+    boc3 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=2, ussgl_number='480100',
+                          begin_end='E', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', **tas1_dict)
+    boc4 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=2, ussgl_number='487100',
+                          begin_end='E', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', **tas1_dict)
+    boc5 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas2_str, dollar_amount=25, ussgl_number='480100',
+                          begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', **tas2_dict)
+    boc6 = GTASBOCFactory(period=7, fiscal_year=year, display_tas=tas2_str, dollar_amount=4, ussgl_number='480100',
+                          begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', **tas2_dict)
+
+    # The first two will end up in the same place, there is an implied "different PAC/PAN"
+    pub_b1 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas1_str,
+                                                        disaster_emergency_fund_code='Q', object_class='111',
+                                                        ussgl480100_undelivered_or_fyb=-0.5,
+                                                        ussgl480100_undelivered_or_cpe=1.5,
+                                                        ussgl487100_downward_adjus_cpe=8,
+                                                        by_direct_reimbursable_fun='D', row_number=1, **tas1_dict)
+    pub_b2 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas1_str,
+                                                        disaster_emergency_fund_code='Q', object_class='111',
+                                                        ussgl480100_undelivered_or_fyb=0,
+                                                        ussgl480100_undelivered_or_cpe=0.5,
+                                                        ussgl487100_downward_adjus_cpe=-4,
+                                                        by_direct_reimbursable_fun='D', row_number=5, **tas1_dict)
+    pub_b3 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas2_str,
+                                                        disaster_emergency_fund_code='Q', object_class='111',
+                                                        ussgl480100_undelivered_or_fyb=0,
+                                                        ussgl480100_undelivered_or_cpe=13,
+                                                        ussgl487100_downward_adjus_cpe=-4,
+                                                        by_direct_reimbursable_fun='D', row_number=9, **tas2_dict)
+
+    sub = SubmissionFactory(submission_id=sub_id, reporting_fiscal_year=year, reporting_fiscal_period=6,
+                            publish_status_id=PUBLISH_STATUS_DICT['published'])
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['boc_comparison'], filename=None, start_date='03/01/2017',
+                     end_date='03/31/2017', submission=None)
+    sess.add_all([boc1, boc2, boc3, boc4, boc5, boc6, sub, job, pub_b1, pub_b2, pub_b3])
+    sess.commit()
+
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
+    # providing agency code here as it will be passed via SQS and detached file jobs don't store agency code
+    file_gen_manager.generate_file(agency_cgac)
+
+    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'], 'BOC-Comparison_Report_FY17P06_123456789.csv')
+
+    # check headers
+    file_rows = read_file_rows(job.filename)
+    assert file_rows[0] == [val[0] for key, val in file_generation_manager.fileBOC.mapping.items()]
+
+    # Removing the rows for testing purposes because there's no way to know what order they'll show up in
+    for row in file_rows:
+        row.pop()
+
+    # check body
+    # BOC 1 and 2 and published B 1 and 2
+    expected1 = [tas1_str] + list(tas1_dict.values()) +\
+                [boc1.budget_object_class, 'D', 'Q', '', boc1.begin_end, str(year), '6', boc1.ussgl_number, '-0.5',
+                 '-0.5', '0.0']
+    # TAS 2
+    expected2 = [tas2_str] + list(tas2_dict.values()) +\
+                [boc5.budget_object_class, 'D', 'Q', '', boc5.begin_end, str(year), '6', boc5.ussgl_number, '25',
+                 '0', '25']
+
+    assert expected1 in file_rows
+    assert expected2 in file_rows
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
