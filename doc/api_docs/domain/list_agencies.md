@@ -24,7 +24,7 @@ Gets a list of all CGACs/FRECs that the user has permissions for.
         },
         {
             "agency_name": "Sample Agency 2",
-            "cgac_code": "999"
+            "cgac_code": "998"
         }
     ],
     "frec_agency_list": [
