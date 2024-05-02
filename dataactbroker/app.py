@@ -116,6 +116,8 @@ def create_app():
             g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
 
         request_dict = {
+            'url': request.url,
+            'headers': request.headers,
             'request': request.get_data()
         }
         logger.info(request_dict)
