@@ -3,6 +3,9 @@ import pytest
 from unittest.mock import Mock
 
 from dataactcore.models.stagingModels import FlexField
+from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.jobModels import FileType
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT
 from dataactvalidator.validation_handlers import validator
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 
@@ -48,3 +51,44 @@ def test_failure_row_to_tuple_flex():
     assert result.field_name == ''
     assert result.flex_fields == 'A: a, B: b, C: '
     assert result.failed_value == ''
+
+
+@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('validation_constants')
+def test_run_only_sensitive_rules(database):
+    sess = database.session
+
+    # two rules, one sensitive, one not
+    fabs_file_type = sess.query(FileType).filter_by(letter_name='FABS').one()
+    rule_fabs_sensitive = RuleSql(rule_sql='SELECT 1 AS row_number', rule_label='FABS1',
+                                  rule_error_message='first rule', query_name='FABS1',
+                                  file_id=FILE_TYPE_DICT_LETTER_ID['FABS'],
+                                  rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=False,
+                                  category='completeness', sensitive=True)
+    rule_fabs_not_sensitive = RuleSql(rule_sql='SELECT 1 AS row_number', rule_label='FABS2',
+                                      rule_error_message='second rule', query_name='FABS2',
+                                      file_id=FILE_TYPE_DICT_LETTER_ID['FABS'],
+                                      rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=False,
+                                      category='completeness', sensitive=False)
+    sess.add_all([rule_fabs_sensitive, rule_fabs_not_sensitive])
+
+    # normal FABS submission
+    normal_fabs_sub = SubmissionFactory(submission_id='1', is_fabs=True, cgac_code='097')
+    normal_fabs_job = JobFactory(job_id='1', submission_id=normal_fabs_sub.submission_id, file_type=fabs_file_type)
+    sess.add_all([normal_fabs_sub, normal_fabs_job])
+
+    failures = []
+    for failure in validator.validate_file_by_sql(normal_fabs_job, 'fabs', {}, batch_results=False):
+        failures.append(failure)
+    assert len(failures) == 2
+
+    # Excluding Sensitive Rules
+    sensitive_fabs_sub = SubmissionFactory(submission_id='2', is_fabs=True, cgac_code='999')
+    sensitive_fabs_job = JobFactory(job_id='2', submission_id=sensitive_fabs_sub.submission_id,
+                                    file_type=fabs_file_type)
+    sess.add_all([sensitive_fabs_sub, sensitive_fabs_job])
+
+    failures = []
+    for failure in validator.validate_file_by_sql(sensitive_fabs_job, 'fabs', {}, batch_results=False):
+        failures.append(failure)
+    assert len(failures) == 1

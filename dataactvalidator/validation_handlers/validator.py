@@ -5,6 +5,7 @@ import logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.jobModels import Submission
 from dataactcore.interfaces.db import GlobalDB
 from dataactbroker.helpers.generic_helper import batch as batcher
 from dataactbroker.helpers.validation_helper import update_val_progress, update_cross_val_progress
@@ -218,6 +219,11 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
     # Pull all SQL rules for this file type
     file_id = FILE_TYPE_DICT[file_type]
     rules = sess.query(RuleSql).filter_by(file_id=file_id, rule_cross_file_flag=False)
+
+    # Only run non-sensitive rules for FABS, CGAC 999
+    if sess.query(Submission).filter_by(submission_id=job.submission_id, cgac_code='999', is_fabs=True).one_or_none():
+        rules = rules.filter_by(sensitive=False)
+
     errors = []
     rules_run = 0
     # Checking every 2 rules for DABS and every 5 for FABS because FABS has so many more rules per job
