@@ -73,7 +73,7 @@ def test_run_only_sensitive_rules(database):
     sess.add_all([rule_fabs_sensitive, rule_fabs_not_sensitive])
 
     # normal FABS submission
-    normal_fabs_sub = SubmissionFactory(submission_id='1', is_fabs=True, cgac_code='097')
+    normal_fabs_sub = SubmissionFactory(submission_id='1', cgac_code='097')
     normal_fabs_job = JobFactory(job_id='1', submission_id=normal_fabs_sub.submission_id, file_type=fabs_file_type)
     sess.add_all([normal_fabs_sub, normal_fabs_job])
 
@@ -83,7 +83,7 @@ def test_run_only_sensitive_rules(database):
     assert len(failures) == 2
 
     # Excluding Sensitive Rules
-    sensitive_fabs_sub = SubmissionFactory(submission_id='2', is_fabs=True, cgac_code='999')
+    sensitive_fabs_sub = SubmissionFactory(submission_id='2', cgac_code='999')
     sensitive_fabs_job = JobFactory(job_id='2', submission_id=sensitive_fabs_sub.submission_id,
                                     file_type=fabs_file_type)
     sess.add_all([sensitive_fabs_sub, sensitive_fabs_job])

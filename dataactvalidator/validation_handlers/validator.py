@@ -220,8 +220,8 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
     file_id = FILE_TYPE_DICT[file_type]
     rules = sess.query(RuleSql).filter_by(file_id=file_id, rule_cross_file_flag=False)
 
-    # Only run non-sensitive rules for FABS, CGAC 999
-    if sess.query(Submission).filter_by(submission_id=job.submission_id, cgac_code='999', is_fabs=True).one_or_none():
+    # Only run non-sensitive rules for CGAC 999
+    if sess.query(Submission).filter_by(submission_id=job.submission_id, cgac_code='999').one_or_none():
         rules = rules.filter_by(sensitive=False)
 
     errors = []
@@ -428,8 +428,10 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
     # Create strings for fields and values
     values_list = ['{}: {}'.format(header, str(sql_failure[field] if sql_failure[field] is not None else ''))
                    for field, header in zip(cols, col_headers)]
+    values_list = sorted(values_list)
     flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell if flex_field.cell is not None else '')
                  for flex_field in flex_data[row]]
+    flex_list = sorted(flex_list)
     # Create unique id string
     unique_id = ', '.join(unique_id_fields)
 
