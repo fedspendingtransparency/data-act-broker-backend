@@ -39,7 +39,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
     now = datetime.datetime.utcnow()
     now_plus_10 = now + datetime.timedelta(minutes=10)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
-    frec_cgac = CGACFactory(cgac_code='999', agency_name='FREC CGAC')
+    frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=1, created_at=now, updated_at=now_plus_10, cgac_code=cgac.cgac_code,
@@ -92,7 +92,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
     sess = database.session
 
     now = datetime.datetime.utcnow()
-    frec_cgac = CGACFactory(cgac_code='999', agency_name='FREC CGAC')
+    frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=2, created_at=now, updated_at=now, cgac_code=None, frec_code=frec.frec_code,
@@ -185,7 +185,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
     now = datetime.datetime.utcnow()
     start_date = datetime.date(2000, 1, 1)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
-    frec_cgac = CGACFactory(cgac_code='999', agency_name='FREC CGAC')
+    frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=4, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
@@ -233,7 +233,7 @@ def test_get_submission_metadata_published_fabs(database):
     now_plus_10 = now + datetime.timedelta(minutes=10)
     start_date = datetime.date(2000, 1, 1)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
-    frec_cgac = CGACFactory(cgac_code='999', agency_name='FREC CGAC')
+    frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=5, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,

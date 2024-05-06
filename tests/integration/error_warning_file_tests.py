@@ -563,7 +563,7 @@ class ErrorWarningTests(BaseTestValidator):
                               ' unobligatedbalance_cpe',
                 'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE +'
                                 ' UnobligatedBalance_CPE.',
-                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: , obligationsincurredtotalbytas_cpe: 8.08,'
+                'Value Provided': 'obligationsincurredtotalbytas_cpe: 8.08, statusofbudgetaryresourcestotal_cpe: ,'
                                   ' unobligatedbalance_cpe: 2.02',
                 'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal the sum of these elements:'
                                   ' ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE. The Broker cannot'
@@ -616,11 +616,12 @@ class ErrorWarningTests(BaseTestValidator):
                                 ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
                                 ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE'
                                 ' + GTAS SF 133 Line 1902.',
-                'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01,'
-                                  ' budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,'
+                'Value Provided': 'GTAS SF133 Line 1902: 0,'
                                   ' adjustmentstounobligatedbalancebroughtforward_cpe: 2.02,'
+                                  ' budgetauthorityappropriatedamount_cpe: 0.01,'
+                                  ' budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,'
                                   ' otherbudgetaryresourcesamount_cpe: 4.04,'
-                                  ' GTAS SF133 Line 1902: 0',
+                                  ' totalbudgetaryresources_cpe: 10.1',
                 'Expected Value': 'TotalBudgetaryResources_CPE must equal the sum of these elements:'
                                   ' BudgetAuthorityAppropriatedAmount_CPE +'
                                   ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'

@@ -591,6 +591,9 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
+            if cgac_code == '999':
+                test_submission = True
+
             submission = create_submission(g.user.user_id, job_data, existing_submission_obj, test_submission)
             sess.add(submission)
             sess.commit()
