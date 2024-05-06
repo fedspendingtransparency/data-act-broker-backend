@@ -115,7 +115,7 @@ def create_app():
         if session.get('name') is not None:
             g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
 
-        # Verbose Logs for Incoming Requests
+        # Verbose logs for incoming requests
         # request_dict = {
         #     'url': request.url,
         #     'headers': request.headers,
