@@ -115,12 +115,13 @@ def create_app():
         if session.get('name') is not None:
             g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
 
-        request_dict = {
-            'url': request.url,
-            'headers': request.headers,
-            'request': request.get_data()
-        }
-        logger.info(request_dict)
+        # Verbose Logs for Incoming Requests
+        # request_dict = {
+        #     'url': request.url,
+        #     'headers': request.headers,
+        #     'request': request.get_data()
+        # }
+        # logger.info(request_dict)
 
         content_type = request.headers.get('Content-Type')
 
