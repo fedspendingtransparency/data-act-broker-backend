@@ -21,7 +21,7 @@ from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramA
                                               PublishedAppropriation, PublishedObjectClassProgramActivity,
                                               PublishedAwardFinancial, FlexField, PublishedFlexField, TotalObligations,
                                               PublishedTotalObligations)
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
@@ -39,7 +39,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
     now = datetime.datetime.utcnow()
     now_plus_10 = now + datetime.timedelta(minutes=10)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
-    frec_cgac = CGACFactory(cgac_code='999', agency_name='FREC CGAC')
+    frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=1, created_at=now, updated_at=now_plus_10, cgac_code=cgac.cgac_code,
@@ -92,7 +92,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
     sess = database.session
 
     now = datetime.datetime.utcnow()
-    frec_cgac = CGACFactory(cgac_code='999', agency_name='FREC CGAC')
+    frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=2, created_at=now, updated_at=now, cgac_code=None, frec_code=frec.frec_code,
@@ -185,7 +185,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
     now = datetime.datetime.utcnow()
     start_date = datetime.date(2000, 1, 1)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
-    frec_cgac = CGACFactory(cgac_code='999', agency_name='FREC CGAC')
+    frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=4, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
@@ -233,7 +233,7 @@ def test_get_submission_metadata_published_fabs(database):
     now_plus_10 = now + datetime.timedelta(minutes=10)
     start_date = datetime.date(2000, 1, 1)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
-    frec_cgac = CGACFactory(cgac_code='999', agency_name='FREC CGAC')
+    frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=5, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
@@ -1095,7 +1095,7 @@ def test_revert_submission_fabs_submission(database):
     sess.commit()
 
     file_handler = fileHandler.FileHandler({}, is_local=True)
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         revert_to_published(sub, file_handler)
 
     assert resp_except.value.status == 400
@@ -1114,14 +1114,14 @@ def test_revert_submission_not_updated_submission(database):
 
     file_handler = fileHandler.FileHandler({}, is_local=True)
     # Published submission
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         revert_to_published(sub1, file_handler)
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == 'Submission has not been published or has not been updated since publication.'
 
     # Unpublished submission
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         revert_to_published(sub2, file_handler)
 
     assert resp_except.value.status == 400

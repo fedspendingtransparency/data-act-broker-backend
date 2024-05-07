@@ -350,9 +350,9 @@ def test_check_required():
                               'concatted': ['A', 'B', 'C', 'D', 'E']})
     is_fabs = False
 
-    error_msg = ValidationError.requiredErrorMsg
+    error_msg = ValidationError.required_error_msg
     expected_value = '(not blank)'
-    error_type = ValidationError.requiredError
+    error_type = ValidationError.required_error
     # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
@@ -399,8 +399,8 @@ def test_check_type():
                               'concatted': ['A', 'B', 'C', 'D', 'E']})
     is_fabs = False
 
-    error_msg = ValidationError.typeErrorMsg
-    error_type = ValidationError.typeError
+    error_msg = ValidationError.type_error_msg
+    error_type = ValidationError.type_error
     # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
@@ -439,8 +439,8 @@ def test_check_length():
                               'concatted': ['A', 'B', 'C', 'D', 'E']})
     type_error_rows = ['5']
 
-    error_msg = ValidationError.lengthErrorMsg
-    error_type = ValidationError.lengthError
+    error_msg = ValidationError.length_error_msg
+    error_type = ValidationError.length_error
     # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
@@ -462,8 +462,8 @@ def test_check_field_format():
     flex_data = pd.DataFrame({'row_number': ['1', '2', '3', '4', '5'],
                               'concatted': ['A', 'B', 'C', 'D', 'E']})
 
-    error_msg = ValidationError.fieldFormatErrorMsg
-    error_type = ValidationError.fieldFormatError
+    error_msg = ValidationError.field_format_error_msg
+    error_type = ValidationError.field_format_error
     # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
@@ -508,8 +508,8 @@ def test_process_formatting_errors():
     short_rows = ['1', '4', '5']
     long_rows = ['2', '6']
 
-    error_msg = ValidationError.readErrorMsg
-    error_type = ValidationError.readError
+    error_msg = ValidationError.read_error_msg
+    error_type = ValidationError.read_error
     error_name = 'Formatting Error'
     report_headers = ValidationManager.report_headers
     expected_data = [

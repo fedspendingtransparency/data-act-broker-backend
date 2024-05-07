@@ -16,7 +16,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
 
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactbroker.helpers.generic_helper import fy
@@ -80,47 +80,47 @@ def validate_historic_dashboard_filters(filters, graphs=False):
             graphs: whether or not to validate the files and rules as well
 
         Exceptions:
-            ResponseException if filter is invalid
+            ResponseError if filter is invalid
     """
     required_filters = ['periods', 'fys', 'agencies']
     if graphs:
         required_filters.extend(['files', 'rules'])
     missing_filters = [required_filter for required_filter in required_filters if required_filter not in filters]
     if missing_filters:
-        raise ResponseException('The following filters were not provided: {}'.format(', '.join(missing_filters)),
-                                status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('The following filters were not provided: {}'.format(', '.join(missing_filters)),
+                            status=StatusCode.CLIENT_ERROR)
 
     wrong_filter_types_list = [key for key, value in filters.items() if not isinstance(value, list)]
     if wrong_filter_types_list:
-        raise ResponseException('The following filters were not lists: {}'.format(', '.join(wrong_filter_types_list)),
-                                status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('The following filters were not lists: {}'.format(', '.join(wrong_filter_types_list)),
+                            status=StatusCode.CLIENT_ERROR)
 
     for period in filters['periods']:
         if period not in range(2, 13):
-            raise ResponseException('Periods must be a list of integers, each ranging 2-12, or an empty list.',
-                                    status=StatusCode.CLIENT_ERROR)
+            raise ResponseError('Periods must be a list of integers, each ranging 2-12, or an empty list.',
+                                status=StatusCode.CLIENT_ERROR)
 
     current_fy = fy(datetime.now())
     for fiscal_year in filters['fys']:
         if fiscal_year not in range(2017, current_fy + 1):
-            raise ResponseException('Fiscal Years must be a list of integers, each ranging from 2017 through the'
-                                    ' current fiscal year, or an empty list.', status=StatusCode.CLIENT_ERROR)
+            raise ResponseError('Fiscal Years must be a list of integers, each ranging from 2017 through the'
+                                ' current fiscal year, or an empty list.', status=StatusCode.CLIENT_ERROR)
 
     for agency in filters['agencies']:
         if not isinstance(agency, str):
-            raise ResponseException('Agencies must be a list of strings, or an empty list.',
-                                    status=StatusCode.CLIENT_ERROR)
+            raise ResponseError('Agencies must be a list of strings, or an empty list.',
+                                status=StatusCode.CLIENT_ERROR)
 
     if graphs:
         for file_type in filters['files']:
             if file_type not in FILE_TYPES:
-                raise ResponseException('Files must be a list of one or more of the following, or an empty list: {}'.
-                                        format(', '.join(FILE_TYPES)), status=StatusCode.CLIENT_ERROR)
+                raise ResponseError('Files must be a list of one or more of the following, or an empty list: {}'.
+                                    format(', '.join(FILE_TYPES)), status=StatusCode.CLIENT_ERROR)
 
         for rule in filters['rules']:
             if not isinstance(rule, str):
-                raise ResponseException('Rules must be a list of strings, or an empty list.',
-                                        status=StatusCode.CLIENT_ERROR)
+                raise ResponseError('Rules must be a list of strings, or an empty list.',
+                                    status=StatusCode.CLIENT_ERROR)
 
 
 def validate_table_properties(page, limit, order, sort, sort_options):
@@ -134,21 +134,21 @@ def validate_table_properties(page, limit, order, sort, sort_options):
             sort_options: the list of valid options for sorting
 
         Exceptions:
-            ResponseException if filter is invalid
+            ResponseError if filter is invalid
     """
 
     if not isinstance(page, int) or page <= 0:
-        raise ResponseException('Page must be an integer greater than 0', status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Page must be an integer greater than 0', status=StatusCode.CLIENT_ERROR)
 
     if not isinstance(limit, int) or limit <= 0:
-        raise ResponseException('Limit must be an integer greater than 0', status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Limit must be an integer greater than 0', status=StatusCode.CLIENT_ERROR)
 
     if order not in ['asc', 'desc']:
-        raise ResponseException('Order must be "asc" or "desc"', status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Order must be "asc" or "desc"', status=StatusCode.CLIENT_ERROR)
 
     if sort not in sort_options:
-        raise ResponseException('Sort must be one of: {}'.format(', '.join(sort_options)),
-                                status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Sort must be one of: {}'.format(', '.join(sort_options)),
+                            status=StatusCode.CLIENT_ERROR)
 
 
 def apply_historic_dabs_filters(sess, query, filters):
@@ -160,7 +160,7 @@ def apply_historic_dabs_filters(sess, query, filters):
             filters: dictionary representing the filters provided to the historic dashboard endpoints
 
         Exceptions:
-            ResponseException if filter is invalid
+            ResponseError if filter is invalid
 
         Returns:
             the original query with the appropriate filters
@@ -446,10 +446,10 @@ def active_submission_overview(submission, file, error_level):
             A response containing overview information of the provided submission for the active DABS dashboard.
 
         Raises:
-            ResponseException if submission provided is a FABS submission.
+            ResponseError if submission provided is a FABS submission.
     """
     if submission.is_fabs:
-        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     # Basic data that can be gathered from just the submission and passed filters
     response = {
@@ -524,10 +524,10 @@ def get_impact_counts(submission, file, error_level):
                 A response containing impact count information of the provided submission for the active DABS dashboard.
 
             Raises:
-                ResponseException if submission provided is a FABS submission.
+                ResponseError if submission provided is a FABS submission.
         """
     if submission.is_fabs:
-        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     # Basic data that can be gathered from just the submission and passed filters
     response = {
@@ -585,10 +585,10 @@ def get_significance_counts(submission, file, error_level):
                 A response containing significance data of the provided submission for the active DABS dashboard.
 
             Raises:
-                ResponseException if submission provided is a FABS submission.
+                ResponseError if submission provided is a FABS submission.
         """
     if submission.is_fabs:
-        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     # Basic data that can be gathered from just the submission and passed filters
     response = {
@@ -652,10 +652,10 @@ def active_submission_table(submission, file, error_level, page=1, limit=5, sort
             the table.
 
         Raises:
-            ResponseException if submission provided is a FABS submission.
+            ResponseError if submission provided is a FABS submission.
     """
     if submission.is_fabs:
-        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+        raise ResponseError('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     # Basic information that is provided by the user and defaults for the rest
     response = {

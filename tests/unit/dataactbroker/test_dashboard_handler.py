@@ -16,7 +16,7 @@ from dataactcore.models.errorModels import PublishedErrorMetadata, ErrorMetadata
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers import filters_helper
 from dataactbroker.handlers import dashboard_handler
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 
 
 def historic_dabs_warning_graphs_endpoint(filters):
@@ -57,7 +57,7 @@ def active_submission_table_endpoint(submission, file, error_level, page=1, limi
 
 def test_validate_historic_dashboard_filters():
     def assert_validation(filters, expected_response, graphs=False):
-        with pytest.raises(ResponseException) as resp_except:
+        with pytest.raises(ResponseError) as resp_except:
             dashboard_handler.validate_historic_dashboard_filters(filters, graphs=graphs)
 
         assert resp_except.value.status == 400
@@ -663,7 +663,7 @@ def test_historic_dabs_warning_graphs_agency_user(database, monkeypatch):
 
 def test_validate_table_properties():
     def assert_validation(page, limit, order, sort, sort_options, expected_response):
-        with pytest.raises(ResponseException) as resp_except:
+        with pytest.raises(ResponseError) as resp_except:
             dashboard_handler.validate_table_properties(page, limit, order, sort, sort_options)
 
         assert resp_except.value.status == 400
@@ -944,7 +944,7 @@ def test_active_submission_overview(database, monkeypatch):
     # FABS submissions should throw an error
     fabs_sub = sess.query(Submission).filter(Submission.is_fabs.is_(True)).first()
     expected_error = 'Submission must be a DABS submission.'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         dashboard_handler.active_submission_overview(fabs_sub, 'B', 'warning')
     assert str(resp_except.value) == expected_error
 
@@ -1056,7 +1056,7 @@ def test_get_impact_counts(database, monkeypatch):
     # FABS submissions should throw an error
     fabs_sub = sess.query(Submission).filter(Submission.is_fabs.is_(True)).first()
     expected_error = 'Submission must be a DABS submission.'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         dashboard_handler.get_impact_counts(fabs_sub, 'B', 'warning')
     assert str(resp_except.value) == expected_error
 
@@ -1153,7 +1153,7 @@ def test_get_significance_counts(database, monkeypatch):
     # FABS submissions should throw an error
     fabs_sub = sess.query(Submission).filter(Submission.is_fabs.is_(True)).first()
     expected_error = 'Submission must be a DABS submission.'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         dashboard_handler.get_significance_counts(fabs_sub, 'B', 'warning')
     assert str(resp_except.value) == expected_error
 
@@ -1267,7 +1267,7 @@ def test_active_submission_table(database, monkeypatch):
     # FABS submissions should throw an error
     fabs_sub = sess.query(Submission).filter(Submission.is_fabs.is_(True)).first()
     expected_error = 'Submission must be a DABS submission.'
-    with pytest.raises(ResponseException) as resp_except:
+    with pytest.raises(ResponseError) as resp_except:
         dashboard_handler.active_submission_table(fabs_sub, 'B', 'warning')
     assert str(resp_except.value) == expected_error
 

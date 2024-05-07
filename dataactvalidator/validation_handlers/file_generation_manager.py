@@ -2,15 +2,16 @@ import logging
 
 from dateutil.relativedelta import relativedelta
 
-from dataactbroker.helpers.generation_helper import a_file_query, d_file_query, copy_file_generation_to_job
+from dataactbroker.helpers.generation_helper import (a_file_query, boc_file_query, d_file_query,
+                                                     copy_file_generation_to_job)
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.function_bag import (mark_job_status, filename_fyp_sub_format, filename_fyp_format,
                                                  get_timestamp)
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import DETACHED_FILENAMES, SUBMISSION_FILENAMES
-from dataactcore.utils import fileA, fileD1, fileD2, fileE_F
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils import fileA, fileBOC, fileD1, fileD2, fileE_F
+from dataactcore.utils.ResponseError import ResponseError
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
 
@@ -65,7 +66,7 @@ class FileGenerationManager:
                 file_name = SUBMISSION_FILENAMES[self.file_type].format(**fillin_vals)
         else:
             # Detached Files
-            if self.job and self.job.file_type.letter_name == 'A':
+            if self.job and self.job.file_type.letter_name in ['A', 'BOC']:
                 period_date = self.job.end_date + relativedelta(months=3)
                 fillin_vals['FYP'] = filename_fyp_format(period_date.year, period_date.month, False)
             file_name = DETACHED_FILENAMES[self.file_type].format(**fillin_vals)
@@ -87,15 +88,20 @@ class FileGenerationManager:
                 'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
                 'file_generation_id': self.file_generation.file_generation_id
             })
-        elif self.job and self.job.file_type.letter_name in ['A', 'E', 'F']:
+        elif self.job and self.job.file_type.letter_name in ['A', 'BOC', 'E', 'F']:
             log_data['job_id'] = self.job.job_id
             mark_job_status(self.job.job_id, 'running')
 
             if self.job.file_type.letter_name == 'A':
                 if not agency_code:
-                    raise ResponseException('Agency code not provided for an A file generation')
+                    raise ResponseError('Agency code not provided for an A file generation')
 
                 self.generate_a_file(agency_code, file_path)
+            elif self.job.file_type.letter_name == 'BOC':
+                if not agency_code:
+                    raise ResponseError('Agency code not provided for a BOC comparison file generation')
+
+                self.generate_boc_file(agency_code, file_path)
             else:
                 # Call self.generate_%s_file() where %s is e or f based on the Job's file_type
                 file_type_lower = self.job.file_type.letter_name.lower()
@@ -105,7 +111,7 @@ class FileGenerationManager:
         else:
             e = 'No FileGeneration object for D file generation.' if self.file_type in ['D1', 'D2'] else \
                 'Cannot generate file for {} file type.'.format(self.file_type if self.file_type else 'empty')
-            raise ResponseException(e)
+            raise ResponseError(e)
 
         logger.info(log_data)
 
@@ -133,7 +139,7 @@ class FileGenerationManager:
         elif self.file_type == 'D2':
             file_utils = fileD2
         else:
-            raise ResponseException('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(
+            raise ResponseError('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(
                 self.file_type))
         headers = [val[header_index] for key, val in file_utils.mapping.items()]
 
@@ -225,4 +231,34 @@ class FileGenerationManager:
         write_stream_query(self.sess, a_file_query(query_utils), local_file, self.job.filename, self.is_local,
                            header=headers)
         log_data['message'] = 'Finished writing A file CSV: {}'.format(self.job.original_filename)
+        logger.info(log_data)
+
+    def generate_boc_file(self, agency_code, file_path):
+        """ Write BOC comparison file to an appropriate CSV. """
+        self.job.filename = file_path
+        self.job.original_filename = file_path.split('/')[-1]
+        self.sess.commit()
+
+        log_data = {'message': 'Starting BOC comparison file generation', 'message_type': 'ValidatorInfo',
+                    'job_id': self.job.job_id, 'agency_code': agency_code, 'file_type': self.job.file_type.letter_name,
+                    'start_date': self.job.start_date, 'end_date': self.job.end_date,
+                    'filename': self.job.original_filename}
+        logger.info(log_data)
+
+        local_file = "".join([CONFIG_BROKER['d_file_storage_path'], self.job.original_filename])
+        headers = [val[0] for key, val in fileBOC.mapping.items()]
+        # add 3 months to account for fiscal year
+        period_date = self.job.end_date + relativedelta(months=3)
+
+        log_data['message'] = 'Writing BOC comparison file CSV: {}'.format(self.job.original_filename)
+        logger.info(log_data)
+
+        query_utils = {"agency_code": agency_code, "period": period_date.month, "year": period_date.year,
+                       "sess": self.sess}
+        logger.debug({'query_utils': query_utils})
+
+        # Generate the file and put in S3
+        write_stream_query(self.sess, boc_file_query(query_utils), local_file, self.job.filename, self.is_local,
+                           header=headers)
+        log_data['message'] = 'Finished writing BOC comparison file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)

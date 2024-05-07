@@ -269,7 +269,7 @@ class GenerationTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Must have a year and period for A file generation.")
+        self.assertEqual(response.json["message"], "Must have a year and period for A or BOC file generation.")
 
         # Only year is provided
         post_json['year'] = 2017
@@ -277,7 +277,7 @@ class GenerationTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Must have a year and period for A file generation.")
+        self.assertEqual(response.json["message"], "Must have a year and period for A or BOC file generation.")
 
         # Only period is provided
         del post_json['year']
@@ -286,7 +286,7 @@ class GenerationTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Must have a year and period for A file generation.")
+        self.assertEqual(response.json["message"], "Must have a year and period for A or BOC file generation.")
 
     @classmethod
     def setup_file_generation_submission(cls, sess, submission_id=None):

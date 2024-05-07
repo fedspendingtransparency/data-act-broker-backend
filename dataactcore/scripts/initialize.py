@@ -35,8 +35,8 @@ from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 
 logger = logging.getLogger(__name__)
-basePath = CONFIG_BROKER["path"]
-validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
+base_path = CONFIG_BROKER["path"]
+validator_config_path = os.path.join(base_path, "dataactvalidator", "config")
 
 
 def setup_db():
@@ -199,7 +199,7 @@ def main():
         load_location_codes(args.force)
         load_zip_codes()
         load_submission_schedule()
-        load_defc(args.force)
+        load_defc(validator_config_path, args.force)
         load_funding_opportunity_number_data(args.force)
         return
 
@@ -256,7 +256,7 @@ def main():
         load_submission_schedule()
 
     if args.load_defc:
-        load_defc(args.force)
+        load_defc(validator_config_path, args.force)
 
     if args.uncache_all_files:
         uncache_all_files()

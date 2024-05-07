@@ -5,9 +5,10 @@ from dataactbroker.helpers import generation_helper, generic_helper
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models import lookups
-from dataactcore.models.jobModels import Job
+from dataactcore.models.domainModels import GTASBOC
+from dataactcore.models.jobModels import Job, Submission
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
@@ -67,14 +68,14 @@ def generate_file(submission, file_type, start, end, agency_type, file_format):
 
     # Check prerequisites on upload job
     if not generation_helper.check_generation_prereqs(submission.submission_id, file_type):
-        return JsonResponse.error(ResponseException('Must wait for completion of prerequisite validation job',
-                                                    StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ResponseError('Must wait for completion of prerequisite validation job',
+                                                StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
     try:
         if file_type in ['D1', 'D2']:
             generation_helper.start_d_generation(job, start, end, agency_type, file_format=file_format)
         elif file_type == 'A':
             agency_code = submission.frec_code or submission.cgac_code
-            generation_helper.start_a_generation(job, start, end, agency_code)
+            generation_helper.start_dabs_generation(job, start, end, agency_code)
         else:
             generation_helper.start_e_f_generation(job)
     except Exception as e:
@@ -129,7 +130,7 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
             JSONResponse object with keys job_id, status, file_type, url, message, start_date, and end_date.
 
         Raises:
-            ResponseException: if the start_date and end_date Strings cannot be parsed into dates
+            ResponseError: if the start_date and end_date Strings cannot be parsed into dates
     """
     # Make sure it's a valid request
     if not cgac_code and not frec_code:
@@ -144,7 +145,7 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
 
         # Check if date format is MM/DD/YYYY
         if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
-            raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
+            raise ResponseError('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
         if agency_type not in ['awarding', 'funding']:
             return JsonResponse.error(ValueError('agency_type must be either awarding or funding.'),
@@ -156,13 +157,36 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
     else:
         # Make sure both year and period are provided
         if not (year and period):
-            return JsonResponse.error(ValueError("Must have a year and period for A file generation."),
+            return JsonResponse.error(ValueError("Must have a year and period for A or BOC file generation."),
                                       StatusCode.CLIENT_ERROR)
+
+        # Check for published submission and BOC data in the provided year/period
+        if file_type == 'BOC':
+            sess = GlobalDB.db().session
+            submission_query = sess.query(Submission).\
+                filter_by(reporting_fiscal_year=year, reporting_fiscal_period=period,
+                          publish_status_id=lookups.PUBLISH_STATUS_DICT['published'])
+            if cgac_code:
+                submission_query.filter_by(cgac_code=cgac_code)
+            else:
+                submission_query.filter_by(frec_code=frec_code)
+
+            missing_data = []
+            if submission_query.first() is None:
+                missing_data.append('published submission')
+
+            if sess.query(GTASBOC).filter_by(fiscal_year=year, period=period).first() is None:
+                missing_data.append('BOC data')
+
+            if len(missing_data) > 0:
+                return JsonResponse.error(ValueError(f'There is no {" or ".join(missing_data)} for the selected'
+                                                     ' agency in the selected year and period'),
+                                          StatusCode.CLIENT_ERROR)
 
         try:
             # Convert to real start and end dates
             start_date, end_date = generic_helper.year_period_to_dates(year, period)
-        except ResponseException as e:
+        except ResponseError as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
     # Add job info
@@ -179,7 +203,7 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
             generation_helper.start_d_generation(new_job, start_date, end_date, agency_type, agency_code=agency_code,
                                                  file_format=file_format, element_numbers=element_numbers)
         else:
-            generation_helper.start_a_generation(new_job, start_date, end_date, agency_code)
+            generation_helper.start_dabs_generation(new_job, start_date, end_date, agency_code)
     except Exception as e:
         mark_job_status(new_job.job_id, 'failed')
         new_job.error_message = str(e)

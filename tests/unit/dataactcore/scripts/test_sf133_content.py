@@ -3,6 +3,7 @@ import os
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.scripts.pipeline import load_sf133
+from dataactbroker.helpers.script_helper import get_prefixed_file_list
 
 SF_RE = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
 line_sums = {}
@@ -48,8 +49,9 @@ def test_sf133_files(database):
                           'error_type,value1,value2']
 
     # get a list of SF 133 files to test
-    sf133_list = load_sf133.get_sf133_list(os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config',
-                                                        'to_validate'))
+    sf133_list = get_prefixed_file_list(os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config',
+                                                     'to_validate'),
+                                        'sf_133')
 
     # test data in each SF 133 file
     for sf133 in sf133_list:

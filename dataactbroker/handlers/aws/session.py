@@ -2,7 +2,7 @@ from json import loads, dumps
 from uuid import uuid4
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
-from flask_login import _create_identifier
+from flask_login.utils import _create_identifier
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB

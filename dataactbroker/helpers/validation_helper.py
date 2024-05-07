@@ -538,7 +538,7 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
     errors['Value Provided'] = ''
-    errors['Rule Message'] = ValidationError.requiredErrorMsg
+    errors['Rule Message'] = ValidationError.required_error_msg
     errors['Expected Value'] = '(not blank)'
     errors['Difference'] = ''
     if not errors.empty:
@@ -550,7 +550,7 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
         errors['Flex Field'] = ''
     # sorting the headers after all the moving around
     errors = errors[report_headers]
-    errors['error_type'] = ValidationError.requiredError
+    errors['error_type'] = ValidationError.required_error
     return errors
 
 
@@ -585,7 +585,7 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
     errors = errors[~(errors['Value Provided'].isnull())]
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
-    errors['Rule Message'] = ValidationError.typeErrorMsg
+    errors['Rule Message'] = ValidationError.type_error_msg
     errors['Difference'] = ''
     if not errors.empty:
         errors['Expected Value'] = errors.apply(lambda x: expected_type(x, csv_schema), axis=1)
@@ -599,7 +599,7 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
         errors['Flex Field'] = ''
     # sorting the headers after all the moving around
     errors = errors[report_headers]
-    errors['error_type'] = ValidationError.typeError
+    errors['error_type'] = ValidationError.type_error
     return errors
 
 
@@ -636,7 +636,7 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
     errors = errors[~(errors['Value Provided'].isnull())]
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
-    errors['Rule Message'] = ValidationError.lengthErrorMsg
+    errors['Rule Message'] = ValidationError.length_error_msg
     errors['Difference'] = ''
     errors['Rule Label'] = ''
     if not errors.empty:
@@ -649,7 +649,7 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
         errors['Flex Field'] = ''
     # sorting the headers after all the moving around
     errors = errors[report_headers]
-    errors['error_type'] = ValidationError.lengthError
+    errors['error_type'] = ValidationError.length_error
     return errors
 
 
@@ -680,7 +680,7 @@ def check_field_format(data, format_fields, report_headers, short_cols, flex_dat
         errors.drop(['matches_format'], axis=1, inplace=True)
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
-    errors['Rule Message'] = ValidationError.fieldFormatErrorMsg
+    errors['Rule Message'] = ValidationError.field_format_error_msg
     errors['Difference'] = ''
     errors['Rule Label'] = 'DABSDATETIME'
     errors['Expected Value'] = 'A date in the YYYYMMDD format.'
@@ -692,7 +692,7 @@ def check_field_format(data, format_fields, report_headers, short_cols, flex_dat
         errors['Flex Field'] = ''
     # sorting the headers after all the moving around
     errors = errors[report_headers]
-    errors['error_type'] = ValidationError.fieldFormatError
+    errors['error_type'] = ValidationError.field_format_error
     return errors
 
 
@@ -756,14 +756,14 @@ def process_formatting_errors(short_rows, long_rows, report_headers):
         format_error = {
             'Unique ID': '',
             'Field Name': 'Formatting Error',
-            'Rule Message': ValidationError.readErrorMsg,
+            'Rule Message': ValidationError.read_error_msg,
             'Value Provided': '',
             'Expected Value': '',
             'Difference': '',
             'Flex Field': '',
             'Row Number': str(format_row),
             'Rule Label': '',
-            'error_type': ValidationError.readError
+            'error_type': ValidationError.read_error
         }
         format_error_list.append(format_error)
     # Turn the list of dictionaries into a dataframe

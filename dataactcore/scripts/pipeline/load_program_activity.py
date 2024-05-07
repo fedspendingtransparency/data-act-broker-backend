@@ -5,20 +5,19 @@ import pandas as pd
 import numpy as np
 import boto3
 import datetime
-import sys
 import json
 import re
 import argparse
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.interfaces.function_bag import update_external_data_load_date, log_blank_file, exit_if_nonlocal
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
-from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
+from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -93,15 +92,15 @@ def export_public_pa(raw_data):
             raw_data: the raw csv data analyzed from the latest program activity file
     """
     updated_cols = {
-        'fyq': 'REPORTING_PERIOD',
-        'agency': 'AGENCY_IDENTIFIER_NAME',
-        'allocation_id': 'ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE',
-        'agency_code': 'AGENCY_IDENTIFIER_CODE',
-        'account_code': 'MAIN_ACCOUNT_CODE',
-        'pa_title': 'PROGRAM_ACTIVITY_NAME',
-        'pa_code': 'PROGRAM_ACTIVITY_CODE',
-        'omb_bureau_title_optnl': 'OMB_BUREAU_TITLE_OPTNL',
-        'omb_account_title_optnl': 'OMB_ACCOUNT_TITLE_OPTNL'
+        'FYQ': 'REPORTING_PERIOD',
+        'AGENCY': 'AGENCY_IDENTIFIER_NAME',
+        'ALLOCATION_ID': 'ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE',
+        'AGENCY_CODE': 'AGENCY_IDENTIFIER_CODE',
+        'ACCOUNT_CODE': 'MAIN_ACCOUNT_CODE',
+        'PA_TITLE': 'PROGRAM_ACTIVITY_NAME',
+        'PA_CODE': 'PROGRAM_ACTIVITY_CODE',
+        'OMB_BUREAU_TITLE_OPTNL': 'OMB_BUREAU_TITLE_OPTNL',
+        'OMB_ACCOUNT_TITLE_OPTNL': 'OMB_ACCOUNT_TITLE_OPTNL'
     }
     raw_data = raw_data[list(updated_cols.keys())]
     raw_data.columns = [list(updated_cols.values())]
@@ -169,7 +168,7 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
                     ['agency_id', 'program_activity_code', 'account_number', 'program_activity_name'],
                     True
                 )
-            except FailureThresholdExceededException as e:
+            except FailureThresholdExceededError as e:
                 if e.count == 0:
                     log_blank_file()
                     exit_if_nonlocal(4)
@@ -261,16 +260,6 @@ def convert_fyq_to_fyp(fyq):
         fyq = fyq[:-1] + period
         return fyq
     return fyq
-
-
-def log_blank_file():
-    """ Helper function for specific reused log message """
-    logger.error('File was blank! Not loaded, routine aborted.')
-
-
-def exit_if_nonlocal(exit_code):
-    if not CONFIG_BROKER['local']:
-        sys.exit(exit_code)
 
 
 if __name__ == '__main__':

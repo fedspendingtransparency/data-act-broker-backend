@@ -34,9 +34,9 @@ INVAL_FILE = ('program_activity', 'invalid_file_format.md',
 class FileTests(BaseTestAPI):
     """Test file submission routes."""
 
-    updateSubmissionId = None
-    filesSubmitted = False
-    submitFilesResponse = None
+    update_submission_id = None
+    files_submitted = False
+    submit_files_response = None
 
     @classmethod
     def setUpClass(cls):
@@ -155,7 +155,7 @@ class FileTests(BaseTestAPI):
 
     def call_file_submission(self):
         """Call the broker file submission route."""
-        if not self.filesSubmitted:
+        if not self.files_submitted:
             if CONFIG_BROKER['use_aws']:
                 self.filenames = {'cgac_code': 'SYS', 'frec_code': None,
                                   'reporting_period_start_date': '01/2001',
@@ -165,11 +165,11 @@ class FileTests(BaseTestAPI):
                 self.filenames = {'cgac_code': 'SYS', 'frec_code': None,
                                   'reporting_period_start_date': '01/2001',
                                   'reporting_period_end_date': '03/2001', 'is_quarter': 'true'}
-            self.submitFilesResponse = self.app.post('/v1/upload_dabs_files/', self.filenames,
-                                                     upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
-                                                     headers={'x-session-id': self.session_id})
-            self.updateSubmissionId = self.submitFilesResponse.json['submission_id']
-        return self.submitFilesResponse
+            self.submit_files_response = self.app.post('/v1/upload_dabs_files/', self.filenames,
+                                                       upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                                       headers={'x-session-id': self.session_id})
+            self.update_submission_id = self.submit_files_response.json['submission_id']
+        return self.submit_files_response
 
     def test_file_submission(self):
         """Test broker file submission and response."""
@@ -203,7 +203,7 @@ class FileTests(BaseTestAPI):
         # note: this is a quarterly test submission, so updated dates must still reflect a quarter
         file_path = 'updated.csv' if CONFIG_BROKER['use_aws'] else os.path.join(CONFIG_BROKER['broker_files'],
                                                                                 'updated.csv')
-        update_json = {'existing_submission_id': self.updateSubmissionId,
+        update_json = {'existing_submission_id': self.update_submission_id,
                        'award_financial': file_path,
                        'reporting_period_start_date': '04/2016',
                        'reporting_period_end_date': '06/2016',
@@ -212,7 +212,8 @@ class FileTests(BaseTestAPI):
         # Mark submission as published
         with create_app().app_context():
             sess = GlobalDB.db().session
-            update_submission = sess.query(Submission).filter(Submission.submission_id == self.updateSubmissionId).one()
+            update_submission = sess.query(Submission).filter(Submission.submission_id == self.update_submission_id) \
+                .one()
             update_submission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()
             update_response = self.app.post('/v1/upload_dabs_files/', update_json,
@@ -771,7 +772,7 @@ class FileTests(BaseTestAPI):
         json = response.json
 
         # create list of all file types including cross other than fabs
-        file_type_keys = {k if k != 'fabs' else 'cross' for k in FILE_TYPE_DICT}
+        file_type_keys = {k if k not in ('fabs', 'boc_comparison') else 'cross' for k in FILE_TYPE_DICT}
         response_keys = {k for k in json.keys()}
         self.assertEqual(file_type_keys, response_keys)
 
@@ -1139,7 +1140,7 @@ class FileTests(BaseTestAPI):
         response = self.app.get('/v1/report_url', params, headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file_type: Must be one of: appropriations, award, award_financial, '
-                                                   'award_procurement, fabs, program_activity.')
+                                                   'award_procurement, boc_comparison, fabs, program_activity.')
 
     def test_submission_report_url_invalid_cross(self):
         """ Test that invalid cross_types cause an error """
