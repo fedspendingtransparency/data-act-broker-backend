@@ -16,7 +16,43 @@ from dataactcore.utils.loader_utils import clean_data
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 from dataactbroker.helpers.validation_helper import clean_col
 
+CUSTOM_CGACS = [
+    {
+        'CGAC AGENCY CODE': '999',
+        'AGENCY NAME': 'Non-published FABS Vendor Agency',
+        'AGENCY ABBREVIATION': 'TFVA'
+    }
+]
+CUSTOM_SUBTIERS = [
+    {
+        'CGAC AGENCY CODE': '999',
+        'SUBTIER CODE': 'TFVA',
+        'SUBTIER NAME': 'Non-published FABS Vendor Subtier Agency',
+        'TOPTIER_FLAG': 'TRUE',
+        'IS_FREC': 'FALSE'
+    }
+]
+
 logger = logging.getLogger(__name__)
+
+
+def get_agency_file(base_path):
+    """ Retrieves the agency file to load
+
+        Args:
+            base_path: directory of domain config files
+
+        Returns:
+            the file path for the agency file either online or locally
+    """
+    agency_codes_file = os.path.join(base_path, 'agency_codes.csv')
+    if CONFIG_BROKER.get('usas_public_reference_url'):
+        os.remove(agency_codes_file)
+        agency_codes_url = '{}/agency_codes.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
+        logger.info('Loading agency codes file from {}'.format(agency_codes_url))
+        r = requests.get(agency_codes_url, allow_redirects=True)
+        open(agency_codes_file, 'wb').write(r.content)
+    return agency_codes_file
 
 
 def extract_abbreviation(row):
@@ -95,6 +131,16 @@ def load_cgac(file_name, force_reload=False):
 
     # read CGAC values from csv
     data = pd.read_csv(file_name, dtype=str)
+
+    # Check and add custom CGACs to incoming list for comparison
+    for custom_cgac in CUSTOM_CGACS:
+        if custom_cgac['CGAC AGENCY CODE'] in data['CGAC AGENCY CODE'].values:
+            raise ValueError(f"Custom CGAC code found in agency list: {custom_cgac['CGAC AGENCY CODE']}."
+                             f" Consult the latest agency list with the custom CGAC code.")
+        else:
+            custom_cgac_row = pd.DataFrame([custom_cgac])
+            data = pd.concat([data, custom_cgac_row], ignore_index=True)
+
     # clean data
     data = clean_data(
         data,
@@ -277,6 +323,15 @@ def load_sub_tier_agencies(file_name, force_reload=False):
     # read Sub Tier Agency values from csv
     data = pd.read_csv(file_name, dtype=str)
 
+    # Check and add custom Subtiers to incoming list for comparison
+    for custom_subtier in CUSTOM_SUBTIERS:
+        if custom_subtier['SUBTIER CODE'] in data['SUBTIER CODE'].values:
+            raise ValueError(f"Custom Subtier code found in agency list: {custom_subtier['SUBTIER CODE']}."
+                             f" Consult the latest agency list with the custom Subtier code.")
+        else:
+            custom_cgac_row = pd.DataFrame([custom_subtier])
+            data = pd.concat([data, custom_cgac_row], ignore_index=True)
+
     condition = data['TOPTIER_FLAG'] == 'TRUE'
     data.loc[condition, 'PRIORITY'] = 1
     data.loc[~condition, 'PRIORITY'] = 2
@@ -336,13 +391,7 @@ def load_agency_data(base_path, force_reload=False):
             force_reload: whether to reload regardless
     """
     start_time = datetime.now()
-    agency_codes_url = '{}/agency_codes.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
-    logger.info('Loading agency codes file from {}'.format(agency_codes_url))
-
-    # Get data from public S3 bucket
-    r = requests.get(agency_codes_url, allow_redirects=True)
-    agency_codes_file = os.path.join(base_path, 'agency_codes.csv')
-    open(agency_codes_file, 'wb').write(r.content)
+    agency_codes_file = get_agency_file(base_path)
 
     # Parse data
     with create_app().app_context():
@@ -356,9 +405,6 @@ def load_agency_data(base_path, force_reload=False):
         # If we've updated the data at all, update the external data load date
         if new_cgac or new_frec or new_sub_tier:
             update_external_data_load_date(start_time, datetime.now(), 'agency')
-
-    # Delete file once we're done
-    os.remove(agency_codes_file)
 
 
 if __name__ == '__main__':
