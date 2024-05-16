@@ -52,9 +52,9 @@ def query_data(session, agency_code, period, year):
         filter_by(reporting_fiscal_year=year, reporting_fiscal_period=period,
                   publish_status_id=PUBLISH_STATUS_DICT['published'])
     if len(agency_code) == 3:
-        submission_query.filter_by(cgac_code=agency_code)
+        submission_query = submission_query.filter_by(cgac_code=agency_code)
     else:
-        submission_query.filter_by(frec_code=agency_code)
+        submission_query = submission_query.filter_by(frec_code=agency_code)
     submission_id = submission_query.first().submission_id
 
     # Get the summed values of file B so we can ignore PAC/PAN's existence and properly compare to GTAS BOC
