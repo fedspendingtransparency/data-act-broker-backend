@@ -770,7 +770,7 @@ def test_generate_boc(database, monkeypatch):
                                                         by_direct_reimbursable_fun='D', row_number=9, **tas2_dict)
 
     sub = SubmissionFactory(submission_id=sub_id, reporting_fiscal_year=year, reporting_fiscal_period=6,
-                            publish_status_id=PUBLISH_STATUS_DICT['published'])
+                            publish_status_id=PUBLISH_STATUS_DICT['published'], cgac_code=agency_cgac)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['boc_comparison'], filename=None, start_date='03/01/2017',
                      end_date='03/31/2017', submission=None)
