@@ -167,9 +167,9 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
                 filter_by(reporting_fiscal_year=year, reporting_fiscal_period=period,
                           publish_status_id=lookups.PUBLISH_STATUS_DICT['published'])
             if cgac_code:
-                submission_query.filter_by(cgac_code=cgac_code)
+                submission_query = submission_query.filter_by(cgac_code=cgac_code)
             else:
-                submission_query.filter_by(frec_code=frec_code)
+                submission_query = submission_query.filter_by(frec_code=frec_code)
 
             missing_data = []
             if submission_query.first() is None:
