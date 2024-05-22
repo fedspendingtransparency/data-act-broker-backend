@@ -23,6 +23,37 @@ While the Submission API has been designed to be as easy to understand as possib
     `Location=https://broker-api.usaspending.gov?ticket=ST-123456-abcdefghijklmnopqrst-login.max.gov`
 - Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login. For details on its use, click [here](./doc/api_docs/login/max_login.md)
     - Be sure to use the provided ticket within 30 seconds to ensure it does not expire.
+  
+### Login to the CAIA
+
+#### TODO: Add proper Data Broker Experience API URL 
+
+- Step 1: Request access to the Data Broker Experience API and obtain the `client_id`/`client_secret` credentials.
+    - **NOTE**: Ensure this step is completed by the user that will be logging into the Broker. If another user completes this step, they will be logged into the Broker under that account instead.
+    - Go to the [Data Broker Experience API]().
+    - You will be prompted to log into CAIA with your PIV.
+    - Once on the main page, you will see **"Request Access"** on the top right side.
+        - For **"API Instance"**, select the only version.
+        - For **"Application"**, select **"Create a new application"**.
+            - For **"Application Name"**, use a name representing your agency application that will be accessing the Broker.
+            - Do not fill in any other fields and click **"Create"**.
+        - For **"SLA Tier"**, select **"API User"**.
+        - Select **"Request Access"**.
+        - You will be provided with a `Client ID` and `Client Secret`.
+            - **NOTE**: It is **imperative** that you copy these credentials down as they will be your only way of using the Broker with your application. You **won't** be able to see these values again. If they are lost, then you need to repeat Step 1 to generate new credentials.
+- Step 2: Using the `client_id`/`client_secret` with the Broker.
+    - Each call to the Broker below in this guide (or any other endpoint referenced in the documentation) will be called slightly different:
+        - The root url will be replaced:
+            - Before: `https://broker-api.usaspending.gov/`
+            - After: `https://api-preprod.fiscal.treasury.gov/ap/dev/exp/v1/data-act-broker/`
+        - Two new headers must be added in every request:
+            - `client_id`: The `Client ID` copied from earlier.
+            - `client_secret`: The `Client Secret` copied from earlier.
+    - Simply call `/v1/active_user` (GET) to get a new session started and confirm the user is correct.
+- Troubleshooting
+    - When finally logging into the Broker using the new credentials and you receive a message:
+        - **"Authentication denied"**: The `client_id`/`client_secret` headers were not included. Make sure to include them.
+        - **"Invalid Client"**: Your `client_id`/`client_secret` credentials were provided but incorrect. Ensure the values are correct.
 
 ## DABS Submission Process
 
