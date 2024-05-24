@@ -857,7 +857,7 @@ def vendor_site_details_values(data, obj):
 
 
 def transaction_information_values(data, obj):
-    """ Get values from the genericTags level of the xml """
+    """ Get values from the transactionInformation level of the xml """
     value_map = {'approvedDate': 'approved_date',
                  'closedDate': 'closed_date',
                  'createdDate': 'initial_report_date',
