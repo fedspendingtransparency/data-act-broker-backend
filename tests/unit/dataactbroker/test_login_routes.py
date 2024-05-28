@@ -146,7 +146,7 @@ def test_proxy_login_invalid_user(create_session_mock, monkeypatch, database):
     sess.query(User).filter(func.lower(User.email) == func.lower("test-user@email.com"))\
         .delete(synchronize_session=False)
 
-    assert response['message'] == "Invalid email"
+    assert response['message'] == "Invalid name"
 
 
 @patch('dataactbroker.handlers.account_handler.AccountHandler.create_session_and_response')
@@ -185,7 +185,7 @@ def caia_login_func(create_session_mock, revoke_caia_mock, caia_token_mock, caia
 
 def proxy_login_func(create_session_mock, monkeypatch, token):
     def json_return():
-        return {"email": "test-user@email.com", "token": token}
+        return {"name": "test-user@email.com", "token": token}
     request = type('Request', (object,), {"is_json": True, "headers": {"Content-Type": "application/json"},
                                           "get_json": json_return})
     ah = account_handler.AccountHandler(request=request)
