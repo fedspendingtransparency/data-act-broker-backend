@@ -7,7 +7,7 @@ from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
-BACKFILL_FABS_PPOP_SCOPE_SQL_1 = """
+BACKFILL_FABS_PPOP_SCOPE_SQL_1 = r"""
     UPDATE published_fabs
     SET place_of_performance_scope =
         CASE WHEN place_of_performance_code ~ '^00\*{5}$'
@@ -24,7 +24,7 @@ BACKFILL_FABS_PPOP_SCOPE_SQL_1 = """
     WHERE (place_of_performance_zip4a IS NULL
         AND place_of_performance_scope IS NULL);
 """
-BACKFILL_FABS_PPOP_SCOPE_SQL_2 = """
+BACKFILL_FABS_PPOP_SCOPE_SQL_2 = r"""
     UPDATE published_fabs
     SET place_of_performance_scope =
         CASE WHEN LOWER(place_of_performance_zip4a) = 'city-wide'
