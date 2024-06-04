@@ -17,6 +17,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case, cast
 from sqlalchemy.sql import extract
 
+from dataactbroker.handlers.agency_handler import get_user_agency_codes
 from dataactbroker.handlers.generation_handler import generate_file
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        get_submissions_in_period)
@@ -2170,6 +2171,10 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 Order: type -> agency -> year -> period
     """
     sess = GlobalDB.db().session
+
+    # This endpoint is essentially blocked for FABS Vendor Users (CGAC '999')
+    if get_user_agency_codes() == ['999']:
+        return JsonResponse.create(StatusCode.OK, [])
 
     # determine type of request
     if sub_type not in ['dabs', 'fabs']:
