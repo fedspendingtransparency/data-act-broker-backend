@@ -146,7 +146,7 @@ def test_proxy_login_invalid_user(create_session_mock, monkeypatch, database):
     sess.query(User).filter(func.lower(User.email) == func.lower("test-user@email.com"))\
         .delete(synchronize_session=False)
 
-    assert response['message'] == "Invalid name"
+    assert response['message'] == "Invalid user"
 
 
 @patch('dataactbroker.handlers.account_handler.AccountHandler.create_session_and_response')
