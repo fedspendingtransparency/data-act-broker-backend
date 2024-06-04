@@ -185,7 +185,7 @@ def caia_login_func(create_session_mock, revoke_caia_mock, caia_token_mock, caia
 
 def proxy_login_func(create_session_mock, monkeypatch, token):
     def json_return():
-        return {"name": "test-user@email.com", "token": token}
+        return {"name": "test-user@email.com", "email": "other.email@domain.com", "token": token}
     request = type('Request', (object,), {"is_json": True, "headers": {"Content-Type": "application/json"},
                                           "get_json": json_return})
     ah = account_handler.AccountHandler(request=request)
