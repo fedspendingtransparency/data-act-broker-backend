@@ -4,7 +4,7 @@ from flask import g
 
 from dataactbroker.handlers.agency_handler import (
     get_sub_tiers_from_perms, get_cgacs_without_sub_tier_agencies, get_accessible_agencies, get_all_agencies,
-    organize_sub_tier_agencies)
+    get_user_agency_codes, organize_sub_tier_agencies)
 
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from dataactcore.models.userModel import UserAffiliation
@@ -105,6 +105,10 @@ def test_get_accessible_agencies(database):
     assert results["cgac_agency_list"][0]["cgac_code"] == cgacs[0].cgac_code
     assert frec_name_result == {frecs[1].agency_name, frecs[2].agency_name}
     assert frec_code_result == {frecs[1].frec_code, frecs[2].frec_code}
+
+    # Test get_user_agency_codes
+    results = get_user_agency_codes()
+    assert sorted(results) == sorted([cgacs[0].cgac_code, frecs[1].frec_code, frecs[2].frec_code])
 
     # Test when user is website admin, should return everything, but only 2 frecs because only 2 of the 3 have the
     # frec flag

@@ -54,6 +54,7 @@ FPDS_NAMESPACES = {'http://www.fpdsng.com/FPDS': None,
 # Used for asyncio get requests against the ATOM feed
 MAX_ENTRIES = 10
 MAX_REQUESTS_AT_ONCE = 100
+FPDS_MAX_RETURNED_ENTRIES = 400000
 
 # Used for tracking cgac errors for output later
 cgac_errors = {}
@@ -856,7 +857,7 @@ def vendor_site_details_values(data, obj):
 
 
 def transaction_information_values(data, obj):
-    """ Get values from the genericTags level of the xml """
+    """ Get values from the transactionInformation level of the xml """
     value_map = {'approvedDate': 'approved_date',
                  'closedDate': 'closed_date',
                  'createdDate': 'initial_report_date',
@@ -1480,6 +1481,9 @@ def get_total_expected_records(base_url):
 
     # retrieve the page from the final_request_url
     final_request_count = int(final_request_url.split('&start=')[-1])
+    if final_request_count >= FPDS_MAX_RETURNED_ENTRIES:
+        raise Exception(f'Max start count of {final_request_count} exceeds the maximum number of entries FPDS'
+                        ' is willing to return. Erroring.')
 
     # retrieve the last page of data
     final_request = get_xml_with_exception_hand(final_request_url, FPDS_NAMESPACES)
@@ -1856,7 +1860,7 @@ def main():
                         nargs=3, type=str)
     args = parser.parse_args()
 
-    award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
+    award_types_award = ["Delivery Order", "BPA Call", "Definitive Contract", "Purchase Order"]
     award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
     metrics_json = {
         'script_name': 'pull_fpds_data.py',
