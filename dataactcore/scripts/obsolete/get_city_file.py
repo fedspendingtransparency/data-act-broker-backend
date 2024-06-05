@@ -77,7 +77,7 @@ def main():
     # Find the file we just downloaded, can't have any other versions of the file in the folder for this to work
     file_name = ''
     for dir_file in os.listdir(city_file_dir):
-        if re.match('NationalFedCodes_\d{8}\.txt', dir_file):
+        if re.match(r'NationalFedCodes_\d{8}\.txt', dir_file):
             file_name = dir_file
 
     city_file_path = os.path.join(city_file_dir, file_name)
