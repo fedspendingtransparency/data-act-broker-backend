@@ -51,27 +51,16 @@ def parse_city_file(city_file):
     """
     # read the data and clean up the column names
     data = pd.read_csv(city_file, dtype=str, sep="|")
-    # TODO: put this back once we swap which file we're loading
-    # data = clean_data(
-    #     data,
-    #     {"feature_name": "feature_name",
-    #      "feature_class": "feature_class",
-    #      "census_code": "city_code",
-    #      "state_numeric": "state_fips",
-    #      "county_numeric": "county_number",
-    #      "county_name": "county_name",
-    #      "prim_lat_dec": "latitude",
-    #      "prim_long_dec": "longitude"})
     data = clean_data(
         data,
-        {"FEATURE_NAME": "feature_name",
-         "FEATURE_CLASS": "feature_class",
-         "CENSUS_CODE": "city_code",
-         "STATE_ALPHA": "state_code",
-         "COUNTY_NUMERIC": "county_number",
-         "COUNTY_NAME": "county_name",
-         "PRIMARY_LATITUDE": "latitude",
-         "PRIMARY_LONGITUDE": "longitude"})
+        {"feature_name": "feature_name",
+         "feature_class": "feature_class",
+         "census_code": "city_code",
+         "state_numeric": "state_fips",
+         "county_numeric": "county_number",
+         "county_name": "county_name",
+         "prim_lat_dec": "latitude",
+         "prim_long_dec": "longitude"})
 
     # add a sort column based on feature_class and remove anything with a different feature class or empty city_code
     feature_class_ranking = {"Populated Place": 1, "Locale": 2, "Civil": 3, "Census": 4}
@@ -79,15 +68,15 @@ def parse_city_file(city_file):
     data['sorting_col'] = data['feature_class'].map(feature_class_ranking)
     data = data[pd.notnull(data['sorting_col'])]
 
-    # TODO: put this back once we swap which file we're loading
     # # Add the state codes as a column
-    # states = sess.query(States).all()
-    # state_mapping = {}
-    #
-    # for state in states:
-    #     state_mapping[state.fips_code] = state.state_code
-    # data['state_code'] = data['state_fips'].map(state_mapping)
-    # data = data.drop('state_fips', axis=1)
+    sess = GlobalDB.db().session
+    states = sess.query(States).all()
+    state_mapping = {}
+
+    for state in states:
+        state_mapping[state.fips_code] = state.state_code
+    data['state_code'] = data['state_fips'].map(state_mapping)
+    data = data.drop('state_fips', axis=1)
 
     # sort by feature_class then remove any duplicates within state/city code combo (we keep the first occurrence
     # because we've sorted by priority so the one that would overwrite the others is on top already)
@@ -116,17 +105,11 @@ def parse_county_file(county_file):
     """
     # read the data and clean up the column names
     data = pd.read_csv(county_file, dtype=str, sep="|")
-    # TODO: put this back once we swap which file we're loading
-    # data = clean_data(
-    #     data,
-    #     {"county_numeric": "county_number",
-    #      "county_name": "county_name",
-    #      "state_alpha": "state_code"})
     data = clean_data(
         data,
-        {"COUNTY_NUMERIC": "county_number",
-         "COUNTY_NAME": "county_name",
-         "STATE_ALPHA": "state_code"})
+        {"county_numeric": "county_number",
+         "county_name": "county_name",
+         "state_alpha": "state_code"})
 
     # remove all blank county_number rows. Not much use in a county number table
     data = data[pd.notnull(data['county_number'])]
@@ -233,9 +216,7 @@ def load_city_data(force_reload):
     sess = GlobalDB.db().session
     start_time = datetime.now()
     # parse the new city code data
-    # TODO: put this back once we swap which file we're loading
-    # city_file_url = '{}/FederalCodes_National.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
-    city_file_url = '{}/NationalFedCodes.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
+    city_file_url = '{}/FederalCodes_National.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     with RetrieveFileFromUri(city_file_url, 'r').get_file_object() as city_file:
         new_data = parse_city_file(city_file)
 
@@ -263,9 +244,8 @@ def load_county_data(force_reload):
     """
     start_time = datetime.now()
     # parse the new county code data
-    # TODO: put this back once we swap which file we're loading
-    # county_file_url = '{}/GovernmentUnits_National.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
-    county_file_url = '{}/GOVT_UNITS.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
+    county_file_url = '{}/GovernmentUnits_National.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
+    # county_file_url = '{}/GOVT_UNITS.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     with RetrieveFileFromUri(county_file_url, 'r').get_file_object() as county_file:
         new_data = parse_county_file(county_file)
 
