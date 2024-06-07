@@ -69,12 +69,12 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
     empty_pull_count = 0
     for level in levels:
-        # Create URL with the level parameter
-        url_with_params = '{}&level={}'.format(API_URL, level)
+        # Create URL with the level and status parameter (default is just active, we want inactive as well)
+        url_with_params = '{}&level={}&status=all'.format(API_URL, level)
 
         # Add updateddatefrom and status parameters to the URL
         if not pull_all:
-            url_with_params += '&updateddatefrom={}&status=all'.format(updated_date_from)
+            url_with_params += '&updateddatefrom={}'.format(updated_date_from)
 
         # Retrieve the total count of expected records for this pull
         total_expected_records = get_with_exception_hand(url_with_params)['totalrecords']
@@ -112,7 +112,6 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             # Create an object with all the data from the API
             dataframe = pd.DataFrame()
             offices = {}
-            inactive_offices = []
             start = entries_processed + 1
             for response_dict in full_response:
                 # Process the entry if it isn't an error
@@ -133,12 +132,6 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                         # trim incoming values
                         org = trim_nested_obj(org)
 
-                        # If it's inactive, we don't need all that craziness below, we just need to know which code
-                        # to delete
-                        if org['status'] == 'INACTIVE':
-                            inactive_offices.append(org.get('aacofficecode'))
-                            continue
-
                         agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'],
                                                                  org.get('agencycode'))
                         # TEMPORARILY REPLACE Navy, Army, AND Air Force WITH DOD
@@ -150,8 +143,14 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                         # store all the cgacs/subtiers loaded in from this run, to be filtered later
                         metrics['missing_cgacs'].append(agency_code)
                         metrics['missing_subtier_codes'].append(org.get('agencycode'))
+
+                        effective_start_date = org.get('effectivestartdate') or '2001-01-01'
+                        effective_end_date = (org.get('effectiveenddate') if org['status'] == 'ACTIVE'
+                                              else org.get('effectiveenddate') or '2000-01-02')
                         new_office = Office(office_code=org.get('aacofficecode'), office_name=org.get('fhorgname'),
                                             sub_tier_code=org.get('agencycode'), agency_code=agency_code,
+                                            effective_start_date=effective_start_date,
+                                            effective_end_date=effective_end_date,
                                             contract_funding_office=False, contract_awards_office=False,
                                             financial_assistance_awards_office=False,
                                             financial_assistance_funding_office=False)
@@ -179,9 +178,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     dataframe.to_csv(f, index=False, header=False, columns=file_headers)
 
             if update_db:
-                # combine both lists of offices to determine what offices to delete, only active ones will be re-added
-                office_codes = set(offices.keys()).union(set(inactive_offices))
-                sess.query(Office).filter(Office.office_code.in_(office_codes)).delete(synchronize_session=False)
+                sess.query(Office).filter(Office.office_code.in_(set(offices.keys()))).delete(synchronize_session=False)
                 sess.add_all(offices.values())
 
             logger.info('Processed rows %s-%s', start, entries_processed)
