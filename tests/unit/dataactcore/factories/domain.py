@@ -294,6 +294,8 @@ class OfficeFactory(factory.Factory):
     office_name = fuzzy.FuzzyText()
     sub_tier_code = fuzzy.FuzzyText()
     agency_code = fuzzy.FuzzyText()
+    effective_start_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    effective_end_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
     contract_awards_office = fuzzy.FuzzyChoice((False, True))
     contract_funding_office = fuzzy.FuzzyChoice((False, True))
     financial_assistance_awards_office = fuzzy.FuzzyChoice((False, True))
