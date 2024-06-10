@@ -144,7 +144,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                         metrics['missing_cgacs'].append(agency_code)
                         metrics['missing_subtier_codes'].append(org.get('agencycode'))
 
-                        effective_start_date = org.get('effectivestartdate') or '2001-01-01'
+                        effective_start_date = org.get('effectivestartdate') or '2000-01-01'
                         effective_end_date = (org.get('effectiveenddate') if org['status'] == 'ACTIVE'
                                               else org.get('effectiveenddate') or '2000-01-02')
                         new_office = Office(office_code=org.get('aacofficecode'), office_name=org.get('fhorgname'),
