@@ -1,5 +1,5 @@
 -- If both are submitted, AwardingSubTierAgencyCode and AwardingOfficeCode must belong to the same AwardingAgencyCode
--- (per the Federal Hierarchy).
+-- (per the Federal Hierarchy) at the time the award was signed (per the Action Date).
 WITH sub_tier_agency_codes_{0} AS
     (SELECT (CASE WHEN sta.is_frec
                 THEN frec.frec_code
@@ -16,7 +16,8 @@ fabs23_2_{0} AS
 		awarding_sub_tier_agency_c,
 		awarding_office_code,
 		correction_delete_indicatr,
-		afa_generated_unique
+		afa_generated_unique,
+		action_date
 	FROM fabs
 	WHERE submission_id = {0}
 		AND COALESCE(awarding_sub_tier_agency_c, '') <> ''
@@ -24,7 +25,9 @@ fabs23_2_{0} AS
 -- make a list of all VALID pairings of office and sub tier codes with the same agency code from the submission
 sub_tier_offices_{0} AS
 	(SELECT stac.sub_tier_code AS sub_tier_code,
-		office.office_code AS office_code
+		office.office_code AS office_code,
+		office.effective_start_date AS effective_start_date,
+		office.effective_end_date AS effective_end_date
 	FROM sub_tier_agency_codes_{0} AS stac
 	JOIN office
 		ON stac.agency_code = office.agency_code
@@ -46,5 +49,7 @@ WHERE NOT EXISTS (
 	    FROM sub_tier_offices_{0} AS sto
 	    WHERE UPPER(sto.sub_tier_code) = UPPER(fabs.awarding_sub_tier_agency_c)
 		    AND UPPER(sto.office_code) = UPPER(fabs.awarding_office_code)
+		    AND sto.effective_start_date <= cast_as_date(fabs.action_date)
+		    AND COALESCE(sto.effective_end_date, NOW() + INTERVAL '1 year') > cast_as_date(fabs.action_date)
 	)
 	AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
