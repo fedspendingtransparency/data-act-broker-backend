@@ -55,4 +55,6 @@ WHERE EXISTS (
 			WHERE UPPER(fc.funding_office_code) = UPPER(office.office_code)
 			    AND office.financial_assistance_funding_office IS TRUE
 			    AND office.effective_start_date <= cast_as_date(fc.action_date)
-		        AND COALESCE(office.effective_end_date, NOW() + INTERVAL '1 year') > cast_as_date(fc.action_date)));
+		        AND COALESCE(office.effective_end_date, NOW() + INTERVAL '1 year') > cast_as_date(fc.action_date)
+	    )
+    );
