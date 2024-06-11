@@ -1,6 +1,3 @@
-from datetime import date
-from dateutil.relativedelta import relativedelta
-
 from tests.unit.dataactcore.factories.domain import OfficeFactory
 from tests.unit.dataactcore.factories.staging import FABSFactory, PublishedFABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
