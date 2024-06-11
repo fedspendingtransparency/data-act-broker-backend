@@ -6,6 +6,7 @@
 SELECT
     row_number,
     funding_office_code,
+    action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs
 WHERE submission_id = {0}

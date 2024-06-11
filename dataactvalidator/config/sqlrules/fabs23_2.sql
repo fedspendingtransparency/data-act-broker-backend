@@ -41,6 +41,7 @@ SELECT
     row_number,
     awarding_sub_tier_agency_c,
     awarding_office_code,
+    action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs23_2_{0} AS fabs
 WHERE NOT EXISTS (
