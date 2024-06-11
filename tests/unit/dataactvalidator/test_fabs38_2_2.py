@@ -1,3 +1,6 @@
+from datetime import date
+from dateutil.relativedelta import relativedelta
+
 from tests.unit.dataactcore.factories.domain import OfficeFactory
 from tests.unit.dataactcore.factories.staging import FABSFactory, PublishedFABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
@@ -6,7 +9,7 @@ _FILE = 'fabs38_2_2'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'funding_office_code', 'uniqueid_AssistanceTransactionUniqueKey'}
+    expected_subset = {'row_number', 'funding_office_code', 'action_date', 'uniqueid_AssistanceTransactionUniqueKey'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
@@ -15,7 +18,8 @@ def test_success_ignore_null_pub_fabs(database):
     """ Test that empty funding office codes aren't matching invalid office codes from the base record. """
 
     office_1 = OfficeFactory(office_code='12345b', contract_funding_office=False,
-                             financial_assistance_funding_office=True)
+                             financial_assistance_funding_office=True,
+                             effective_start_date='01/01/2018', effective_end_date=None)
     # Base record has no funding office code, future records don't affect it
     pub_fabs_1 = PublishedFABSFactory(funding_office_code='', unique_award_key='zyxwv_123', action_date='20181018',
                                       award_modification_amendme='0', is_active=True)
@@ -56,13 +60,15 @@ def test_success_ignore_null_pub_fabs(database):
     assert errors == 0
 
 
-def test_failure(database):
+def test_failure_invalid_office(database):
     """ Test fail that empty funding office codes aren't matching invalid office codes from the base record. """
 
     office_1 = OfficeFactory(office_code='12345a', contract_funding_office=False,
-                             financial_assistance_funding_office=True)
+                             financial_assistance_funding_office=True,
+                             effective_start_date='01/01/2018', effective_end_date=None)
     office_2 = OfficeFactory(office_code='abcd', contract_funding_office=True,
-                             financial_assistance_funding_office=False)
+                             financial_assistance_funding_office=False,
+                             effective_start_date='01/01/2018', effective_end_date=None)
     # Invalid code in record
     pub_fabs_1 = PublishedFABSFactory(funding_office_code='abc', unique_award_key='zyxwv_123', action_date='20181018',
                                       award_modification_amendme='0', is_active=True)
@@ -96,3 +102,26 @@ def test_failure(database):
     errors = number_of_errors(_FILE, database, models=[office_1, office_2, pub_fabs_1, pub_fabs_2, pub_fabs_3,
                                                        pub_fabs_4, pub_fabs_5, fabs_1, fabs_2, fabs_3, fabs_4, fabs_5])
     assert errors == 5
+
+
+def test_failure_inactive_office(database):
+    """ Test fail that office wasn't active. """
+
+    office_1 = OfficeFactory(office_code='12345a', contract_funding_office=False,
+                             financial_assistance_funding_office=True,
+                             effective_start_date='01/01/2018', effective_end_date='02/01/2018')
+    # Action date too early
+    pub_fabs_1 = PublishedFABSFactory(funding_office_code='12345a', unique_award_key='zyxw_123', action_date='20171018',
+                                      award_modification_amendme='0', is_active=True)
+    # Action date too late
+    pub_fabs_2 = PublishedFABSFactory(funding_office_code='12345a', unique_award_key='4321_cba', action_date='20181018',
+                                      award_modification_amendme='0', is_active=True)
+
+    # Entry for action date too early
+    fabs_1 = FABSFactory(funding_office_code='', unique_award_key='zyxw_123', action_date='20201020',
+                         award_modification_amendme='2', correction_delete_indicatr=None)
+    # Entry for action date too late
+    fabs_2 = FABSFactory(funding_office_code='', unique_award_key='4321_cba', action_date='20201020',
+                         award_modification_amendme=None, correction_delete_indicatr=None)
+    errors = number_of_errors(_FILE, database, models=[office_1, pub_fabs_1, pub_fabs_2, fabs_1, fabs_2])
+    assert errors == 2
