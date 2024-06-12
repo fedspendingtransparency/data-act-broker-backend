@@ -245,7 +245,6 @@ def load_county_data(force_reload):
     start_time = datetime.now()
     # parse the new county code data
     county_file_url = '{}/GovernmentUnits_National.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
-    # county_file_url = '{}/GOVT_UNITS.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
     with RetrieveFileFromUri(county_file_url, 'r').get_file_object() as county_file:
         new_data = parse_county_file(county_file)
 
