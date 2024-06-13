@@ -141,6 +141,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                         if not org.get('aacofficecode') or not org.get('agencycode') or not agency_code:
                             # Item from Fed Hierarchy is missing necessary data, ignore it
                             continue
+                        if org.get('fhorgname') == "DO NOT USE":
+                            # this is an actual value for the office name in the data, which we should adhere to
+                            continue
                         # store all the cgacs/subtiers loaded in from this run, to be filtered later
                         metrics['missing_cgacs'].append(agency_code)
                         metrics['missing_subtier_codes'].append(org.get('agencycode'))
