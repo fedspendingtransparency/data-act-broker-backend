@@ -241,6 +241,7 @@ class Office(Base):
     agency_code = Column(Text, nullable=False, index=True)
     effective_start_date = Column(Date, index=True)
     effective_end_date = Column(Date, index=True)
+    created_date = Column(Date)
     contract_awards_office = Column(Boolean, nullable=False, default=False, server_default="False")
     contract_funding_office = Column(Boolean, nullable=False, default=False, server_default="False")
     financial_assistance_awards_office = Column(Boolean, nullable=False, default=False, server_default="False")
