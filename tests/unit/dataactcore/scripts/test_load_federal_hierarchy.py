@@ -53,7 +53,9 @@ def test_pull_offices(monkeypatch, database):
     for office_index in [2, 4, 6]:
         assert loaded_offices[office_index].effective_end_date == datetime.date(2021, 4, 14)
     # The first one is made up of two records (one earlier inactive, one later active). ensuring it's now active
+    # and it will assign the newer subtier
     assert loaded_offices[0].effective_end_date is None
+    assert loaded_offices[0].sub_tier_code == '0055'
     # These offices in the test file were active and dont have an effective end date
     for office_index in [1, 3, 5, 7]:
         assert loaded_offices[office_index].effective_end_date is None

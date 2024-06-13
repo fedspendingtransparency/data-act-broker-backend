@@ -216,12 +216,13 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
                 # Merge it back into offices and drop duplicates
                 offices = offices.join(dates_df.set_index('office_code'), on='office_code', rsuffix='_derived')
-                offices.drop(columns=date_cols, inplace=True)
-                offices.rename(columns={f'{col}_derived': col for col in date_cols}, inplace=True)
                 # doing the drop duplicates again on original offices df as it will still have the old duplicates
                 # they should be the same except for the date columns but well keep the most recent one just in case
                 offices.sort_values(by=['created_date'], inplace=True)
                 offices.drop_duplicates(subset=['office_code'], keep='last', inplace=True)
+                # Doing the column switcheroo *after* dropping the duplicates and choosing the latest
+                offices.drop(columns=date_cols, inplace=True)
+                offices.rename(columns={f'{col}_derived': col for col in date_cols}, inplace=True)
 
                 existing_offices.delete(synchronize_session=False)
                 insert_dataframe(offices, 'office', sess.connection())
