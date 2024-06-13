@@ -14,6 +14,7 @@ from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import Office, SubTierAgency, CGAC, FREC, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
+from dataactcore.utils.loader_utils import insert_dataframe
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
@@ -110,8 +111,8 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             full_response = loop.run_until_complete(_fed_hierarchy_async_get(entries_processed))
 
             # Create an object with all the data from the API
-            dataframe = pd.DataFrame()
-            offices = {}
+            raw_dataframe = pd.DataFrame()
+            offices = pd.DataFrame()
             start = entries_processed + 1
             for response_dict in full_response:
                 # Process the entry if it isn't an error
@@ -121,7 +122,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     # Add to the file data structure
                     if filename:
                         row = pd.json_normalize(flatten_json(org))
-                        dataframe = pd.concat([dataframe, row])
+                        raw_dataframe = pd.concat([raw_dataframe, row])
 
                     # Don't process the top_sub_levels, but store them in the fed hierarchy export
                     if level in top_sub_levels:
@@ -144,42 +145,82 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                         metrics['missing_cgacs'].append(agency_code)
                         metrics['missing_subtier_codes'].append(org.get('agencycode'))
 
-                        effective_start_date = org.get('effectivestartdate') or '2000-01-01'
-                        effective_end_date = (org.get('effectiveenddate') if org['status'] == 'ACTIVE'
-                                              else org.get('effectiveenddate') or '2000-01-02')
-                        new_office = Office(office_code=org.get('aacofficecode'), office_name=org.get('fhorgname'),
-                                            sub_tier_code=org.get('agencycode'), agency_code=agency_code,
-                                            effective_start_date=effective_start_date,
-                                            effective_end_date=effective_end_date,
-                                            contract_funding_office=False, contract_awards_office=False,
-                                            financial_assistance_awards_office=False,
-                                            financial_assistance_funding_office=False)
+                        new_office = {
+                            "office_code": org.get('aacofficecode'),
+                            "office_name": org.get('fhorgname'),
+                            "sub_tier_code": org.get('agencycode'),
+                            "agency_code": agency_code,
+                            "created_date": org.get('createddate'),
+                            "effective_start_date": org.get('effectivestartdate') or '2000-01-01 00:00',
+                            "effective_end_date": (org.get('effectiveenddate') if org['status'] == 'ACTIVE'
+                                                   else org.get('effectiveenddate') or '2000-01-02 00:00'),
+                            "contract_funding_office": False,
+                            "contract_awards_office": False,
+                            "financial_assistance_awards_office": False,
+                            "financial_assistance_funding_office": False
+                        }
 
                         for off_type in org.get('fhorgofficetypelist', []):
                             office_type = off_type['officetype'].lower().replace(' ', '_')
                             if office_type in ['contract_funding', 'contract_awards', 'financial_assistance_awards',
                                                'financial_assistance_funding']:
-                                setattr(new_office, office_type + '_office', True)
+                                new_office[office_type + '_office'] = True
 
-                        offices[org.get('aacofficecode')] = new_office
+                        offices = pd.concat([pd.DataFrame(new_office, index=[0]), offices])
+            offices.reset_index(drop=True, inplace=True)
 
-            if filename and len(dataframe.index) > 0:
+            if filename and len(raw_dataframe.index) > 0:
                 # Ensure headers are handled correctly
-                for header in list(dataframe.columns.values):
+                for header in list(raw_dataframe.columns.values):
                     if header not in file_headers:
                         file_headers.append(header)
                         logger.info('Headers missing column: %s', header)
 
                 # Adding all the extra headers we might not have in the dataframe for any reason
-                dataframe = dataframe.reindex(columns=file_headers)
+                raw_dataframe = raw_dataframe.reindex(columns=file_headers)
 
                 # Write to file
                 with open(filename, 'a') as f:
-                    dataframe.to_csv(f, index=False, header=False, columns=file_headers)
+                    raw_dataframe.to_csv(f, index=False, header=False, columns=file_headers)
 
-            if update_db:
-                sess.query(Office).filter(Office.office_code.in_(set(offices.keys()))).delete(synchronize_session=False)
-                sess.add_all(offices.values())
+            if update_db and not offices.empty:
+                existing_offices = sess.query(Office).filter(Office.office_code.in_(list(offices['office_code'])))
+
+                # The feed can include *duplicate* offices that were generated by FPDS before 4/1/2016.
+                # To consolidate the duplicate offices in the incoming feed with potentially the already existing
+                # office in the database, we're going to add all these in one dataframe, find the appropriate
+                # values grouping by their office codes, and update the incoming record going in the database
+                date_cols = ['created_date', 'effective_start_date', 'effective_end_date']
+                dates_df_cols = ['office_code'] + date_cols
+
+                # Merge with the already existing offices in the database
+                existing_offices_df = pd.read_sql(existing_offices.statement, existing_offices.session.bind)
+                dates_df = pd.concat([existing_offices_df[dates_df_cols], offices[dates_df_cols]])
+
+                # Sorted by the created_date and grouped by the office code...
+                #   Get the earliest effective start date
+                #   Get the latest effective end date
+                #   Get the latest created_date
+                dates_df = dates_df.astype({col: 'datetime64[ns]' for col in date_cols})
+                dates_df.sort_values(by=['created_date'], inplace=True)
+                dates_grouped = dates_df.groupby(by=['office_code'], sort=False, as_index=False, dropna=False)
+                # panda's aggregates "first" and "last" ignore NATs, so we're using these
+                dates_df = dates_grouped.agg({"effective_start_date": lambda x: x.values[0],
+                                              "effective_end_date": lambda x: x.values[-1],
+                                              "created_date": lambda x: x.values[-1]})
+
+                # Merge it back into offices and drop duplicates
+                offices = offices.join(dates_df.set_index('office_code'), on='office_code', rsuffix='_derived')
+                offices.drop(columns=date_cols, inplace=True)
+                offices.rename(columns={f'{col}_derived': col for col in date_cols}, inplace=True)
+                # doing the drop duplicates again on original offices df as it will still have the old duplicates
+                # they should be the same except for the date columns but well keep the most recent one just in case
+                offices.sort_values(by=['created_date'], inplace=True)
+                offices.drop_duplicates(subset=['office_code'], keep='last', inplace=True)
+
+                existing_offices.delete(synchronize_session=False)
+                insert_dataframe(offices, 'office', sess.connection())
+                sess.commit()
 
             logger.info('Processed rows %s-%s', start, entries_processed)
             if entries_processed == total_expected_records:

@@ -6,7 +6,7 @@ from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, Su
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.scripts.pipeline import load_federal_hierarchy
-from dataactcore.models.domainModels import Office, ExternalDataType
+from dataactcore.models.domainModels import Office
 
 
 def mock_request_to_fh(url):
@@ -41,17 +41,19 @@ def test_pull_offices(monkeypatch, database):
     load_federal_hierarchy.pull_offices(sess, filename=None, update_db=True, pull_all=True,
                                         updated_date_from='2020-01-01', export_office=False, metrics=metrics_json)
 
-    loaded_offices = list(sess.query(Office).all())
+    loaded_offices = list(sess.query(Office).order_by(Office.created_date).all())
 
-    # 14 are in the total levels but we're ignoring the 4 in the first two levels
+    # 15 records are in the total levels but we're ignoring the 4 in the first two levels and there's one duplicate
     assert len(loaded_offices) == 10
 
-    # All of them should have the same start date *except for the last inactive*
+    # All of them should have the same start date including the duplicate and excluding the last inactive
     for office_index in [0, 1, 2, 3, 4, 5, 6, 7, 9]:
         assert loaded_offices[office_index].effective_start_date == datetime.date(2021, 4, 13)
     # These offices in the test file were inactive and have effective end dates
-    for office_index in [0, 2, 4, 6]:
+    for office_index in [2, 4, 6]:
         assert loaded_offices[office_index].effective_end_date == datetime.date(2021, 4, 14)
+    # The first one is made up of two records (one earlier inactive, one later active). ensuring it's now active
+    assert loaded_offices[0].effective_end_date is None
     # These offices in the test file were active and dont have an effective end date
     for office_index in [1, 3, 5, 7]:
         assert loaded_offices[office_index].effective_end_date is None
