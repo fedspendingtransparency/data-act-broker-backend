@@ -3,13 +3,17 @@ import re
 import logging
 import os
 import csv
-import boto3
 import datetime
 import json
 
+from dateutil.relativedelta import relativedelta
+
 from dataactcore.broker_logging import configure_logging
-from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.models.domainModels import ExternalDataLoadDate
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -220,10 +224,14 @@ def main():
     }
 
     if args.auto:
-        s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
-        extract_bucket = s3_resource.Bucket(BUCKET_NAME)
-        all_sam_extracts = extract_bucket.objects.filter(Prefix=BUCKET_PREFIX)
-        mod_date = max(all_sam_extracts, key=lambda k: k.last_modified).last_modified.strftime("%m/%d/%Y")
+        sess = GlobalDB.db().session
+        # find yesterday and the date of the last successful generation
+        yesterday = datetime.datetime.now().date() - relativedelta(days=1)
+        last_update = sess.query(ExternalDataLoadDate). \
+            filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['fabs_extract']).one_or_none()
+        mod_date = last_update.last_load_date_start.date() if last_update else yesterday
+        mod_date = mod_date.strftime('%m/%d/%Y')
+        print(mod_date)
 
     if args.date:
         arg_date = args.date[0]
@@ -254,6 +262,10 @@ def main():
             out_csv.writerow(row)
     # close file
     csv_file.close()
+
+    # We only want to update the external data load date if it was an automatic run, not a specific one
+    if args.auto:
+        update_external_data_load_date(now, datetime.datetime.now(), 'fabs_extract')
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 
