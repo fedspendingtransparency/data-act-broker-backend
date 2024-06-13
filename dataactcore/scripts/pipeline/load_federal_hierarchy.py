@@ -150,7 +150,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                             "office_name": org.get('fhorgname'),
                             "sub_tier_code": org.get('agencycode'),
                             "agency_code": agency_code,
-                            "created_date": org.get('createddate'),
+                            "created_date": org.get('createddate') or '1000-01-01 00:00',
                             "effective_start_date": org.get('effectivestartdate') or '2000-01-01 00:00',
                             "effective_end_date": (org.get('effectiveenddate') if org['status'] == 'ACTIVE'
                                                    else org.get('effectiveenddate') or '2000-01-02 00:00'),
@@ -201,7 +201,6 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 #   Get the earliest effective start date
                 #   Get the latest effective end date
                 #   Get the latest created_date
-                dates_df = dates_df.astype({col: 'datetime64[ns]' for col in date_cols})
                 dates_df.sort_values(by=['created_date'], inplace=True)
                 dates_grouped = dates_df.groupby(by=['office_code'], sort=False, as_index=False, dropna=False)
                 # panda's aggregates "first" and "last" ignore NATs, so we're using these
@@ -374,6 +373,7 @@ def main():
     if args.all and not args.ignore_db:
         logger.info('Emptying out the Office table for a complete reload.')
         sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
+        sess.commit()
 
     try:
         pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office, metrics_json)
