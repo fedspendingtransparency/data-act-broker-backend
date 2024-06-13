@@ -79,6 +79,11 @@ def test_pull_offices(monkeypatch, database):
     # The special case where we have 011, check to see if it mapped to its FREC
     assert loaded_offices[6].agency_code == matching_frec.frec_code
 
+    # confirm the created_at/updated_at is populated
+    today = datetime.datetime.today().date()
+    assert loaded_offices[0].created_at.date() == today
+    assert loaded_offices[0].updated_at.date() == today
+
 
 def test_trim_nested_obj():
     """ Test trimming nested objects """

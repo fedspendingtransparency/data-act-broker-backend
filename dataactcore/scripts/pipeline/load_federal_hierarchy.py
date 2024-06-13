@@ -224,6 +224,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 offices.drop(columns=date_cols, inplace=True)
                 offices.rename(columns={f'{col}_derived': col for col in date_cols}, inplace=True)
 
+                offices['created_at'] = datetime.now()
+                offices['updated_at'] = datetime.now()
+
                 existing_offices.delete(synchronize_session=False)
                 insert_dataframe(offices, 'office', sess.connection())
                 sess.commit()
