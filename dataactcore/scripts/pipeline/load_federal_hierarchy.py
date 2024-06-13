@@ -194,7 +194,10 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 dates_df_cols = ['office_code'] + date_cols
 
                 # Merge with the already existing offices in the database
-                existing_offices_df = pd.read_sql(existing_offices.statement, existing_offices.session.bind)
+                existing_offices_df = pd.read_sql(existing_offices.statement, existing_offices.session.bind,
+                                                  parse_dates=date_cols)
+                for date_col in date_cols:
+                    existing_offices_df[date_col] = existing_offices_df[date_col].dt.strftime('%Y-%m-%d %H:%M')
                 dates_df = pd.concat([existing_offices_df[dates_df_cols], offices[dates_df_cols]])
 
                 # Sorted by the created_date and grouped by the office code...
