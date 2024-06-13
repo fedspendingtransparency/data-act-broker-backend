@@ -73,7 +73,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
         # Create URL with the level and status parameter (default is just active, we want inactive as well)
         url_with_params = '{}&level={}&status=all'.format(API_URL, level)
 
-        # Add updateddatefrom and status parameters to the URL
+        # Add updateddatefrom parameter to the URL
         if not pull_all:
             url_with_params += '&updateddatefrom={}'.format(updated_date_from)
 
