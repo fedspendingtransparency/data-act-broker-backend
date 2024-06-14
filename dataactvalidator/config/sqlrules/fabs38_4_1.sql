@@ -1,4 +1,4 @@
--- hen provided, AwardingOfficeCode must be a valid value from the Federal Hierarchy, including being designated
+-- When provided, AwardingOfficeCode must be a valid value from the Federal Hierarchy, including being designated
 -- specifically as an Assistance Awarding Office in the hierarchy at the time the award was signed (per the Action Date)
 SELECT
     row_number,

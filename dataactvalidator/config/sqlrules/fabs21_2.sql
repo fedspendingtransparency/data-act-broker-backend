@@ -1,4 +1,4 @@
--- both are submitted, FundingSubTierAgencyCode and FundingOfficeCode must belong to the same FundingAgencyCode
+-- If both are submitted, FundingSubTierAgencyCode and FundingOfficeCode must belong to the same FundingAgencyCode
 -- (per the Federal Hierarchy) at the time the award was signed (per the Action Date).
 WITH sub_tier_agency_codes_{0} AS
     (SELECT (CASE WHEN sta.is_frec
