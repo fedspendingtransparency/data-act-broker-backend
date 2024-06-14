@@ -42,6 +42,8 @@ for config_path in path_list:
 CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
 
 # GSA buckets
+CONFIG_BROKER['sam'] = {}
+CONFIG_BROKER['sam']['extract'] = {}
 CONFIG_BROKER['sam']['extract']['bucket_name'] = "iae-file-drop-ext"
 if env == "prod":
     CONFIG_BROKER['sam']['extract']['bucket_prefix'] = "usaspendings/prod"
