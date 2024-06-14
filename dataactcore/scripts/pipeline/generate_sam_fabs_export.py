@@ -187,7 +187,7 @@ def get_award_updates_query(mod_date):
             to_char(gt.base_obligation_date, 'YYYY-MM-DD') AS base_obligation_date,
             ut.award_description AS project_description,
             to_char(gt.last_modified_date, 'YYYY-MM-DD') AS last_modified_date,
-            NULl AS dba_name,
+            sr.dba_name AS dba_name,
             ut.high_comp_officer1_full_na AS top_pay_employee1_name,
             ut.high_comp_officer1_amount AS top_pay_employee1_amount,
             ut.high_comp_officer2_full_na AS top_pay_employee2_name,
@@ -200,7 +200,9 @@ def get_award_updates_query(mod_date):
             ut.high_comp_officer5_amount AS top_pay_employee5_amount
         FROM updated_transactions AS ut
         JOIN grouped_transaction AS gt
-            ON gt.unique_award_key = ut.unique_award_key"""
+            ON gt.unique_award_key = ut.unique_award_key
+        LEFT JOIN sam_recipient AS sr
+            ON sr.uei = ut.uei"""
     return update_query
 
 

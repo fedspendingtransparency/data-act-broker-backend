@@ -103,7 +103,7 @@ FULL_DUMP_QUERY = """
         to_char(gt.base_obligation_date, 'YYYY-MM-DD') AS base_obligation_date,
         ut.award_description AS project_description,
         to_char(gt.last_modified_date, 'YYYY-MM-DD') AS last_modified_date,
-        NULL AS dba_name,
+        sr.dba_name AS dba_name,
         ut.high_comp_officer1_full_na AS top_pay_employee1_name,
         ut.high_comp_officer1_amount AS top_pay_employee1_amount,
         ut.high_comp_officer2_full_na AS top_pay_employee2_name,
@@ -117,6 +117,8 @@ FULL_DUMP_QUERY = """
     FROM published_fabs AS ut
     JOIN grouped_transaction AS gt
         ON gt.unique_award_key = ut.unique_award_key
+    LEFT JOIN sam_recipient AS sr
+            ON sr.uei = ut.uei
     WHERE is_active IS TRUE
 """
 
