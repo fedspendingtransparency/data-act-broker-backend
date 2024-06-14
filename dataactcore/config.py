@@ -48,7 +48,7 @@ CONFIG_BROKER['sam']['extract']['bucket_name'] = "iae-file-drop-ext"
 if env == "prod":
     CONFIG_BROKER['sam']['extract']['bucket_prefix'] = "usaspendings/prod"
 else:
-    CONFIG_BROKER['sam']['extract']['bucket_prefix'] = "usaspendings/nonprod"
+    CONFIG_BROKER['sam']['extract']['bucket_prefix'] = "usaspendings/nonprod/"
 
 # for backward-compatibility, differentiate between local runs and AWS
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
