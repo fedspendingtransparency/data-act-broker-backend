@@ -14,6 +14,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
+from dataactvalidator.filestreaming.csv_selection import write_stream_query
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -24,24 +25,23 @@ It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_
 recent file that was uploaded, and use the boto3 response for --date.
 '''
 
-BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
-BUCKET_PREFIX = 'fsrs_award_extracts/'
+BUCKET_NAME = CONFIG_BROKER['sam']['extract']['bucket_name']
+BUCKET_PREFIX = CONFIG_BROKER['sam']['extract']['bucket_prefix']
 
 
-def get_award_updates(mod_date):
-    """ Runs the SQL to extract new award information for SAM
+def get_award_updates_query(mod_date):
+    """ Creates a string to run as the update query. This is needed because the mod date is a variable and therefore
+        a constant cannot be created.
 
         Args:
             mod_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
 
         Returns:
-            The results of the SQL query
+            A string representing the SQL query to run.
     """
-    logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
-    sess = GlobalDB.db().session
     # Query Summary:
     # Each row is the latest instance of any transaction that has been updated since the specified mod_date
-    results = sess.execute(f"""
+    update_query = f"""
         WITH updated_transactions AS (
             SELECT *
             FROM (SELECT unique_award_key,
@@ -200,8 +200,8 @@ def get_award_updates(mod_date):
             ut.high_comp_officer5_amount AS top_pay_employee5_amount
         FROM updated_transactions AS ut
         JOIN grouped_transaction AS gt
-            ON gt.unique_award_key = ut.unique_award_key;""")
-    return results
+            ON gt.unique_award_key = ut.unique_award_key"""
+    return update_query
 
 
 def main():
@@ -248,20 +248,28 @@ def main():
 
     metrics_json['start_date'] = mod_date
 
-    results = get_award_updates(mod_date)
-    logger.info("Completed SQL query, starting file writing")
+    update_query = get_award_updates_query(mod_date)
+    formatted_today = now.strftime('%Y%m%d')
 
-    full_file_path = os.path.join(os.getcwd(), "sam_update.csv")
-    with open(full_file_path, 'w', newline='') as csv_file:
-        out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-        # write headers to file
-        headers = list(results.keys())
-        out_csv.writerow(headers)
-        for row in results:
-            metrics_json['records_provided'] += 1
-            out_csv.writerow(row)
-    # close file
-    csv_file.close()
+    local_file = os.path.join(os.getcwd(), f'FABS_for_SAM_{formatted_today}.csv')
+    file_path = f'{BUCKET_PREFIX}FABS_for_SAM_{formatted_today}.csv' if CONFIG_BROKER['use_aws'] else local_file
+    sess = GlobalDB.db().session
+
+    logger.info(f"Starting SQL query of financial assistance records from {mod_date} to present...")
+    write_stream_query(sess, update_query, local_file, file_path, CONFIG_BROKER['local'],
+                       generate_headers=True, generate_string=False, bucket=BUCKET_NAME)
+    logger.info('Completed SQL query, file written')
+    # full_file_path = os.path.join(os.getcwd(), "sam_update.csv")
+    # with open(full_file_path, 'w', newline='') as csv_file:
+    #     out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+    #     # write headers to file
+    #     headers = list(results.keys())
+    #     out_csv.writerow(headers)
+    #     for row in results:
+    #         metrics_json['records_provided'] += 1
+    #         out_csv.writerow(row)
+    # # close file
+    # csv_file.close()
 
     # We only want to update the external data load date if it was an automatic run, not a specific one
     if args.auto:
