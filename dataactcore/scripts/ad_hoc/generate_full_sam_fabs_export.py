@@ -17,8 +17,8 @@ It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_
 recent file that was uploaded, and use the boto3 response for --date.
 '''
 
-BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
-BUCKET_PREFIX = 'sam_award_extracts/'
+BUCKET_NAME = CONFIG_BROKER['sam']['extract']['bucket_name']
+BUCKET_PREFIX = CONFIG_BROKER['sam']['extract']['bucket_prefix']
 
 
 FULL_DUMP_QUERY = """
@@ -131,9 +131,10 @@ def main():
         'script_name': 'generate_full_sam_fabs_export.py',
         'start_time': str(now)
     }
+    formatted_today = now.strftime('%Y%m%d')
 
-    local_file = os.path.join(os.getcwd(), 'sam_full_fabs_dump.csv')
-    file_path = f'{BUCKET_PREFIX}sam_full_fabs_dump.csv' if CONFIG_BROKER['use_aws'] else local_file
+    local_file = os.path.join(os.getcwd(), f'sam_full_fabs_dump_{formatted_today}.csv')
+    file_path = f'{BUCKET_PREFIX}sam_full_fabs_dump.csv_{formatted_today}' if CONFIG_BROKER['use_aws'] else local_file
 
     logger.info('Starting SQL query of active financial assistance records and writing file')
     write_stream_query(sess, FULL_DUMP_QUERY, local_file, file_path, CONFIG_BROKER['local'],
