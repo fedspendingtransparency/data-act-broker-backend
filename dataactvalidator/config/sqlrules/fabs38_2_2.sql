@@ -11,7 +11,8 @@ WITH fabs38_2_2_{0} AS
     	row_number,
     	funding_office_code,
     	award_modification_amendme,
-    	afa_generated_unique
+    	afa_generated_unique,
+    	action_date
     FROM fabs
     WHERE submission_id = {0}
         AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
@@ -29,7 +30,8 @@ min_dates_{0} AS
 funding_codes_{0} AS
 	(SELECT pf.unique_award_key,
 		pf.funding_office_code,
-		pf.award_modification_amendme
+		pf.award_modification_amendme,
+		pf.action_date
 	FROM published_fabs AS pf
 	JOIN min_dates_{0} AS md
 		ON md.unique_award_key = pf.unique_award_key
@@ -39,6 +41,7 @@ funding_codes_{0} AS
 SELECT
     row_number,
     funding_office_code,
+    action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs38_2_2_{0} AS fabs
 WHERE EXISTS (
@@ -50,4 +53,8 @@ WHERE EXISTS (
 			SELECT 1
 			FROM office
 			WHERE UPPER(fc.funding_office_code) = UPPER(office.office_code)
-			    AND office.financial_assistance_funding_office IS TRUE));
+			    AND office.financial_assistance_funding_office IS TRUE
+			    AND office.effective_start_date <= cast_as_date(fc.action_date)
+		        AND COALESCE(office.effective_end_date, NOW() + INTERVAL '1 year') > cast_as_date(fc.action_date)
+	    )
+    );
