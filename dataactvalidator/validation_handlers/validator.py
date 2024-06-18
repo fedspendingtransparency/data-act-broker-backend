@@ -127,13 +127,14 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                                                                              row[failure_key] is not None else '')))
                 # If we have multiple differences, join them
                 if diff_array:
-                    difference = ', '.join(diff_array)
+                    difference = ', '.join(sorted(diff_array))
 
                 # Creating a failure array for both writing the row and recording the error metadata
-                failure = [', '.join(unique_key), rule.file.name, ', '.join(source_headers), rule.target_file.name,
-                           ', '.join(target_headers), str(rule.rule_error_message), ', '.join(source_values),
-                           ', '.join(target_values), difference, ', '.join(source_flex_list), source_row_number,
-                           str(rule.rule_label), rule.file_id, rule.target_file_id, rule.rule_severity_id]
+                failure = [', '.join(sorted(unique_key)), rule.file.name, ', '.join(sorted(source_headers)),
+                           rule.target_file.name, ', '.join(sorted(target_headers)), str(rule.rule_error_message),
+                           ', '.join(sorted(source_values)), ', '.join(sorted(target_values)), difference,
+                           ', '.join(sorted(source_flex_list)), source_row_number, str(rule.rule_label), rule.file_id,
+                           rule.target_file_id, rule.rule_severity_id]
                 if failure[14] == RULE_SEVERITY_DICT['fatal']:
                     error_csv.writerow(failure[0:12])
                 if failure[14] == RULE_SEVERITY_DICT['warning']:
@@ -428,21 +429,19 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
     # Create strings for fields and values
     values_list = ['{}: {}'.format(header, str(sql_failure[field] if sql_failure[field] is not None else ''))
                    for field, header in zip(cols, col_headers)]
-    values_list = sorted(values_list)
     flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell if flex_field.cell is not None else '')
                  for flex_field in flex_data[row]]
-    flex_list = sorted(flex_list)
     # Create unique id string
     unique_id = ', '.join(unique_id_fields)
 
     return ValidationFailure(
         unique_id,
-        ', '.join(col_headers),
+        ', '.join(sorted(col_headers)),
         rule.rule_error_message,
-        ', '.join(values_list),
+        ', '.join(sorted(values_list)),
         expected_value,
         difference,
-        ', '.join(flex_list),
+        ', '.join(sorted(flex_list)),
         row,
         rule.rule_label,
         file_id,
