@@ -134,7 +134,7 @@ def main():
     formatted_today = now.strftime('%Y%m%d')
 
     local_file = os.path.join(os.getcwd(), f'sam_full_fabs_dump_{formatted_today}.csv')
-    file_path = f'{BUCKET_PREFIX}sam_full_fabs_dump.csv_{formatted_today}' if CONFIG_BROKER['use_aws'] else local_file
+    file_path = f'{BUCKET_PREFIX}/sam_full_fabs_dump.csv_{formatted_today}' if CONFIG_BROKER['use_aws'] else local_file
 
     logger.info('Starting SQL query of active financial assistance records and writing file')
     write_stream_query(sess, FULL_DUMP_QUERY, local_file, file_path, CONFIG_BROKER['local'],

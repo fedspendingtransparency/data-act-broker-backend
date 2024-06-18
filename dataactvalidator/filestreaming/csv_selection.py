@@ -12,40 +12,6 @@ from dataactbroker.helpers.generic_helper import generate_raw_quoted_query
 logger = logging.getLogger(__name__)
 
 
-def write_csv(file_name, upload_name, is_local, header, body):
-    """ Write a CSV to the relevant location.
-
-        Args:
-            file_name: pathless file name
-            upload_name: file name to be used as S3 key
-            is_local: True if in local development, False otherwise
-            header: value to write as the first line of the file
-            body: Iterable to write as the body of the file
-    """
-    local_filename = CONFIG_BROKER['broker_files'] + file_name
-
-    if is_local:
-        logger.debug({
-            'message': "Writing file locally...",
-            'message_type': 'ValidatorDebug',
-            'file_name': local_filename
-        })
-
-    with open(local_filename, 'w', newline='') as csv_file:
-        # create local file and write headers
-        out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-        if header:
-            out_csv.writerow(header)
-
-        for line in body:
-            out_csv.writerow(line)
-    csv_file.close()
-
-    if not is_local:
-        upload_file_to_s3(upload_name, local_filename)
-        os.remove(local_filename)
-
-
 def write_stream_query(sess, query, local_filename, upload_name, is_local, header=None, generate_headers=False,
                        generate_string=True, is_certified=False, file_format='csv', bucket=None, set_region=True):
     """ Write file locally from a query, then stream it to S3

@@ -254,24 +254,13 @@ def main():
     formatted_today = now.strftime('%Y%m%d')
 
     local_file = os.path.join(os.getcwd(), f'FABS_for_SAM_{formatted_today}.csv')
-    file_path = f'{BUCKET_PREFIX}FABS_for_SAM_{formatted_today}.csv' if CONFIG_BROKER['use_aws'] else local_file
+    file_path = f'{BUCKET_PREFIX}/FABS_for_SAM_{formatted_today}.csv' if CONFIG_BROKER['use_aws'] else local_file
     sess = GlobalDB.db().session
 
     logger.info(f"Starting SQL query of financial assistance records from {mod_date} to present...")
     write_stream_query(sess, update_query, local_file, file_path, CONFIG_BROKER['local'],
                        generate_headers=True, generate_string=False, bucket=BUCKET_NAME, set_region=False)
     logger.info('Completed SQL query, file written')
-    # full_file_path = os.path.join(os.getcwd(), "sam_update.csv")
-    # with open(full_file_path, 'w', newline='') as csv_file:
-    #     out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-    #     # write headers to file
-    #     headers = list(results.keys())
-    #     out_csv.writerow(headers)
-    #     for row in results:
-    #         metrics_json['records_provided'] += 1
-    #         out_csv.writerow(row)
-    # # close file
-    # csv_file.close()
 
     # We only want to update the external data load date if it was an automatic run, not a specific one
     if args.auto:

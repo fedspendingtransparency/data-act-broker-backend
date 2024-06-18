@@ -41,15 +41,6 @@ for config_path in path_list:
 # Get path to installation
 CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
 
-# GSA buckets
-CONFIG_BROKER['sam'] = {}
-CONFIG_BROKER['sam']['extract'] = {}
-CONFIG_BROKER['sam']['extract']['bucket_name'] = "iae-file-drop-ext"
-if env == "prod":
-    CONFIG_BROKER['sam']['extract']['bucket_prefix'] = "usaspendings/prod"
-else:
-    CONFIG_BROKER['sam']['extract']['bucket_prefix'] = "usaspendings/nonprod/"
-
 # for backward-compatibility, differentiate between local runs and AWS
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
