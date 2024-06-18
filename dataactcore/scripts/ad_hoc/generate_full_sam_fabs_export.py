@@ -138,7 +138,7 @@ def main():
 
     logger.info('Starting SQL query of active financial assistance records and writing file')
     write_stream_query(sess, FULL_DUMP_QUERY, local_file, file_path, CONFIG_BROKER['local'],
-                       generate_headers=True, generate_string=False, bucket=BUCKET_NAME)
+                       generate_headers=True, generate_string=False, bucket=BUCKET_NAME, set_region=False)
     logger.info('Completed SQL query, file written')
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)

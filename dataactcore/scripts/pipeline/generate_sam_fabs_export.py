@@ -259,7 +259,7 @@ def main():
 
     logger.info(f"Starting SQL query of financial assistance records from {mod_date} to present...")
     write_stream_query(sess, update_query, local_file, file_path, CONFIG_BROKER['local'],
-                       generate_headers=True, generate_string=False, bucket=BUCKET_NAME)
+                       generate_headers=True, generate_string=False, bucket=BUCKET_NAME, set_region=False)
     logger.info('Completed SQL query, file written')
     # full_file_path = os.path.join(os.getcwd(), "sam_update.csv")
     # with open(full_file_path, 'w', newline='') as csv_file:
