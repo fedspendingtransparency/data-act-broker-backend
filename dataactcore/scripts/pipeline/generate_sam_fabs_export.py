@@ -232,7 +232,6 @@ def main():
             filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['fabs_extract']).one_or_none()
         mod_date = last_update.last_load_date_start.date() if last_update else yesterday
         mod_date = mod_date.strftime('%m/%d/%Y')
-        print(mod_date)
 
     if args.date:
         arg_date = args.date[0]
