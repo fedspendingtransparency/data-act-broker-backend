@@ -2,7 +2,6 @@ import argparse
 import re
 import logging
 import os
-import csv
 import datetime
 import json
 
