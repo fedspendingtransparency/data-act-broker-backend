@@ -330,7 +330,7 @@ def derive_ppop_location_data(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning ppop congr info by county derivation', submission_id)
     # Deriving congressional info for remaining blanks (with county code)
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_congr = congressional_district_no
         FROM cd_county_grouped
@@ -346,7 +346,7 @@ def derive_ppop_location_data(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning ppop congr info by city derivation', submission_id)
     # Deriving congressional info for remaining blanks (with city code)
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_congr = congressional_district_no
         FROM cd_city_grouped
@@ -363,7 +363,7 @@ def derive_ppop_location_data(sess, submission_id):
     query_start = datetime.now()
     log_derivation('Beginning ppop congr info by state derivation', submission_id)
     # Deriving congressional info for remaining blanks (with state code)
-    query = """
+    query = r"""
         UPDATE tmp_fabs_{submission_id}
         SET place_of_performance_congr = congressional_district_no
         FROM cd_state_grouped
