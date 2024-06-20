@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 
-from dataactcore.scripts.pipeline.generate_sam_fabs_export import get_award_updates
+from dataactcore.scripts.pipeline.generate_sam_fabs_export import get_award_updates_query
 
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory
 
@@ -12,7 +12,7 @@ def test_ignore_earlier_date(database):
     sess.add_all([pf1, pf2])
     sess.commit()
 
-    results = get_award_updates('02/03/2024')
+    results = sess.execute(get_award_updates_query('02/03/2024'))
     result_list = results.all()
 
     assert len(result_list) == 1
@@ -28,7 +28,7 @@ def test_status(database):
     sess.add_all([pf1, pf2, pf3, pf4])
     sess.commit()
 
-    results = get_award_updates('02/03/2024')
+    results = sess.execute(get_award_updates_query('02/03/2024'))
     result_list = results.all()
 
     assert len(result_list) == 2
@@ -48,7 +48,7 @@ def test_ignore_duplicates(database):
     sess.add_all([pf1, pf2])
     sess.commit()
 
-    results = get_award_updates(datetime.now().strftime('%m/%d/%y'))
+    results = sess.execute(get_award_updates_query(datetime.now().strftime('%m/%d/%y')))
     result_list = results.all()
 
     assert len(result_list) == 1
@@ -68,7 +68,7 @@ def test_grouping(database):
     sess.add_all([pf1, pf2, pf3, pf4])
     sess.commit()
 
-    results = get_award_updates('02/03/2024')
+    results = sess.execute(get_award_updates_query('02/03/2024'))
     result_list = results.all()
 
     assert len(result_list) == 1

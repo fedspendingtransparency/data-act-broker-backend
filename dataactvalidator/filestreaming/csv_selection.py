@@ -12,42 +12,8 @@ from dataactbroker.helpers.generic_helper import generate_raw_quoted_query
 logger = logging.getLogger(__name__)
 
 
-def write_csv(file_name, upload_name, is_local, header, body):
-    """ Write a CSV to the relevant location.
-
-        Args:
-            file_name: pathless file name
-            upload_name: file name to be used as S3 key
-            is_local: True if in local development, False otherwise
-            header: value to write as the first line of the file
-            body: Iterable to write as the body of the file
-    """
-    local_filename = CONFIG_BROKER['broker_files'] + file_name
-
-    if is_local:
-        logger.debug({
-            'message': "Writing file locally...",
-            'message_type': 'ValidatorDebug',
-            'file_name': local_filename
-        })
-
-    with open(local_filename, 'w', newline='') as csv_file:
-        # create local file and write headers
-        out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-        if header:
-            out_csv.writerow(header)
-
-        for line in body:
-            out_csv.writerow(line)
-    csv_file.close()
-
-    if not is_local:
-        upload_file_to_s3(upload_name, local_filename)
-        os.remove(local_filename)
-
-
 def write_stream_query(sess, query, local_filename, upload_name, is_local, header=None, generate_headers=False,
-                       generate_string=True, is_certified=False, file_format='csv', bucket=None):
+                       generate_string=True, is_certified=False, file_format='csv', bucket=None, set_region=True):
     """ Write file locally from a query, then stream it to S3
 
         Args:
@@ -62,6 +28,8 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
             is_certified: True if writing to the certified bucket, False otherwise (default False)
             file_format: determines if the file generated is a txt or a csv (default csv)
             bucket: A specific bucket name to overwrite the general use cases with
+            set_region: Whether to set the region or not, usually required but needs no region for some scripts
+                (default True)
     """
     if is_local:
         local_filename = upload_name
@@ -82,7 +50,7 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
     })
 
     if not is_local:
-        upload_file_to_s3(upload_name, local_filename, is_certified=is_certified, bucket=bucket)
+        upload_file_to_s3(upload_name, local_filename, is_certified=is_certified, bucket=bucket, set_region=set_region)
         os.remove(local_filename)
 
 
@@ -129,7 +97,7 @@ def write_query_to_file(sess, query, local_filename, header=None, generate_heade
     os.remove(temp_sql_file_path)
 
 
-def upload_file_to_s3(upload_name, local_file, is_certified=False, bucket=None):
+def upload_file_to_s3(upload_name, local_file, is_certified=False, bucket=None, set_region=True):
     """ Upload file to S3
 
         Args:
@@ -137,6 +105,8 @@ def upload_file_to_s3(upload_name, local_file, is_certified=False, bucket=None):
             local_file: full path of local file
             is_certified: True if writing to the certified bucket, False otherwise (default False)
             bucket: A specific bucket name to overwrite the general use cases with
+            set_region: Whether to set the region or not, usually required but needs no region for some scripts
+                (default True)
     """
     path, file_name = upload_name.rsplit('/', 1)
     logger.debug({
@@ -145,7 +115,10 @@ def upload_file_to_s3(upload_name, local_file, is_certified=False, bucket=None):
         'file_name': file_name if file_name else path
     })
 
-    s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+    if set_region:
+        s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+    else:
+        s3 = boto3.client('s3')
 
     if bucket:
         bucket_name = bucket

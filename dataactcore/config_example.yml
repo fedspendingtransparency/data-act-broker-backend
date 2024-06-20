@@ -135,6 +135,11 @@ broker:
             entity_api_url: https://api.sam.gov/entity-information/v2/entities
             uei_iqaas_api_url: https://api.sam.gov/prod/IQaaS/v1/api/uei-info
 
+        # Used when extracting from FABS to create a file for SAM to get FABS data for subawards
+        extract:
+            bucket_name: example
+            bucket_prefix: example
+
     # CAIA login
     caia:
         url_root: https://caia.treasury.gov

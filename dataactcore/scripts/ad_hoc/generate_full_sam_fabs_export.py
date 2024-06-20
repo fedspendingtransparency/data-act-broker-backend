@@ -17,8 +17,8 @@ It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_
 recent file that was uploaded, and use the boto3 response for --date.
 '''
 
-BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
-BUCKET_PREFIX = 'sam_award_extracts/'
+BUCKET_NAME = CONFIG_BROKER['sam']['extract']['bucket_name']
+BUCKET_PREFIX = CONFIG_BROKER['sam']['extract']['bucket_prefix']
 
 
 FULL_DUMP_QUERY = """
@@ -103,7 +103,7 @@ FULL_DUMP_QUERY = """
         to_char(gt.base_obligation_date, 'YYYY-MM-DD') AS base_obligation_date,
         ut.award_description AS project_description,
         to_char(gt.last_modified_date, 'YYYY-MM-DD') AS last_modified_date,
-        NULL AS dba_name,
+        sr.dba_name AS dba_name,
         ut.high_comp_officer1_full_na AS top_pay_employee1_name,
         ut.high_comp_officer1_amount AS top_pay_employee1_amount,
         ut.high_comp_officer2_full_na AS top_pay_employee2_name,
@@ -117,6 +117,8 @@ FULL_DUMP_QUERY = """
     FROM published_fabs AS ut
     JOIN grouped_transaction AS gt
         ON gt.unique_award_key = ut.unique_award_key
+    LEFT JOIN sam_recipient AS sr
+            ON sr.uei = ut.uei
     WHERE is_active IS TRUE
 """
 
@@ -129,13 +131,14 @@ def main():
         'script_name': 'generate_full_sam_fabs_export.py',
         'start_time': str(now)
     }
+    formatted_today = now.strftime('%Y%m%d')
 
-    local_file = os.path.join(os.getcwd(), 'sam_full_fabs_dump.csv')
-    file_path = f'{BUCKET_PREFIX}sam_full_fabs_dump.csv' if CONFIG_BROKER['use_aws'] else local_file
+    local_file = os.path.join(os.getcwd(), f'sam_full_fabs_dump_{formatted_today}.csv')
+    file_path = f'{BUCKET_PREFIX}/sam_full_fabs_dump.csv_{formatted_today}' if CONFIG_BROKER['use_aws'] else local_file
 
     logger.info('Starting SQL query of active financial assistance records and writing file')
     write_stream_query(sess, FULL_DUMP_QUERY, local_file, file_path, CONFIG_BROKER['local'],
-                       generate_headers=True, generate_string=False, bucket=BUCKET_NAME)
+                       generate_headers=True, generate_string=False, bucket=BUCKET_NAME, set_region=False)
     logger.info('Completed SQL query, file written')
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
