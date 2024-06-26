@@ -36,7 +36,7 @@ def date_to_string(date):
 
 
 def valid_zip(zip_code):
-    if not re.match('^\d{5}(-?\d{4})?$', zip_code):
+    if not re.match(r'^\d{5}(-?\d{4})?$', zip_code):
         return False
     return True
 
@@ -64,7 +64,7 @@ def get_zip_data(zip_code):
 
 def clean_stored_float(clean_string, fill_amount):
     """ Remove the . from the given string and fill it (with zeroes) to the length we want """
-    clean_string = re.sub('\..+', '', clean_string).zfill(fill_amount)
+    clean_string = re.sub(r'\..+', '', clean_string).zfill(fill_amount)
     return clean_string
 
 
@@ -199,7 +199,7 @@ def fix_fabs_le_county(row, zip_data, zip_check):
     # fill in legal entity county code where needed/possible
     if not row.legal_entity_county_code:
         if row.record_type == 1 and row.place_of_performance_code and \
-                re.match('^([A-Z]{2}|\d{2})\*\*\d{3}$', row.place_of_performance_code.upper()):
+                re.match(r'^([A-Z]{2}|\d{2})\*\*\d{3}$', row.place_of_performance_code.upper()):
             row.legal_entity_county_code = row.place_of_performance_code[-3:]
         elif row.legal_entity_zip5:
             # only grab new zip data if we don't have any to begin with for whatever reason and haven't tried to get it
@@ -229,10 +229,10 @@ def fix_fabs_ppop_county(row, zip_data, zip_check):
         if row.place_of_performance_code and state_code:
             ppop_code = row.place_of_performance_code.upper()
             # if county style, get county code
-            if re.match('^([A-Z]{2}|\d{2})\*\*\d{3}$', ppop_code):
+            if re.match(r'^([A-Z]{2}|\d{2})\*\*\d{3}$', ppop_code):
                 row.place_of_perform_county_co = ppop_code[-3:]
             # if city style, check city code table
-            elif re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code):
+            elif re.match(r'^([A-Z]{2}|\d{2})\d{5}$', ppop_code):
                 # only set it if we have this data in the list
                 if ppop_code in g_county_by_city:
                     row.place_of_perform_county_co = g_county_by_city[state_code + ppop_code[-5:]]
@@ -390,7 +390,7 @@ def fix_fpds_ppop_state(row):
 
 def fix_fpds_le_cd(row):
     # if the CD is a mashup of CD and state code, get just the last 2 characters (which are the CD)
-    if re.match('.+\d\d$', row.legal_entity_congressional):
+    if re.match(r'.+\d\d$', row.legal_entity_congressional):
         row.legal_entity_congressional = row.legal_entity_congressional[-2:]
     # if it's ZZ, just clear it out
     elif row.legal_entity_congressional == 'ZZ':
@@ -399,7 +399,7 @@ def fix_fpds_le_cd(row):
 
 def fix_fpds_ppop_cd(row):
     # if the CD is a mashup of CD and state code, get just the last 2 characters (which are the CD)
-    if re.match('.+\d\d$', row.place_of_performance_congr):
+    if re.match(r'.+\d\d$', row.place_of_performance_congr):
         row.place_of_performance_congr = row.place_of_performance_congr[-2:]
     # if it's ZZ, just clear it out
     elif row.place_of_performance_congr == 'ZZ':
@@ -597,7 +597,7 @@ def main():
 
         # if the county name has only letters/spaces then we want it in our by-name lookup, the rest have the
         # potential to be different from the FPDS feed (and won't be used in FABS)
-        if re.match('^[A-Z\s]+$', county_name):
+        if re.match(r'^[A-Z\s]+$', county_name):
             g_county_by_name[state_code][county_name] = county_num
     del county_codes
 

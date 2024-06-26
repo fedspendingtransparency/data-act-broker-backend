@@ -27,7 +27,7 @@ def main():
     # get the submission IDs from S3
     submission_ids = []
     for bucket_object in bucket.objects.all():
-        if re.match('^\d+/.*', bucket_object.key):
+        if re.match(r'^\d+/.*', bucket_object.key):
             submission_ids.append(bucket_object.key.split('/')[0])
     submission_ids = list(set(submission_ids))
 

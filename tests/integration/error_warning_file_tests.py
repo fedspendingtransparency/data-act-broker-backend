@@ -559,7 +559,7 @@ class ErrorWarningTests(BaseTestValidator):
             },
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
-                'Field Name': 'statusofbudgetaryresourcestotal_cpe, obligationsincurredtotalbytas_cpe,'
+                'Field Name': 'obligationsincurredtotalbytas_cpe, statusofbudgetaryresourcestotal_cpe,'
                               ' unobligatedbalance_cpe',
                 'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE +'
                                 ' UnobligatedBalance_CPE.',
@@ -608,10 +608,11 @@ class ErrorWarningTests(BaseTestValidator):
         expected_values = [
             {
                 'Unique ID': 'TAS: 049-2014/2015-0100-000',
-                'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe,'
+                'Field Name': 'GTAS SF133 Line 1902, adjustmentstounobligatedbalancebroughtforward_cpe,'
+                              ' budgetauthorityappropriatedamount_cpe,'
                               ' budgetauthorityunobligatedbalancebroughtforward_fyb,'
-                              ' adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe,'
-                              ' GTAS SF133 Line 1902',
+                              ' otherbudgetaryresourcesamount_cpe,'
+                              ' totalbudgetaryresources_cpe',
                 'Rule Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +'
                                 ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
                                 ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE'
@@ -721,16 +722,16 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source File': 'appropriations',
                 'Source Field Name': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe',
                 'Target File': 'program_activity',
-                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
-                                     ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
+                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl487200_downward_adjus_cpe_sum,'
+                                     ' ussgl497100_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
                 'Rule Message': 'The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations'
                                 ' account file (A) does not equal the sum of the corresponding'
                                 ' DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the'
                                 ' object class and program activity file (B).',
                 'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
-                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
+                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl497200_downward_adjus_cpe_sum: 2000',
                 'Difference': '9600',
                 'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
@@ -775,16 +776,16 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source File': 'appropriations',
                 'Source Field Name': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe',
                 'Target File': 'program_activity',
-                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
-                                     ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
+                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl487200_downward_adjus_cpe_sum,'
+                                     ' ussgl497100_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
                 'Rule Message': 'The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations'
                                 ' account file (A) does not equal the sum of the corresponding'
                                 ' DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the'
                                 ' object class and program activity file (B).',
                 'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
-                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
+                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl497200_downward_adjus_cpe_sum: 2000',
                 'Difference': '9600',
                 'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
@@ -829,16 +830,16 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source File': 'appropriations',
                 'Source Field Name': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe',
                 'Target File': 'program_activity',
-                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
-                                     ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
+                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl487200_downward_adjus_cpe_sum,'
+                                     ' ussgl497100_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
                 'Rule Message': 'The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations'
                                 ' account file (A) does not equal the sum of the corresponding'
                                 ' DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the'
                                 ' object class and program activity file (B).',
                 'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
-                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
+                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl497200_downward_adjus_cpe_sum: 2000',
                 'Difference': '9600',
                 'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
@@ -886,16 +887,17 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-072-X-0306-000',
                 'Source File': 'appropriations',
-                'Source Field Name': 'allocationtransferagencyidentifier, agencyidentifier,'
-                                     ' beginningperiodofavailability, endingperiodofavailability,'
-                                     ' availabilitytypecode, mainaccountcode, subaccountcode',
+                'Source Field Name': 'agencyidentifier, allocationtransferagencyidentifier,'
+                                     ' availabilitytypecode, beginningperiodofavailability, endingperiodofavailability,'
+                                     ' mainaccountcode, subaccountcode',
                 'Target File': 'program_activity',
                 'Target Field Name': '',
                 'Rule Message': 'All TAS values in File A (appropriations) must exist in File B'
                                 ' (object class program activity).',
-                'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
-                                         ' beginningperiodofavailability: , endingperiodofavailability: ,'
-                                         ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
+                'Source Value Provided': 'agencyidentifier: 072, allocationtransferagencyidentifier: 019,'
+                                         ' availabilitytypecode: X, beginningperiodofavailability: ,'
+                                         ' endingperiodofavailability: , mainaccountcode: 0306,'
+                                         ' subaccountcode: 000',
                 'Target Value Provided': '',
                 'Difference': '',
                 'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
@@ -905,16 +907,17 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-072-X-0306-000',
                 'Source File': 'appropriations',
-                'Source Field Name': 'allocationtransferagencyidentifier, agencyidentifier,'
+                'Source Field Name': 'agencyidentifier, allocationtransferagencyidentifier, availabilitytypecode,'
                                      ' beginningperiodofavailability, endingperiodofavailability,'
-                                     ' availabilitytypecode, mainaccountcode, subaccountcode',
+                                     ' mainaccountcode, subaccountcode',
                 'Target File': 'program_activity',
                 'Target Field Name': '',
                 'Rule Message': 'All TAS values in File A (appropriations) must exist in File B'
                                 ' (object class program activity).',
-                'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
-                                         ' beginningperiodofavailability: , endingperiodofavailability: ,'
-                                         ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
+                'Source Value Provided': 'agencyidentifier: 072, allocationtransferagencyidentifier: 019,'
+                                         ' availabilitytypecode: X, beginningperiodofavailability: ,'
+                                         ' endingperiodofavailability: , mainaccountcode: 0306,'
+                                         ' subaccountcode: 000',
                 'Target Value Provided': '',
                 'Difference': '',
                 'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
@@ -924,16 +927,17 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-072-X-0306-000',
                 'Source File': 'appropriations',
-                'Source Field Name': 'allocationtransferagencyidentifier, agencyidentifier,'
-                                     ' beginningperiodofavailability, endingperiodofavailability,'
-                                     ' availabilitytypecode, mainaccountcode, subaccountcode',
+                'Source Field Name': 'agencyidentifier, allocationtransferagencyidentifier, availabilitytypecode,'
+                                     ' beginningperiodofavailability, endingperiodofavailability, mainaccountcode,'
+                                     ' subaccountcode',
                 'Target File': 'program_activity',
                 'Target Field Name': '',
                 'Rule Message': 'All TAS values in File A (appropriations) must exist in File B'
                                 ' (object class program activity).',
-                'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
-                                         ' beginningperiodofavailability: , endingperiodofavailability: ,'
-                                         ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
+                'Source Value Provided': 'agencyidentifier: 072, allocationtransferagencyidentifier: 019,'
+                                         ' availabilitytypecode: X, beginningperiodofavailability: ,'
+                                         ' endingperiodofavailability: , mainaccountcode: 0306,'
+                                         ' subaccountcode: 000',
                 'Target Value Provided': '',
                 'Difference': '',
                 'Source Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',

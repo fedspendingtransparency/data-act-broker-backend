@@ -99,6 +99,17 @@ def get_accessible_agencies(perm_level='reader', perm_type='mixed'):
     return {'cgac_agency_list': agency_list['agency_list'], 'frec_agency_list': agency_list['shared_agency_list']}
 
 
+def get_user_agency_codes():
+    """ List all unique CGAC and FREC codes under the logged in user
+
+        Returns:
+            A list of all unique cgac and frec codes the user has access to.
+    """
+    user_agencies = get_accessible_agencies()
+    return list(set([cgac['cgac_code'] for cgac in user_agencies['cgac_agency_list']])
+                | set([frec['frec_code'] for frec in user_agencies['frec_agency_list']]))
+
+
 def get_all_agencies():
     """ List all CGAC and FREC agencies separately
 

@@ -115,16 +115,20 @@ class AccountHandler:
             sess = GlobalDB.db().session
             safe_dictionary = RequestDictionary(self.request)
 
+            name = safe_dictionary.get_value('name')
             email = safe_dictionary.get_value('email')
             token = safe_dictionary.get_value('token')
 
             if token != CONFIG_BROKER['api_proxy_token']:
                 raise ValueError("Invalid token")
 
-            try:
-                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one()
-            except Exception:
-                raise ValueError("Invalid email")
+            # Match on name. If unavailable, try matching on email as a backup for testing purposes.
+            # TODO: Remove matching on email after initial testing
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(name)).one_or_none()
+            if not user:
+                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
+            if not user:
+                raise ValueError("Invalid user")
 
             try:
                 return self.create_session_and_response(session, user, user_details=False)

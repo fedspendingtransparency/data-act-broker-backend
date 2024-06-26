@@ -845,9 +845,9 @@ def main():
             file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['archive_bucket'])
         # Parse files
         for obj in file_list.get('Contents', []):
-            match_string = '^\d{4}_All_Contracts_Full_\d{8}.csv.zip'
+            match_string = r'^\d{4}_All_Contracts_Full_\d{8}.csv.zip'
             if subfolder:
-                match_string = "^" + subfolder + "\d{4}_All_Contracts_Full_\d{8}.csv.zip"
+                match_string = rf'^{subfolder}\d{{{4}}}_All_Contracts_Full_\d{{{8}}}.csv.zip'
             if re.match(match_string, obj['Key']):
                 # we only want up through 2015 for this data unless it’s a subfolder, then do all of them
                 if subfolder or int(obj['Key'][:4]) <= max_year:
@@ -870,7 +870,7 @@ def main():
             base_path = os.path.join(base_path, subfolder)
         file_list = [f for f in os.listdir(base_path)]
         for file in file_list:
-            if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
+            if re.match(r'^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
                 # we only want up through 2015 for this data
                 if int(file[:4]) <= max_year:
                     parse_fpds_file(open(os.path.join(base_path, file)).name, sess, sub_tier_list, naics_dict)

@@ -277,7 +277,7 @@ def derive_place_of_perform_county_na(row, sess, fips_state_list, state_code_lis
                 ppop_state = None
         if not ppop_state:
             return None
-        if re.match('^([A-Z]{2}|\d{2})\*\*\d{3}$', ppop_code):
+        if re.match(r'^([A-Z]{2}|\d{2})\*\*\d{3}$', ppop_code):
             # getting county name
             county_code = ppop_code[-3:]
             try:
@@ -287,7 +287,7 @@ def derive_place_of_perform_county_na(row, sess, fips_state_list, state_code_lis
             if not county_info:
                 return None
             return county_info.county_name
-        elif re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code) and not re.match('^([A-Z]{2}|\d{2})0{5}$', ppop_code):
+        elif re.match(r'^([A-Z]{2}|\d{2})\d{5}$', ppop_code) and not re.match(r'^([A-Z]{2}|\d{2})0{5}$', ppop_code):
             # getting city and county name
             city_code = ppop_code[-5:]
             city_info = sess.query(CityCode.county_name).\
@@ -337,7 +337,7 @@ def derive_place_of_performance_city(row, sess, fips_state_list, state_code_list
                 ppop_state = None
         if not ppop_state:
             return None
-        if re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code) and not re.match('^([A-Z]{2}|\d{2})0{5}$', ppop_code):
+        if re.match(r'^([A-Z]{2}|\d{2})\d{5}$', ppop_code) and not re.match(r'^([A-Z]{2}|\d{2})0{5}$', ppop_code):
             # getting city and county name
             city_code = ppop_code[-5:]
             city_info = sess.query(CityCode.feature_name).\
@@ -550,7 +550,7 @@ def main():
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
         file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['archive_bucket'])
         for obj in file_list.get('Contents', []):
-            if re.match('^(' + years + ')_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{8}.csv.zip',
+            if re.match(rf'^({years})_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{{{8}}}.csv.zip',
                         obj['Key']):
                 file_path = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
                                                                             'Key': obj['Key']}, ExpiresIn=600)
@@ -560,7 +560,8 @@ def main():
         base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
         file_list = [f for f in os.listdir(base_path)]
         for file in file_list:
-            if re.match('^(' + years + ')_All_(Grants|DirectPayments|Insurance|Loans|Other)_Full_\d{8}.csv.zip', file):
+            if re.match(rf'^({years})_All_(Grants|DirectPayments|Insurance|Loans|Other)_Full_\d{{{8}}}.csv.zip',
+                        file):
                 parse_fabs_file(open(os.path.join(base_path, file)), sess, fips_state_list, state_code_list,
                                 sub_tier_list, county_code_list)
 
