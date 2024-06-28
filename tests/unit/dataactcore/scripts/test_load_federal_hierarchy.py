@@ -2,6 +2,7 @@ import os
 import json
 import re
 import datetime
+from sqlalchemy import cast, Integer
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, SubTierAgencyFactory
 
 from dataactcore.config import CONFIG_BROKER
@@ -9,13 +10,25 @@ from dataactcore.scripts.pipeline import load_federal_hierarchy
 from dataactcore.models.domainModels import Office
 
 
-def mock_request_to_fh(url):
-    """ Simply mocking the federal hierarchy endpoint """
+def mock_request_to_fh_full(url):
+    """ Simply mocking the federal hierarchy endpoint for a full load"""
     # the file includes all the levels (which is usually split up by each individual call)
     # we're just going to filter out records at the level it's asking for
     level = re.findall(r'.*level=(\d).*', url)[0]
 
-    fake_json_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'test_fh.json')
+    fake_json_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'test_fh_full.json')
+    with open(fake_json_path, 'r') as fake_json:
+        fh_data = json.load(fake_json)[level]
+    return fh_data
+
+
+def mock_request_to_fh_update(url):
+    """ Simply mocking the federal hierarchy endpoint for an update"""
+    # the file includes all the levels (which is usually split up by each individual call)
+    # we're just going to filter out records at the level it's asking for
+    level = re.findall(r'.*level=(\d).*', url)[0]
+
+    fake_json_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'test_fh_update.json')
     with open(fake_json_path, 'r') as fake_json:
         fh_data = json.load(fake_json)[level]
     return fh_data
@@ -24,7 +37,7 @@ def mock_request_to_fh(url):
 def test_pull_offices(monkeypatch, database):
     """ Test a simple pull of offices """
     monkeypatch.setattr('dataactcore.scripts.pipeline.load_federal_hierarchy.get_with_exception_hand',
-                        mock_request_to_fh)
+                        mock_request_to_fh_full)
     monkeypatch.setattr('dataactcore.scripts.pipeline.load_federal_hierarchy.REQUESTS_AT_ONCE', 1)
 
     sess = database.session
@@ -41,48 +54,72 @@ def test_pull_offices(monkeypatch, database):
     load_federal_hierarchy.pull_offices(sess, filename=None, update_db=True, pull_all=True,
                                         updated_date_from='2020-01-01', export_office=False, metrics=metrics_json)
 
-    loaded_offices = list(sess.query(Office).order_by(Office.created_date).all())
+    loaded_offices = list(sess.query(Office).order_by(cast(Office.sub_tier_code, Integer)).all())
+    # using this mapper to easily identify the office objects
+    loaded_offices_mapped = {f'office_{index + 5}': loaded_offices[index] for index in range(0, len(loaded_offices))}
 
     # 15 records are in the total levels but we're ignoring the 4 in the first two levels and there's one duplicate
     assert len(loaded_offices) == 10
 
     # All of them should have the same start date including the duplicate and excluding the last inactive
-    for office_index in [0, 1, 2, 3, 4, 5, 6, 7, 9]:
-        assert loaded_offices[office_index].effective_start_date == datetime.date(2021, 4, 13)
+    for office_number in ['office_5', 'office_6', 'office_7', 'office_8', 'office_9', 'office_10', 'office_11',
+                          'office_12', 'office_14']:
+        assert loaded_offices_mapped[office_number].effective_start_date == datetime.date(2021, 4, 13)
     # These offices in the test file were inactive and have effective end dates
-    for office_index in [2, 4, 6]:
-        assert loaded_offices[office_index].effective_end_date == datetime.date(2021, 4, 14)
+    for office_number in ['office_7', 'office_9', 'office_11']:
+        assert loaded_offices_mapped[office_number].effective_end_date == datetime.date(2021, 4, 14)
     # The first one is made up of two records (one earlier inactive, one later active). ensuring it's now active
     # and it will assign the newer subtier
-    assert loaded_offices[0].effective_end_date is None
-    assert loaded_offices[0].sub_tier_code == '0055'
-    # These offices in the test file were active and dont have an effective end date
-    for office_index in [1, 3, 5, 7]:
-        assert loaded_offices[office_index].effective_end_date is None
+    assert loaded_offices_mapped['office_5'].effective_end_date is None
+    # These offices in the test file were active and don't have an effective end date
+    for office_number in ['office_6', 'office_8', 'office_10', 'office_12']:
+        assert loaded_offices_mapped[office_number].effective_end_date is None
     # The last inactive office has *neither a start nor end date*, confirming our default values
-    assert loaded_offices[8].effective_start_date == datetime.date(2000, 1, 1)
-    assert loaded_offices[8].effective_end_date == datetime.date(2000, 1, 2)
+    assert loaded_offices_mapped['office_13'].effective_start_date == datetime.date(2000, 1, 1)
+    assert loaded_offices_mapped['office_13'].effective_end_date == datetime.date(2000, 1, 2)
 
     # These offices in the test file were *funding*
-    for office_index in [0, 2, 4, 6, 8]:
-        assert loaded_offices[office_index].contract_funding_office is True
-        assert loaded_offices[office_index].financial_assistance_funding_office is True
-        assert loaded_offices[office_index].contract_awards_office is False
-        assert loaded_offices[office_index].financial_assistance_awards_office is False
+    for office_number in ['office_5', 'office_7', 'office_9', 'office_11', 'office_13']:
+        assert loaded_offices_mapped[office_number].contract_funding_office is True
+        assert loaded_offices_mapped[office_number].financial_assistance_funding_office is True
+        assert loaded_offices_mapped[office_number].contract_awards_office is False
+        assert loaded_offices_mapped[office_number].financial_assistance_awards_office is False
     # These offices in the test file were *awarding*
-    for office_index in [1, 3, 5, 7, 9]:
-        assert loaded_offices[office_index].contract_awards_office is True
-        assert loaded_offices[office_index].financial_assistance_awards_office is True
-        assert loaded_offices[office_index].contract_funding_office is False
-        assert loaded_offices[office_index].financial_assistance_funding_office is False
+    for office_number in ['office_6', 'office_8', 'office_10', 'office_12', 'office_14']:
+        assert loaded_offices_mapped[office_number].contract_awards_office is True
+        assert loaded_offices_mapped[office_number].financial_assistance_awards_office is True
+        assert loaded_offices_mapped[office_number].contract_funding_office is False
+        assert loaded_offices_mapped[office_number].financial_assistance_funding_office is False
 
     # The special case where we have 011, check to see if it mapped to its FREC
-    assert loaded_offices[6].agency_code == matching_frec.frec_code
+    assert loaded_offices_mapped['office_11'].agency_code == matching_frec.frec_code
 
     # confirm the created_at/updated_at is populated
     today = datetime.datetime.today().date()
-    assert loaded_offices[0].created_at.date() == today
-    assert loaded_offices[0].updated_at.date() == today
+    assert loaded_offices_mapped['office_5'].created_at.date() == today
+    assert loaded_offices_mapped['office_5'].updated_at.date() == today
+
+    # on a subsequent daily load (i.e. after the initial load), do not factor in the database's end date if its active
+    monkeypatch.setattr('dataactcore.scripts.pipeline.load_federal_hierarchy.get_with_exception_hand',
+                        mock_request_to_fh_update)
+    load_federal_hierarchy.pull_offices(sess, filename=None, update_db=True, pull_all=False,
+                                        updated_date_from='2020-01-01', export_office=False, metrics=metrics_json)
+
+    loaded_offices = list(sess.query(Office).order_by(cast(Office.sub_tier_code, Integer)).all())
+    loaded_offices_mapped = {f'office_{index + 5}': loaded_offices[index] for index in range(0, len(loaded_offices))}
+
+    # TEST OFFICE 5: active -> inactive
+    assert loaded_offices_mapped['office_5'].effective_start_date == datetime.date(2021, 4, 13)  # unaffected
+    assert loaded_offices_mapped['office_5'].effective_end_date == datetime.date(2021, 4, 18)
+    # TEST OFFICE 6: active but updated
+    assert loaded_offices_mapped['office_6'].effective_start_date == datetime.date(2021, 4, 10)
+    assert loaded_offices_mapped['office_6'].effective_end_date is None
+    # TEST OFFICE 7: inactive -> active
+    assert loaded_offices_mapped['office_7'].effective_start_date == datetime.date(2021, 4, 13)  # unaffected
+    assert loaded_offices_mapped['office_7'].effective_end_date is None
+    # TEST OFFICE 9: inactive but updated
+    assert loaded_offices_mapped['office_9'].effective_start_date == datetime.date(2021, 4, 13)
+    assert loaded_offices_mapped['office_9'].effective_end_date == datetime.date(2021, 4, 18)
 
 
 def test_trim_nested_obj():
