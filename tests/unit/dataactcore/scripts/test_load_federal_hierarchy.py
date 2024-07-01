@@ -62,9 +62,11 @@ def test_pull_offices(monkeypatch, database):
     assert len(loaded_offices) == 10
 
     # All of them should have the same start date including the duplicate and excluding the last inactive
-    for office_number in ['office_5', 'office_6', 'office_7', 'office_8', 'office_9', 'office_10', 'office_11',
-                          'office_12', 'office_14']:
+    for office_number in ['office_5', 'office_6', 'office_7', 'office_8', 'office_9', 'office_10', 'office_12',
+                          'office_14']:
         assert loaded_offices_mapped[office_number].effective_start_date == datetime.date(2021, 4, 13)
+    # Test Office 11 had a start date year of 0016, confirming it got set to the default
+    assert loaded_offices_mapped['office_11'].effective_start_date == datetime.date(2000, 1, 1)
     # These offices in the test file were inactive and have effective end dates
     for office_number in ['office_7', 'office_9', 'office_11']:
         assert loaded_offices_mapped[office_number].effective_end_date == datetime.date(2021, 4, 14)
