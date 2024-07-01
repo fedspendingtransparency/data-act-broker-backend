@@ -41,7 +41,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             metrics: an object containing information for the metrics file
     """
     logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
-    top_sub_levels = []
+    top_sub_levels = ['1', '2']
     office_levels = ['3', '4', '5', '6', '7']
     levels = top_sub_levels + office_levels if filename else office_levels
 
@@ -86,7 +86,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             continue
 
         limit = 100
-        entries_processed = 258001
+        entries_processed = 0
         while True:
             async def _fed_hierarchy_async_get(entries_already_processed):
                 response_list = []
@@ -389,10 +389,10 @@ def main():
     export_office = args.export_office[0] if args.export_office else None
 
     # Handle a complete data reload
-    # if args.all and not args.ignore_db:
-    #     logger.info('Emptying out the Office table for a complete reload.')
-    #     sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
-    #     sess.commit()
+    if args.all and not args.ignore_db:
+        logger.info('Emptying out the Office table for a complete reload.')
+        sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
+        sess.commit()
 
     try:
         pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office, metrics_json)
