@@ -205,6 +205,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 # otherwise, it'd be impossible for an active office to become inactive
                 if not pull_all:
                     existing_offices_df['effective_end_date'].fillna('2000-01-02 00:00', inplace=True)
+                # The FH data does include a start date that is too early for pandas to process ("0016-04-12")
+                # This marks it a little more reasonable to our earliest default start date.
+                existing_offices_df['effective_start_date'].fillna('2000-01-01 00:00', inplace=True)
                 dates_df = pd.concat([existing_offices_df[dates_df_cols], offices[dates_df_cols]])
 
                 # Sorted by the effective end date and grouped by the office code...
