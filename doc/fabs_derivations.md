@@ -25,8 +25,8 @@ These are derivations that can happen in any order.
 		- `cgac.cgac_name` or `frec.frec_name` => `funding_agency_name`
 		- `sta.sub_tier_agency_name` => `funding_sub_tier_agency_n`
 - `derive_office_data` (based on the award, the `awarding_sub_tier_agency_c`, and `record_type`)
-	- `office.office_code` => `awarding_office_code`
-	- `office.office_code` => `funding_office_code`
+	- base transaction's effective `office.office_code` => `awarding_office_code`
+	- base transaction's effective `office.office_code` => `funding_office_code`
 	- `office.office_name` => `awarding_office_name`
 	- `office.office_name` => `funding_office_name`
 - `derive_parent_uei` (based on `uei`)
