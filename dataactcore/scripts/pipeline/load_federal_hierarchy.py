@@ -200,7 +200,10 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 # office in the database, we're going to add all these in one dataframe, find the appropriate
                 # values grouping by their office codes, and update the incoming record going in the database
                 date_cols = ['effective_start_date', 'effective_end_date']
-                dates_df_cols = ['office_code'] + date_cols
+                type_cols = ['contract_funding_office', 'contract_awards_office', 'financial_assistance_awards_office',
+                             'financial_assistance_funding_office']
+                shared_cols = date_cols + type_cols
+                shared_df_cols = ['office_code'] + shared_cols
 
                 # Merge with the already existing offices in the database
                 existing_offices_df = pd.read_sql(existing_offices.statement, existing_offices.session.bind,
@@ -212,30 +215,35 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 # otherwise, it'd be impossible for an active office to become inactive
                 if not pull_all:
                     existing_offices_df['effective_end_date'].fillna('2000-01-02 00:00', inplace=True)
-                dates_df = pd.concat([existing_offices_df[dates_df_cols], offices[dates_df_cols]])
+                shared_df = pd.concat([existing_offices_df[shared_df_cols], offices[shared_df_cols]])
 
                 # Sorted by the effective end date and grouped by the office code...
                 #   Get the earliest effective start date ("min")
+                #   Set the boolean orgtypecols to True if *any* of them are True over time
                 #   Get the latest effective end date or NULL if there's an active record
                 #       - for full loads, this will include the database record which could be active and null
                 #       - for iterative loads, this will ignore the database record if it's currently active (i.e. null)
                 #         by setting it to a really old date; otherwise it will pull the database end date too
-                dates_df.sort_values(by=['effective_end_date'], inplace=True)
-                dates_grouped = dates_df.groupby(by=['office_code'], sort=False, as_index=False, dropna=False)
+                shared_df.sort_values(by=['effective_end_date'], inplace=True)
+                shared_grouped = shared_df.groupby(by=['office_code'], sort=False, as_index=False, dropna=False)
                 # panda's aggregates ("first", "last", "min", "max") ignore NATs, so for the effective end dates, we're
                 # using sorting on end date and this function to effectively be "last" but include the NATs.
                 # If there is a NAT, it's considered "active".
-                dates_df = dates_grouped.agg({"effective_start_date": "min",
-                                              "effective_end_date": lambda x: x.values[-1]})
+                shared_df = shared_grouped.agg({"effective_start_date": "min",
+                                                "effective_end_date": lambda x: x.values[-1],
+                                                "contract_funding_office": "any",
+                                                "contract_awards_office": "any",
+                                                "financial_assistance_awards_office": "any",
+                                                "financial_assistance_funding_office": "any"})
 
                 # Merge it back into offices and drop duplicates
-                offices = offices.join(dates_df.set_index('office_code'), on='office_code', rsuffix='_derived')
+                offices = offices.join(shared_df.set_index('office_code'), on='office_code', rsuffix='_derived')
                 # doing the drop duplicates again on original offices df as it will still have the old duplicates
                 # they should be the same except for the date columns
                 offices.drop_duplicates(subset=['office_code'], keep='last', inplace=True)
                 # Doing the column switcheroo *after* dropping the duplicates and choosing the latest
-                offices.drop(columns=date_cols, inplace=True)
-                offices.rename(columns={f'{col}_derived': col for col in date_cols}, inplace=True)
+                offices.drop(columns=shared_cols, inplace=True)
+                offices.rename(columns={f'{col}_derived': col for col in shared_cols}, inplace=True)
 
                 offices['created_at'] = datetime.now()
                 offices['updated_at'] = datetime.now()

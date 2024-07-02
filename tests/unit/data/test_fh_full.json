@@ -295,11 +295,6 @@
                         "officetype": "CONTRACT FUNDING",
                         "officetypestartdate": "2021-04-13 00:00",
                         "officetypeenddate": null
-                    },
-                    {
-                        "officetype": "FINANCIAL ASSISTANCE FUNDING",
-                        "officetypestartdate": "2021-04-13 00:00",
-                        "officetypeenddate": null
                     }
                 ],
                 "fhorgaddresslist": [
@@ -364,11 +359,6 @@
                     }
                 ],
                 "fhorgofficetypelist": [
-                    {
-                        "officetype": "CONTRACT FUNDING",
-                        "officetypestartdate": "2021-04-13 00:00",
-                        "officetypeenddate": null
-                    },
                     {
                         "officetype": "FINANCIAL ASSISTANCE FUNDING",
                         "officetypestartdate": "2021-04-13 00:00",
