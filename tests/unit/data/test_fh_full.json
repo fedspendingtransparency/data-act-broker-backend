@@ -295,11 +295,6 @@
                         "officetype": "CONTRACT FUNDING",
                         "officetypestartdate": "2021-04-13 00:00",
                         "officetypeenddate": null
-                    },
-                    {
-                        "officetype": "FINANCIAL ASSISTANCE FUNDING",
-                        "officetypestartdate": "2021-04-13 00:00",
-                        "officetypeenddate": null
                     }
                 ],
                 "fhorgaddresslist": [
@@ -348,12 +343,12 @@
                 "status": "ACTIVE",
                 "effectivestartdate": "2021-04-15 00:00",
                 "createdby": "FPDSADMIN_NEW_ATOM_FEED",
-                "createddate": "2021-04-18 20:31",
+                "createddate": "2021-04-17 20:31",
                 "updatedby": "FPDSADMIN_NEW_ATOM_FEED",
                 "lastupdateddate": "2024-04-17 20:30",
                 "fhdeptindagencyorgid": 100000005,
                 "fhagencyorgname": "TEST AGENCY 5",
-                "agencycode": "0055",
+                "agencycode": "0005",
                 "oldfpdsofficecode": "TEST OFFICE 5",
                 "aacofficecode": "W5",
                 "fullParentPathName": "TEST AGENCY 5.TEST AGENCY 5.TEST OFFICE 5",
@@ -364,11 +359,6 @@
                     }
                 ],
                 "fhorgofficetypelist": [
-                    {
-                        "officetype": "CONTRACT FUNDING",
-                        "officetypestartdate": "2021-04-13 00:00",
-                        "officetypeenddate": null
-                    },
                     {
                         "officetype": "FINANCIAL ASSISTANCE FUNDING",
                         "officetypestartdate": "2021-04-13 00:00",
@@ -730,7 +720,7 @@
                 "lastupdateddate": "2024-04-17 20:30",
                 "fhdeptindagencyorgid": 100000010,
                 "fhagencyorgname": "TEST AGENCY 10",
-                "agencycode": "0008",
+                "agencycode": "0010",
                 "oldfpdsofficecode": "TEST OFFICE 10",
                 "aacofficecode": "W10",
                 "fullParentPathName": "TEST AGENCY 10.TEST AGENCY 10.TEST SUB COMMAND 10",
@@ -801,7 +791,7 @@
                 "fhorgtype": "OFFICE",
                 "level": 6,
                 "status": "INACTIVE",
-                "effectivestartdate": "2021-04-13 00:00",
+                "effectivestartdate": "0016-04-13 00:00",
                 "effectiveenddate": "2021-04-14 00:00",
                 "createdby": "FPDSADMIN_NEW_ATOM_FEED",
                 "createddate": "2021-04-24 20:31",
