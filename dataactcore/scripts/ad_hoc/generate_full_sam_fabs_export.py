@@ -68,7 +68,7 @@ FULL_DUMP_QUERY = """
         ut.funding_office_name AS funding_office_name,
         ut.place_of_performance_city AS principal_place_city_name,
         ut.place_of_perfor_state_code AS principal_place_state_code,
-        ut.place_of_perform_state_nam AS prinicipal_place_state_name,
+        ut.place_of_perform_state_nam AS principal_place_state_name,
         ut.place_of_perform_country_c AS principal_place_country_code,
         ut.place_of_perform_country_n AS principal_place_country_name,
         ut.place_of_performance_congr AS principal_place_congressional_district,
