@@ -28,7 +28,7 @@
                 "fhagencyorgname": "TEST AGENCY 5",
                 "agencycode": "0005",
                 "oldfpdsofficecode": "TEST OFFICE 5",
-                "aacofficecode": "W5",
+                "aacofficecode": "W05",
                 "fullParentPathName": "TEST AGENCY 5.TEST AGENCY 5.TEST OFFICE 5",
                 "fullParentPath": "100000005.100000005.5",
                 "cgaclist": [
@@ -91,7 +91,7 @@
                 "fhagencyorgname": "TEST AGENCY 6",
                 "agencycode": "0006",
                 "oldfpdsofficecode": "TEST OFFICE 6",
-                "aacofficecode": "W6",
+                "aacofficecode": "W06",
                 "fullParentPathName": "TEST AGENCY 6.TEST AGENCY 6.TEST OFFICE 6",
                 "fullParentPath": "100000006.100000006.6",
                 "cgaclist": [
@@ -169,7 +169,7 @@
                 "fhagencyorgname": "TEST AGENCY 7",
                 "agencycode": "0007",
                 "oldfpdsofficecode": "TEST OFFICE 7",
-                "aacofficecode": "W7",
+                "aacofficecode": "W07",
                 "fullParentPathName": "TEST AGENCY 7.TEST AGENCY 7.TEST OFFICE 7",
                 "fullParentPath": "100000007.100000007.7",
                 "cgaclist": [
@@ -248,7 +248,7 @@
                 "fhagencyorgname": "TEST AGENCY 9",
                 "agencycode": "0009",
                 "oldfpdsofficecode": "TEST OFFICE 9",
-                "aacofficecode": "W9",
+                "aacofficecode": "W09",
                 "fullParentPathName": "TEST AGENCY 9.TEST AGENCY 9.TEST OFFICE 9",
                 "fullParentPath": "100000009.100000009.9",
                 "cgaclist": [

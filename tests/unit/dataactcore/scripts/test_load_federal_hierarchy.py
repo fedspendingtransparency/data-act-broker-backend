@@ -2,7 +2,6 @@ import os
 import json
 import re
 import datetime
-from sqlalchemy import cast, Integer
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, SubTierAgencyFactory
 
 from dataactcore.config import CONFIG_BROKER
@@ -54,7 +53,7 @@ def test_pull_offices(monkeypatch, database):
     load_federal_hierarchy.pull_offices(sess, filename=None, update_db=True, pull_all=True,
                                         updated_date_from='2020-01-01', export_office=False, metrics=metrics_json)
 
-    loaded_offices = list(sess.query(Office).order_by(cast(Office.sub_tier_code, Integer)).all())
+    loaded_offices = list(sess.query(Office).order_by(Office.office_code).all())
     # using this mapper to easily identify the office objects
     loaded_offices_mapped = {f'office_{index + 5}': loaded_offices[index] for index in range(0, len(loaded_offices))}
 
@@ -93,6 +92,12 @@ def test_pull_offices(monkeypatch, database):
         assert loaded_offices_mapped[office_number].contract_funding_office is False
         assert loaded_offices_mapped[office_number].financial_assistance_funding_office is False
 
+    # Office 5 is originally inactive, named "- OLD", and with a different cgac (050) and subtier (0050)
+    # they should be ignored for the newer active fields
+    assert loaded_offices_mapped['office_5'].office_name == 'TEST OFFICE 5 - NEW'
+    assert loaded_offices_mapped['office_5'].agency_code == '005'
+    assert loaded_offices_mapped['office_5'].sub_tier_code == '0005'
+
     # The special case where we have 011, check to see if it mapped to its FREC
     assert loaded_offices_mapped['office_11'].agency_code == matching_frec.frec_code
 
@@ -107,7 +112,7 @@ def test_pull_offices(monkeypatch, database):
     load_federal_hierarchy.pull_offices(sess, filename=None, update_db=True, pull_all=False,
                                         updated_date_from='2020-01-01', export_office=False, metrics=metrics_json)
 
-    loaded_offices = list(sess.query(Office).order_by(cast(Office.sub_tier_code, Integer)).all())
+    loaded_offices = list(sess.query(Office).order_by(Office.office_code).all())
     loaded_offices_mapped = {f'office_{index + 5}': loaded_offices[index] for index in range(0, len(loaded_offices))}
 
     # TEST OFFICE 5: active -> inactive
