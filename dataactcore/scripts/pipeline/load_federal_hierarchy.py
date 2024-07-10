@@ -202,7 +202,8 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 date_cols = ['effective_start_date', 'effective_end_date']
                 type_cols = ['contract_funding_office', 'contract_awards_office', 'financial_assistance_awards_office',
                              'financial_assistance_funding_office']
-                shared_cols = date_cols + type_cols
+                other_cols = ['office_name', 'agency_code', 'sub_tier_code']
+                shared_cols = date_cols + type_cols + other_cols
                 shared_df_cols = ['office_code'] + shared_cols
 
                 # Merge with the already existing offices in the database
@@ -218,8 +219,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 shared_df = pd.concat([existing_offices_df[shared_df_cols], offices[shared_df_cols]])
 
                 # Sorted by the effective end date and grouped by the office code...
-                #   Get the earliest effective start date ("min")
+                #   Set the earliest effective start date ("min")
                 #   Set the boolean orgtypecols to True if *any* of them are True over time
+                #   Set the latest effective office name, agency code, and subtier value
                 #   Get the latest effective end date or NULL if there's an active record
                 #       - for full loads, this will include the database record which could be active and null
                 #       - for iterative loads, this will ignore the database record if it's currently active (i.e. null)
@@ -229,7 +231,10 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 # panda's aggregates ("first", "last", "min", "max") ignore NATs, so for the effective end dates, we're
                 # using sorting on end date and this function to effectively be "last" but include the NATs.
                 # If there is a NAT, it's considered "active".
-                shared_df = shared_grouped.agg({"effective_start_date": "min",
+                shared_df = shared_grouped.agg({"office_name": lambda x: x.values[-1],
+                                                "agency_code": lambda x: x.values[-1],
+                                                "sub_tier_code": lambda x: x.values[-1],
+                                                "effective_start_date": "min",
                                                 "effective_end_date": lambda x: x.values[-1],
                                                 "contract_funding_office": "any",
                                                 "contract_awards_office": "any",
