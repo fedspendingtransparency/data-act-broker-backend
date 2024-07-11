@@ -57,7 +57,7 @@ def query_data(session, agency_code, period, year):
         submission_query = submission_query.filter_by(frec_code=agency_code)
     submission_id = submission_query.first().submission_id
 
-    # Get the summed values of file B so we can ignore PAC/PAN's existence and properly compare to GTAS BOC
+    # Get the summed values of file B, so we can ignore PAC/PAN's existence and properly compare to GTAS BOC
     summed_pub_b = sum_published_file_b(session, submission_id)
 
     # Create the VALUES grouping for a lateral join
@@ -66,7 +66,7 @@ def query_data(session, agency_code, period, year):
     # Create the CTE of only the laterally displayed USSGL values in the given submission
     ussgl_pub_file_b = ussgl_published_file_b_cte(session, ussgl_vals, summed_pub_b.c)
 
-    # Get the summed values of GTAS BOC so we can ignore PYA's existence and properly compare to file B
+    # Get the summed values of GTAS BOC, so we can ignore PYA's existence and properly compare to file B
     summed_gtas_boc = sum_gtas_boc(session, period, year)
 
     # Filter out any rows that have 0 for both the published file B and GTAS BOC totals
@@ -243,7 +243,8 @@ def sum_gtas_boc(session, period, year):
         boc_model.ussgl_number,
         func.sum(boc_model.dollar_amount * case([(boc_model.debit_credit == 'D', 1)], else_=-1)).
         label('sum_dollar_amount')
-    ).filter(boc_model.fiscal_year == year, boc_model.period == period).\
+    ).filter(boc_model.fiscal_year == year, boc_model.period == period,
+             func.coalesce(func.upper(boc_model.prior_year_adjustment_code), 'X') == 'X').\
         group_by(boc_model.display_tas, boc_model.disaster_emergency_fund_code, boc_model.budget_object_class,
                  boc_model.reimbursable_flag, boc_model.begin_end, boc_model.ussgl_number).\
         cte('summed_gtas_boc')
