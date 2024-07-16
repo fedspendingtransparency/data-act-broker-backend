@@ -110,18 +110,19 @@ def initialize_db_values(db):
                                          cgac=cgac_2, frec=frec_2, is_frec=True)
     valid_office = OfficeFactory(office_code='03AB03', office_name='Office', sub_tier_code='12Ab', agency_code='000',
                                  financial_assistance_awards_office=True, contract_funding_office=True,
-                                 financial_assistance_funding_office=False)
+                                 financial_assistance_funding_office=False, effective_start_date='04/27/2000',
+                                 effective_end_date='04/29/2000')
     invalid_office = OfficeFactory(office_code='654321', office_name='Office', sub_tier_code='12Ab', agency_code='000',
                                    financial_assistance_awards_office=False, contract_funding_office=False,
                                    financial_assistance_funding_office=False)
-    # record type 2 pub_fabss
+    # record type 2 pub_fabs
     pub_fabs_1 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='12345', uri='123456',
                                       action_date='04/28/2000', funding_office_code=None, awarding_office_code='03aB03',
                                       is_active=True, record_type=2, award_modification_amendme='0', submission_id=1)
     pub_fabs_2 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='123456', uri='1234567',
                                       action_date='04/28/2000', funding_office_code='03aB03', awarding_office_code=None,
                                       is_active=True, record_type=2, award_modification_amendme=None, submission_id=1)
-    # record type 1 pub_fabss
+    # record type 1 pub_fabs
     pub_fabs_3 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aB', fain='54321', uri='654321',
                                       action_date='04/28/2000', funding_office_code=None, awarding_office_code='03aB03',
                                       is_active=True, record_type=1, award_modification_amendme=None, submission_id=1)
@@ -138,13 +139,20 @@ def initialize_db_values(db):
                                       action_date='04/28/2000', funding_office_code='654321',
                                       awarding_office_code='654321', is_active=True, record_type=1,
                                       award_modification_amendme='0', submission_id=1)
+    # record type 2 base pub_fabs with valid office codes but the action date is not in the office effective range
+    pub_fabs_7 = PublishedFABSFactory(awarding_sub_tier_agency_c='12aC', fain='123456', uri='1234567',
+                                      action_date='01/01/1999', funding_office_code='03aB03',
+                                      awarding_office_code='03aB03', is_active=True, record_type=2,
+                                      award_modification_amendme='0', submission_id=1)
+
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_code_historical_1, zips_grouped_1,
                         zips_grouped_2, zips_grouped_3, zips_grouped_historical_1, cd_zips_grouped_1, cd_zips_grouped_2,
                         cd_zips_grouped_3, cd_zips_grouped_historical, cd_county_grouped, cd_city_grouped_1,
                         cd_city_grouped_2, cd_state_grouped, zip_city, zip_city_2, zip_city_3, zip_city_4, city_code,
                         state, county, country_1, country_2, recipient_1, recipient_2a, recipient_2b, recipient_3,
                         assistance_listing, cgac_1, cgac_2, frec_1, frec_2, cgac_sub_tier, frec_sub_tier, valid_office,
-                        invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6])
+                        invalid_office, pub_fabs_1, pub_fabs_2, pub_fabs_3, pub_fabs_4, pub_fabs_5, pub_fabs_6,
+                        pub_fabs_7])
     db.session.commit()
 
 
@@ -701,6 +709,18 @@ def test_derive_office_data(database):
     # valid but is not a grant/funding code, do not derive
     submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, uri='abcd', record_type=1,
                                         award_mod_amend='1', submission_id=14)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
+
+    # if office_code is present and base action date is not effective (even if the incoming action_date is effective)
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, fain='123456',
+                                        award_mod_amend='1', sub_tier_code='12aC', action_date='04/28/2000',
+                                        submission_id=15)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)

@@ -776,7 +776,8 @@ def derive_office_data(sess, submission_id):
                 funding_office_code AS funding_office_code,
                 award_modification_amendme,
                 UPPER(fain) AS upper_fain,
-                UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier
+                UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier,
+                cast_as_date(pf.action_date) AS action_date
             FROM published_fabs AS pf
             WHERE is_active IS TRUE
                 AND record_type <> '1'
@@ -797,10 +798,14 @@ def derive_office_data(sess, submission_id):
             LEFT JOIN office AS aw_office
                 ON aw_office.office_code = UPPER(oi.awarding_office_code)
                 AND aw_office.financial_assistance_awards_office IS TRUE
+                AND aw_office.effective_start_date <= oi.action_date
+                AND COALESCE(aw_office.effective_end_date, NOW() + INTERVAL '1 year') > oi.action_date
             LEFT JOIN office AS fund_office
                 ON fund_office.office_code = UPPER(oi.funding_office_code)
                 AND (fund_office.contract_funding_office IS TRUE
-                    OR fund_office.financial_assistance_funding_office IS TRUE))
+                    OR fund_office.financial_assistance_funding_office IS TRUE)
+                AND fund_office.effective_start_date <= oi.action_date
+                AND COALESCE(fund_office.effective_end_date, NOW() + INTERVAL '1 year') > oi.action_date)
         UPDATE tmp_fabs_{submission_id} AS pf
         SET awarding_office_code = CASE WHEN pf.awarding_office_code IS NULL
                                         THEN fo.awarding_office_code
@@ -847,7 +852,8 @@ def derive_office_data(sess, submission_id):
                 funding_office_code AS funding_office_code,
                 award_modification_amendme,
                 UPPER(uri) AS upper_uri,
-                UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier
+                UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier,
+                cast_as_date(pf.action_date) AS action_date
             FROM published_fabs AS pf
             WHERE is_active IS TRUE
                 AND record_type = '1'
@@ -868,10 +874,14 @@ def derive_office_data(sess, submission_id):
             LEFT JOIN office AS aw_office
                 ON aw_office.office_code = UPPER(oi.awarding_office_code)
                 AND aw_office.financial_assistance_awards_office IS TRUE
+                AND aw_office.effective_start_date <= oi.action_date
+                AND COALESCE(aw_office.effective_end_date, NOW() + INTERVAL '1 year') > oi.action_date
             LEFT JOIN office AS fund_office
                 ON fund_office.office_code = UPPER(oi.funding_office_code)
                 AND (fund_office.contract_funding_office IS TRUE
-                    OR fund_office.financial_assistance_funding_office IS TRUE))
+                    OR fund_office.financial_assistance_funding_office IS TRUE)
+                AND fund_office.effective_start_date <= oi.action_date
+                AND COALESCE(fund_office.effective_end_date, NOW() + INTERVAL '1 year') > oi.action_date)
         UPDATE tmp_fabs_{submission_id} AS pf
         SET awarding_office_code = CASE WHEN pf.awarding_office_code IS NULL
                                         THEN fo.awarding_office_code
