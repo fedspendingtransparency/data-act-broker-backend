@@ -170,6 +170,8 @@ class AccountHandler:
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = get_max_dict(ticket, service)
 
+            logger.info(max_dict)
+
             if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
                 raise ValueError("The Max CAS endpoint was unable to locate your session "
                                  "using the ticket/service combination you provided.")
