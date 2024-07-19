@@ -732,22 +732,26 @@ def test_generate_boc(database, monkeypatch):
     # TAS. The sixth is a different period and should not be used at all despite matching exactly with the 5th otherwise
     boc1 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=1.5, ussgl_number='480100',
                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
-                          reimbursable_flag='D', **tas1_dict)
+                          reimbursable_flag='D', prior_year_adjustment_code='X', **tas1_dict)
     boc2 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=2, ussgl_number='480100',
                           begin_end='B', debit_credit='C', disaster_emergency_fund_code='Q', budget_object_class='1110',
-                          reimbursable_flag='D', **tas1_dict)
+                          reimbursable_flag='D', prior_year_adjustment_code='X', **tas1_dict)
     boc3 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=2, ussgl_number='480100',
                           begin_end='E', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
-                          reimbursable_flag='D', **tas1_dict)
+                          reimbursable_flag='D', prior_year_adjustment_code=None, **tas1_dict)
     boc4 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=2, ussgl_number='487100',
                           begin_end='E', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
-                          reimbursable_flag='D', **tas1_dict)
+                          reimbursable_flag='D', prior_year_adjustment_code='X', **tas1_dict)
     boc5 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas2_str, dollar_amount=25, ussgl_number='480100',
                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
-                          reimbursable_flag='D', **tas2_dict)
+                          reimbursable_flag='D', prior_year_adjustment_code=None, **tas2_dict)
     boc6 = GTASBOCFactory(period=7, fiscal_year=year, display_tas=tas2_str, dollar_amount=4, ussgl_number='480100',
                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
-                          reimbursable_flag='D', **tas2_dict)
+                          reimbursable_flag='D', prior_year_adjustment_code='X', **tas2_dict)
+    # This has a non-X, non-null PYA and should be ignored
+    boc7 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=2, ussgl_number='480100',
+                          begin_end='B', debit_credit='C', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', prior_year_adjustment_code='Y', **tas1_dict)
 
     # The first two will end up in the same place, there is an implied "different PAC/PAN"
     pub_b1 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas1_str,
@@ -774,7 +778,7 @@ def test_generate_boc(database, monkeypatch):
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['boc_comparison'], filename=None, start_date='03/01/2017',
                      end_date='03/31/2017', submission=None)
-    sess.add_all([boc1, boc2, boc3, boc4, boc5, boc6, sub, job, pub_b1, pub_b2, pub_b3])
+    sess.add_all([boc1, boc2, boc3, boc4, boc5, boc6, boc7, sub, job, pub_b1, pub_b2, pub_b3])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
