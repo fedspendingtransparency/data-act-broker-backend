@@ -26,9 +26,14 @@ logging.getLogger('requests').setLevel(logging.WARNING)
 
 API_URL = CONFIG_BROKER['sam']['federal_hierarchy']['api_url'].format(CONFIG_BROKER['sam']['api_key'])
 REQUESTS_AT_ONCE = 5
+LIMIT = 100
+
+TOP_SUB_LEVELS = ['1', '2']
+OFFICE_LEVELS = ['3', '4', '5', '6', '7']
+OFFICE_TYPES = ['contract_funding', 'contract_awards', 'financial_assistance_awards', 'financial_assistance_funding']
 
 
-def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_office, metrics):
+def load_offices(sess, filename, update_db, pull_all, updated_date_from, export_office, metrics):
     """ Pull Office data from the Federal Hierarchy API and update the DB, return it as a file, or both.
 
         Args:
@@ -41,12 +46,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             metrics: an object containing information for the metrics file
     """
     logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
-    top_sub_levels = ['1', '2']
-    office_levels = ['3', '4', '5', '6', '7']
-    levels = top_sub_levels + office_levels if filename else office_levels
 
     if filename:
-        logger.info('Creating a file ({}) with the data from this pull'.format(filename))
+        logger.info(f'Creating a file ({filename}) with the data from this pull')
         # Write headers to file
         file_headers = [
             'fhorgid', 'fhorgname', 'fhorgtype', 'description', 'level', 'status', 'region', 'categoryid',
@@ -69,52 +71,31 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             csv_writer.writerow(file_headers)
 
     empty_pull_count = 0
+    levels = TOP_SUB_LEVELS + OFFICE_LEVELS if filename else OFFICE_LEVELS
     for level in levels:
         # Create URL with the level and status parameter (default is just active, we want inactive as well)
-        url_with_params = '{}&level={}&status=all'.format(API_URL, level)
+        params = {'level': level, 'status': 'all'}
 
         # Add updateddatefrom parameter to the URL
         if not pull_all:
-            url_with_params += '&updateddatefrom={}'.format(updated_date_from)
+            params['updateddatefrom'] = updated_date_from
 
         # Retrieve the total count of expected records for this pull
-        total_expected_records = get_with_exception_hand(url_with_params)['totalrecords']
-        metrics['level_{}_records'.format(str(level))] = total_expected_records
-        logger.info('{} level-{} record(s) expected'.format(str(total_expected_records), str(level)))
+        param_string = '&'.join(f'{k}={v}' for k, v in params.items())
+        total_expected_records = get_with_exception_hand(f'{API_URL}&{param_string}')['totalrecords']
+        metrics[f'level_{level}_records'] = total_expected_records
+        logger.info(f'{total_expected_records} level-{level} record(s) expected')
         if total_expected_records == 0:
             empty_pull_count += 1
             continue
 
-        limit = 100
         entries_processed = 0
         while True:
-            async def _fed_hierarchy_async_get(entries_already_processed):
-                response_list = []
-                loop = asyncio.get_event_loop()
-                futures = [
-                    loop.run_in_executor(
-                        None,
-                        get_with_exception_hand,
-                        '{}&limit={}&offset={}'.format(url_with_params, str(limit),
-                                                       str(entries_already_processed + (start_offset * limit)))
-                    )
-                    for start_offset in range(REQUESTS_AT_ONCE)
-                ]
-                for response in await asyncio.gather(*futures):
-                    response_list.append(response)
-                    pass
-                return response_list
-            # End async get requests def
-
-            # Retrieve limit*REQUESTS_AT_ONCE records from the API
-            loop = asyncio.get_event_loop()
-            full_response = loop.run_until_complete(_fed_hierarchy_async_get(entries_processed))
-
-            # Create an object with all the data from the API
+            # Create an dataframe with all the data from the API
             raw_dataframe = pd.DataFrame()
-            offices = pd.DataFrame()
+            new_offices = pd.DataFrame()
             start = entries_processed + 1
-            for response_dict in full_response:
+            for response_dict in pull_offices(params, entries_processed):
                 # Process the entry if it isn't an error
                 for org in response_dict.get('orglist', []):
                     entries_processed += 1
@@ -124,59 +105,19 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                         row = pd.json_normalize(flatten_json(org))
                         raw_dataframe = pd.concat([raw_dataframe, row])
 
-                    # Don't process the top_sub_levels, but store them in the fed hierarchy export
-                    if level in top_sub_levels:
+                    # Don't process the TOP_SUB_LEVELS, but store them in the fed hierarchy export
+                    if level in TOP_SUB_LEVELS:
                         continue
 
-                    # Add to the list of DB objects
                     if update_db:
-                        # trim incoming values
-                        org = trim_nested_obj(org)
+                        new_office = parse_raw_office(org)
+                        if new_office:
+                            # store all the cgacs/subtiers loaded in from this run, to be filtered later
+                            metrics['missing_cgacs'].append(new_office['agency_code'])
+                            metrics['missing_subtier_codes'].append(org.get('agencycode'))
 
-                        agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'],
-                                                                 org.get('agencycode'))
-                        # TEMPORARILY REPLACE Navy, Army, AND Air Force WITH DOD
-                        if agency_code in ['017', '021', '057']:
-                            agency_code = '097'
-                        if not org.get('aacofficecode') or not org.get('agencycode') or not agency_code:
-                            # Item from Fed Hierarchy is missing necessary data, ignore it
-                            continue
-                        if org.get('fhorgname') == "DO NOT USE":
-                            # this is an actual value for the office name in the data, which we should adhere to
-                            continue
-                        # store all the cgacs/subtiers loaded in from this run, to be filtered later
-                        metrics['missing_cgacs'].append(agency_code)
-                        metrics['missing_subtier_codes'].append(org.get('agencycode'))
-
-                        effective_start_date = org.get('effectivestartdate')
-                        # The FH data does include a start date that is too early for pandas to process ("0016-04-12")
-                        # This marks it a little more reasonable to our earliest default start date.
-                        if not effective_start_date or effective_start_date < '2000-01-01 00:00':
-                            effective_start_date = '2000-01-01 00:00'
-                        effective_end_date = (org.get('effectiveenddate') if org['status'] == 'ACTIVE'
-                                              else org.get('effectiveenddate') or '2000-01-02 00:00')
-
-                        new_office = {
-                            "office_code": org.get('aacofficecode'),
-                            "office_name": org.get('fhorgname'),
-                            "sub_tier_code": org.get('agencycode'),
-                            "agency_code": agency_code,
-                            "effective_start_date": effective_start_date,
-                            "effective_end_date": effective_end_date,
-                            "contract_funding_office": False,
-                            "contract_awards_office": False,
-                            "financial_assistance_awards_office": False,
-                            "financial_assistance_funding_office": False
-                        }
-
-                        for off_type in org.get('fhorgofficetypelist', []):
-                            office_type = off_type['officetype'].lower().replace(' ', '_')
-                            if office_type in ['contract_funding', 'contract_awards', 'financial_assistance_awards',
-                                               'financial_assistance_funding']:
-                                new_office[office_type + '_office'] = True
-
-                        offices = pd.concat([pd.DataFrame(new_office, index=[0]), offices])
-            offices.reset_index(drop=True, inplace=True)
+                            new_offices = pd.concat([pd.DataFrame(new_office, index=[0]), new_offices])
+            new_offices.reset_index(drop=True, inplace=True)
 
             if filename and len(raw_dataframe.index) > 0:
                 # Ensure headers are handled correctly
@@ -192,70 +133,8 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 with open(filename, 'a') as f:
                     raw_dataframe.to_csv(f, index=False, header=False, columns=file_headers)
 
-            if update_db and not offices.empty:
-                existing_offices = sess.query(Office).filter(Office.office_code.in_(list(offices['office_code'])))
-
-                # The feed can include *duplicate* offices that were generated by FPDS before 4/1/2016.
-                # To consolidate the duplicate offices in the incoming feed with potentially the already existing
-                # office in the database, we're going to add all these in one dataframe, find the appropriate
-                # values grouping by their office codes, and update the incoming record going in the database
-                date_cols = ['effective_start_date', 'effective_end_date']
-                type_cols = ['contract_funding_office', 'contract_awards_office', 'financial_assistance_awards_office',
-                             'financial_assistance_funding_office']
-                other_cols = ['office_name', 'agency_code', 'sub_tier_code']
-                shared_cols = date_cols + type_cols + other_cols
-                shared_df_cols = ['office_code'] + shared_cols
-
-                # Merge with the already existing offices in the database
-                existing_offices_df = pd.read_sql(existing_offices.statement, existing_offices.session.bind,
-                                                  parse_dates=date_cols)
-                for date_col in date_cols:
-                    existing_offices_df[date_col] = existing_offices_df[date_col].dt.strftime('%Y-%m-%d %H:%M')
-
-                # For iterative loads, we're ignoring the effective end date in the database if its active;
-                # otherwise, it'd be impossible for an active office to become inactive
-                if not pull_all:
-                    existing_offices_df['effective_end_date'].fillna('2000-01-02 00:00', inplace=True)
-                shared_df = pd.concat([existing_offices_df[shared_df_cols], offices[shared_df_cols]])
-
-                # Sorted by the effective end date and grouped by the office code...
-                #   Set the earliest effective start date ("min")
-                #   Set the boolean orgtypecols to True if *any* of them are True over time
-                #   Set the latest effective office name, agency code, and subtier value
-                #   Get the latest effective end date or NULL if there's an active record
-                #       - for full loads, this will include the database record which could be active and null
-                #       - for iterative loads, this will ignore the database record if it's currently active (i.e. null)
-                #         by setting it to a really old date; otherwise it will pull the database end date too
-                shared_df.sort_values(by=['effective_end_date'], inplace=True)
-                shared_grouped = shared_df.groupby(by=['office_code'], sort=False, as_index=False, dropna=False)
-                # panda's aggregates ("first", "last", "min", "max") ignore NATs, so for the effective end dates, we're
-                # using sorting on end date and this function to effectively be "last" but include the NATs.
-                # If there is a NAT, it's considered "active".
-                shared_df = shared_grouped.agg({"office_name": lambda x: x.values[-1],
-                                                "agency_code": lambda x: x.values[-1],
-                                                "sub_tier_code": lambda x: x.values[-1],
-                                                "effective_start_date": "min",
-                                                "effective_end_date": lambda x: x.values[-1],
-                                                "contract_funding_office": "any",
-                                                "contract_awards_office": "any",
-                                                "financial_assistance_awards_office": "any",
-                                                "financial_assistance_funding_office": "any"})
-
-                # Merge it back into offices and drop duplicates
-                offices = offices.join(shared_df.set_index('office_code'), on='office_code', rsuffix='_derived')
-                # doing the drop duplicates again on original offices df as it will still have the old duplicates
-                # they should be the same except for the date columns
-                offices.drop_duplicates(subset=['office_code'], keep='last', inplace=True)
-                # Doing the column switcheroo *after* dropping the duplicates and choosing the latest
-                offices.drop(columns=shared_cols, inplace=True)
-                offices.rename(columns={f'{col}_derived': col for col in shared_cols}, inplace=True)
-
-                offices['created_at'] = datetime.now()
-                offices['updated_at'] = datetime.now()
-
-                existing_offices.delete(synchronize_session=False)
-                insert_dataframe(offices, 'office', sess.connection())
-                sess.commit()
+            if update_db and not new_offices.empty:
+                store_offices(sess, new_offices, pull_all, level)
 
             logger.info('Processed rows %s-%s', start, entries_processed)
             if entries_processed == total_expected_records:
@@ -264,15 +143,15 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
             if entries_processed > total_expected_records:
                 # We have somehow retrieved more records than existed at the beginning of the pull
-                logger.error('Total expected records: {}, Number of records retrieved: {}'.format(
-                    total_expected_records, entries_processed))
+                logger.error(f'Total expected records: {total_expected_records},'
+                             f' Number of records retrieved: {entries_processed}')
                 sys.exit(2)
 
     if update_db:
         sess.commit()
 
     if export_office:
-        logger.info('Creating a file ({}) with the data from the database'.format(export_office))
+        logger.info(f'Creating a file ({export_office}) with the data from the database')
         all_offices = sess.query(Office)
         write_query_to_file(sess, all_offices, export_office, generate_headers=True)
 
@@ -281,6 +160,94 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
         sys.exit(3)
 
     logger.info('Finished')
+
+
+def pull_offices(params, entries_processed=0):
+    """ Hit the FH API and return the raw json responses
+
+        Args:
+            params: dict of the current params to lookup
+            entries_processed: how many entries have been processed (for offset counting)
+
+        Returns:
+            list of json responses
+    """
+    params['limit'] = str(LIMIT)
+
+    async def _fed_hierarchy_async_get(entries_already_processed):
+        response_list = []
+        loop = asyncio.get_event_loop()
+        futures = []
+        for start_offset in range(REQUESTS_AT_ONCE):
+            params['offset'] = str(entries_already_processed + (start_offset * LIMIT))
+            param_string = '&'.join(f'{k}={v}' for k, v in params.items())
+            futures.append(
+                loop.run_in_executor(
+                    None,
+                    get_with_exception_hand,
+                    f'{API_URL}&{param_string}'
+                )
+            )
+        for response in await asyncio.gather(*futures):
+            response_list.append(response)
+            pass
+        return response_list
+
+    # Retrieve LIMIT*REQUESTS_AT_ONCE records from the API
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(_fed_hierarchy_async_get(entries_processed))
+
+
+def parse_raw_office(org):
+    """ Given a raw office org object, translate it into a dictionary for the database
+
+        Args:
+            org: json dict of the raw office data to process
+
+        Returns:
+            dict of office prepped for the database (or None if it's to be skipped)
+    """
+    # trim incoming values
+    org = trim_nested_obj(org)
+
+    agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'], org.get('agencycode'))
+    # TEMPORARILY REPLACE Navy, Army, AND Air Force WITH DOD
+    if agency_code in ['017', '021', '057']:
+        agency_code = '097'
+    if not org.get('aacofficecode') or not org.get('agencycode') or not agency_code:
+        # Item from Fed Hierarchy is missing necessary data, ignore it
+        return None
+    if org.get('fhorgname') == "DO NOT USE":
+        # this is an actual value for the office name in the data, which we should adhere to
+        return None
+
+    effective_start_date = org.get('effectivestartdate')
+    # The FH data does include a start date that is too early for pandas to process ("0016-04-12")
+    # This marks it a little more reasonable to our earliest default start date.
+    if not effective_start_date or effective_start_date < '2000-01-01 00:00':
+        effective_start_date = '2000-01-01 00:00'
+    effective_end_date = (org.get('effectiveenddate') if org['status'] == 'ACTIVE'
+                          else org.get('effectiveenddate') or '2000-01-02 00:00')
+
+    new_office = {
+        "office_code": org.get('aacofficecode'),
+        "office_name": org.get('fhorgname'),
+        "sub_tier_code": org.get('agencycode'),
+        "agency_code": agency_code,
+        "effective_start_date": effective_start_date,
+        "effective_end_date": effective_end_date,
+        "contract_funding_office": False,
+        "contract_awards_office": False,
+        "financial_assistance_awards_office": False,
+        "financial_assistance_funding_office": False
+    }
+
+    for off_type in org.get('fhorgofficetypelist', []):
+        office_type = off_type['officetype'].lower().replace(' ', '_')
+        if office_type in OFFICE_TYPES:
+            new_office[f'{office_type}_office'] = True
+
+    return new_office
 
 
 def trim_nested_obj(obj):
@@ -349,6 +316,125 @@ def get_normalized_agency_code(agency_code, subtier_code):
     return agency_code
 
 
+def store_offices(sess, new_offices, pull_all, level):
+    """ The feed can include *duplicate* office records that were generated by FPDS before 4/1/2016.
+        This consolidates the duplicate office records in the incoming feed with potentially the already existing
+        offices in the database, and then updates the database accordingly.
+
+        Args:
+            sess: database connection
+            new_offices: dataframe of the new office data to be stored
+            pull_all: Boolean; pull all historical data, instead of just the latest.
+            level: the current level we're processing (for checking inactive office histories)
+    """
+    date_cols = ['effective_start_date', 'effective_end_date']
+    type_cols = [f'{office_type}_office' for office_type in OFFICE_TYPES]
+    other_cols = ['office_name', 'agency_code', 'sub_tier_code']
+    shared_cols = date_cols + type_cols + other_cols
+    shared_df_cols = ['office_code'] + shared_cols
+
+    # Pull the relevant office data from the database
+    old_offices = sess.query(Office).filter(Office.office_code.in_(list(new_offices['office_code'])))
+    old_offices_df = pd.read_sql(old_offices.statement, old_offices.session.bind, parse_dates=date_cols)
+    for date_col in date_cols:
+        old_offices_df[date_col] = old_offices_df[date_col].dt.strftime('%Y-%m-%d %H:%M')
+
+    if pull_all:
+        # Full load:
+        #   If there are active records in the db, they're still true for the full load on that day.
+        #   No need for looking up all the inactive records status as we have them all here.
+        #   Just merge them all together normally as we're working off a full snapshot.
+        shared_df = pd.concat([new_offices[shared_df_cols], old_offices_df[shared_df_cols]])
+        merged_offices = merge_offices(shared_df)
+    else:
+        # Nightly load: split into active and inactive for different scenarios
+        new_active_df = new_offices[new_offices['effective_end_date'].isnull()]
+        new_inactive_df = new_offices[new_offices['effective_end_date'].notnull()]
+
+        # If, for some odd reason, a daily load has *both* an active and inactive record with the same code,
+        # delete it from the active list. The new inactive record may have an older start date
+        # and we'd be merging it with the active record anyways
+        new_active_df = new_active_df[~new_active_df['office_code'].isin(new_inactive_df['office_code'])]
+
+        merged_offices = pd.DataFrame(columns=shared_df_cols)
+        if not new_active_df.empty:
+            # Active: Keep everything the same but take the older start date and orgtypes if applicable.
+            old_active_df = old_offices_df[old_offices_df['office_code'].isin(new_active_df['office_code'])]
+            if not old_active_df.empty:
+                # Set the DB effective end date to way back to distinguish it from the incoming active record
+                old_active_df['effective_end_date'] = '2000-01-01 00:00'
+                new_active_df = pd.concat([new_active_df[shared_df_cols], old_active_df[shared_df_cols]])
+                new_active_df = merge_offices(new_active_df)
+            merged_offices = pd.concat([merged_offices[shared_df_cols], new_active_df[shared_df_cols]])
+
+        if not new_inactive_df.empty:
+            # Inactive: Discard incoming record but keep the code. It could be either
+            #   officially declaring this record is now inactive
+            #   OR an older historical record
+            # Get the office's history and figure out its status from there
+            new_inactive_office_codes = list(new_inactive_df['office_code'])
+            logger.info(f'New inactive records found ({new_inactive_office_codes}). Looking them up...')
+            new_inactive_df = pd.DataFrame(columns=shared_df_cols)
+            for new_inactive_office_code in new_inactive_office_codes:
+                inactive_params = {
+                    'aacofficecode': new_inactive_office_code,
+                    'level': level,
+                    'status': 'all'
+                }
+                # This assumes an office's historical record count is always less than LIMIT
+                # If it's not, use pull_offices instead to multiply it by REQUESTS_AT_ONCE
+                param_string = '&'.join(f'{k}={v}' for k, v in inactive_params.items())
+                office_history = get_with_exception_hand(f'{API_URL}&{param_string}')
+                for org in office_history.get('orglist', []):
+                    historical_record = parse_raw_office(org)
+                    if historical_record:
+                        new_inactive_df = pd.concat([pd.DataFrame(historical_record, index=[0]), new_inactive_df])
+            logger.info('Inactive records figured out')
+            new_inactive_df = merge_offices(new_inactive_df)
+            merged_offices = pd.concat([merged_offices[shared_df_cols], new_inactive_df[shared_df_cols]])
+
+    merged_offices['created_at'] = datetime.now()
+    merged_offices['updated_at'] = datetime.now()
+
+    old_offices.delete(synchronize_session=False)
+    insert_dataframe(merged_offices, 'office', sess.connection())
+    sess.commit()
+
+
+def merge_offices(office_df, combine_org_types=True):
+    """ Given a dataframe of duplicate offices, merge them into unique records with the appropriate values.
+
+        Merge logic:
+            Sorted by the effective end date, effective_start_date and grouped by the office code...
+              Set the earliest effective start date ("min")
+              Set the boolean orgtypecols to True if *any* of them are True over time, or latest
+              Set the rest to the latest record (active or latest inactive)
+                  - for full loads, this will include the database record which could be active and null
+                  - for iterative loads, this will ignore the database record if it's currently active (i.e. null)
+                    by setting it to a really old date; otherwise it will pull the database end date too
+        Args:
+            office_df: dataframe of office data that may include multiple records of the same office_code
+            combine_org_types: if True, an orgtype is true if at any point it was True; otherwise, use the latest.
+                               Defaults to True
+
+        Returns:
+            dataframe of the same columns but with the duplicates merged to single records
+    """
+    # generally effective end_date is our best way of determining the order but sometimes they can match too
+    # so also sort by the effective_start_date too in case of a tie
+    office_df.sort_values(by=['effective_end_date', 'effective_start_date'], inplace=True)
+    shared_grouped = office_df.groupby(by=['office_code'], sort=False, as_index=False, dropna=False)
+    # panda's aggregates ("first", "last", "min", "max") ignore NATs, so for selecting the "latest" record, we're
+    # using sorting on end date and this lambda function to effectively be "last" but include the NATs.
+    # If there is a NAT, it's considered "active".
+    agg_selections = {col: lambda x: x.values[-1] for col in office_df.columns}
+    agg_selections['effective_start_date'] = "min"
+    for org_type in OFFICE_TYPES:
+        agg_selections[f'{org_type}_office'] = "any" if combine_org_types else (lambda x: x.values[-1])
+    shared_df = shared_grouped.agg(agg_selections)
+    return shared_df
+
+
 def main():
     now = datetime.now()
     parser = argparse.ArgumentParser(description='Pull data from the Federal Hierarchy API.')
@@ -412,7 +498,7 @@ def main():
         sess.commit()
 
     try:
-        pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office, metrics_json)
+        load_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office, metrics_json)
     except Exception as e:
         logger.exception(e)
         sys.exit(1)

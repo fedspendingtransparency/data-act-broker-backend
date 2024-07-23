@@ -1,0 +1,170 @@
+{
+    "1": {
+        "totalrecords": 0,
+        "orglist": [
+        ]
+    },
+    "2": {
+        "totalrecords": 0,
+        "orglist": [
+        ]
+    },
+    "3": {
+        "totalrecords": 2,
+        "orglist": [
+            {
+                "fhorgid": 5,
+                "fhorgname": "TEST OFFICE 5 - OLD",
+                "fhorgtype": "OFFICE",
+                "level": 3,
+                "status": "INACTIVE",
+                "effectivestartdate": "2021-04-13 00:00",
+                "effectiveenddate": "2021-04-14 00:00",
+                "createdby": "FPDSADMIN_NEW_ATOM_FEED",
+                "createddate": "2021-04-17 20:31",
+                "updatedby": "FPDSADMIN_NEW_ATOM_FEED",
+                "lastupdateddate": "2024-04-17 20:30",
+                "fhdeptindagencyorgid": 100000005,
+                "fhagencyorgname": "TEST AGENCY 5 - OLD",
+                "agencycode": "0050",
+                "oldfpdsofficecode": "TEST OFFICE 5 - OLD",
+                "aacofficecode": "W05",
+                "fullParentPathName": "TEST AGENCY 5 - OLD.TEST AGENCY 5 - OLD.TEST OFFICE 5 - OLD",
+                "fullParentPath": "100000005.100000005.5",
+                "cgaclist": [
+                    {
+                        "cgac": "050"
+                    }
+                ],
+                "fhorgofficetypelist": [
+                    {
+                        "officetype": "CONTRACT FUNDING",
+                        "officetypestartdate": "2021-04-13 00:00",
+                        "officetypeenddate": null
+                    }
+                ],
+                "fhorgaddresslist": [
+                    {
+                        "city": "AAA",
+                        "state": "AA",
+                        "country_code": "USA",
+                        "addresstype": "M",
+                        "addressstatus": "active"
+                    },
+                    {
+                        "city": "AAA",
+                        "state": "AA",
+                        "country_code": "USA",
+                        "addresstype": "M",
+                        "addressstatus": "inactive"
+                    }
+                ],
+                "fhorgnamehistory": [
+                    {
+                        "fhorgname": "TEST AGENCY 5 - OLD",
+                        "effectivedate": "2021-04-13 00:00"
+                    }
+                ],
+                "fhorgparenthistory": [
+                    {
+                        "fhfullparentpathid": "100000005.W5",
+                        "fhfullparentpathname": "TEST AGENCY 5 - OLD.TEST AGENCY 5 - OLD.TEST OFFICE 5 - NEW - OLD",
+                        "effectivedate": "2021-04-13 00:00",
+                        "codehierarchy": "0005.0005.W5",
+                        "actiontype": "CREATE"
+                    }
+                ],
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://api.sam.gov/prod/federalorganizations/v1/orgs?fhorgid=5"
+                    }
+                ]
+            },
+            {
+                "fhorgid": 5,
+                "fhorgname": "TEST OFFICE 5",
+                "fhorgtype": "OFFICE",
+                "level": 3,
+                "status": "INACTIVE",
+                "effectivestartdate": "2021-04-15 00:00",
+                "effectiveenddate": "2021-04-18 00:00",
+                "createdby": "FPDSADMIN_NEW_ATOM_FEED",
+                "createddate": "2021-04-18 20:31",
+                "updatedby": "FPDSADMIN_NEW_ATOM_FEED",
+                "lastupdateddate": "2024-04-18 20:30",
+                "fhdeptindagencyorgid": 100000005,
+                "fhagencyorgname": "TEST AGENCY 5",
+                "agencycode": "0005",
+                "oldfpdsofficecode": "TEST OFFICE 5",
+                "aacofficecode": "W05",
+                "fullParentPathName": "TEST AGENCY 5.TEST AGENCY 5.TEST OFFICE 5",
+                "fullParentPath": "100000005.100000005.5",
+                "cgaclist": [
+                    {
+                        "cgac": "005"
+                    }
+                ],
+                "fhorgofficetypelist": [
+                ],
+                "fhorgaddresslist": [
+                    {
+                        "city": "AAA",
+                        "state": "AA",
+                        "country_code": "USA",
+                        "addresstype": "M",
+                        "addressstatus": "active"
+                    },
+                    {
+                        "city": "AAA",
+                        "state": "AA",
+                        "country_code": "USA",
+                        "addresstype": "M",
+                        "addressstatus": "inactive"
+                    }
+                ],
+                "fhorgnamehistory": [
+                    {
+                        "fhorgname": "TEST AGENCY 5",
+                        "effectivedate": "2021-04-13 00:00"
+                    }
+                ],
+                "fhorgparenthistory": [
+                    {
+                        "fhfullparentpathid": "100000005.W5",
+                        "fhfullparentpathname": "TEST AGENCY 5.TEST AGENCY 5.TEST OFFICE 5",
+                        "effectivedate": "2021-04-13 00:00",
+                        "codehierarchy": "0005.0005.W5",
+                        "actiontype": "CREATE"
+                    }
+                ],
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://api.sam.gov/prod/federalorganizations/v1/orgs?fhorgid=5"
+                    }
+                ]
+            }
+        ]
+    },
+    "4": {
+        "totalrecords": 0,
+        "orglist": [
+        ]
+    },
+    "5": {
+        "totalrecords": 1,
+        "orglist": [
+        ]
+    },
+    "6": {
+        "totalrecords": 0,
+        "orglist": [
+        ]
+    },
+    "7": {
+        "totalrecords": 0,
+        "orglist": [
+        ]
+    }
+}
