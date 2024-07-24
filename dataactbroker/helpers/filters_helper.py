@@ -1,4 +1,5 @@
 from sqlalchemy import or_, and_
+from sqlalchemy.orm import outerjoin
 from flask import g
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT
 
@@ -134,3 +135,74 @@ def rule_severity_filter(query, error_level, error_model=ErrorMetadata):
         query = query.filter(error_model.severity_id == RULE_SEVERITY_DICT['warning'])
 
     return query
+
+
+def tas_agency_filter(sess, agency_code, filter_model):
+    """ Adds a filter by agency using TAS bucketing logic to the provided query
+
+        Args:
+            sess: database session
+            agency_code: the agency code to filter by
+            filter_model: the model to filter on
+
+        Return:
+            An array of agency filters that can be used in a query
+    """
+    # set a boolean to determine if the original agency code is frec or cgac
+    frec_provided = len(agency_code) == 4
+
+    # Make a list of FRECs to compare to for 011 AID entries
+    frec_list = []
+    if not frec_provided:
+        frec_list = sess.query(FREC.frec_code).select_from(outerjoin(CGAC, FREC, CGAC.cgac_id == FREC.cgac_id)). \
+            filter(CGAC.cgac_code == agency_code).all()
+        # Put the frec list in a format that can be read by a filter
+        frec_list = [frec.frec_code for frec in frec_list]
+
+    # Group agencies together that need to be grouped
+    # NOTE: If these change, update A33.1 to match
+    agency_array = []
+    if agency_code == '097':
+        agency_array = ['017', '021', '057', '097']
+    elif agency_code == '020':
+        agency_array = ['020', '580', '373']
+    elif agency_code == '077':
+        agency_array = ['077', '071']
+    elif agency_code == '089':
+        agency_array = ['089', '486']
+    elif agency_code == '1601':
+        agency_array = ['1601', '016']
+    elif agency_code == '1125':
+        agency_array = ['1125', '011']
+    elif agency_code == '1100':
+        agency_array = ['1100', '256']
+
+    # Save the ATA filter
+    agency_filters = []
+    if not agency_array:
+        agency_filters.append(filter_model.allocation_transfer_agency == agency_code)
+    else:
+        agency_filters.append(filter_model.allocation_transfer_agency.in_(agency_array))
+
+    # Save the AID filter
+    if agency_code in ['097', '020', '077', '089']:
+        agency_filters.append(and_(filter_model.allocation_transfer_agency.is_(None),
+                                   filter_model.agency_identifier.in_(agency_array)))
+    elif agency_code == '1100':
+        agency_filters.append(and_(filter_model.allocation_transfer_agency.is_(None),
+                                   or_(filter_model.agency_identifier == '256',
+                                       filter_model.fr_entity_type == '1100')))
+    elif not frec_provided:
+        agency_filters.append(and_(filter_model.allocation_transfer_agency.is_(None),
+                                   filter_model.agency_identifier == agency_code))
+    else:
+        agency_filters.append(and_(filter_model.allocation_transfer_agency.is_(None),
+                                   filter_model.fr_entity_type == agency_code))
+
+    # If we're checking a CGAC, we want to filter on all the related FRECs for AID 011
+    if frec_list:
+        agency_filters.append(and_(filter_model.allocation_transfer_agency.is_(None),
+                                   filter_model.agency_identifier == '011',
+                                   filter_model.fr_entity_type.in_(frec_list)))
+
+    return agency_filters
