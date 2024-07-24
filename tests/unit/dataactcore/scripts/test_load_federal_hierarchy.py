@@ -26,14 +26,20 @@ def mock_request_to_fh_update(url):
     # the file includes all the levels (which is usually split up by each individual call)
     # we're just going to filter out records at the level it's asking for
     level = re.findall(r'.*level=(\d).*', url)[0]
+    code = re.findall(r'.*aacofficecode=(\w{3}).*', url)
 
-    fake_json_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'test_fh_update.json')
+    if code and code[0] == 'W05':
+        fake_json_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'test_fh_lookup_W05.json')
+    elif code and code[0] == 'W09':
+        fake_json_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'test_fh_lookup_W09.json')
+    else:
+        fake_json_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'test_fh_update.json')
     with open(fake_json_path, 'r') as fake_json:
         fh_data = json.load(fake_json)[level]
     return fh_data
 
 
-def test_pull_offices(monkeypatch, database):
+def test_load_offices(monkeypatch, database):
     """ Test a simple pull of offices """
     monkeypatch.setattr('dataactcore.scripts.pipeline.load_federal_hierarchy.get_with_exception_hand',
                         mock_request_to_fh_full)
@@ -50,7 +56,7 @@ def test_pull_offices(monkeypatch, database):
         'missing_cgacs': [],
         'missing_subtier_codes': []
     }
-    load_federal_hierarchy.pull_offices(sess, filename=None, update_db=True, pull_all=True,
+    load_federal_hierarchy.load_offices(sess, filename=None, update_db=True, pull_all=True,
                                         updated_date_from='2020-01-01', export_office=False, metrics=metrics_json)
 
     loaded_offices = list(sess.query(Office).order_by(Office.office_code).all())
@@ -109,7 +115,7 @@ def test_pull_offices(monkeypatch, database):
     # on a subsequent daily load (i.e. after the initial load), do not factor in the database's end date if its active
     monkeypatch.setattr('dataactcore.scripts.pipeline.load_federal_hierarchy.get_with_exception_hand',
                         mock_request_to_fh_update)
-    load_federal_hierarchy.pull_offices(sess, filename=None, update_db=True, pull_all=False,
+    load_federal_hierarchy.load_offices(sess, filename=None, update_db=True, pull_all=False,
                                         updated_date_from='2020-01-01', export_office=False, metrics=metrics_json)
 
     loaded_offices = list(sess.query(Office).order_by(Office.office_code).all())
