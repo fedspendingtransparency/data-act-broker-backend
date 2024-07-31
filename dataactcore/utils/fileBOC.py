@@ -2,7 +2,8 @@ from collections import OrderedDict
 from sqlalchemy import or_, and_, func, null, values, column
 from sqlalchemy.sql.expression import case, literal
 
-from dataactcore.models.domainModels import GTASBOC
+from dataactbroker.helpers.filters_helper import tas_agency_filter
+from dataactcore.models.domainModels import GTASBOC, TASLookup
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from dataactcore.models.stagingModels import PublishedObjectClassProgramActivity
 from dataactcore.models.jobModels import Submission
@@ -67,7 +68,7 @@ def query_data(session, agency_code, period, year):
     ussgl_pub_file_b = ussgl_published_file_b_cte(session, ussgl_vals, summed_pub_b.c)
 
     # Get the summed values of GTAS BOC, so we can ignore PYA's existence and properly compare to file B
-    summed_gtas_boc = sum_gtas_boc(session, period, year)
+    summed_gtas_boc = sum_gtas_boc(session, period, year, agency_code)
 
     # Filter out any rows that have 0 for both the published file B and GTAS BOC totals
     rows = initial_query(session, ussgl_pub_file_b.c, summed_gtas_boc, period, year).\
@@ -223,19 +224,30 @@ def ussgl_published_file_b_cte(session, ussgl_vals, model):
     return ussgl_pub_file_b
 
 
-def sum_gtas_boc(session, period, year):
-    """ Sums the GTAS BOC data for the given year/period to ignore PYA since we don't have that to compare to
+def sum_gtas_boc(session, period, year, agency_code):
+    """ Sums the GTAS BOC data for the given year/period/agency to ignore PYA since we don't have that to compare to
 
         Args:
             session: The current DB session
             period: The period for which to get data
             year: the year for which to get data
+            agency_code: the agency code to filter by
 
         Returns:
             A CTE containing the summed data for GTAS BOC for the given year/period
     """
+    agency_filters = tas_agency_filter(session, agency_code, TASLookup)
+    exists_query = session.query(TASLookup).filter(TASLookup.display_tas == boc_model.display_tas,
+                                                   or_(*agency_filters)).exists()
     sum_boc = session.query(
         boc_model.display_tas,
+        boc_model.allocation_transfer_agency,
+        boc_model.agency_identifier,
+        boc_model.beginning_period_of_availa,
+        boc_model.ending_period_of_availabil,
+        boc_model.availability_type_code,
+        boc_model.main_account_code,
+        boc_model.sub_account_code,
         boc_model.disaster_emergency_fund_code,
         boc_model.budget_object_class,
         boc_model.reimbursable_flag,
@@ -244,8 +256,12 @@ def sum_gtas_boc(session, period, year):
         func.sum(boc_model.dollar_amount * case([(boc_model.debit_credit == 'D', 1)], else_=-1)).
         label('sum_dollar_amount')
     ).filter(boc_model.fiscal_year == year, boc_model.period == period,
-             func.coalesce(func.upper(boc_model.prior_year_adjustment_code), 'X') == 'X').\
-        group_by(boc_model.display_tas, boc_model.disaster_emergency_fund_code, boc_model.budget_object_class,
+             func.coalesce(func.upper(boc_model.prior_year_adjustment_code), 'X') == 'X',
+             exists_query).\
+        group_by(boc_model.display_tas, boc_model.allocation_transfer_agency, boc_model.agency_identifier,
+                 boc_model.beginning_period_of_availa, boc_model.ending_period_of_availabil,
+                 boc_model.availability_type_code, boc_model.main_account_code, boc_model.sub_account_code,
+                 boc_model.disaster_emergency_fund_code, boc_model.budget_object_class,
                  boc_model.reimbursable_flag, boc_model.begin_end, boc_model.ussgl_number).\
         cte('summed_gtas_boc')
     return sum_boc
@@ -265,30 +281,38 @@ def initial_query(session, model, summed_boc_model, period, year):
             The base query.
     """
     return session.query(
-        model.display_tas,
-        model.allocation_transfer_agency,
-        model.agency_identifier,
-        model.beginning_period_of_availa,
-        model.ending_period_of_availabil,
-        model.availability_type_code,
-        model.main_account_code,
-        model.sub_account_code,
-        model.object_class,
-        model.by_direct_reimbursable_fun,
-        model.disaster_emergency_fund_code,
+        func.coalesce(model.display_tas, summed_boc_model.c.display_tas).label('display_tas'),
+        func.coalesce(model.allocation_transfer_agency,
+                      summed_boc_model.c.allocation_transfer_agency).label('allocation_transfer_agency'),
+        func.coalesce(model.agency_identifier, summed_boc_model.c.agency_identifier).label('agency_identifier'),
+        func.coalesce(model.beginning_period_of_availa,
+                      summed_boc_model.c.beginning_period_of_availa).label('beginning_period_of_availa'),
+        func.coalesce(model.ending_period_of_availabil,
+                      summed_boc_model.c.ending_period_of_availabil).label('ending_period_of_availabil'),
+        func.coalesce(model.availability_type_code,
+                      summed_boc_model.c.availability_type_code).label('availability_type_code'),
+        func.coalesce(model.main_account_code, summed_boc_model.c.main_account_code).label('main_account_code'),
+        func.coalesce(model.sub_account_code, summed_boc_model.c.sub_account_code).label('sub_account_code'),
+        func.coalesce(model.object_class, summed_boc_model.c.budget_object_class).label('object_class'),
+        func.coalesce(model.by_direct_reimbursable_fun,
+                      summed_boc_model.c.reimbursable_flag).label('by_direct_reimbursable_fun'),
+        func.coalesce(model.disaster_emergency_fund_code,
+                      summed_boc_model.c.disaster_emergency_fund_code).label('disaster_emergency_fund_code'),
         null().label('prior_year_adjustment'),
-        model.begin_end_indicator.label('begin_end'),
+        func.coalesce(model.begin_end_indicator, summed_boc_model.c.begin_end).label('begin_end'),
         literal(year).label('reporting_fiscal_year'),
         literal(period).label('reporting_fiscal_period'),
-        model.ussgl_account_number.label('ussgl_account_num'),
+        func.coalesce(model.ussgl_account_number, summed_boc_model.c.ussgl_number).label('ussgl_account_num'),
         func.coalesce(summed_boc_model.c.sum_dollar_amount, 0).label('dollar_amount_gtas'),
-        model.dollar_amount.label('dollar_amount_broker'),
-        (func.coalesce(summed_boc_model.c.sum_dollar_amount, 0) - model.dollar_amount).label('dollar_amount_diff'),
+        func.coalesce(model.dollar_amount, 0).label('dollar_amount_broker'),
+        (func.coalesce(summed_boc_model.c.sum_dollar_amount, 0) - func.coalesce(model.dollar_amount, 0)).
+        label('dollar_amount_diff'),
         model.row_numbers.label('file_b_rows')
-    ).outerjoin(summed_boc_model,
-                and_(model.display_tas == summed_boc_model.c.display_tas,
-                     model.disaster_emergency_fund_code == summed_boc_model.c.disaster_emergency_fund_code,
-                     model.object_class == summed_boc_model.c.budget_object_class,
-                     model.by_direct_reimbursable_fun == summed_boc_model.c.reimbursable_flag,
-                     model.begin_end_indicator == summed_boc_model.c.begin_end,
-                     model.ussgl_account_number == summed_boc_model.c.ussgl_number))
+    ).join(summed_boc_model,
+           and_(model.display_tas == summed_boc_model.c.display_tas,
+                model.disaster_emergency_fund_code == summed_boc_model.c.disaster_emergency_fund_code,
+                model.object_class == summed_boc_model.c.budget_object_class,
+                model.by_direct_reimbursable_fun == summed_boc_model.c.reimbursable_flag,
+                model.begin_end_indicator == summed_boc_model.c.begin_end,
+                model.ussgl_account_number == summed_boc_model.c.ussgl_number),
+           full=True)
