@@ -549,16 +549,16 @@ def reset_generation_jobs(sess, job):
 def a_file_query(query_utils):
     """ Retrieve File A data.
 
-            Args:
-                query_utils: object containing:
-                    sess: database session
-                    agency_code: FREC or CGAC code for generation
-                    start: beginning of period for A file
-                    end: end of period for A file
+        Args:
+            query_utils: object containing:
+                sess: database session
+                agency_code: FREC or CGAC code for generation
+                start: beginning of period for A file
+                end: end of period for A file
 
-            Return:
-                A queryset
-        """
+        Return:
+            A queryset
+    """
     rows = fileA.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"], query_utils["year"])
     return rows
 
@@ -566,16 +566,16 @@ def a_file_query(query_utils):
 def boc_file_query(query_utils):
     """ Retrieve BOC comparison data.
 
-            Args:
-                query_utils: object containing:
-                    sess: database session
-                    agency_code: FREC or CGAC code for generation
-                    start: beginning of period for BOC comparison file
-                    end: end of period for BOC comparison file
+        Args:
+            query_utils: object containing:
+                sess: database session
+                agency_code: FREC or CGAC code for generation
+                start: beginning of period for BOC comparison file
+                end: end of period for BOC comparison file
 
-            Return:
-                A queryset
-        """
+        Return:
+            A queryset
+    """
     rows = fileBOC.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"],
                               query_utils["year"])
     return rows

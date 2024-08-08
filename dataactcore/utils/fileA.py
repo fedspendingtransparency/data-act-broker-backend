@@ -2,10 +2,10 @@ import datetime
 
 from collections import OrderedDict
 from sqlalchemy import or_, and_, func, null
-from sqlalchemy.orm import outerjoin
 from sqlalchemy.sql.expression import case, literal_column
 
-from dataactcore.models.domainModels import SF133, TASLookup, CGAC, FREC, TASFailedEdits
+from dataactbroker.helpers.filters_helper import tas_agency_filter
+from dataactcore.models.domainModels import SF133, TASLookup, TASFailedEdits
 from dataactcore.models.jobModels import SubmissionWindowSchedule
 
 gtas_model = SF133
@@ -50,62 +50,9 @@ def query_data(session, agency_code, period, year):
         Returns:
             The rows using the provided dates for the given agency.
     """
-    # set a boolean to determine if the original agency code is frec or cgac
-    frec_provided = len(agency_code) == 4
     tas_gtas = tas_gtas_combo(session, period, year)
     tas_gtas_fail = failed_edits_details(session, tas_gtas, period, year)
-    # Make a list of FRECs to compare to for 011 AID entries
-    frec_list = []
-    if not frec_provided:
-        frec_list = session.query(FREC.frec_code).select_from(outerjoin(CGAC, FREC, CGAC.cgac_id == FREC.cgac_id)).\
-            filter(CGAC.cgac_code == agency_code).all()
-        # Put the frec list in a format that can be read by a filter
-        frec_list = [frec.frec_code for frec in frec_list]
-    # Group agencies together that need to be grouped
-    # NOTE: If these change, update A33.1 to match
-    agency_array = []
-    if agency_code == '097':
-        agency_array = ['017', '021', '057', '097']
-    elif agency_code == '020':
-        agency_array = ['020', '580', '373']
-    elif agency_code == '077':
-        agency_array = ['077', '071']
-    elif agency_code == '089':
-        agency_array = ['089', '486']
-    elif agency_code == '1601':
-        agency_array = ['1601', '016']
-    elif agency_code == '1125':
-        agency_array = ['1125', '011']
-    elif agency_code == '1100':
-        agency_array = ['1100', '256']
-
-    # Save the ATA filter
-    agency_filters = []
-    if not agency_array:
-        agency_filters.append(tas_gtas_fail.c.allocation_transfer_agency == agency_code)
-    else:
-        agency_filters.append(tas_gtas_fail.c.allocation_transfer_agency.in_(agency_array))
-
-    # Save the AID filter
-    if agency_code in ['097', '020', '077', '089']:
-        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas_fail.c.agency_identifier.in_(agency_array)))
-    elif agency_code == '1100':
-        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
-                                   or_(tas_gtas_fail.c.agency_identifier == '256',
-                                       tas_gtas_fail.c.fr_entity_type == '1100')))
-    elif not frec_provided:
-        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas_fail.c.agency_identifier == agency_code))
-    else:
-        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas_fail.c.fr_entity_type == agency_code))
-
-    # If we're checking a CGAC, we want to filter on all of the related FRECs for AID 011
-    if frec_list:
-        agency_filters.append(and_(tas_gtas_fail.c.allocation_transfer_agency.is_(None),
-                                   tas_gtas_fail.c.agency_identifier == '011',
-                                   tas_gtas_fail.c.fr_entity_type.in_(frec_list)))
+    agency_filters = tas_agency_filter(session, agency_code, tas_gtas_fail.c)
 
     rows = initial_query(session, tas_gtas_fail.c, year).\
         filter(func.coalesce(tas_gtas_fail.c.financial_indicator2, '') != 'F').\
