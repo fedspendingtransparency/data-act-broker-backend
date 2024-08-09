@@ -102,7 +102,7 @@ SUBMISSION_FILENAMES = {
 }
 DETACHED_FILENAMES = {
     'A': 'File-A_{FYP}_{timestamp}.csv',
-    'BOC': 'BOC-Comparison_Report_{FYP}_{timestamp}.csv',
+    'BOC': 'GTAS-Comparison-Report_{FYP}_{agency_code}_{timestamp}.csv',
     'D1': 'File-D1_{start}_{end}_{agency_type}_{timestamp}{ext}',
     'D2': 'File-D2_{start}_{end}_{agency_type}_{timestamp}{ext}'
 }
