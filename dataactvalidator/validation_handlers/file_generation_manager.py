@@ -46,6 +46,11 @@ class FileGenerationManager:
 
     def generate_file(self, agency_code=None):
         """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
+        # Agency code error checking
+        if self.job and self.job.file_type.letter_name in ['A', 'BOC'] and not agency_code:
+            file_text = 'an A' if self.job.file_type.letter_name == 'A' else 'a BOC comparison'
+            raise ResponseError(f'Agency code not provided for {file_text} generation')
+
         fillin_vals = {'timestamp': get_timestamp()}
         if self.file_generation:
             fillin_vals.update({
@@ -69,6 +74,9 @@ class FileGenerationManager:
             if self.job and self.job.file_type.letter_name in ['A', 'BOC']:
                 period_date = self.job.end_date + relativedelta(months=3)
                 fillin_vals['FYP'] = filename_fyp_format(period_date.year, period_date.month, False)
+            if self.job and self.job.file_type.letter_name == 'BOC':
+                agency_type = 'CGAC-' if len(agency_code) == 3 else 'FREC-'
+                fillin_vals['agency_code'] = agency_type + agency_code
             file_name = DETACHED_FILENAMES[self.file_type].format(**fillin_vals)
         if self.is_local:
             file_path = "".join([CONFIG_BROKER['broker_files'], file_name])
@@ -93,14 +101,8 @@ class FileGenerationManager:
             mark_job_status(self.job.job_id, 'running')
 
             if self.job.file_type.letter_name == 'A':
-                if not agency_code:
-                    raise ResponseError('Agency code not provided for an A file generation')
-
                 self.generate_a_file(agency_code, file_path)
             elif self.job.file_type.letter_name == 'BOC':
-                if not agency_code:
-                    raise ResponseError('Agency code not provided for a BOC comparison file generation')
-
                 self.generate_boc_file(agency_code, file_path)
             else:
                 # Call self.generate_%s_file() where %s is e or f based on the Job's file_type
