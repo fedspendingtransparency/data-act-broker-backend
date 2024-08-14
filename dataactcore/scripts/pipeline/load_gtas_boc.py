@@ -174,6 +174,9 @@ def load_boc(sess, filename, fiscal_year, fiscal_period, force_load=False, metri
 
     boc_data = boc_data.replace({np.nan: None})
 
+    # Drop all rows where availability type code is F or C
+    boc_data = boc_data[~boc_data['availability_type_code'].isin(['F', 'C'])]
+
     boc_data['tas'] = boc_data.apply(lambda row: format_internal_tas(row), axis=1)
     boc_data['display_tas'] = boc_data.apply(lambda row: concat_display_tas_dict(row), axis=1)
 
