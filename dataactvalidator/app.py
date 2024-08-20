@@ -9,7 +9,7 @@ import pandas as pd
 from flask import Flask, g, current_app
 from opentelemetry import trace
 
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -37,10 +37,13 @@ logger = logging.getLogger(__name__)
 resource = Resource.create(attributes={"service.name": "validator"})
 trace.set_tracer_provider(TracerProvider(resource=resource))
 
-otlp_exporter = OTLPSpanExporter(
-    endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "0.0.0.0:4317"),
-)
-span_processor = BatchSpanProcessor(otlp_exporter)
+if CONFIG_BROKER['local']:
+    exporter = ConsoleSpanExporter()
+else:
+    exporter = OTLPSpanExporter(
+        endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "0.0.0.0:4317"),
+    )
+span_processor = BatchSpanProcessor(exporter)
 trace.get_tracer_provider().add_span_processor(span_processor)
 tracer_provider = trace.get_tracer_provider()
 
@@ -77,7 +80,7 @@ def run_app():
                 attributes={"service": JOB_TYPE.lower(), "resource": queue.url},
             ) as span:
                 # Set True to add trace to App Analytics
-                span.set_tag("analytics_sample_rate", 1.0)
+                span.set_attribute("analytics_sample_rate", 1.0)
 
                 # With cleanup handling engaged, allowing retries
                 dispatcher = SQSWorkDispatcher(queue, worker_can_start_child_processes=True)

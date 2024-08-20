@@ -11,7 +11,7 @@ from opentelemetry.instrumentation.wsgi import OpenTelemetryMiddleware
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.instrumentation.urllib import URLLibInstrumentor
@@ -62,10 +62,13 @@ def create_app():
     provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
 
-    otlp_exporter = OTLPSpanExporter(
-        endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "0.0.0.0:4317"),
-    )
-    span_processor = BatchSpanProcessor(otlp_exporter)
+    if CONFIG_BROKER['local']:
+        exporter = ConsoleSpanExporter()
+    else:
+        exporter = OTLPSpanExporter(
+            endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "0.0.0.0:4317"),
+        )
+    span_processor = BatchSpanProcessor(exporter)
     trace.get_tracer_provider().add_span_processor(span_processor)
 
     FlaskInstrumentor().instrument_app(flask_app, tracer_provider=trace.get_tracer_provider())
