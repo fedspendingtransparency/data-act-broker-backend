@@ -177,7 +177,6 @@ def test_subprocess_trace(caplog, capsys):
                 state,
             ),
         )
-        # print(_do_things_in_subproc(subproc_test_msg, state))
 
         worker.start()
         worker.join(timeout=10)
