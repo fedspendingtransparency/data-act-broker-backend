@@ -143,11 +143,11 @@ def test_logging_trace_spans(caplog, capsys):
     assert f"{test}_resource" in captured.out, "traced resource not found in logging output"
 
 
-@pytest.mark.skip(
-    "Works locally and in Travis CI by itself. "
-    "But fails when run in Travis with other tests. "
-    "Investigate test conflict."
-)
+# @pytest.mark.skip(
+#     "Works locally and in Travis CI by itself. "
+#     "But fails when run in Travis with other tests. "
+#     "Investigate test conflict."
+# )
 def test_subprocess_trace(caplog, capsys):
     """Verify that spans created in subprocesses are written to the queue and then flushed to the server,
     when wrapped in the SubprocessTracer"""
