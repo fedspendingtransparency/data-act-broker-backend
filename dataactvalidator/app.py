@@ -1,14 +1,18 @@
+import os
 import logging
 import csv
-import ddtrace
 import inspect
 import time
 import traceback
 import pandas as pd
 
-from ddtrace.constants import ANALYTICS_SAMPLE_RATE_KEY
-from ddtrace.ext import SpanTypes
 from flask import Flask, g, current_app
+from opentelemetry import trace
+
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
 
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -19,7 +23,7 @@ from dataactcore.models.jobModels import Job, FileGeneration
 from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.ResponseError import ResponseError
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.tracing import DatadogEagerlyDropTraceFilter, SubprocessTrace
+from dataactcore.utils.tracing import OpenTelemetryEagerlyDropTraceFilter, SubprocessTrace
 from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher
 
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
@@ -29,18 +33,16 @@ from dataactvalidator.validator_logging import log_job_message
 
 logger = logging.getLogger(__name__)
 
-# Replace below param with enabled=True during env-deploys to turn on
-ddtrace.tracer.configure(enabled=False)
-if ddtrace.tracer.enabled:
-    ddtrace.config.flask["service_name"] = "validator"
-    ddtrace.config.flask["analytics_enabled"] = True  # capture APM "Traces" & "Analyzed Spans" in App Analytics
-    ddtrace.config.flask["analytics_sample_rate"] = 1.0  # Including 100% of traces in sample
-    # Distributed tracing only needed if picking up disjoint traces by HTTP Header value
-    ddtrace.config.django["distributed_tracing_enabled"] = False
-    # patch_all() captures traces from integrated components' libraries by patching them. See:
-    # - http://pypi.datadoghq.com/trace/docs/advanced_usage.html#patch-all
-    # - Integrated Libs: http://pypi.datadoghq.com/trace/docs/index.html#supported-libraries
-    ddtrace.patch_all()
+# Initialize OpenTelemetry
+resource = Resource.create(attributes={"service.name": "validator"})
+trace.set_tracer_provider(TracerProvider(resource=resource))
+
+otlp_exporter = OTLPSpanExporter(
+    endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "0.0.0.0:4317"),
+)
+span_processor = BatchSpanProcessor(otlp_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
+tracer_provider = trace.get_tracer_provider()
 
 READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
 RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
@@ -69,13 +71,13 @@ def run_app():
         logger.info("Starting SQS polling")
         keep_polling = True
         while keep_polling:
-            # Start a Datadog Trace for this poll iter to capture activity in APM
-            with ddtrace.tracer.trace(
-                    name=f"job.{JOB_TYPE}", service=JOB_TYPE.lower(), resource=queue.url, span_type=SpanTypes.WORKER
+            # Start a trace for this poll iter to capture activity in APM
+            with SubprocessTrace(
+                name=f"job.{JOB_TYPE}",
+                attributes={"service": JOB_TYPE.lower(), "resource": queue.url},
             ) as span:
-                # Set True to add trace to App Analytics:
-                # - https://docs.datadoghq.com/tracing/app_analytics/?tab=python#custom-instrumentation
-                span.set_tag(ANALYTICS_SAMPLE_RATE_KEY, 1.0)
+                # Set True to add trace to App Analytics
+                span.set_tag("analytics_sample_rate", 1.0)
 
                 # With cleanup handling engaged, allowing retries
                 dispatcher = SQSWorkDispatcher(queue, worker_can_start_child_processes=True)
@@ -106,9 +108,6 @@ def run_app():
                 found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 
                 if not found_message:
-                    # Flag the the Datadog trace for dropping, since no trace-worthy activity happened on this poll
-                    DatadogEagerlyDropTraceFilter.drop(span)
-
                     # When you receive an empty response from the queue, wait before trying again
                     time.sleep(1)
 
@@ -131,12 +130,11 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
     # Add args name and values as span tags on this trace
     tag_data = locals()
     with SubprocessTrace(
-        name=f"job.{JOB_TYPE}.file_generation",
-        service=JOB_TYPE.lower(),
-        span_type=SpanTypes.WORKER,
+            name=f"job.{JOB_TYPE}.file_generation",
+            attributes={"service": JOB_TYPE.lower()}
     ) as span:
         file_gen_data = {}
-        span.set_tags(tag_data)
+        span.set_attributes(tag_data)
         if is_retry:
             if cleanup_generation(file_gen_id):
                 log_job_message(
@@ -233,9 +231,8 @@ def validator_process_job(job_id, agency_code, is_retry=False):
     # Add args name and values as span tags on this trace
     tag_data = locals()
     with SubprocessTrace(
-        name=f"job.{JOB_TYPE}.validation",
-        service=JOB_TYPE.lower(),
-        span_type=SpanTypes.WORKER,
+            name=f"job.{JOB_TYPE}.validation",
+            attributes={"service": JOB_TYPE.lower()}
     ) as span:
         job_data = {}
         span.set_tags(tag_data)
@@ -397,5 +394,5 @@ def cleanup_validation(job_id):
 if __name__ == "__main__":
     configure_logging()
     # Configure Tracer to drop traces of polls of the queue that have been flagged as uninteresting
-    DatadogEagerlyDropTraceFilter.activate()
+    OpenTelemetryEagerlyDropTraceFilter.activate()
     run_app()
