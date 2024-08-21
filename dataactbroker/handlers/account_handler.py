@@ -179,11 +179,11 @@ class AccountHandler:
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
             # Grab MAX ID to see if a service account is being logged in
-            max_id_components = cas_attrs['maxAttribute:MAX-ID'].split('_')
+            max_id_components = cas_attrs['cas:MAX-ID'].split('_')
             service_account_flag = (len(max_id_components) > 1 and max_id_components[0].lower() == 's')
 
             # Grab the email and list of groups from MAX's response
-            email = cas_attrs['maxAttribute:Email-Address']
+            email = cas_attrs['cas:Email-Address']
 
             try:
                 sess = GlobalDB.db().session
@@ -195,12 +195,12 @@ class AccountHandler:
                     user = User()
                     user.email = email
 
-                first_name = cas_attrs['maxAttribute:First-Name']
-                middle_name = cas_attrs['maxAttribute:Middle-Name']
-                last_name = cas_attrs['maxAttribute:Last-Name']
+                first_name = cas_attrs['cas:First-Name']
+                middle_name = cas_attrs['cas:Middle-Name']
+                last_name = cas_attrs['cas:Last-Name']
                 set_user_name(user, first_name, middle_name, last_name)
 
-                set_max_perms(user, cas_attrs['maxAttribute:GroupList'], service_account_flag)
+                set_max_perms(user, cas_attrs['cas:GroupList'], service_account_flag)
 
                 sess.add(user)
                 sess.commit()
