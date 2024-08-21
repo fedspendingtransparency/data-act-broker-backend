@@ -824,7 +824,8 @@ def test_generate_boc(database, monkeypatch):
     # providing agency code here as it will be passed via SQS and detached file jobs don't store agency code
     file_gen_manager.generate_file(agency_cgac)
 
-    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'], 'BOC-Comparison_Report_FY17P06_123456789.csv')
+    assert job.filename == os.path.join(CONFIG_BROKER['broker_files'],
+                                        f'GTAS-Comparison-Report_FY17P06_CGAC-{agency_cgac}_123456789.csv')
 
     # check headers
     file_rows = read_file_rows(job.filename)
