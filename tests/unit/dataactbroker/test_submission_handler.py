@@ -12,6 +12,7 @@ from dataactbroker.handlers.submission_handler import (
     move_published_data, get_latest_publication_period, revert_to_published)
 
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
                                         FILE_STATUS_DICT)
 from dataactcore.models.errorModels import ErrorMetadata, PublishedErrorMetadata, File
@@ -36,7 +37,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
     """ Tests the get_submission_metadata function for quarterly dabs submissions """
     sess = database.session
 
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     now_plus_10 = now + datetime.timedelta(minutes=10)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
     frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
@@ -91,7 +92,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
     """ Tests the get_submission_metadata function for quarterly dabs submissions frec """
     sess = database.session
 
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
@@ -136,7 +137,7 @@ def test_get_submission_metadata_monthly_dabs(database):
     """ Tests the get_submission_metadata function for monthly dabs submissions """
     sess = database.session
 
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     now_plus_10 = now + datetime.timedelta(minutes=10)
     start_date = datetime.date(2000, 1, 1)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
@@ -182,7 +183,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
     """ Tests the get_submission_metadata function for unpublished fabs submissions """
     sess = database.session
 
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     start_date = datetime.date(2000, 1, 1)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
     frec_cgac = CGACFactory(cgac_code='998', agency_name='FREC CGAC')
@@ -229,7 +230,7 @@ def test_get_submission_metadata_published_fabs(database):
     """ Tests the get_submission_metadata function for published fabs submissions """
     sess = database.session
 
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     now_plus_10 = now + datetime.timedelta(minutes=10)
     start_date = datetime.date(2000, 1, 1)
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
@@ -287,7 +288,7 @@ def test_get_submission_metadata_test_submission(database):
     """ Tests the get_submission_metadata function for published fabs submissions """
     sess = database.session
 
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
 
     sub1 = SubmissionFactory(submission_id=1, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
@@ -502,7 +503,7 @@ def test_get_submission_data_dabs(database):
 def test_publish_and_certify_dabs_submission(database, monkeypatch):
     """ Tests the publish_and_certify_dabs_submission function """
     with Flask('test-app').app_context():
-        now = datetime.datetime.utcnow()
+        now = get_utc_now()
         sess = database.session
 
         user = UserFactory()
@@ -565,7 +566,7 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
         the process_dabs_publish function here since it's shared
     """
     with Flask('test-app').app_context():
-        now = datetime.datetime.utcnow()
+        now = get_utc_now()
         sess = database.session
 
         user = UserFactory()
@@ -660,7 +661,7 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
 def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
     """ When publishing a quarterly submission, other submissions in the same period will update """
     with Flask('test-app').app_context():
-        now = datetime.datetime.utcnow()
+        now = get_utc_now()
         sess = database.session
 
         user = UserFactory()
@@ -733,7 +734,7 @@ def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_revalidation_needed(database):
     """ Tests the publish_checks function preventing publication when revalidation threshold isn't met """
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     earlier = now - datetime.timedelta(days=1)
     sess = database.session
 
@@ -759,7 +760,7 @@ def test_publish_checks_revalidation_needed(database):
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_test_submission(database):
     """ Tests the publish_checks function preventing publication when revalidation threshold isn't met """
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     earlier = now - datetime.timedelta(days=1)
     sess = database.session
 
@@ -784,8 +785,8 @@ def test_publish_checks_test_submission(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_window_not_in_db(database):
-    """ Tests that a DABS submission that doesnt have its year/period in the system won't be able to publish. """
-    now = datetime.datetime.utcnow()
+    """ Tests that a DABS submission that doesn't have its year/period in the system won't be able to publish. """
+    now = get_utc_now()
     sess = database.session
 
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
@@ -808,7 +809,7 @@ def test_publish_checks_window_not_in_db(database):
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_window_too_early(database):
     """ Tests that a DABS submission that was last validated before the window start cannot be published. """
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     earlier = now - datetime.timedelta(days=1)
     sess = database.session
 
@@ -837,7 +838,7 @@ def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database
         reporting_start_date.
     """
     with Flask('test-app').app_context():
-        now = datetime.datetime.utcnow()
+        now = get_utc_now()
         earlier = now - datetime.timedelta(days=1)
         sess = database.session
 
@@ -865,7 +866,7 @@ def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database
 @pytest.mark.usefixtures('job_constants')
 def test_publish_checks_reverting(database):
     """ Tests that a DABS submission cannot be published while reverting. """
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     earlier = now - datetime.timedelta(days=1)
     sess = database.session
 
@@ -887,8 +888,8 @@ def test_publish_checks_reverting(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_publish_dabs_submission_past_due(database):
-    """ Tests that a DABS submission cannot be published without recertifying if it is past its certification date """
-    now = datetime.datetime.utcnow()
+    """ Tests that a DABS submission cannot be published without re-certifying if it is past its certification date """
+    now = get_utc_now()
     sess = database.session
 
     user = UserFactory()
@@ -914,10 +915,10 @@ def test_publish_dabs_submission_past_due(database):
 @pytest.mark.usefixtures('job_constants')
 def test_process_dabs_certify_success(database):
     """ Tests that a DABS submission can be successfully certified and the certify info added to the published files
-        history.
+        history table.
     """
     with Flask('test-app').app_context():
-        now = datetime.datetime.utcnow()
+        now = get_utc_now()
         earlier = now - datetime.timedelta(days=1)
         sess = database.session
 
@@ -954,7 +955,7 @@ def test_process_dabs_certify_success(database):
 def test_process_dabs_certify_no_publish_data(database):
     """ Tests that trying to certify only when there is no published files history data throws an error """
     with Flask('test-app').app_context():
-        now = datetime.datetime.utcnow()
+        now = get_utc_now()
         earlier = now - datetime.timedelta(days=1)
         sess = database.session
 
@@ -980,7 +981,7 @@ def test_process_dabs_certify_no_publish_data(database):
 def test_process_dabs_certify_already_certified(database):
     """ Tests that if this function is somehow reached without a new publication, it throws an error """
     with Flask('test-app').app_context():
-        now = datetime.datetime.utcnow()
+        now = get_utc_now()
         earlier = now - datetime.timedelta(days=1)
         sess = database.session
 
@@ -1134,7 +1135,7 @@ def test_move_published_data(database):
     with Flask('test-app').app_context():
         sess = database.session
 
-        # Create submissions and jobs so we can put IDs into the tables
+        # Create submissions and jobs, so we can put IDs into the tables
         sub_1 = SubmissionFactory()
         sub_2 = SubmissionFactory()
         job_1 = JobFactory(submission=sub_1)
