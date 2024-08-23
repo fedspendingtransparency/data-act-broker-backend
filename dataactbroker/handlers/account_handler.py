@@ -115,20 +115,23 @@ class AccountHandler:
             sess = GlobalDB.db().session
             safe_dictionary = RequestDictionary(self.request)
 
-            name = safe_dictionary.get_value('name')
             email = safe_dictionary.get_value('email')
+            roles = safe_dictionary.get_value('roles')
             token = safe_dictionary.get_value('token')
 
             if token != CONFIG_BROKER['api_proxy_token']:
                 raise ValueError("Invalid token")
 
-            # Match on name. If unavailable, try matching on email as a backup for testing purposes.
-            # TODO: Remove matching on email after initial testing
-            user = sess.query(User).filter(func.lower(User.email) == func.lower(name)).one_or_none()
-            if not user:
-                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
             if not user:
                 raise ValueError("Invalid user")
+
+            # role string format
+            #   - 'role1' or 'role:role1' for a singular role
+            #   - '[role1, role2]' or '[role:role1, role:role2]' for multiple roles
+            role_list_str = roles[1:-1] if roles[0] == '[' else roles
+            role_list = [role[5:] if role.startswith('role:') else role for role in role_list_str.split(', ')]
+            set_caia_perms(user, role_list)
 
             try:
                 return self.create_session_and_response(session, user, user_details=False)
@@ -176,11 +179,11 @@ class AccountHandler:
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
             # Grab MAX ID to see if a service account is being logged in
-            max_id_components = cas_attrs['maxAttribute:MAX-ID'].split('_')
+            max_id_components = cas_attrs['cas:MAX-ID'].split('_')
             service_account_flag = (len(max_id_components) > 1 and max_id_components[0].lower() == 's')
 
             # Grab the email and list of groups from MAX's response
-            email = cas_attrs['maxAttribute:Email-Address']
+            email = cas_attrs['cas:Email-Address']
 
             try:
                 sess = GlobalDB.db().session
@@ -192,12 +195,12 @@ class AccountHandler:
                     user = User()
                     user.email = email
 
-                first_name = cas_attrs['maxAttribute:First-Name']
-                middle_name = cas_attrs['maxAttribute:Middle-Name']
-                last_name = cas_attrs['maxAttribute:Last-Name']
+                first_name = cas_attrs['cas:First-Name']
+                middle_name = cas_attrs['cas:Middle-Name']
+                last_name = cas_attrs['cas:Last-Name']
                 set_user_name(user, first_name, middle_name, last_name)
 
-                set_max_perms(user, cas_attrs['maxAttribute:GroupList'], service_account_flag)
+                set_max_perms(user, cas_attrs['cas:GroupList'], service_account_flag)
 
                 sess.add(user)
                 sess.commit()

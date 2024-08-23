@@ -18,12 +18,12 @@ def make_max_dict(group_str):
         'cas:serviceResponse': {
             'cas:authenticationSuccess': {
                 'cas:attributes': {
-                    'maxAttribute:Email-Address': 'test-user@email.com',
-                    'maxAttribute:GroupList': group_str,
-                    'maxAttribute:First-Name': 'test',
-                    'maxAttribute:Middle-Name': '',
-                    'maxAttribute:Last-Name': 'user',
-                    'maxAttribute:MAX-ID': 'id'
+                    'cas:Email-Address': 'test-user@email.com',
+                    'cas:GroupList': group_str,
+                    'cas:First-Name': 'test',
+                    'cas:Middle-Name': '',
+                    'cas:Last-Name': 'user',
+                    'cas:MAX-ID': 'id'
                 }
             }
         }
@@ -181,7 +181,7 @@ def test_max_login_success_cert_login(monkeypatch):
     monkeypatch.setattr(account_handler, 'CONFIG_BROKER', config)
 
     max_dict = make_max_dict('parent-group,parent-group-CGAC_SYS')
-    max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:MAX-ID'] = 'S_id'
+    max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['cas:MAX-ID'] = 'S_id'
     monkeypatch.setattr(account_handler, 'get_max_dict', Mock(return_value=max_dict))
 
     mock_resp = Mock()
