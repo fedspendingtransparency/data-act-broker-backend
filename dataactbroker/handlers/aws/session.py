@@ -6,6 +6,7 @@ from flask_login.utils import _create_identifier
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.userModel import SessionMap
 
 
@@ -79,7 +80,7 @@ class UserSessionInterface(SessionInterface):
         """
         sid = request.headers.get("x-session-id")
         if sid and SessionTable.does_session_exist(sid):
-            if SessionTable.get_timeout(sid) > to_unix_time(datetime.utcnow()):
+            if SessionTable.get_timeout(sid) > to_unix_time(get_utc_now()):
                 session_dict = UserSession()
                 # Read data as json
                 data = loads(SessionTable.get_data(sid))
@@ -116,7 +117,7 @@ class UserSessionInterface(SessionInterface):
                 # Make sure next route call does not get counted as session check
                 session["session_check"] = False
             else:
-                expiration = datetime.utcnow() + timedelta(seconds=CONFIG_BROKER['session_timeout'])
+                expiration = get_utc_now() + timedelta(seconds=CONFIG_BROKER['session_timeout'])
         if "_uid" not in session:
             LoginSession.reset_id(session)
         SessionTable.new_session(session["sid"], session, expiration)
@@ -131,7 +132,7 @@ class SessionTable:
     @staticmethod
     def clear_sessions():
         """ Removes old sessions that are expired """
-        new_time = to_unix_time(datetime.utcnow())
+        new_time = to_unix_time(get_utc_now())
         sess = GlobalDB.db().session
         sess.query(SessionMap).filter(SessionMap.expiration < new_time).delete()
         sess.commit()
