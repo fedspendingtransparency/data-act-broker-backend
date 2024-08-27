@@ -5,6 +5,7 @@ from sqlalchemy import or_, and_, func, null
 from sqlalchemy.sql.expression import case, literal_column
 
 from dataactbroker.helpers.filters_helper import tas_agency_filter
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.domainModels import SF133, TASLookup, TASFailedEdits
 from dataactcore.models.jobModels import SubmissionWindowSchedule
 
@@ -115,7 +116,7 @@ def failed_edits_details(session, tas_gtas, period, year):
     # If submission period doesn't exist, the gtas_status will always be blank
     if not submission_period:
         query = session.query(tas_gtas, null().label('gtas_status'))
-    elif submission_period.period_start > datetime.datetime.utcnow():
+    elif submission_period.period_start > get_utc_now():
         query = session.query(tas_gtas, literal_column("'GTAS window open'").label('gtas_status'))
     else:
         has_period = session.query(fail_model).filter_by(period=period, fiscal_year=year).first() is not None

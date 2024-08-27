@@ -9,6 +9,8 @@ from pandas import isnull
 from pandas.io.sql import SQLTable
 from sqlalchemy.engine import Connection
 from typing import List, Iterable
+
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededError
 
 logger = logging.getLogger(__name__)
@@ -177,7 +179,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
             clean_df[col] = clean_df[col].str.replace(",", "")
 
     # add created_at and updated_at columns
-    now = datetime.utcnow()
+    now = get_utc_now()
     clean_df = clean_df.assign(created_at=now, updated_at=now)
     if return_dropped_count:
         return len(dropped.index), clean_df
