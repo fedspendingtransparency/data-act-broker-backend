@@ -14,7 +14,7 @@ def test_load_sf133_local(database):
 
     load_gtas_boc.load_boc(sess, sf133_path, 2021, 5)
 
-    # We should have loaded twelve rows and the duplicated Q/QQQ rows should have been combined
+    # We should have loaded six rows and the one with availability type code F should be missing
     assert sess.query(GTASBOC).count() == 6
 
     # Picking one of the lines to do spot checks on
