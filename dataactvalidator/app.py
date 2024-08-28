@@ -173,7 +173,7 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                     'file_path': file_generation.file_path,
                 }
                 span.resource = f"file_generation/{file_generation.file_type}"
-                span.set_tags(file_gen_data)
+                span.set_attributes(file_gen_data)
             elif file_generation is None:
                 raise ResponseError('FileGeneration ID {} not found in database'.format(file_gen_id),
                                     StatusCode.CLIENT_ERROR, None)
@@ -238,7 +238,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             attributes={"service": JOB_TYPE.lower()}
     ) as span:
         job_data = {}
-        span.set_tags(tag_data)
+        span.set_attributes(tag_data)
         if is_retry:
             if cleanup_validation(job_id):
                 log_job_message(
@@ -272,7 +272,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                     'file_type': job.file_type.name if job.file_type else None,
                 }
                 span.resource = job.job_type.name + (f"/{job.file_type.name}" if job.file_type else "")
-                span.set_tags(job_data)
+                span.set_attributes(job_data)
             elif job is None:
                 validation_error_type = ValidationError.job_error
                 write_file_error(job_id, None, validation_error_type)
