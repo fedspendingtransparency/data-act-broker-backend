@@ -4,7 +4,6 @@ import numpy as np
 import csv
 
 from io import StringIO
-from datetime import datetime
 from pandas import isnull
 from pandas.io.sql import SQLTable
 from sqlalchemy.engine import Connection

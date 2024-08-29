@@ -1,7 +1,6 @@
 import logging
 import argparse
 import json
-from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from dataactbroker.handlers.submission_handler import delete_all_submission_data
