@@ -19,8 +19,10 @@ numpy==1.26.4
 # and installs the corresponding instrumentation libraries for these packages,
 opentelemetry-distro==0.47b0
 opentelemetry-exporter-otlp==1.14.0
+opentelemetry-instrumentation==0.47b0
 opentelemetry-instrumentation-flask==0.47b0
 opentelemetry-instrumentation-urllib==0.47b0
+opentelemetry-instrumentation-wsgi==0.47b0
 # Keeping pandas before 2.2.0 which requires SQLAlchemy to be 2.0.0
 pandas==2.1.4
 psutil==5.9.8
