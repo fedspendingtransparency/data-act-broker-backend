@@ -57,7 +57,7 @@ def create_app():
     flask_app.config.from_envvar('BROKER_SETTINGS', silent=True)
 
     # Telemetry
-    resource = Resource.create(attributes={"service.name": "api"})
+    resource = Resource.create(attributes={"service.name": "broker-api"})
 
     provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
