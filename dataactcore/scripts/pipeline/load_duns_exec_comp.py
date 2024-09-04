@@ -8,14 +8,17 @@ import tempfile
 import boto3
 import requests
 
+from datetime import timedelta
+
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
-from dataactcore.models.domainModels import SAMRecipient
-from dataactcore.utils.sam_recipient import (parse_sam_recipient_file, update_sam_recipient, parse_exec_comp_file,
-                                             update_missing_parent_names, request_sam_csv_api,
-                                             is_nonexistent_file_error)
+from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered, ExternalDataLoadDate
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
+from dataactcore.utils.sam_recipient import (is_nonexistent_file_error, load_unregistered_recipients,
+                                             parse_sam_recipient_file, parse_exec_comp_file, request_sam_csv_api,
+                                             update_missing_parent_names, update_sam_recipient)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -34,8 +37,36 @@ S3_ARCHIVE = CONFIG_BROKER['sam']['duns']['csv_archive_bucket']
 S3_ARCHIVE_PATH = '{data_type}/{version}/{file_name}'
 
 
-def load_from_sam(data_type, sess, historic, local=None, metrics=None, reload_date=None):
-    """ Process the script arguments to figure out which files to process in which order
+def load_from_sam_api(sess, historic, metrics=None, reload_date=None):
+    """ Process the script arguments to figure out which files to process from the SAM extracts in which order
+
+        Args:
+            sess: the database connection
+            historic: whether to load all data or just update
+            metrics: dictionary representing metrics data for the load
+            reload_date: specific date to force reload from (default: None, or the day before the last load)
+    """
+    if not metrics:
+        metrics = {}
+
+    # determine which daily files to load in by setting the start load date
+    if historic:
+        load_date = None
+    elif reload_date:
+        load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d').date()
+    else:
+        # Load from the day before the last load date
+        load_date = sess.query(ExternalDataLoadDate.last_load_date_start).\
+            filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['recipient']).one_or_none()
+        if not load_date:
+            raise Exception('No external load date for recipients found.')
+        load_date = load_date[0] - timedelta(days=1)
+
+    # Update accordingly
+    load_unregistered_recipients(sess, reload_date=load_date, metrics=metrics)
+
+def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, reload_date=None):
+    """ Process the script arguments to figure out which files to process from the SAM extracts in which order
 
         Args:
             data_type: data type to load (DUNS or executive compensation)
@@ -244,8 +275,8 @@ if __name__ == '__main__':
     configure_logging()
 
     parser = argparse.ArgumentParser(description='Get data from SAM and update SAM Recipient/exec comp tables')
-    parser.add_argument("-t", "--data_type", choices=['duns', 'exec_comp', 'both'], default='both',
-                        help='Select data type to load')
+    parser.add_argument("-t", "--data_type", choices=['duns', 'exec_comp', 'unregistered', 'all'],
+                        default='all', help='Select data type to load')
     scope = parser.add_mutually_exclusive_group(required=True)
     scope.add_argument("-a", "--historic", action="store_true", help='Reload from the first monthly file on')
     scope.add_argument("-u", "--update", action="store_true", help='Load daily files since latest last_sam_mod_date')
@@ -275,19 +306,25 @@ if __name__ == '__main__':
         'updated_uei': [],
         'records_added': 0,
         'records_updated': 0,
+        'unregistered_added': 0,
         'parent_rows_updated': 0,
         'parent_update_date': None
     }
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-        if data_type in ('duns', 'both'):
+        if data_type in ('duns', 'all'):
             start_time = datetime.datetime.now()
-            load_from_sam('DUNS', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            load_from_sam_extract('DUNS', sess, historic, local, metrics=metrics, reload_date=reload_date)
             update_external_data_load_date(start_time, datetime.datetime.now(), 'recipient')
-        if data_type in ('exec_comp', 'both'):
+        if data_type in ('exec_comp', 'all'):
             start_time = datetime.datetime.now()
-            load_from_sam('Executive Compensation', sess, historic, local, metrics=metrics, reload_date=reload_date)
+            load_from_sam_extract('Executive Compensation', sess, historic, local, metrics=metrics,
+                                  reload_date=reload_date)
+            update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
+        if data_type in ('unregistered', 'all'):
+            start_time = datetime.datetime.now()
+            load_from_sam_api(sess, historic, metrics=metrics, reload_date=reload_date)
             update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         sess.close()
 

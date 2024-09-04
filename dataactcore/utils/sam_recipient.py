@@ -13,7 +13,7 @@ from ratelimit import limits, sleep_and_retry
 from backoff import on_exception, expo
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.domainModels import SAMRecipient
+from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
 from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
 from dataactcore.utils.loader_utils import clean_data, trim_item, insert_dataframe
 from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
@@ -601,21 +601,19 @@ def update_missing_parent_names(sess, updated_date=None):
     return total_updated_count
 
 
-def request_sam_entity_api(key_list, includes_uei=True):
-    """ Calls the SAM entity API to retrieve SAM data by the keys provided.
+def request_sam_entity_api(filters):
+    """ Calls the SAM entity API to retrieve SAM data by the filters
 
         Args:
-            key_list: list of keys to search
-            includes_uei: whether the key is a UEI (True) or DUNS (False)
+            filters: dict of filters to search
 
         Returns:
             json list of SAM objects representing entities
     """
-    key_type = 'sam' if includes_uei else 'duns'
     params = {
         'sensitivity': 'fouo',
-        'uei{}'.format(key_type.upper()): '[{}]'.format('~'.join(key_list))
     }
+    params.update(filters)
     headers = {
         'x-api-key': CONFIG_BROKER['sam']['api_key'],
         'Accept': 'application/json',
@@ -629,21 +627,19 @@ def request_sam_entity_api(key_list, includes_uei=True):
     return entity_data
 
 
-def request_sam_iqaas_uei_api(key_list, includes_uei=True):
+def request_sam_iqaas_uei_api(filters):
     """ Calls the SAM IQaaS API to retrieve SAM UEI data by the keys provided.
 
         Args:
-            key_list: list of keys to search
-            includes_uei: whether the key is a UEI (True) or DUNS (False)
+            filters: dict of filters to search
 
         Returns:
             json list of SAM objects representing entities
     """
-    key_type = 'sam' if includes_uei else 'duns'
     params = {
-        'uei{}'.format(key_type.upper()): '{}'.format(','.join(key_list)),
         'api_key': CONFIG_BROKER['sam']['api_key']
     }
+    params.update(filters)
     content = _request_sam_api(CONFIG_BROKER['sam']['duns']['uei_iqaas_api_url'], request_type='get', params=params)
     entity_data = []
     if content is not None:
@@ -742,17 +738,34 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None):
     return r.content
 
 
-def get_sam_props(key_list, api='entity', includes_uei=True):
-    """ Calls SAM API to retrieve SAM data by UEI. Returns relevant SAM info as Data Frame
+def load_unregistered_recipients(sess, reload_date=None, metrics=None):
+    # SAM service only returns batches of 1,000,000
+    # TODO: size, page, sort
+    page = 1
+    update_date = f'[{reload_date}, {datetime.datetime.today().date().strftime('%m/%d/%Y')}]'
+    while True:
+        sam_unreg_df = get_sam_props(api='entity', samRegistered='No', updateDate=update_date, page=page)
+        if sam_unreg_df.empty:
+            break
+        existing_unreg = sess.query(SAMRecipientUnregistered).filter(SAMRecipient.uei.in_(sam_unreg_df['uei']))
+        existing_unreg.delete()
+        metrics['unregistered_updated'] += len(sam_unreg_df.index)
+        insert_dataframe(sam_unreg_df, SAMRecipientUnregistered.__table__.name, sess.connection())
+        metrics['unregistered_added'] += len(sam_unreg_df.index) - len(existing_unreg.index)
+        page += 1
+
+
+def get_sam_props(api='entity', **kwargs):
+    """ Calls SAM API to retrieve SAM data. Returns relevant SAM info as Data Frame
 
         Args:
-            key_list: list of SAM keys to search
             api: which api to hit (must be 'entity' or 'iqaaas')
-            includes_uei: whether the key is a UEI (True) or DUNS (False)
+            kwargs: additional filters that can be passed into the request
 
         Returns:
             dataframe representing the SAM props
     """
+    filters = kwargs if kwargs else {}
     if api == 'entity':
         request_api_method = request_sam_entity_api
         sam_props_mappings = {
@@ -785,7 +798,7 @@ def get_sam_props(key_list, api='entity', includes_uei=True):
         raise ValueError('APIs available are \'entity\' or \'iqaas\'')
 
     sam_props = []
-    for sam_obj in request_api_method(key_list, includes_uei=includes_uei):
+    for sam_obj in request_api_method(filters):
         sam_props_dict = {}
         for sam_props_name, sam_prop_path in sam_props_mappings.items():
             nested_obj = sam_obj
@@ -819,7 +832,7 @@ def get_sam_props(key_list, api='entity', includes_uei=True):
     return pd.DataFrame(sam_props)
 
 
-def update_sam_props(df, api='entity'):
+def update_existing_recipients(df, api='entity'):
     """ Returns same dataframe with extraneous data updated
 
         Args:
@@ -846,15 +859,22 @@ def update_sam_props(df, api='entity'):
     # SAM service only takes in batches of 100
     index = 0
     batch_size = 100
+
     for key_list in batch(all_keys, batch_size):
         logger.info('Gathering data for the following recipients: {}'.format(key_list))
-        sam_props_batch = get_sam_props(key_list, api=api, includes_uei=includes_uei)
+
+        key_list_str = '[{}]'.format('~'.join(key_list)) if api == 'entity' else '{}'.format(','.join(key_list))
+        key_type = 'sam' if includes_uei else 'duns'
+        filters = {'uei{}'.format(key_type.upper()): key_list_str}
+        sam_props_batch = get_sam_props(api=api, **filters)
         sam_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
+
         # Adding in blank rows for recipients where data was not found
         added_keys_list = []
         if not sam_props_batch.empty:
             added_keys_list = [str(key) for key in sam_props_batch[key_col].tolist()]
         logger.info('Retrieved data for recipients: {}'.format(added_keys_list))
+
         empty_sam_rows = []
         for key in (set(added_keys_list) ^ set(key_list)):
             empty_recp_row = empty_row_template.copy()

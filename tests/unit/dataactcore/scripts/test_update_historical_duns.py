@@ -135,7 +135,7 @@ def test_update_sam_props(monkeypatch):
         'high_comp_officer5_amount': ['5', '10', None]
     })
 
-    assert expected_df.sort_index(inplace=True) == update_historical_duns.update_sam_props(recp_df)\
+    assert expected_df.sort_index(inplace=True) == update_historical_duns.update_existing_recipients(recp_df)\
         .sort_index(inplace=True)
 
 
@@ -176,7 +176,7 @@ def test_update_sam_props_empty(monkeypatch):
         'high_comp_officer5_amount': [None]
     })
 
-    assert expected_df.to_dict() == update_historical_duns.update_sam_props(recp_df).to_dict()
+    assert expected_df.to_dict() == update_historical_duns.update_existing_recipients(recp_df).to_dict()
 
 
 def test_run_sam_batches(database, monkeypatch):
