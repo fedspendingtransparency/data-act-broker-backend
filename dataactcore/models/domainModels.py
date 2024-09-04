@@ -386,6 +386,24 @@ class SAMRecipient(Base):
 Index("ix_sam_recipient_uei_upper", sa.func.upper(SAMRecipient.uei))
 Index("ix_sam_activation_desc", SAMRecipient.activation_date.desc())
 
+class SAMRecipientUnregistered(Base):
+    """ DUNS Records """
+    __tablename__ = "sam_recipient_unregistered"
+
+    sam_recipient_unreg_id = Column(Integer, primary_key=True)
+    uei = Column(Text, index=True)
+    legal_business_name = Column(Text)
+    address_line_1 = Column(Text)
+    address_line_2 = Column(Text)
+    city = Column(Text)
+    state = Column(Text)
+    zip = Column(Text)
+    zip4 = Column(Text)
+    country_code = Column(Text)
+    congressional_district = Column(Text)
+
+Index("ix_sam_unreg_uei_upper", sa.func.upper(SAMRecipientUnregistered.uei))
+
 
 class HistoricDUNS(Base):
     """ Legacy DUNS Records with their latest updates """
