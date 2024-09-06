@@ -267,14 +267,11 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         download_url_regex = re.search(r'^.*(https\S+)\?token=(\S+)\s+.*$', str(resp.content))
         download_url, token = download_url_regex.group(1), download_url_regex.group(2)
 
-        file_content = None
         filters = {'token': token}
         # Generally for a full dump, it takes at most two minutes.
-        while not file_content:
-            file_content = request_sam_entity_api(filters, download_url=download_url)
-            if not isinstance(file_content, str):
-                break
-            time.sleep(10)
+        # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
+        # so we don't need to add any additional sleeping here.
+        file_content = request_sam_entity_api(filters, download_url=download_url)
 
         # get the generated download
         with open(local_sam_file, 'wb+') as sam_gz:
