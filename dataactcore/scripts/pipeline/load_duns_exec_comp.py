@@ -278,7 +278,7 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
 
         # get the generated download
         with open(local_sam_file, 'wb+') as sam_gz:
-            sam_gz.write(file_content)
+            sam_gz.write(file_content.content)
     else:
         s3_client = boto3.client('s3', region_name='us-gov-west-1')
         reverse_map = {v: k for k, v in DATA_TYPES.items()}
