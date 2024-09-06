@@ -25,6 +25,7 @@ from dataactcore.scripts.setup.setup_emails import setup_emails
 from dataactcore.scripts.setup.load_submission_window_schedule import load_submission_window_schedule
 from dataactcore.scripts.setup.load_tas import load_tas
 from dataactcore.scripts.setup.read_zips import read_zips
+from dataactcore.scripts.pipeline.load_park import load_park_data
 from dataactcore.scripts.pipeline.load_program_activity import load_program_activity_data
 from dataactcore.scripts.pipeline.load_sf133 import load_all_sf133
 from dataactcore.scripts.pipeline.load_tas_failing_edits import load_all_tas_failing_edits
@@ -167,6 +168,7 @@ def main():
     parser.add_argument('-al', '--assistance_listing_load', help='Load Assistance Listing to database',
                         action='store_true')
     parser.add_argument('-pa', '--program_activity', help='Load program activity to database', action='store_true')
+    parser.add_argument('-park', '--load_park', help='Load PARK to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
@@ -229,6 +231,9 @@ def main():
 
     if args.program_activity:
         load_program_activity_data(validator_config_path)
+
+    if args.load_park:
+        load_park_data(validator_config_path)
 
     if args.load_agencies:
         load_agency_data(validator_config_path, args.force)
