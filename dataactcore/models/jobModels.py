@@ -1,5 +1,5 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
-from datetime import datetime
+from datetime import datetime, UTC
 from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Enum, BigInteger,
                         ARRAY, Numeric)
 from sqlalchemy.ext.mutable import Mutable
@@ -141,7 +141,7 @@ class Job(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_job_user"), nullable=True)
-    last_validated = Column(DateTime, default=datetime.utcnow)
+    last_validated = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
     file_generation_id = Column(Integer, ForeignKey("file_generation.file_generation_id", ondelete="SET NULL",
                                                     name="fk_file_request_file_generation_id"), nullable=True)
     file_generation = relationship("FileGeneration", uselist=False)

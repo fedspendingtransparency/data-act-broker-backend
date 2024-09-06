@@ -63,7 +63,7 @@ def get_date_of_current_pa_upload(base_path):
         last_uploaded = last_uploaded.replace(tzinfo=None)
     else:
         pa_file = get_program_activity_file(base_path)
-        last_uploaded = datetime.datetime.utcfromtimestamp(os.path.getmtime(pa_file))
+        last_uploaded = datetime.datetime.fromtimestamp(os.path.getmtime(pa_file), datetime.UTC).replace(tzinfo=None)
     return last_uploaded
 
 
@@ -79,7 +79,7 @@ def get_stored_pa_last_upload():
     if not last_stored_obj:
         # return epoch ts to make sure we load the data the first time through,
         # and ideally any time the data might have been wiped
-        last_stored = datetime.datetime.utcfromtimestamp(0)
+        last_stored = datetime.datetime.fromtimestamp(0, datetime.UTC).replace(tzinfo=None)
     else:
         last_stored = last_stored_obj.last_load_date_start
     return last_stored
