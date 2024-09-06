@@ -73,7 +73,7 @@ def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=No
     #                          f'{datetime.datetime.today().date().strftime('%m/%d/%Y')}]')
 
     if historic:
-        csv_dir = local if local else CONFIG_BROKER['broker_files']
+        csv_dir = local if local else os.getcwd()
         api_csv_zip = os.path.join(csv_dir, f'{SAM_ENTITY_API_FILE_NAME}.gz')
         if not local:
             download_sam_file(csv_dir, api_csv_zip, api='entity', **filters)
