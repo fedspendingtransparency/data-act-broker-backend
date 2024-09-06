@@ -24,7 +24,7 @@ def test_remove_existing_recipients(database):
     assert sorted(expected_recps) == sorted(new_df['awardee_or_recipient_uniqu'].tolist())
 
 
-def mock_get_sam_props(key_list, api='entity', includes_uei=True):
+def mock_get_sam_props(api='entity', **kwargs):
     """ Mock function for get_sam_props as we can't connect to the SAM service """
     request_cols = [col for col in SAM_COLUMNS if col not in EXCLUDE_FROM_API]
     columns = request_cols
@@ -92,6 +92,7 @@ def mock_get_sam_props(key_list, api='entity', includes_uei=True):
             'high_comp_officer5_amount': '10'
         }
     }
+    key_list = kwargs['ueiSAM' if 'ueiSAM' in kwargs else 'ueiDUNS'][1:-1].split('~')
     for key in key_list:
         if key in sam_mappings:
             results = pd.concat([results, pd.DataFrame(sam_mappings[key])], sort=True)

@@ -283,6 +283,7 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         version = 'v2' if 'V2' in file_name else 'v1'
         key = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
         s3_client.download_file(S3_ARCHIVE, key, os.path.join(root_dir, file_name))
+    logger.info(f'File downloaded:{os.path.join(root_dir, file_name)}')
 
 
 def process_sam_extract_file(data_type, period, version, date, sess, local=None, api=None, metrics=None):
@@ -305,7 +306,7 @@ def process_sam_extract_file(data_type, period, version, date, sess, local=None,
 
     root_dir = local if local else tempfile.gettempdir()
     file_name_format = SAM_EXTRACT_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period,
-                                                      ersion=VERSIONS[version])
+                                                      version=VERSIONS[version])
     file_name = date.strftime(file_name_format)
     if not local:
         download_sam_file(root_dir, file_name, api=api)

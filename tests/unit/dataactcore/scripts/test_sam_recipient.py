@@ -12,7 +12,7 @@ def test_load_duns(database):
     sess = database.session
     duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
 
-    load_duns_exec_comp.load_from_sam('DUNS', sess, True, duns_dir)
+    load_duns_exec_comp.load_from_sam_extract('DUNS', sess, True, duns_dir)
 
     # update if the fake DUNS file name/zip changes
     deactivation_date = '2021-02-07'
@@ -225,7 +225,7 @@ def test_load_duns(database):
     # Fail if provided a record with unmatching DUNS and UEI
     error_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'error_files')
     with pytest.raises(ValueError) as resp_except:
-        load_duns_exec_comp.load_from_sam('DUNS', sess, True, error_dir)
+        load_duns_exec_comp.load_from_sam_extract('DUNS', sess, True, error_dir)
     expected_error_recps = ['000000001/A1', '000000002/B2']
     assert str(resp_except.value).startswith('Unable to add/update sam data. '
                                              'A record matched on more than one recipient')
@@ -239,8 +239,8 @@ def test_load_exec_comp(database):
     duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
     exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp')
 
-    load_duns_exec_comp.load_from_sam('DUNS', sess, True, duns_dir)
-    load_duns_exec_comp.load_from_sam('Executive Compensation', sess, True, exec_comp_dir, None)
+    load_duns_exec_comp.load_from_sam_extract('DUNS', sess, True, duns_dir)
+    load_duns_exec_comp.load_from_sam_extract('Executive Compensation', sess, True, exec_comp_dir, None)
 
     monthly_last_exec_date = datetime.date(2017, 9, 30)
     first_daily_exec_date = datetime.date(2019, 3, 29)
