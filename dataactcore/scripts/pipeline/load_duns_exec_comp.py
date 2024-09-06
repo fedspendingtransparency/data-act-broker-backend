@@ -264,7 +264,7 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         # request the file
         filters['format'] = 'csv'
         resp = request_sam_entity_api(filters)
-        download_url_regex = re.search(r'^.*(https\S+)?token=(\S+)\s+.*$', str(resp.content))
+        download_url_regex = re.search(r'^.*(https\S+)\?token=(\S+)\s+.*$', str(resp.content))
         download_url, token = download_url_regex.group(1), download_url_regex.group(2)
         filters = {'token': token}
 
