@@ -4,7 +4,6 @@ import time
 import json
 import zipfile
 import datetime
-from unittest.mock import inplace
 
 import requests
 import numpy as np
@@ -626,6 +625,7 @@ def update_missing_parent_names(sess, updated_date=None):
     sess.commit()
     return total_updated_count
 
+
 def request_sam_entity_api(filters, download_url=None):
     """ Calls the SAM entity API to retrieve SAM data by the filters
 
@@ -767,8 +767,8 @@ def load_unregistered_recipients(sess, df, skip_updates=False, metrics=None):
             metrics: the metrics dict
     """
     # looks like the csv version drops the topmost parent section (coreData, entityRegistration)
-    mapping_filtered = {k[k.index('.')+1:]:v for k, v in SAM_ENTITY_MAPPINGS.items()}
-    mapping_filtered = {k:v for k, v in mapping_filtered.items() if k in df.columns}
+    mapping_filtered = {k[k.index('.') + 1:]: v for k, v in SAM_ENTITY_MAPPINGS.items()}
+    mapping_filtered = {k: v for k, v in mapping_filtered.items() if k in df.columns}
     df.rename(columns=mapping_filtered, inplace=True)
     df.drop([col for col in df.columns if col not in SAMRecipientUnregistered.__table__.columns], axis=1, inplace=True)
 
@@ -808,7 +808,6 @@ def get_sam_props(api='entity', **kwargs):
         raise ValueError('APIs available are \'entity\' or \'iqaas\'')
 
     sam_props = []
-
 
     for sam_obj in json.loads(request_api_method(filters).content)['entityData']:
         sam_props_dict = {}

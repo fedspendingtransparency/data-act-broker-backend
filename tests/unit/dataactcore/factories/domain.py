@@ -420,6 +420,7 @@ class SAMRecipientFactory(factory.Factory):
     high_comp_officer5_amount = fuzzy.FuzzyText()
     last_exec_comp_mod_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
 
+
 class SAMRecipientUnregisteredFactory(factory.Factory):
     class Meta:
         model = domainModels.SAMRecipientUnregistered
@@ -435,6 +436,7 @@ class SAMRecipientUnregisteredFactory(factory.Factory):
     zip4 = fuzzy.FuzzyText()
     country_code = fuzzy.FuzzyText()
     congressional_district = fuzzy.FuzzyText()
+
 
 class StateCongressionalFactory(factory.Factory):
     class Meta:

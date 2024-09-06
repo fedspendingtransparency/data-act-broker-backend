@@ -410,6 +410,7 @@ class SAMRecipient(Base):
 Index("ix_sam_recipient_uei_upper", sa.func.upper(SAMRecipient.uei))
 Index("ix_sam_activation_desc", SAMRecipient.activation_date.desc())
 
+
 class SAMRecipientUnregistered(Base):
     """ DUNS Records """
     __tablename__ = "sam_recipient_unregistered"
@@ -425,6 +426,7 @@ class SAMRecipientUnregistered(Base):
     zip4 = Column(Text)
     country_code = Column(Text)
     congressional_district = Column(Text)
+
 
 Index("ix_sam_unreg_uei_upper", sa.func.upper(SAMRecipientUnregistered.uei))
 

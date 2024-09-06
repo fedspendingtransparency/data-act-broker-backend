@@ -8,7 +8,6 @@ import pandas as pd
 import re
 import requests
 import tempfile
-import time
 
 from datetime import timedelta
 
@@ -80,14 +79,14 @@ def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=No
         if not api_csv_zip:
             raise FileNotFoundError(fr'Missing file: {api_csv_zip}')
 
-        logger.info(f'Truncating sam_recipient_unregistered for a full reload.')
+        logger.info('Truncating sam_recipient_unregistered for a full reload.')
         sess.query(SAMRecipientUnregistered).delete()
         index = 0
         chunk_size = CONFIG_BROKER['validator_batch_size']
         with pd.read_csv(api_csv_zip, compression='gzip', chunksize=chunk_size) as reader:
-            logger.info(f'Starting ingestion of sam entity api csv.')
+            logger.info('Starting ingestion of sam entity api csv.')
             for chunk_df in reader:
-                logger.info(f'Processing chunk {index}-{index+chunk_size}.')
+                logger.info(f'Processing chunk {index}-{index + chunk_size}.')
                 load_unregistered_recipients(sess, chunk_df, metrics=metrics, skip_updates=True)
                 index += chunk_size
         logger.info(f"Loaded {metrics['unregistered_added']} unregistered entities"
@@ -98,6 +97,7 @@ def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=No
         # TODO: When SAM Entity API supports both 'samRegistered' and 'updateDate', revisit this for daily loads.
         logger.info("Loading unregistered entities from the API on a daily basis is not supported.")
         return
+
 
 def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, reload_date=None):
     """ Process the script arguments to figure out which files to process from the SAM extracts in which order
@@ -304,7 +304,8 @@ def process_sam_extract_file(data_type, period, version, date, sess, local=None,
         metrics = {}
 
     root_dir = local if local else tempfile.gettempdir()
-    file_name_format = SAM_EXTRACT_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period, version=VERSIONS[version])
+    file_name_format = SAM_EXTRACT_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period,
+                                                      ersion=VERSIONS[version])
     file_name = date.strftime(file_name_format)
     if not local:
         download_sam_file(root_dir, file_name, api=api)
