@@ -2,11 +2,9 @@ import os
 import logging
 import io
 import pandas as pd
-import numpy as np
 import boto3
 import datetime
 import json
-import re
 import argparse
 
 from dataactcore.config import CONFIG_BROKER
@@ -17,7 +15,6 @@ from dataactcore.models.domainModels import ProgramActivityPARK, ExternalDataLoa
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
-from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -74,11 +71,11 @@ def get_stored_park_last_upload():
     """
     sess = GlobalDB.db().session
     last_stored_obj = sess.query(ExternalDataLoadDate).filter_by(
-        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['park']).one_or_none()
+        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['park_upload']).one_or_none()
     if not last_stored_obj:
         # return epoch ts to make sure we load the data the first time through,
         # and ideally any time the data might have been wiped
-        last_stored = datetime.datetime.fromtimestamp(0).replace(tzinfo=None)
+        last_stored = datetime.datetime.fromtimestamp(0, datetime.UTC).replace(tzinfo=None)
     else:
         last_stored = last_stored_obj.last_load_date_start
     return last_stored
@@ -125,7 +122,6 @@ def load_park_data(base_path, force_reload=False, export=False):
         'records_deleted': 0,
         'records_inserted': 0
     }
-    dropped_count = 0
 
     logger.info('Checking PARK upload dates to see if we can skip.')
     last_upload = get_date_of_current_park_upload(base_path)
