@@ -13,7 +13,7 @@ from dataactbroker.helpers.script_helper import get_prefixed_file_list
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import update_external_data_load_date, exit_if_nonlocal
+from dataactcore.interfaces.function_bag import update_external_data_load_date, exit_if_nonlocal, get_utc_now
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import GTASBOC, concat_display_tas_dict
 from dataactcore.utils.loader_utils import insert_dataframe
@@ -184,7 +184,7 @@ def load_boc(sess, filename, fiscal_year, fiscal_period, force_load=False, metri
     boc_data['disaster_emergency_fund_code'] = boc_data['disaster_emergency_fund_code']. \
         apply(lambda x: x.replace('QQQ', 'Q') if x else None)
 
-    now = datetime.utcnow()
+    now = get_utc_now()
     boc_data = boc_data.assign(created_at=now, updated_at=now)
 
     # insert to db

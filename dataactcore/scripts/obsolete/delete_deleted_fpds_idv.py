@@ -7,6 +7,7 @@ import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import Submission # noqa
@@ -105,7 +106,7 @@ def delete_records(sess, delete_list, delete_dict):
             delete(synchronize_session=False)
 
     # writing the file
-    seconds = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds())
+    seconds = int((get_utc_now() - datetime.datetime(1970, 1, 1)).total_seconds())
     now = datetime.datetime.now()
     file_name = now.strftime('%m-%d-%Y') + "_delete_records_IDV_" + str(seconds) + ".csv"
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]

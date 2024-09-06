@@ -2,7 +2,9 @@ from datetime import datetime
 
 from tests.integration.baseTestAPI import BaseTestAPI
 from dataactbroker.app import create_app
+
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import Submission, Job
@@ -215,7 +217,7 @@ class FABSUploadTests(BaseTestAPI):
             Returns:
                 the submission ID of the created submission
         """
-        sub = Submission(created_at=datetime.utcnow(),
+        sub = Submission(created_at=get_utc_now(),
                          user_id=submission_user_id,
                          cgac_code=cgac_code,
                          reporting_start_date=datetime.strptime(start_date, '%m/%Y'),
