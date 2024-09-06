@@ -262,7 +262,7 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         # request the file
         filters['format'] = 'csv'
         resp = request_sam_entity_api(filters)
-        download_url = re.search(r'^.*(https\S+)\s+.*$', resp.content).group(1)
+        download_url = re.search(r'^.*(https\S+)\s+.*$', str(resp.content)).group(1)
         del filters['format']
 
         file_content = None
