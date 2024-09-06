@@ -639,7 +639,7 @@ def request_sam_entity_api(filters, download_url=None):
     """
     headers = {
         'x-api-key': CONFIG_BROKER['sam']['api_key'],
-        'Accept': 'application/json',
+        'Accept': 'application/json' if not download_url else 'application/zip',
         'Content-Type': 'application/json'
     }
     if not filters:
