@@ -1,12 +1,14 @@
 import argparse
+import boto3
 import datetime
+import json
 import logging
 import os
+import pandas as pd
 import re
-import json
-import tempfile
-import boto3
 import requests
+import tempfile
+import time
 
 from datetime import timedelta
 
@@ -17,13 +19,14 @@ from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactcore.utils.sam_recipient import (is_nonexistent_file_error, load_unregistered_recipients,
-                                             parse_sam_recipient_file, parse_exec_comp_file, request_sam_csv_api,
-                                             update_missing_parent_names, update_sam_recipient)
+                                             parse_sam_recipient_file, parse_exec_comp_file, request_sam_extracts_api,
+                                             update_missing_parent_names, update_sam_recipient, request_sam_entity_api)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
-SAM_FILE_FORMAT = 'SAM_{data_type}_UTF-8_{period}{version}_%Y%m%d.ZIP'
+SAM_EXTRACT_FILE_FORMAT = 'SAM_{data_type}_UTF-8_{period}{version}_%Y%m%d.ZIP'
+SAM_ENTITY_API_FILE_NAME = 'SAM_API_DOWNLOAD'
 DATA_TYPES = {
     'DUNS': 'FOUO',
     'Executive Compensation': 'EXECCOMP'
@@ -37,12 +40,13 @@ S3_ARCHIVE = CONFIG_BROKER['sam']['duns']['csv_archive_bucket']
 S3_ARCHIVE_PATH = '{data_type}/{version}/{file_name}'
 
 
-def load_from_sam_api(sess, historic, metrics=None, reload_date=None):
-    """ Process the script arguments to figure out which files to process from the SAM extracts in which order
+def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=None):
+    """ Process the script arguments to figure out which data to process from the SAM entity API
 
         Args:
             sess: the database connection
             historic: whether to load all data or just update
+            local: path to local directory to process, if None, it will go though the remote SAM service
             metrics: dictionary representing metrics data for the load
             reload_date: specific date to force reload from (default: None, or the day before the last load)
     """
@@ -62,8 +66,37 @@ def load_from_sam_api(sess, historic, metrics=None, reload_date=None):
             raise Exception('No external load date for recipients found.')
         load_date = load_date[0] - timedelta(days=1)
 
-    # Update accordingly
-    load_unregistered_recipients(sess, reload_date=load_date, metrics=metrics)
+    # Prepare the filters - we only want unregistered entities from this API
+    filters = {'samRegistered': 'No'}
+    # TODO: When SAM Entity API supports both 'samRegistered' and 'updateDate', revisit this.
+    # filters['updateDate'] = (f'[{load_date.strftime('%m/%d/%Y')}, '
+    #                          f'{datetime.datetime.today().date().strftime('%m/%d/%Y')}]')
+
+    if historic:
+        api_csv_zip = os.path.join(local, f'{SAM_ENTITY_API_FILE_NAME}.gz')
+
+        if not local:
+            local = CONFIG_BROKER['broker_files']
+            download_sam_file(local, api_csv_zip, api='entity', **filters)
+        if not api_csv_zip:
+            raise FileNotFoundError(fr'Missing file: {api_csv_zip}')
+
+        logger.info(f'Truncating sam_recipient_unregistered for a full reload.')
+        sess.query(SAMRecipientUnregistered).delete()
+        index = 0
+        chunk_size = CONFIG_BROKER['validator_batch_size']
+        with pd.read_csv(api_csv_zip, compression='gzip', chunksize=chunk_size) as reader:
+            logger.info(f'Starting ingestion of sam entity api csv.')
+            for chunk_df in reader:
+                logger.info(f'Processing chunk {index}-{index+chunk_size}.')
+                load_unregistered_recipients(sess, chunk_df, metrics=metrics, skip_updates=True)
+                index += chunk_size
+        logger.info(f"Loaded {metrics['unregistered_added']} unregistered entities"
+                    f" and updated {metrics['unregistered_updated']}.")
+    else:
+        # TODO: When SAM Entity API supports both 'samRegistered' and 'updateDate', revisit this for daily loads.
+        logger.info("Loading unregistered entities from the API on a daily basis is not supported.")
+        return
 
 def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, reload_date=None):
     """ Process the script arguments to figure out which files to process from the SAM extracts in which order
@@ -144,16 +177,16 @@ def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, r
     if historic:
         # load in the earliest monthly file and all daily files after
         version = 'v1' if earliest_date in monthly_v1_dates else 'v2'
-        process_sam_file(data_type, 'MONTHLY', version, earliest_date, sess, local=local, metrics=metrics)
+        process_sam_extract_file(data_type, 'MONTHLY', version, earliest_date, sess, local=local, metrics=metrics)
     for daily_v1_date in daily_v1_dates:
-        process_sam_file(data_type, 'DAILY', 'v1', daily_v1_date, sess, local=local, metrics=metrics)
+        process_sam_extract_file(data_type, 'DAILY', 'v1', daily_v1_date, sess, local=local, metrics=metrics)
     for daily_v2_date in daily_v2_dates:
-        process_sam_file(data_type, 'DAILY', 'v2', daily_v2_date, sess, local=local, metrics=metrics)
+        process_sam_extract_file(data_type, 'DAILY', 'v2', daily_v2_date, sess, local=local, metrics=metrics)
     if not local:
         for daily_api_v2_date in daily_v2_api_dates:
             try:
-                process_sam_file(data_type, 'DAILY', 'v2', daily_api_v2_date, sess, local=local, api=True,
-                                 metrics=metrics)
+                process_sam_extract_file(data_type, 'DAILY', 'v2', daily_api_v2_date, sess, local=local,
+                                         api='extracts', metrics=metrics)
             except requests.exceptions.HTTPError as e:
                 if is_nonexistent_file_error(e):
                     logger.warning('No file found for {}, continuing'.format(daily_api_v2_date))
@@ -184,8 +217,8 @@ def extract_dates_from_list(sam_files, data_type, period, version):
         Returns:
             sorted list of dates corresponding to the files
     """
-    sam_filename_format = SAM_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period,
-                                                 version=VERSIONS[version])
+    sam_filename_format = SAM_EXTRACT_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period,
+                                                         version=VERSIONS[version])
     return sorted([datetime.datetime.strptime(sam_file, sam_filename_format).date() for sam_file in sam_files])
 
 
@@ -202,25 +235,45 @@ def list_s3_archive_files(data_type, period, version):
     """
     s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
     archive_bucket = s3_resource.Bucket(S3_ARCHIVE)
-    file_name = SAM_FILE_FORMAT[:30].format(data_type=DATA_TYPES[data_type], period=period)
+    file_name = SAM_EXTRACT_FILE_FORMAT[:30].format(data_type=DATA_TYPES[data_type], period=period)
     prefix = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
     return [os.path.basename(object.key) for object in archive_bucket.objects.filter(Prefix=prefix)]
 
 
-def download_sam_file(root_dir, file_name, api=False):
+def download_sam_file(root_dir, file_name, api='extract', **filters):
     """ Downloads the requested DUNS file to root_dir
 
         Args:
             root_dir: the folder containing the DUNS file
             file_name: the name of the SAM file
-            api: whether to use the SAM CSV API or not
+            api: string representing the API to use, or None for buckets
+            filters: any other additional filters to pass into the call to download the file (for entity api)
 
         Raises:
             requests.exceptions.HTTPError if the SAM HTTP API doesnt have the file requested
     """
-    logger.info('Pulling {} via {}'.format(file_name, 'API' if api else 'archive'))
-    if api:
-        request_sam_csv_api(root_dir, file_name)
+    if api not in ('extract', 'entity', None):
+        raise ValueError('api must be \'entity\', \'extract\', or None for buckets')
+    logger.info('Pulling {} via {}'.format(file_name, f'{api} API' if api else 'archive'))
+    if api == 'extract':
+        request_sam_extracts_api(root_dir, file_name)
+    elif api == 'entity':
+        local_sam_file = os.path.join(root_dir, file_name)
+
+        # request the file
+        resp = request_sam_entity_api(**filters)
+        download_url = re.search(r'^.*(https\S+)\s+.*$', resp).group(1)
+
+        file_content = None
+        # Generally for a full dump, it takes at most two minutes.
+        while not file_content:
+            file_content = request_sam_entity_api(**filters, download_url=download_url, is_file=True)
+            if not isinstance(file_content, str):
+                break
+            time.sleep(10)
+
+        # get the generated download
+        open(local_sam_file, 'wb').write(file_content)
     else:
         s3_client = boto3.client('s3', region_name='us-gov-west-1')
         reverse_map = {v: k for k, v in DATA_TYPES.items()}
@@ -230,7 +283,7 @@ def download_sam_file(root_dir, file_name, api=False):
         s3_client.download_file(S3_ARCHIVE, key, os.path.join(root_dir, file_name))
 
 
-def process_sam_file(data_type, period, version, date, sess, local=None, api=False, metrics=None):
+def process_sam_extract_file(data_type, period, version, date, sess, local=None, api=None, metrics=None):
     """ Process the SAM file found locally or remotely
 
         Args:
@@ -239,7 +292,7 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
             version: v1 or v2
             sess: the database connection
             local: path to local directory to process, if None, it will go though the remote SAM service
-            api: whether to use the SAM CSV API or not
+            api: string representing the API to use, or None for buckets
             metrics: dictionary representing metrics data for the load
 
         Raises:
@@ -249,7 +302,7 @@ def process_sam_file(data_type, period, version, date, sess, local=None, api=Fal
         metrics = {}
 
     root_dir = local if local else tempfile.gettempdir()
-    file_name_format = SAM_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period, version=VERSIONS[version])
+    file_name_format = SAM_EXTRACT_FILE_FORMAT.format(data_type=DATA_TYPES[data_type], period=period, version=VERSIONS[version])
     file_name = date.strftime(file_name_format)
     if not local:
         download_sam_file(root_dir, file_name, api=api)
@@ -307,6 +360,7 @@ if __name__ == '__main__':
         'records_added': 0,
         'records_updated': 0,
         'unregistered_added': 0,
+        'unregistered_updated': 0,
         'parent_rows_updated': 0,
         'parent_update_date': None
     }
@@ -324,7 +378,7 @@ if __name__ == '__main__':
             update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         if data_type in ('unregistered', 'all'):
             start_time = datetime.datetime.now()
-            load_from_sam_api(sess, historic, metrics=metrics, reload_date=reload_date)
+            load_from_sam_entity_api(sess, historic, local, metrics=metrics, reload_date=reload_date)
             update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         sess.close()
 
