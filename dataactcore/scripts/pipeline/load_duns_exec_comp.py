@@ -261,7 +261,7 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
 
         # request the file
         resp = request_sam_entity_api(filters)
-        logger.info(resp.__dict__)
+        logger.info(resp)
         download_url = re.search(r'^.*(https\S+)\s+.*$', resp).group(1)
 
         file_content = None
