@@ -267,7 +267,7 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         file_content = None
         # Generally for a full dump, it takes at most two minutes.
         while not file_content:
-            file_content = request_sam_entity_api(filters, download_url=download_url, is_file=True)
+            file_content = request_sam_entity_api(filters, download_url=download_url)
             if not isinstance(file_content, str):
                 break
             time.sleep(10)
