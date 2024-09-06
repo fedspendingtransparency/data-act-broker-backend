@@ -683,9 +683,9 @@ def request_sam_extracts_api(root_dir, file_name):
         'Accept': 'application/zip',
         'Content-Type': 'application/json'
     }
-    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], request_type='get', headers=headers,
-                                    params=params)
-    open(local_sam_file, 'wb').write(file_content)
+    resp = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], request_type='get', headers=headers,
+                            params=params)
+    open(local_sam_file, 'wb').write(resp.content)
 
 
 def is_nonexistent_file_error(e):
@@ -754,7 +754,7 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None):
                          timeout=60)
     # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
     r.raise_for_status()
-    return r.content
+    return r
 
 
 def load_unregistered_recipients(sess, df, skip_updates=False, metrics=None):
@@ -810,7 +810,7 @@ def get_sam_props(api='entity', **kwargs):
     sam_props = []
 
 
-    for sam_obj in json.loads(request_api_method(filters))['entityData']:
+    for sam_obj in json.loads(request_api_method(filters).content)['entityData']:
         sam_props_dict = {}
         for sam_prop_path, sam_props_name in sam_props_mappings.items():
             nested_obj = sam_obj
