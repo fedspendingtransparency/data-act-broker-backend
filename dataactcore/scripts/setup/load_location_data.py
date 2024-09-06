@@ -11,7 +11,7 @@ from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CityCode, CountyCode, States, ZipCity
 
@@ -85,7 +85,7 @@ def parse_city_file(city_file):
     data = data.drop('sorting_col', axis=1)
 
     # add created_at and updated_at columns
-    now = datetime.utcnow()
+    now = get_utc_now()
     data = data.assign(created_at=now, updated_at=now)
 
     # just sorting it how it started out
@@ -118,7 +118,7 @@ def parse_county_file(county_file):
     data = data[~data.duplicated(subset=['county_number', 'state_code'], keep='first')]
 
     # add created_at and updated_at columns
-    now = datetime.utcnow()
+    now = get_utc_now()
     data = data.assign(created_at=now, updated_at=now)
 
     return data
@@ -142,7 +142,7 @@ def parse_state_file(state_file):
          "fips_code": "fips_code"})
 
     # add created_at and updated_at columns
-    now = datetime.utcnow()
+    now = get_utc_now()
     data = data.assign(created_at=now, updated_at=now)
 
     return data
@@ -201,7 +201,7 @@ def parse_zip_city_file(f):
                         columns=['zip_code', 'preferred_city_name', 'city_name', 'state_code'])
 
     # add created_at and updated_at columns
-    now = datetime.utcnow()
+    now = get_utc_now()
     data = data.assign(created_at=now, updated_at=now)
 
     return data

@@ -328,6 +328,30 @@ Index("ix_pa_tas_pa",
       unique=True)
 
 
+class ProgramActivityPARK(Base):
+    __tablename__ = "program_activity_park"
+    program_activity_park_id = Column(Integer, primary_key=True)
+    fiscal_year = Column(Integer, nullable=False, index=True)
+    period = Column(Integer, nullable=False, index=True)
+    agency_id = Column(Text, nullable=False, index=True)
+    allocation_transfer_id = Column(Text, index=True)
+    main_account_number = Column(Text, nullable=False, index=True)
+    sub_account_number = Column(Text, index=True)
+    park_code = Column(Text, nullable=False, index=True)
+    park_name = Column(Text, nullable=False)
+
+
+Index("ix_pap_tas_park",
+      ProgramActivityPARK.fiscal_year,
+      ProgramActivityPARK.period,
+      ProgramActivityPARK.agency_id,
+      ProgramActivityPARK.allocation_transfer_id,
+      ProgramActivityPARK.main_account_number,
+      ProgramActivityPARK.sub_account_number,
+      ProgramActivityPARK.park_code,
+      unique=True)
+
+
 class CountryCode(Base):
     __tablename__ = "country_code"
     country_code_id = Column(Integer, primary_key=True)

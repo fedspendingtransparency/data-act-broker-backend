@@ -1,15 +1,15 @@
 import logging
 import argparse
 import json
-from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.broker_logging import configure_logging
-
 from dataactbroker.handlers.submission_handler import delete_all_submission_data
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT
+
+from dataactcore.broker_logging import configure_logging
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.jobModels import Submission
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from dataactcore.models.views import SubmissionUpdatedView
 
 from dataactvalidator.health_check import create_app
@@ -41,7 +41,7 @@ def clean_expired_submissions(fy17q1_subs=False):
         ).all()
     else:
         updated_at_view = SubmissionUpdatedView()
-        expiration_cutoff = datetime.utcnow() - relativedelta(months=6)
+        expiration_cutoff = get_utc_now() - relativedelta(months=6)
         expired_submissions = sess.query(Submission).filter(
             Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'],
             Submission.test_submission.is_(True),
@@ -68,7 +68,7 @@ if __name__ == '__main__':
                             action='store_true')
         args = parser.parse_args()
 
-        start_time = datetime.utcnow()
+        start_time = get_utc_now()
         metrics = {
             'script_name': 'clean_expired_submissions.py',
             'start_time': str(start_time),
@@ -78,6 +78,6 @@ if __name__ == '__main__':
 
         metrics['subs_removed'] = expired_subs
         metrics['subs_removed_count'] = len(expired_subs)
-        metrics['duration'] = str(datetime.utcnow() - start_time)
+        metrics['duration'] = str(get_utc_now() - start_time)
         with open('clean_expired_subs_metrics.json', 'w+') as metrics_file:
             json.dump(metrics, metrics_file)

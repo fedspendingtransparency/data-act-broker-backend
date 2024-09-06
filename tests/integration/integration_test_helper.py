@@ -1,12 +1,13 @@
 import calendar
 from datetime import datetime
 
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.jobModels import Submission, Job
 
 
 def insert_submission(sess, submission_user_id, cgac_code=None, frec_code=None, start_date=None, end_date=None,
                       is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False,
-                      updated_at=datetime.utcnow(), test_submission=False, published_submission_ids=[],
+                      updated_at=get_utc_now(), test_submission=False, published_submission_ids=[],
                       certified=False, reporting_fiscal_year=None, reporting_fisacal_period=None):
     """Insert one submission into job tracker and get submission ID back."""
     publishable = True if number_of_errors == 0 else False
@@ -20,7 +21,7 @@ def insert_submission(sess, submission_user_id, cgac_code=None, frec_code=None, 
             + str(calendar.monthrange(end_date.year, end_date.month)[1]),
             '%Y/%m/%d'
         ).date()
-    sub = Submission(created_at=datetime.utcnow(),
+    sub = Submission(created_at=get_utc_now(),
                      updated_at=updated_at,
                      user_id=submission_user_id,
                      cgac_code=cgac_code,
@@ -46,10 +47,10 @@ def insert_job(sess, filetype, status, type_id, submission, job_id=None, filenam
                file_size=None, num_rows=None, num_valid_rows=0, num_errors=0, updated_at=None):
     """Insert one job into job tracker and get ID back."""
     if not updated_at:
-        updated_at = datetime.utcnow()
+        updated_at = get_utc_now()
 
     job = Job(
-        created_at=datetime.utcnow(),
+        created_at=get_utc_now(),
         updated_at=updated_at,
         file_type_id=filetype,
         job_status_id=status,

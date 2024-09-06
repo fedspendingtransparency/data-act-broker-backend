@@ -14,7 +14,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
                                                  get_fabs_meta, get_error_type, get_error_metrics_by_job_id,
-                                                 get_certification_deadline, get_last_modified)
+                                                 get_certification_deadline, get_last_modified, get_utc_now)
 
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT, SUBMISSION_TYPE_DICT)
@@ -54,7 +54,7 @@ def create_submission(user_id, submission_values, existing_submission, test_subm
     """
     if existing_submission is None:
         submission_values['test_submission'] = test_submission
-        submission = Submission(created_at=datetime.utcnow(), **submission_values)
+        submission = Submission(created_at=get_utc_now(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
     else:
@@ -885,7 +885,7 @@ def process_dabs_publish(submission, file_manager):
     # set submission contents
     submission.publishing_user_id = active_user_id
     submission.publish_status_id = PUBLISH_STATUS_DICT['published']
-    publish_history.updated_at = datetime.utcnow()
+    publish_history.updated_at = get_utc_now()
     sess.commit()
 
     if first_publish:
@@ -965,7 +965,7 @@ def publish_dabs_submission(submission, file_manager):
     sub_schedule = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).one_or_none()
 
     # If this is a monthly submission and the certification deadline has passed they have to publish/certify together
-    if sub_schedule and sub_schedule.certification_deadline < datetime.utcnow():
+    if sub_schedule and sub_schedule.certification_deadline < get_utc_now():
         return JsonResponse.error(ValueError('Monthly submissions past their certification deadline must be published'
                                              ' and certified at the same time. Use the'
                                              ' publish_and_certify_dabs_submission endpoint.'), StatusCode.CLIENT_ERROR)
