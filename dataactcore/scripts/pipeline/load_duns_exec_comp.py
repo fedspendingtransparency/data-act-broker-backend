@@ -260,9 +260,11 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         local_sam_file = os.path.join(root_dir, file_name)
 
         # request the file
+        filters['format'] = 'csv'
         resp = request_sam_entity_api(filters)
         logger.info(resp.__dict__)
         download_url = re.search(r'^.*(https\S+)\s+.*$', resp).group(1)
+        del filters['format']
 
         file_content = None
         # Generally for a full dump, it takes at most two minutes.
