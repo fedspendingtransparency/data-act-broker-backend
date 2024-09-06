@@ -260,13 +260,13 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         local_sam_file = os.path.join(root_dir, file_name)
 
         # request the file
-        resp = request_sam_entity_api(**filters)
+        resp = request_sam_entity_api(filters)
         download_url = re.search(r'^.*(https\S+)\s+.*$', resp).group(1)
 
         file_content = None
         # Generally for a full dump, it takes at most two minutes.
         while not file_content:
-            file_content = request_sam_entity_api(**filters, download_url=download_url, is_file=True)
+            file_content = request_sam_entity_api(filters, download_url=download_url, is_file=True)
             if not isinstance(file_content, str):
                 break
             time.sleep(10)

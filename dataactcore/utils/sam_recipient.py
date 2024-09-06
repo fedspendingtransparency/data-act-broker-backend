@@ -643,6 +643,8 @@ def request_sam_entity_api(filters, is_file=False, download_url=None):
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
+    if not filters:
+        filters = {}
     url = download_url if download_url else CONFIG_BROKER['sam']['duns']['entity_api_url']
     content = _request_sam_api(url, request_type='post', headers=headers, params=filters)
     if content is not None and not is_file:
@@ -662,6 +664,8 @@ def request_sam_iqaas_uei_api(filters):
     params = {
         'api_key': CONFIG_BROKER['sam']['api_key']
     }
+    if not filters:
+        filters = {}
     params.update(filters)
     content = _request_sam_api(CONFIG_BROKER['sam']['duns']['uei_iqaas_api_url'], request_type='get', params=params)
     entity_data = []
