@@ -92,6 +92,8 @@ def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=No
                 index += chunk_size
         logger.info(f"Loaded {metrics['unregistered_added']} unregistered entities"
                     f" and updated {metrics['unregistered_updated']}.")
+        if not local:
+            os.remove(api_csv_zip)
     else:
         # TODO: When SAM Entity API supports both 'samRegistered' and 'updateDate', revisit this for daily loads.
         logger.info("Loading unregistered entities from the API on a daily basis is not supported.")
@@ -262,8 +264,9 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         # request the file
         filters['format'] = 'csv'
         resp = request_sam_entity_api(filters)
-        download_url = re.search(r'^.*(https\S+)\s+.*$', str(resp.content)).group(1)
-        del filters['format']
+        download_url_regex = re.search(r'^.*(https\S+)?token=(\S+)\s+.*$', str(resp.content))
+        download_url, token = download_url_regex.group(1), download_url_regex.group(2)
+        filters = {'token': token}
 
         file_content = None
         # Generally for a full dump, it takes at most two minutes.
@@ -274,7 +277,7 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
             time.sleep(10)
 
         # get the generated download
-        open(local_sam_file, 'wb').write(file_content)
+        open(local_sam_file, 'wb+').write(file_content)
     else:
         s3_client = boto3.client('s3', region_name='us-gov-west-1')
         reverse_map = {v: k for k, v in DATA_TYPES.items()}
