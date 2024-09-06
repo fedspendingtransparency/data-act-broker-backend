@@ -626,12 +626,11 @@ def update_missing_parent_names(sess, updated_date=None):
     sess.commit()
     return total_updated_count
 
-def request_sam_entity_api(filters, is_file=False, download_url=None):
+def request_sam_entity_api(filters, download_url=None):
     """ Calls the SAM entity API to retrieve SAM data by the filters
 
         Args:
             filters: dict of filters to search
-            is_file: True if the requested data is a binary stream; otherwise False for JSON (default)
             download_url: the generated download_url sent by a previous request (for csvs)
 
         Returns:
@@ -646,10 +645,7 @@ def request_sam_entity_api(filters, is_file=False, download_url=None):
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER['sam']['duns']['entity_api_url']
-    content = _request_sam_api(url, request_type='post', headers=headers, params=filters)
-    if content is not None and not is_file:
-        content = json.loads(content)['entityData']
-    return content
+    return _request_sam_api(url, request_type='post', headers=headers, params=filters)
 
 
 def request_sam_iqaas_uei_api(filters):
@@ -667,11 +663,7 @@ def request_sam_iqaas_uei_api(filters):
     if not filters:
         filters = {}
     params.update(filters)
-    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['uei_iqaas_api_url'], request_type='get', params=params)
-    entity_data = []
-    if content is not None:
-        entity_data = json.loads(content)['entityData']
-    return entity_data
+    return _request_sam_api(CONFIG_BROKER['sam']['duns']['uei_iqaas_api_url'], request_type='get', params=params)
 
 
 def request_sam_extracts_api(root_dir, file_name):
@@ -816,7 +808,9 @@ def get_sam_props(api='entity', **kwargs):
         raise ValueError('APIs available are \'entity\' or \'iqaas\'')
 
     sam_props = []
-    for sam_obj in request_api_method(filters):
+
+
+    for sam_obj in json.loads(request_api_method(filters))['entityData']:
         sam_props_dict = {}
         for sam_prop_path, sam_props_name in sam_props_mappings.items():
             nested_obj = sam_obj
