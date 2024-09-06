@@ -266,9 +266,9 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
         resp = request_sam_entity_api(filters)
         download_url_regex = re.search(r'^.*(https\S+)\?token=(\S+)\s+.*$', str(resp.content))
         download_url, token = download_url_regex.group(1), download_url_regex.group(2)
-        filters = {'token': token}
 
         file_content = None
+        filters = {'token': token}
         # Generally for a full dump, it takes at most two minutes.
         while not file_content:
             file_content = request_sam_entity_api(filters, download_url=download_url)
@@ -277,7 +277,8 @@ def download_sam_file(root_dir, file_name, api='extract', **filters):
             time.sleep(10)
 
         # get the generated download
-        open(local_sam_file, 'wb+').write(file_content)
+        with open(local_sam_file, 'wb+') as sam_gz:
+            sam_gz.write(file_content)
     else:
         s3_client = boto3.client('s3', region_name='us-gov-west-1')
         reverse_map = {v: k for k, v in DATA_TYPES.items()}
