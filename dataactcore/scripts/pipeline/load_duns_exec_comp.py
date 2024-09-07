@@ -191,7 +191,7 @@ def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, r
         for daily_api_v2_date in daily_v2_api_dates:
             try:
                 process_sam_extract_file(data_type, 'DAILY', 'v2', daily_api_v2_date, sess, local=local,
-                                         api='extracts', metrics=metrics)
+                                         api='extract', metrics=metrics)
             except requests.exceptions.HTTPError as e:
                 if is_nonexistent_file_error(e):
                     logger.warning('No file found for {}, continuing'.format(daily_api_v2_date))
