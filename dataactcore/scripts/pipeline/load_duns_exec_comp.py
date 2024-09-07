@@ -9,14 +9,11 @@ import re
 import requests
 import tempfile
 
-from datetime import timedelta
-
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
-from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered, ExternalDataLoadDate
-from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
+from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
 from dataactcore.utils.sam_recipient import (is_nonexistent_file_error, load_unregistered_recipients,
                                              parse_sam_recipient_file, parse_exec_comp_file, request_sam_extracts_api,
                                              update_missing_parent_names, update_sam_recipient, request_sam_entity_api)
