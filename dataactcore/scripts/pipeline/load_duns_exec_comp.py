@@ -55,18 +55,19 @@ def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=No
             'unregistered_updated': 0,
         }
 
+    # TODO: When SAM Entity API supports both 'samRegistered' and 'updateDate', revisit this.
     # determine which daily files to load in by setting the start load date
-    if historic:
-        load_date = None
-    elif reload_date:
-        load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d').date()
-    else:
-        # Load from the day before the last load date
-        load_date = sess.query(ExternalDataLoadDate.last_load_date_start).\
-            filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['recipient']).one_or_none()
-        if not load_date:
-            raise Exception('No external load date for recipients found.')
-        load_date = load_date[0] - timedelta(days=1)
+    # if historic:
+    #     load_date = None
+    # elif reload_date:
+    #     load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d').date()
+    # else:
+    #     # Load from the day before the last load date
+    #     load_date = sess.query(ExternalDataLoadDate.last_load_date_start).\
+    #         filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['recipient']).one_or_none()
+    #     if not load_date:
+    #         raise Exception('No external load date for recipients found.')
+    #     load_date = load_date[0] - timedelta(days=1)
 
     # Prepare the filters - we only want unregistered entities from this API
     filters = {'samRegistered': 'No'}
@@ -385,7 +386,8 @@ if __name__ == '__main__':
             update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         if data_type in ('unregistered', 'all'):
             start_time = datetime.datetime.now()
-            load_from_sam_entity_api(sess, historic, local, metrics=metrics, reload_date=reload_date)
+            # TODO: Always setting historic to True for unregistered. Update when we can support daily files.
+            load_from_sam_entity_api(sess, True, local, metrics=metrics, reload_date=reload_date)
             update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         sess.close()
 
