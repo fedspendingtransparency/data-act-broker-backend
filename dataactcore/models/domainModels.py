@@ -416,7 +416,7 @@ class SAMRecipientUnregistered(Base):
     __tablename__ = "sam_recipient_unregistered"
 
     sam_recipient_unreg_id = Column(Integer, primary_key=True)
-    uei = Column(Text, index=True)
+    uei = Column(Text, unique=True, index=True)
     legal_business_name = Column(Text)
     address_line_1 = Column(Text)
     address_line_2 = Column(Text)

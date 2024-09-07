@@ -34,7 +34,7 @@ def upgrade_data_broker():
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('sam_recipient_unreg_id', sa.Integer(), nullable=False),
-    sa.Column('uei', sa.Text(), nullable=True),
+    sa.Column('uei', sa.Text(), nullable=True, unique=True),
     sa.Column('legal_business_name', sa.Text(), nullable=True),
     sa.Column('address_line_1', sa.Text(), nullable=True),
     sa.Column('address_line_2', sa.Text(), nullable=True),
