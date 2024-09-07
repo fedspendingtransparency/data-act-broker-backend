@@ -50,7 +50,10 @@ def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=No
             reload_date: specific date to force reload from (default: None, or the day before the last load)
     """
     if not metrics:
-        metrics = {}
+        metrics = {
+            'unregistered_added': 0,
+            'unregistered_updated': 0,
+        }
 
     # determine which daily files to load in by setting the start load date
     if historic:
