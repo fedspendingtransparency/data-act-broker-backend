@@ -1,7 +1,8 @@
 -- When ActionDate is after October 1, 2010 and ActionType = A, AwardeeOrRecipientUEI should (when provided)
 -- have an active registration in SAM as of the ActionDate, unless, when ActionDate is after October 1, 2024,
 -- LegalEntityCountryCode is a foreign country.
-WITH fabs31_5_{0} AS
+-- This is a warning because CorrectionDeleteIndicator is C and the action date is before January 1, 2017.
+WITH fabs31_6_{0} AS
     (SELECT
         row_number,
         action_date,
@@ -20,7 +21,7 @@ WITH fabs31_5_{0} AS
         AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'),
 active_recipient_{0} AS
     (SELECT *
-    FROM fabs31_5_{0} AS fabs
+    FROM fabs31_6_{0} AS fabs
     WHERE NOT EXISTS (
         SELECT 1
         FROM sam_recipient
@@ -51,8 +52,7 @@ SELECT
     uei,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM special_exception_{0} AS fabs
-WHERE NOT (
-          (CASE WHEN is_date(COALESCE(action_date, '0'))
-           THEN CAST(action_date AS DATE)
-           END) < CAST('01/01/2017' AS DATE)
-           AND UPPER(COALESCE(correction_delete_indicatr, '')) = 'C');
+WHERE (CASE WHEN is_date(COALESCE(action_date, '0'))
+       THEN CAST(action_date AS DATE)
+       END) < CAST('01/01/2017' AS DATE)
+       AND UPPER(COALESCE(correction_delete_indicatr, '')) = 'C';
