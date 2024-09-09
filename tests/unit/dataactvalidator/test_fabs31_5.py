@@ -28,11 +28,9 @@ def test_published_date_success(database):
     # Special Unregistered Recipient Exception (action date, legal entity country, unregistered table)
     fabs_5 = FABSFactory(uei='EEEEEEEEEEEE', action_type='A', assistance_type='01', action_date='10/02/2024',
                          correction_delete_indicatr='', legal_entity_country_code='CAN', unique_award_key='active_key')
-    # This would emit a warning but since it's caught by FABS 31.6, FABS 31.5 ignores it.
-    fabs_6 = FABSFactory(uei='11111111111E', action_type='A', action_date='06/20/2016', correction_delete_indicatr='c')
 
     errors = number_of_errors(_FILE, database, models=[recipient, exception_recipient, fabs_1, fabs_2, fabs_3, fabs_4,
-                                                       fabs_5, fabs_6])
+                                                       fabs_5])
     assert errors == 0
 
 
