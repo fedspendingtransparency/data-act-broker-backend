@@ -51,6 +51,7 @@ SELECT
     row_number,
     action_date,
     action_type,
+    legal_entity_country_code,
     uei,
     federal_action_obligation,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"

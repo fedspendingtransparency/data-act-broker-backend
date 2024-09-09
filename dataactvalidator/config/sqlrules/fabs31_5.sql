@@ -48,6 +48,7 @@ SELECT
     row_number,
     action_date,
     action_type,
+    legal_entity_country_code,
     uei,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM special_exception_{0} AS fabs
