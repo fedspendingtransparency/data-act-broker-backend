@@ -13,9 +13,9 @@ def test_delete_user(database):
     database.session.add_all([user_to_be_deleted, other_user])
     database.session.commit()
     # Create two submissions for this user and one for a different user
-    sub_one = SubmissionFactory(user_id=user_to_be_deleted.user_id)
-    sub_two = SubmissionFactory(user_id=user_to_be_deleted.user_id)
-    other_sub = SubmissionFactory(user_id=other_user.user_id)
+    sub_one = SubmissionFactory(submission_id=1, user_id=user_to_be_deleted.user_id)
+    sub_two = SubmissionFactory(submission_id=2, user_id=user_to_be_deleted.user_id)
+    other_sub = SubmissionFactory(submission_id=3, user_id=other_user.user_id)
     database.session.add_all([sub_one, sub_two, other_sub])
     database.session.commit()
     # Delete a user
