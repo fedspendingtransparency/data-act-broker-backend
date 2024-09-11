@@ -421,6 +421,23 @@ class SAMRecipientFactory(factory.Factory):
     last_exec_comp_mod_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
 
 
+class SAMRecipientUnregisteredFactory(factory.Factory):
+    class Meta:
+        model = domainModels.SAMRecipientUnregistered
+
+    sam_recipient_unreg_id = None
+    uei = fuzzy.FuzzyText()
+    legal_business_name = fuzzy.FuzzyText()
+    address_line_1 = fuzzy.FuzzyText()
+    address_line_2 = fuzzy.FuzzyText()
+    city = fuzzy.FuzzyText()
+    state = fuzzy.FuzzyText()
+    zip = fuzzy.FuzzyText()
+    zip4 = fuzzy.FuzzyText()
+    country_code = fuzzy.FuzzyText()
+    congressional_district = fuzzy.FuzzyText()
+
+
 class StateCongressionalFactory(factory.Factory):
     class Meta:
         model = domainModels.StateCongressional
