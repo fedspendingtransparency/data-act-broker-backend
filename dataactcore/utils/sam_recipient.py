@@ -13,13 +13,14 @@ from sqlalchemy import and_, func
 from ratelimit import limits, sleep_and_retry
 from backoff import on_exception, expo
 
+from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
-from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
-from dataactcore.utils.loader_utils import clean_data, trim_item, insert_dataframe
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
+from dataactcore.utils.loader_utils import clean_data, trim_item, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -779,8 +780,7 @@ def load_unregistered_recipients(sess, df, skip_updates=False, metrics=None):
         updated_count = existing_unreg.delete()
         metrics['unregistered_updated'] += updated_count
 
-    # TODO: Replace get_utc_now
-    df['created_at'] = df['updated_at'] = datetime.datetime.utcnow()
+    df['created_at'] = df['updated_at'] = get_utc_now()
     insert_dataframe(df, SAMRecipientUnregistered.__table__.name, sess.connection())
     sess.commit()
     metrics['unregistered_added'] += len(df.index) - updated_count

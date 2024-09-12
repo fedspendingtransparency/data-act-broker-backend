@@ -36,15 +36,13 @@ S3_ARCHIVE = CONFIG_BROKER['sam']['duns']['csv_archive_bucket']
 S3_ARCHIVE_PATH = '{data_type}/{version}/{file_name}'
 
 
-def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=None):
+def load_from_sam_entity_api(sess, local, metrics=None):
     """ Process the script arguments to figure out which data to process from the SAM entity API
 
         Args:
             sess: the database connection
-            historic: whether to load all data or just update
             local: path to local directory to process, if None, it will go though the remote SAM service
             metrics: dictionary representing metrics data for the load
-            reload_date: specific date to force reload from (default: None, or the day before the last load)
     """
     if not metrics:
         metrics = {
@@ -52,52 +50,30 @@ def load_from_sam_entity_api(sess, historic, local, metrics=None, reload_date=No
             'unregistered_updated': 0,
         }
 
-    # TODO: When SAM Entity API supports both 'samRegistered' and 'updateDate', revisit this.
-    # determine which daily files to load in by setting the start load date
-    # if historic:
-    #     load_date = None
-    # elif reload_date:
-    #     load_date = datetime.datetime.strptime(reload_date, '%Y-%m-%d').date()
-    # else:
-    #     # Load from the day before the last load date
-    #     load_date = sess.query(ExternalDataLoadDate.last_load_date_start).\
-    #         filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['recipient']).one_or_none()
-    #     if not load_date:
-    #         raise Exception('No external load date for recipients found.')
-    #     load_date = load_date[0] - timedelta(days=1)
-
     # Prepare the filters - we only want unregistered entities from this API
     filters = {'samRegistered': 'No'}
-    # TODO: When SAM Entity API supports both 'samRegistered' and 'updateDate', revisit this.
-    # filters['updateDate'] = (f'[{load_date.strftime('%m/%d/%Y')}, '
-    #                          f'{datetime.datetime.today().date().strftime('%m/%d/%Y')}]')
 
-    if historic:
-        csv_dir = local if local else os.getcwd()
-        api_csv_zip = os.path.join(csv_dir, f'{SAM_ENTITY_API_FILE_NAME}.gz')
-        if not local:
-            download_sam_file(csv_dir, api_csv_zip, api='entity', **filters)
-        if not api_csv_zip:
-            raise FileNotFoundError(fr'Missing file: {api_csv_zip}')
+    csv_dir = local if local else os.getcwd()
+    api_csv_zip = os.path.join(csv_dir, f'{SAM_ENTITY_API_FILE_NAME}.gz')
+    if not local:
+        download_sam_file(csv_dir, api_csv_zip, api='entity', **filters)
+    if not api_csv_zip:
+        raise FileNotFoundError(fr'Missing file: {api_csv_zip}')
 
-        logger.info('Truncating sam_recipient_unregistered for a full reload.')
-        sess.query(SAMRecipientUnregistered).delete()
-        index = 0
-        chunk_size = CONFIG_BROKER['validator_batch_size']
-        with pd.read_csv(api_csv_zip, compression='gzip', chunksize=chunk_size) as reader:
-            logger.info('Starting ingestion of sam entity api csv.')
-            for chunk_df in reader:
-                logger.info(f'Processing chunk {index}-{index + chunk_size}.')
-                load_unregistered_recipients(sess, chunk_df, metrics=metrics, skip_updates=True)
-                index += chunk_size
-        logger.info(f"Loaded {metrics['unregistered_added']} unregistered entities"
-                    f" and updated {metrics['unregistered_updated']}.")
-        if not local:
-            os.remove(api_csv_zip)
-    else:
-        # TODO: When SAM Entity API supports both 'samRegistered' and 'updateDate', revisit this for daily loads.
-        logger.info("Loading unregistered entities from the API on a daily basis is not supported.")
-        return
+    logger.info('Truncating sam_recipient_unregistered for a full reload.')
+    sess.query(SAMRecipientUnregistered).delete()
+    index = 0
+    chunk_size = CONFIG_BROKER['validator_batch_size']
+    with pd.read_csv(api_csv_zip, compression='gzip', chunksize=chunk_size) as reader:
+        logger.info('Starting ingestion of sam entity api csv.')
+        for chunk_df in reader:
+            logger.info(f'Processing chunk {index}-{index + chunk_size}.')
+            load_unregistered_recipients(sess, chunk_df, metrics=metrics, skip_updates=True)
+            index += chunk_size
+    logger.info(f"Loaded {metrics['unregistered_added']} unregistered entities"
+                f" and updated {metrics['unregistered_updated']}.")
+    if not local:
+        os.remove(api_csv_zip)
 
 
 def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, reload_date=None):
@@ -383,8 +359,7 @@ if __name__ == '__main__':
             update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         if data_type in ('unregistered', 'all'):
             start_time = datetime.datetime.now()
-            # TODO: Always setting historic to True for unregistered. Update when we can support daily files.
-            load_from_sam_entity_api(sess, True, local, metrics=metrics, reload_date=reload_date)
+            load_from_sam_entity_api(sess, local, metrics=metrics)
             update_external_data_load_date(start_time, datetime.datetime.now(), 'executive_compensation')
         sess.close()
 
