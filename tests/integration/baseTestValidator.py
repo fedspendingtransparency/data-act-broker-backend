@@ -9,7 +9,7 @@ from webtest import TestApp
 from dataactcore.broker_logging import configure_logging
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import create_user_with_password
+from dataactcore.interfaces.function_bag import create_user_with_password, get_utc_now
 from dataactcore.scripts.setup.database_setup import drop_database
 from dataactcore.scripts.setup.setup_job_tracker_db import setup_job_tracker_db
 from dataactcore.scripts.setup.setup_error_db import setup_error_db
@@ -110,7 +110,7 @@ class BaseTestValidator(unittest.TestCase):
         else:
             reporting_start_date = reporting_end_date - timedelta(days=30)
         sub = Submission(
-            created_at=datetime.utcnow(),
+            created_at=get_utc_now(),
             user_id=user_id,
             reporting_start_date=reporting_start_date,
             reporting_end_date=reporting_end_date)

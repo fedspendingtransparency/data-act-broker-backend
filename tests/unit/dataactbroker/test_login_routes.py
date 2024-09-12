@@ -17,12 +17,12 @@ MAX_RESPONSE_NO_PERMS = {
     "cas:serviceResponse": {
         "cas:authenticationSuccess": {
             "cas:attributes": {
-                'maxAttribute:MAX-ID': "s_something",
-                "maxAttribute:Email-Address": "something@test.com",
-                'maxAttribute:GroupList': None,
-                'maxAttribute:First-Name': "Bob",
-                'maxAttribute:Last-Name': "Jones",
-                'maxAttribute:Middle-Name': None
+                'cas:MAX-ID': "s_something",
+                "cas:Email-Address": "something@test.com",
+                'cas:GroupList': None,
+                'cas:First-Name': "Bob",
+                'cas:Last-Name': "Jones",
+                'cas:Middle-Name': None
             }
         }
     }
@@ -32,12 +32,12 @@ MAX_RESPONSE_W_PERMS = {
     "cas:serviceResponse": {
         "cas:authenticationSuccess": {
             "cas:attributes": {
-                'maxAttribute:MAX-ID': "s_something",
-                "maxAttribute:Email-Address": "something@test.com",
-                'maxAttribute:GroupList': "test_CGAC_hello",
-                'maxAttribute:First-Name': "Bob",
-                'maxAttribute:Last-Name': "Jones",
-                'maxAttribute:Middle-Name': None
+                'cas:MAX-ID': "s_something",
+                "cas:Email-Address": "something@test.com",
+                'cas:GroupList': "test_CGAC_hello",
+                'cas:First-Name': "Bob",
+                'cas:Last-Name': "Jones",
+                'cas:Middle-Name': None
             }
         }
     }

@@ -14,7 +14,7 @@ from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.sam_recipient import update_sam_props, LOAD_BATCH_SIZE, update_sam_recipient
+from dataactcore.utils.sam_recipient import update_existing_recipients, LOAD_BATCH_SIZE, update_sam_recipient
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def run_sam_batches(file, sess, block_size=LOAD_BATCH_SIZE):
             start = datetime.now()
 
             # get address info for incoming recipients
-            recps_to_load = update_sam_props(recps_to_load)
+            recps_to_load = update_existing_recipients(recps_to_load)
             column_mappings = {col: col for col in recps_to_load.columns}
             recps_to_load = clean_data(recps_to_load, HistoricDUNS, column_mappings, {})
             recipients_added += len(recps_to_load.index)
@@ -106,7 +106,7 @@ def reload_from_sam(sess):
     for sam_batch in batch(historic_recps_to_update, LOAD_BATCH_SIZE):
         df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
         df = df.append(sam_batch)
-        df = update_sam_props(df)
+        df = update_existing_recipients(df)
         update_sam_recipient(sess, df, table_name=HistoricDUNS.__table__.name)
 
 

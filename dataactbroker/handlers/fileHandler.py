@@ -31,7 +31,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (create_jobs, mark_job_status, get_time_period, filename_fyp_sub_format,
-                                                 get_timestamp)
+                                                 get_timestamp, get_utc_now)
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
@@ -318,7 +318,7 @@ class FileHandler:
                             'ext': '.csv'
                         })
                     if ext_file_type == 'A':
-                        curr_date = datetime.utcnow()
+                        curr_date = get_utc_now()
                         fillin_vals.update({
                             'raw_filename': 'Broker{}'.format(curr_date.strftime('%Y%m%d')),
                             'ext': '.csv'
@@ -697,7 +697,7 @@ class FileHandler:
 
         # set publish_status to "publishing"
         sess.query(Submission).filter_by(submission_id=submission_id).\
-            update({'publish_status_id': PUBLISH_STATUS_DICT['publishing'], 'updated_at': datetime.utcnow()},
+            update({'publish_status_id': PUBLISH_STATUS_DICT['publishing'], 'updated_at': get_utc_now()},
                    synchronize_session=False)
         sess.commit()
 
@@ -946,7 +946,7 @@ class FileHandler:
             sess.rollback()
 
             sess.query(Submission).filter_by(submission_id=submission_id). \
-                update({'publish_status_id': PUBLISH_STATUS_DICT['unpublished'], 'updated_at': datetime.utcnow()},
+                update({'publish_status_id': PUBLISH_STATUS_DICT['unpublished'], 'updated_at': get_utc_now()},
                        synchronize_session=False)
             sess.commit()
 
@@ -960,7 +960,7 @@ class FileHandler:
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({'publish_status_id': PUBLISH_STATUS_DICT['published'], 'publishing_user_id': g.user.user_id,
-                    'updated_at': datetime.utcnow()}, synchronize_session=False)
+                    'updated_at': get_utc_now()}, synchronize_session=False)
 
         # create the publish_history and certify_history entries
         publish_history = PublishHistory(user_id=g.user.user_id, submission_id=submission_id)
@@ -977,7 +977,7 @@ class FileHandler:
         FileHandler.move_published_files(FileHandler, submission, publish_history, certify_history.certify_history_id,
                                          g.is_local)
 
-        publish_history.updated_at = datetime.utcnow()
+        publish_history.updated_at = get_utc_now()
         sess.commit()
 
         response_dict = {'submission_id': submission_id}
