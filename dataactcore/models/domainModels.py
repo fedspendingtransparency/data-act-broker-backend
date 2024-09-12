@@ -239,6 +239,8 @@ class Office(Base):
     office_name = Column(Text)
     sub_tier_code = Column(Text, nullable=False, index=True)
     agency_code = Column(Text, nullable=False, index=True)
+    effective_start_date = Column(Date, index=True)
+    effective_end_date = Column(Date, index=True)
     contract_awards_office = Column(Boolean, nullable=False, default=False, server_default="False")
     contract_funding_office = Column(Boolean, nullable=False, default=False, server_default="False")
     financial_assistance_awards_office = Column(Boolean, nullable=False, default=False, server_default="False")
@@ -326,6 +328,30 @@ Index("ix_pa_tas_pa",
       unique=True)
 
 
+class ProgramActivityPARK(Base):
+    __tablename__ = "program_activity_park"
+    program_activity_park_id = Column(Integer, primary_key=True)
+    fiscal_year = Column(Integer, nullable=False, index=True)
+    period = Column(Integer, nullable=False, index=True)
+    agency_id = Column(Text, nullable=False, index=True)
+    allocation_transfer_id = Column(Text, index=True)
+    main_account_number = Column(Text, nullable=False, index=True)
+    sub_account_number = Column(Text, index=True)
+    park_code = Column(Text, nullable=False, index=True)
+    park_name = Column(Text, nullable=False)
+
+
+Index("ix_pap_tas_park",
+      ProgramActivityPARK.fiscal_year,
+      ProgramActivityPARK.period,
+      ProgramActivityPARK.agency_id,
+      ProgramActivityPARK.allocation_transfer_id,
+      ProgramActivityPARK.main_account_number,
+      ProgramActivityPARK.sub_account_number,
+      ProgramActivityPARK.park_code,
+      unique=True)
+
+
 class CountryCode(Base):
     __tablename__ = "country_code"
     country_code_id = Column(Integer, primary_key=True)
@@ -383,6 +409,26 @@ class SAMRecipient(Base):
 
 Index("ix_sam_recipient_uei_upper", sa.func.upper(SAMRecipient.uei))
 Index("ix_sam_activation_desc", SAMRecipient.activation_date.desc())
+
+
+class SAMRecipientUnregistered(Base):
+    """ DUNS Records """
+    __tablename__ = "sam_recipient_unregistered"
+
+    sam_recipient_unreg_id = Column(Integer, primary_key=True)
+    uei = Column(Text, unique=True, index=True)
+    legal_business_name = Column(Text)
+    address_line_1 = Column(Text)
+    address_line_2 = Column(Text)
+    city = Column(Text)
+    state = Column(Text)
+    zip = Column(Text)
+    zip4 = Column(Text)
+    country_code = Column(Text)
+    congressional_district = Column(Text)
+
+
+Index("ix_sam_unreg_uei_upper", sa.func.upper(SAMRecipientUnregistered.uei))
 
 
 class HistoricDUNS(Base):

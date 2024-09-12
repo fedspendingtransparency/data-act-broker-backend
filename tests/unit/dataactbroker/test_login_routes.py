@@ -17,12 +17,12 @@ MAX_RESPONSE_NO_PERMS = {
     "cas:serviceResponse": {
         "cas:authenticationSuccess": {
             "cas:attributes": {
-                'maxAttribute:MAX-ID': "s_something",
-                "maxAttribute:Email-Address": "something@test.com",
-                'maxAttribute:GroupList': None,
-                'maxAttribute:First-Name': "Bob",
-                'maxAttribute:Last-Name': "Jones",
-                'maxAttribute:Middle-Name': None
+                'cas:MAX-ID': "s_something",
+                "cas:Email-Address": "something@test.com",
+                'cas:GroupList': None,
+                'cas:First-Name': "Bob",
+                'cas:Last-Name': "Jones",
+                'cas:Middle-Name': None
             }
         }
     }
@@ -32,12 +32,12 @@ MAX_RESPONSE_W_PERMS = {
     "cas:serviceResponse": {
         "cas:authenticationSuccess": {
             "cas:attributes": {
-                'maxAttribute:MAX-ID': "s_something",
-                "maxAttribute:Email-Address": "something@test.com",
-                'maxAttribute:GroupList': "test_CGAC_hello",
-                'maxAttribute:First-Name': "Bob",
-                'maxAttribute:Last-Name': "Jones",
-                'maxAttribute:Middle-Name': None
+                'cas:MAX-ID': "s_something",
+                "cas:Email-Address": "something@test.com",
+                'cas:GroupList': "test_CGAC_hello",
+                'cas:First-Name': "Bob",
+                'cas:Last-Name': "Jones",
+                'cas:Middle-Name': None
             }
         }
     }
@@ -146,7 +146,7 @@ def test_proxy_login_invalid_user(create_session_mock, monkeypatch, database):
     sess.query(User).filter(func.lower(User.email) == func.lower("test-user@email.com"))\
         .delete(synchronize_session=False)
 
-    assert response['message'] == "Invalid email"
+    assert response['message'] == "Invalid user"
 
 
 @patch('dataactbroker.handlers.account_handler.AccountHandler.create_session_and_response')
@@ -185,7 +185,7 @@ def caia_login_func(create_session_mock, revoke_caia_mock, caia_token_mock, caia
 
 def proxy_login_func(create_session_mock, monkeypatch, token):
     def json_return():
-        return {"email": "test-user@email.com", "token": token}
+        return {"email": "test-user@email.com", "roles": "[role:CGAC-011-R, role:CGAC-011-F]", "token": token}
     request = type('Request', (object,), {"is_json": True, "headers": {"Content-Type": "application/json"},
                                           "get_json": json_return})
     ah = account_handler.AccountHandler(request=request)

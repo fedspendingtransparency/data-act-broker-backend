@@ -4,7 +4,7 @@ import pytest
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.scripts.pipeline import load_duns_exec_comp
-from dataactcore.models.domainModels import SAMRecipient
+from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
 
 
 def test_load_duns(database):
@@ -12,7 +12,7 @@ def test_load_duns(database):
     sess = database.session
     duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
 
-    load_duns_exec_comp.load_from_sam('DUNS', sess, True, duns_dir)
+    load_duns_exec_comp.load_from_sam_extract('DUNS', sess, True, duns_dir)
 
     # update if the fake DUNS file name/zip changes
     deactivation_date = '2021-02-07'
@@ -225,7 +225,7 @@ def test_load_duns(database):
     # Fail if provided a record with unmatching DUNS and UEI
     error_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'error_files')
     with pytest.raises(ValueError) as resp_except:
-        load_duns_exec_comp.load_from_sam('DUNS', sess, True, error_dir)
+        load_duns_exec_comp.load_from_sam_extract('DUNS', sess, True, error_dir)
     expected_error_recps = ['000000001/A1', '000000002/B2']
     assert str(resp_except.value).startswith('Unable to add/update sam data. '
                                              'A record matched on more than one recipient')
@@ -239,8 +239,8 @@ def test_load_exec_comp(database):
     duns_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'duns')
     exec_comp_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files', 'exec_comp')
 
-    load_duns_exec_comp.load_from_sam('DUNS', sess, True, duns_dir)
-    load_duns_exec_comp.load_from_sam('Executive Compensation', sess, True, exec_comp_dir, None)
+    load_duns_exec_comp.load_from_sam_extract('DUNS', sess, True, duns_dir)
+    load_duns_exec_comp.load_from_sam_extract('Executive Compensation', sess, True, exec_comp_dir, None)
 
     monthly_last_exec_date = datetime.date(2017, 9, 30)
     first_daily_exec_date = datetime.date(2019, 3, 29)
@@ -370,3 +370,79 @@ def test_load_exec_comp(database):
             'last_exec_comp_mod_date': recipient_obj.last_exec_comp_mod_date
         }
     assert uei_results == expected_uei_results
+
+
+def test_load_unregistered_entities(database):
+    """ Test a local run load unregistered_entities with the test files """
+    sess = database.session
+    entity_csv_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files',
+                                  'unregistered_entity')
+
+    load_duns_exec_comp.load_from_sam_entity_api(sess, entity_csv_dir)
+    expected_results = {
+        'UEI000000001': {
+            "uei": "UEI000000001",
+            "legal_business_name": "TEST UNREGISTERED ENTITY 1",
+            "address_line_1": "TEST ADDRESS 1",
+            "address_line_2": None,
+            "city": "ROSHARON",
+            "state": "TX",
+            "zip": "77583",
+            "zip4": "6527",
+            "country_code": "USA",
+            "congressional_district": None,
+        },
+        'UEI000000002': {
+            "uei": "UEI000000002",
+            "legal_business_name": "TEST UNREGISTERED ENTITY 2",
+            "address_line_1": "TEST ADDRESS 2",
+            "address_line_2": "TEST ADDRESS 2-2",
+            "city": "MEDFORD",
+            "state": "OR",
+            "zip": "97504",
+            "zip4": "2905",
+            "country_code": "BGD",
+            "congressional_district": None,
+        },
+        'UEI000000003': {
+            "uei": "UEI000000003",
+            "legal_business_name": "TEST UNREGISTERED ENTITY 3",
+            "address_line_1": "TEST ADDRESS 3",
+            "address_line_2": None,
+            "city": "Capitola",
+            "state": "CA",
+            "zip": "95010",
+            "zip4": "2645",
+            "country_code": "USA",
+            "congressional_district": None,
+        },
+        'UEI000000004': {
+            "uei": "UEI000000004",
+            "legal_business_name": "TEST UNREGISTERED ENTITY 4",
+            "address_line_1": "TEST ADDRESS 4",
+            "address_line_2": "TEST ADDRESS 4-2",
+            "city": "SUMMERVILLE",
+            "state": "SC",
+            "zip": "29483",
+            "zip4": "3470",
+            "country_code": "CAN",
+            "congressional_district": None,
+        },
+    }
+
+    # Get UEI results
+    results = {}
+    for recipient_obj in sess.query(SAMRecipientUnregistered).all():
+        results[recipient_obj.uei] = {
+            "uei": recipient_obj.uei,
+            "legal_business_name": recipient_obj.legal_business_name,
+            "address_line_1": recipient_obj.address_line_1,
+            "address_line_2": recipient_obj.address_line_2,
+            "city": recipient_obj.city,
+            "state": recipient_obj.state,
+            "zip": recipient_obj.zip,
+            "zip4": recipient_obj.zip4,
+            "country_code": recipient_obj.country_code,
+            "congressional_district": recipient_obj.congressional_district,
+        }
+    assert results == expected_results

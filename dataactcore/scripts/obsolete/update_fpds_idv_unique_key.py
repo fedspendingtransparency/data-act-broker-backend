@@ -5,6 +5,7 @@ import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 
@@ -57,7 +58,7 @@ def write_idvs_to_file():
     all_idvs = sess.query(DetachedAwardProcurement.detached_award_procurement_id,
                           DetachedAwardProcurement.detached_award_proc_unique).filter_by(pulled_from="IDV")
     now = datetime.datetime.now()
-    seconds = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds())
+    seconds = int((get_utc_now() - datetime.datetime(1970, 1, 1)).total_seconds())
     file_name = now.strftime('%m-%d-%Y') + "_delete_records_IDV_" + str(seconds) + ".csv"
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
     # Writing files
@@ -97,7 +98,7 @@ def delete_duplicate_idvs():
 def update_unique_keys():
     """ Update the detached_award_proc_unique key for IDV records """
     start = time.time()
-    now = datetime.datetime.utcnow()
+    now = get_utc_now()
     logger.info("Updating existing FPDS IDV records to have the proper unique key")
     sess.execute(FPDS_UNIQUE_KEY_UPDATE_SQL.format(now.strftime('%m/%d/%Y %H:%M:%S')))
     sess.commit()

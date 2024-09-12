@@ -4,6 +4,7 @@ import time
 import json
 import zipfile
 import datetime
+
 import requests
 import numpy as np
 import pandas as pd
@@ -12,17 +13,42 @@ from sqlalchemy import and_, func
 from ratelimit import limits, sleep_and_retry
 from backoff import on_exception, expo
 
-from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.domainModels import SAMRecipient
 from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
-from dataactcore.utils.loader_utils import clean_data, trim_item, insert_dataframe
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
+from dataactcore.utils.loader_utils import clean_data, trim_item, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
 SAM_COLUMNS = [col.key for col in SAMRecipient.__table__.columns]
+SAM_ENTITY_MAPPINGS = {
+    'entityRegistration.ueiDUNS': 'awardee_or_recipient_uniqu',
+    'entityRegistration.ueiSAM': 'uei',
+    'entityRegistration.legalBusinessName': 'legal_business_name',
+    'entityRegistration.dbaName': 'dba_name',
+    'coreData.generalInformation.entityStructureCode': 'entity_structure',
+    'coreData.entityHierarchyInformation.ultimateParentEntity.ueiDUNS': 'ultimate_parent_unique_ide',
+    'coreData.entityHierarchyInformation.ultimateParentEntity.ueiSAM': 'ultimate_parent_uei',
+    'coreData.entityHierarchyInformation.ultimateParentEntity.legalBusinessName': 'ultimate_parent_legal_enti',
+    'coreData.physicalAddress.addressLine1': 'address_line_1',
+    'coreData.physicalAddress.addressLine2': 'address_line_2',
+    'coreData.physicalAddress.city': 'city',
+    'coreData.physicalAddress.stateOrProvinceCode': 'state',
+    'coreData.physicalAddress.zipCode': 'zip',
+    'coreData.physicalAddress.zipCodePlus4': 'zip4',
+    'coreData.physicalAddress.countryCode': 'country_code',
+    'coreData.congressionalDistrict.congressionalDistrict': 'congressional_district',
+    'coreData.businessTypes.businessTypeList': 'business_types_codes',
+    'coreData.executiveCompensationInformation': 'executive_comp_data'
+}
+SAM_IQAAS_MAPPINGS = {
+    'ueiDUNS': 'awardee_or_recipient_uniqu',
+    'ueiSAM': 'uei'
+}
 EXCLUDE_FROM_API = ['registration_date', 'expiration_date', 'last_sam_mod_date', 'activation_date',
                     'legal_business_name', 'historic', 'created_at', 'updated_at', 'sam_recipient_id',
                     'deactivation_date', 'last_exec_comp_mod_date']
@@ -601,57 +627,47 @@ def update_missing_parent_names(sess, updated_date=None):
     return total_updated_count
 
 
-def request_sam_entity_api(key_list, includes_uei=True):
-    """ Calls the SAM entity API to retrieve SAM data by the keys provided.
+def request_sam_entity_api(filters, download_url=None):
+    """ Calls the SAM entity API to retrieve SAM data by the filters
 
         Args:
-            key_list: list of keys to search
-            includes_uei: whether the key is a UEI (True) or DUNS (False)
+            filters: dict of filters to search
+            download_url: the generated download_url sent by a previous request (for csvs)
 
         Returns:
-            json list of SAM objects representing entities
+            json list of SAM objects representing entities,
+            OR binary stream to be saved to a file
     """
-    key_type = 'sam' if includes_uei else 'duns'
-    params = {
-        'sensitivity': 'fouo',
-        'uei{}'.format(key_type.upper()): '[{}]'.format('~'.join(key_list))
-    }
     headers = {
         'x-api-key': CONFIG_BROKER['sam']['api_key'],
-        'Accept': 'application/json',
+        'Accept': 'application/zip' if download_url else 'application/json',
         'Content-Type': 'application/json'
     }
-    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['entity_api_url'], request_type='post', headers=headers,
-                               params=params)
-    entity_data = []
-    if content is not None:
-        entity_data = json.loads(content)['entityData']
-    return entity_data
+    if not filters:
+        filters = {}
+    url = download_url if download_url else CONFIG_BROKER['sam']['duns']['entity_api_url']
+    return _request_sam_api(url, request_type='post', headers=headers, params=filters)
 
 
-def request_sam_iqaas_uei_api(key_list, includes_uei=True):
+def request_sam_iqaas_uei_api(filters):
     """ Calls the SAM IQaaS API to retrieve SAM UEI data by the keys provided.
 
         Args:
-            key_list: list of keys to search
-            includes_uei: whether the key is a UEI (True) or DUNS (False)
+            filters: dict of filters to search
 
         Returns:
             json list of SAM objects representing entities
     """
-    key_type = 'sam' if includes_uei else 'duns'
     params = {
-        'uei{}'.format(key_type.upper()): '{}'.format(','.join(key_list)),
         'api_key': CONFIG_BROKER['sam']['api_key']
     }
-    content = _request_sam_api(CONFIG_BROKER['sam']['duns']['uei_iqaas_api_url'], request_type='get', params=params)
-    entity_data = []
-    if content is not None:
-        entity_data = json.loads(content)['entityData']
-    return entity_data
+    if not filters:
+        filters = {}
+    params.update(filters)
+    return _request_sam_api(CONFIG_BROKER['sam']['duns']['uei_iqaas_api_url'], request_type='get', params=params)
 
 
-def request_sam_csv_api(root_dir, file_name):
+def request_sam_extracts_api(root_dir, file_name):
     """ Downloads the requested csv from the SAM CSV API
 
         Args:
@@ -668,9 +684,9 @@ def request_sam_csv_api(root_dir, file_name):
         'Accept': 'application/zip',
         'Content-Type': 'application/json'
     }
-    file_content = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], request_type='get', headers=headers,
-                                    params=params)
-    open(local_sam_file, 'wb').write(file_content)
+    resp = _request_sam_api(CONFIG_BROKER['sam']['duns']['csv_api_url'], request_type='get', headers=headers,
+                            params=params)
+    open(local_sam_file, 'wb').write(resp.content)
 
 
 def is_nonexistent_file_error(e):
@@ -739,55 +755,63 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None):
                          timeout=60)
     # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
     r.raise_for_status()
-    return r.content
+    return r
 
 
-def get_sam_props(key_list, api='entity', includes_uei=True):
-    """ Calls SAM API to retrieve SAM data by UEI. Returns relevant SAM info as Data Frame
+def load_unregistered_recipients(sess, df, skip_updates=False, metrics=None):
+    """ Takes in the dataframe containing sam entity API data and stores it in the sam_recipient_unregistered
 
         Args:
-            key_list: list of SAM keys to search
+            sess: database connection
+            df: the dataframe to process
+            skip_updates: True to skip the process of delete/update (i.e. total backfills)
+            metrics: the metrics dict
+    """
+    # looks like the csv version drops the topmost parent section (coreData, entityRegistration)
+    mapping_filtered = {k[k.index('.') + 1:]: v for k, v in SAM_ENTITY_MAPPINGS.items()}
+    mapping_filtered = {k: v for k, v in mapping_filtered.items() if k in df.columns}
+    df.rename(columns=mapping_filtered, inplace=True)
+    df.drop([col for col in df.columns if col not in SAMRecipientUnregistered.__table__.columns], axis=1, inplace=True)
+
+    updated_count = 0
+    if not skip_updates:
+        # delete any that are already in there for updating
+        existing_unreg = sess.query(SAMRecipientUnregistered).filter(SAMRecipientUnregistered.uei.in_(df['uei']))
+        updated_count = existing_unreg.delete()
+        metrics['unregistered_updated'] += updated_count
+
+    df['created_at'] = df['updated_at'] = get_utc_now()
+    insert_dataframe(df, SAMRecipientUnregistered.__table__.name, sess.connection())
+    sess.commit()
+    metrics['unregistered_added'] += len(df.index) - updated_count
+
+
+def get_sam_props(api='entity', **kwargs):
+    """ Calls SAM API to retrieve SAM data. Returns relevant SAM info as Data Frame
+
+        Args:
             api: which api to hit (must be 'entity' or 'iqaaas')
-            includes_uei: whether the key is a UEI (True) or DUNS (False)
+            kwargs: additional filters that can be passed into the request
 
         Returns:
             dataframe representing the SAM props
     """
+    filters = kwargs if kwargs else {}
     if api == 'entity':
         request_api_method = request_sam_entity_api
-        sam_props_mappings = {
-            'awardee_or_recipient_uniqu': 'entityRegistration.ueiDUNS',
-            'uei': 'entityRegistration.ueiSAM',
-            'legal_business_name': 'entityRegistration.legalBusinessName',
-            'dba_name': 'entityRegistration.dbaName',
-            'entity_structure': 'coreData.generalInformation.entityStructureCode',
-            'ultimate_parent_unique_ide': 'coreData.entityHierarchyInformation.ultimateParentEntity.ueiDUNS',
-            'ultimate_parent_uei': 'coreData.entityHierarchyInformation.ultimateParentEntity.ueiSAM',
-            'ultimate_parent_legal_enti': 'coreData.entityHierarchyInformation.ultimateParentEntity.legalBusinessName',
-            'address_line_1': 'coreData.physicalAddress.addressLine1',
-            'address_line_2': 'coreData.physicalAddress.addressLine2',
-            'city': 'coreData.physicalAddress.city',
-            'state': 'coreData.physicalAddress.stateOrProvince',
-            'zip': 'coreData.physicalAddress.zipCode',
-            'zip4': 'coreData.physicalAddress.zipCodePlus4',
-            'country_code': 'coreData.physicalAddress.countryCode',
-            'congressional_district': 'coreData.congressionalDistrict',
-            'business_types_codes': 'coreData.businessTypes',
-            'executive_comp_data': 'coreData.executiveCompensationInformation'
-        }
+        sam_props_mappings = SAM_ENTITY_MAPPINGS
+        filters['sensitivity'] = 'fouo'
     elif api == 'iqaas':
         request_api_method = request_sam_iqaas_uei_api
-        sam_props_mappings = {
-            'awardee_or_recipient_uniqu': 'ueiDUNS',
-            'uei': 'ueiSAM',
-        }
+        sam_props_mappings = SAM_IQAAS_MAPPINGS
     else:
         raise ValueError('APIs available are \'entity\' or \'iqaas\'')
 
     sam_props = []
-    for sam_obj in request_api_method(key_list, includes_uei=includes_uei):
+
+    for sam_obj in json.loads(request_api_method(filters).content)['entityData']:
         sam_props_dict = {}
-        for sam_props_name, sam_prop_path in sam_props_mappings.items():
+        for sam_prop_path, sam_props_name in sam_props_mappings.items():
             nested_obj = sam_obj
             value = None
             for nested_layer in sam_prop_path.split('.'):
@@ -819,7 +843,7 @@ def get_sam_props(key_list, api='entity', includes_uei=True):
     return pd.DataFrame(sam_props)
 
 
-def update_sam_props(df, api='entity'):
+def update_existing_recipients(df, api='entity'):
     """ Returns same dataframe with extraneous data updated
 
         Args:
@@ -846,15 +870,22 @@ def update_sam_props(df, api='entity'):
     # SAM service only takes in batches of 100
     index = 0
     batch_size = 100
+
     for key_list in batch(all_keys, batch_size):
         logger.info('Gathering data for the following recipients: {}'.format(key_list))
-        sam_props_batch = get_sam_props(key_list, api=api, includes_uei=includes_uei)
+
+        key_list_str = '[{}]'.format('~'.join(key_list)) if api == 'entity' else '{}'.format(','.join(key_list))
+        key_type = 'sam' if includes_uei else 'duns'
+        filters = {'uei{}'.format(key_type.upper()): key_list_str}
+        sam_props_batch = get_sam_props(api=api, **filters)
         sam_props_batch.drop(prefilled_cols, axis=1, inplace=True, errors='ignore')
+
         # Adding in blank rows for recipients where data was not found
         added_keys_list = []
         if not sam_props_batch.empty:
             added_keys_list = [str(key) for key in sam_props_batch[key_col].tolist()]
         logger.info('Retrieved data for recipients: {}'.format(added_keys_list))
+
         empty_sam_rows = []
         for key in (set(added_keys_list) ^ set(key_list)):
             empty_recp_row = empty_row_template.copy()

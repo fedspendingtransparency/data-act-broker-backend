@@ -294,6 +294,8 @@ class OfficeFactory(factory.Factory):
     office_name = fuzzy.FuzzyText()
     sub_tier_code = fuzzy.FuzzyText()
     agency_code = fuzzy.FuzzyText()
+    effective_start_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    effective_end_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
     contract_awards_office = fuzzy.FuzzyChoice((False, True))
     contract_funding_office = fuzzy.FuzzyChoice((False, True))
     financial_assistance_awards_office = fuzzy.FuzzyChoice((False, True))
@@ -417,6 +419,23 @@ class SAMRecipientFactory(factory.Factory):
     high_comp_officer5_full_na = fuzzy.FuzzyText()
     high_comp_officer5_amount = fuzzy.FuzzyText()
     last_exec_comp_mod_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+
+
+class SAMRecipientUnregisteredFactory(factory.Factory):
+    class Meta:
+        model = domainModels.SAMRecipientUnregistered
+
+    sam_recipient_unreg_id = None
+    uei = fuzzy.FuzzyText()
+    legal_business_name = fuzzy.FuzzyText()
+    address_line_1 = fuzzy.FuzzyText()
+    address_line_2 = fuzzy.FuzzyText()
+    city = fuzzy.FuzzyText()
+    state = fuzzy.FuzzyText()
+    zip = fuzzy.FuzzyText()
+    zip4 = fuzzy.FuzzyText()
+    country_code = fuzzy.FuzzyText()
+    congressional_district = fuzzy.FuzzyText()
 
 
 class StateCongressionalFactory(factory.Factory):

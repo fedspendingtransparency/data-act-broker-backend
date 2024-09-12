@@ -113,7 +113,7 @@ def update_fpds_le(sess):
 
     # FPDS LE 5-digit
     sess.execute(
-        """UPDATE detached_award_procurement AS dap
+        r"""UPDATE detached_award_procurement AS dap
             SET legal_entity_county_code = sc.county_number,
                 legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL
                                                 THEN dap.legal_entity_county_name
@@ -165,7 +165,7 @@ def update_fpds_ppop(sess):
 
     # FPDS PPOP 5-digit
     sess.execute(
-        """UPDATE detached_award_procurement AS dap
+        r"""UPDATE detached_award_procurement AS dap
             SET place_of_perform_county_co = sc.county_number,
                 place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL
                                                   THEN dap.place_of_perform_county_na
@@ -258,7 +258,7 @@ def update_fabs_ppop(sess):
 
     # FABS PPOP 5-digit
     sess.execute(
-        """UPDATE published_fabs AS pf
+        r"""UPDATE published_fabs AS pf
             SET place_of_perform_county_co = sc.county_number,
                 place_of_perform_county_na = CASE WHEN pf.place_of_perform_county_na IS NOT NULL
                                                   THEN pf.place_of_perform_county_na
