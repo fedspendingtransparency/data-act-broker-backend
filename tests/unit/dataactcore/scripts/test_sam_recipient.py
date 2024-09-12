@@ -378,7 +378,7 @@ def test_load_unregistered_entities(database):
     entity_csv_dir = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'fake_sam_files',
                                   'unregistered_entity')
 
-    load_duns_exec_comp.load_from_sam_entity_api(sess, True, entity_csv_dir)
+    load_duns_exec_comp.load_from_sam_entity_api(sess, entity_csv_dir)
     expected_results = {
         'UEI000000001': {
             "uei": "UEI000000001",
