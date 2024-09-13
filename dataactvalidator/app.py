@@ -40,8 +40,9 @@ trace.set_tracer_provider(TracerProvider(resource=resource))
 if CONFIG_BROKER['local']:
     exporter = ConsoleSpanExporter()
 else:
+    otel_url = 'https://internal-ecs-tooling-8d809cba-alb-790750082.us-gov-west-1.elb.amazonaws.com:8107/v1/logs'
     exporter = OTLPSpanExporter(
-        endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "0.0.0.0:4317"),
+        endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", otel_url),
     )
 span_processor = BatchSpanProcessor(exporter)
 trace.get_tracer_provider().add_span_processor(span_processor)
