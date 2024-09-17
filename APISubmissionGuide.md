@@ -26,7 +26,7 @@ While the Submission API has been designed to be as easy to understand as possib
   
 ### Login to the CAIA
 
-#### TODO: Add proper Data Broker Experience API URL 
+#### TODO: Add proper Data Broker Experience API URL
 
 - Step 1: Request access to the Data Broker Experience API and obtain the `client_id`/`client_secret` credentials.
     - **NOTE**: Ensure this step is completed by the user that will be logging into the Broker. If another user completes this step, they will be logged into the Broker under that account instead.
@@ -41,11 +41,16 @@ While the Submission API has been designed to be as easy to understand as possib
         - Select **"Request Access"**.
         - You will be provided with a `Client ID` and `Client Secret`.
             - **NOTE**: It is **imperative** that you copy these credentials down as they will be your only way of using the Broker with your application. You **won't** be able to see these values again. If they are lost, then you need to repeat Step 1 to generate new credentials.
-- Step 2: Using the `client_id`/`client_secret` with the Broker.
+- Step 2: Request via Service Desk to register a system account to use the Broker API proxy. You will need to provide: 
+    - Your `Client ID` generated from Step 1. 
+    - Your organization/agency name that owns the system.
+    - A system-wide email representing your system.
+    - Once you have confirmation that your system account has been registered, move onto Step 3.
+- Step 3: Using the `client_id`/`client_secret` with the Broker.
     - Each call to the Broker below in this guide (or any other endpoint referenced in the documentation) will be called slightly different:
         - The root url will be replaced:
             - Before: `https://broker-api.usaspending.gov/`
-            - After: `https://api-preprod.fiscal.treasury.gov/ap/dev/exp/v1/data-act-broker/`
+            - After: `https://api.fiscal.treasury.gov/ap/prod/exp/v1/data-act-broker/`
         - Two new headers must be added in every request:
             - `client_id`: The `Client ID` copied from earlier.
             - `client_secret`: The `Client Secret` copied from earlier.
