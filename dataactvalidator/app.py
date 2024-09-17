@@ -7,12 +7,6 @@ import traceback
 import pandas as pd
 
 from flask import Flask, g, current_app
-from opentelemetry import trace
-
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
 
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -32,20 +26,6 @@ from dataactvalidator.validation_handlers.validationManager import ValidationMan
 from dataactvalidator.validator_logging import log_job_message
 
 logger = logging.getLogger(__name__)
-
-# Initialize OpenTelemetry
-resource = Resource.create(attributes={"service.name": "validator"})
-trace.set_tracer_provider(TracerProvider(resource=resource))
-
-if CONFIG_BROKER['local']:
-    exporter = ConsoleSpanExporter()
-else:
-    exporter = OTLPSpanExporter(
-        endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
-    )
-span_processor = BatchSpanProcessor(exporter)
-trace.get_tracer_provider().add_span_processor(span_processor)
-tracer_provider = trace.get_tracer_provider()
 
 READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
 RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
@@ -395,7 +375,7 @@ def cleanup_validation(job_id):
 
 
 if __name__ == "__main__":
-    configure_logging()
+    configure_logging('broker-validator')
     # Configure Tracer to drop traces of polls of the queue that have been flagged as uninteresting
     OpenTelemetryEagerlyDropTraceFilter.activate()
     run_app()

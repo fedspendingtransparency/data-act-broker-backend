@@ -9,12 +9,7 @@ from flask import Flask, g, session, request
 
 from opentelemetry.instrumentation.wsgi import OpenTelemetryMiddleware
 from opentelemetry import trace
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
-from opentelemetry.instrumentation.urllib import URLLibInstrumentor
 
 from dataactbroker.exception_handler import add_exception_handlers
 from dataactbroker.handlers.account_handler import AccountHandler
@@ -57,22 +52,7 @@ def create_app():
     flask_app.config.from_envvar('BROKER_SETTINGS', silent=True)
 
     # Telemetry
-    resource = Resource.create(attributes={"service.name": "broker-api"})
-
-    provider = TracerProvider(resource=resource)
-    trace.set_tracer_provider(provider)
-
-    if CONFIG_BROKER['local']:
-        exporter = ConsoleSpanExporter()
-    else:
-        exporter = OTLPSpanExporter(
-            endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
-        )
-    span_processor = BatchSpanProcessor(exporter)
-    trace.get_tracer_provider().add_span_processor(span_processor)
-
     FlaskInstrumentor().instrument_app(flask_app, tracer_provider=trace.get_tracer_provider())
-    URLLibInstrumentor().instrument()
 
     # Set parameters
     broker_file_path = CONFIG_BROKER['broker_files']
@@ -176,10 +156,10 @@ def run_app():
 
 
 if __name__ == '__main__':
-    configure_logging()
+    configure_logging(service_name='broker-api')
     run_app()
 
 elif __name__[0:5] == "uwsgi":
-    configure_logging()
+    configure_logging(service_name='broker-api')
     app = create_app()
     app.wsgi_app = OpenTelemetryMiddleware(app.wsgi_app)

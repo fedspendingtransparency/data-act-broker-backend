@@ -1,5 +1,15 @@
 import logging.config
+import os
 
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.urllib import URLLibInstrumentor
+
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.config import CONFIG_LOGGING
 
 
@@ -59,7 +69,24 @@ DEFAULT_CONFIG = {
 }
 
 
-def configure_logging():
+def configure_logging(service_name='broker'):
+    resource = Resource.create(attributes={"service.name": service_name})
+
+    provider = TracerProvider(resource=resource)
+    trace.set_tracer_provider(provider)
+
+    if CONFIG_BROKER['local']:
+        exporter = ConsoleSpanExporter()
+    else:
+        exporter = OTLPSpanExporter(
+            endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
+        )
+    span_processor = BatchSpanProcessor(exporter)
+    trace.get_tracer_provider().add_span_processor(span_processor)
+
+    LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=True)
+    URLLibInstrumentor().instrument(tracer_provider=trace.get_tracer_provider())
+
     config = DEFAULT_CONFIG
     if 'python_config' in CONFIG_LOGGING:
         config = deep_merge(config, CONFIG_LOGGING['python_config'])
