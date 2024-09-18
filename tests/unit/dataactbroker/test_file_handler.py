@@ -14,7 +14,7 @@ from zipfile import ZipFile
 from dataactbroker.handlers import fileHandler
 from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.interfaces.function_bag import filename_fyp_sub_format
+from dataactcore.interfaces.function_bag import filename_fyp_sub_format, get_utc_now
 from dataactcore.models.jobModels import PublishedFilesHistory, Submission, Job, FormatChangeDate
 from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT,
                                         FILE_TYPE_DICT_LETTER_ID, FILE_TYPE_DICT_LETTER)
@@ -1200,7 +1200,7 @@ def test_list_history(database):
     database.session.commit()
 
     # set up publish history, make sure the empty one comes last in the list
-    cert_hist_empty = CertifyHistoryFactory(submission=sub, created_at=datetime.utcnow() - timedelta(days=1))
+    cert_hist_empty = CertifyHistoryFactory(submission=sub, created_at=get_utc_now() - timedelta(days=1))
     cert_hist = CertifyHistoryFactory(submission=sub)
     pub_hist = PublishHistoryFactory(submission=sub)
     database.session.add_all([cert_hist_empty, cert_hist, pub_hist])
@@ -1282,7 +1282,7 @@ def test_list_history_order(database):
     database.session.commit()
 
     # set up publish history, make sure the empty one comes last in the list
-    cert_hist_empty = CertifyHistoryFactory(submission=sub, created_at=datetime.utcnow() - timedelta(days=1))
+    cert_hist_empty = CertifyHistoryFactory(submission=sub, created_at=get_utc_now() - timedelta(days=1))
     cert_hist = CertifyHistoryFactory(submission=sub)
     pub_hist = PublishHistoryFactory(submission=sub)
     database.session.add_all([cert_hist_empty, cert_hist, pub_hist])

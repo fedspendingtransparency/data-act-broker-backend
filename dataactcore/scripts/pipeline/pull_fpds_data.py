@@ -28,7 +28,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import update_external_data_load_date
+from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
 from dataactcore.models.domainModels import (SubTierAgency, CountryCode, States, CountyCode, Zips, SAMRecipient,
                                              ExternalDataLoadDate)
 from dataactcore.models.stagingModels import DetachedAwardProcurement
@@ -1524,7 +1524,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         metrics = {}
     data = []
     yesterday = now - datetime.timedelta(days=1)
-    utcnow = datetime.datetime.utcnow()
+    utcnow = get_utc_now()
     # If a specific set of params was provided, use that
     if specific_params:
         params = specific_params
@@ -1751,7 +1751,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
             delete(synchronize_session=False)
 
     # writing the file
-    seconds = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds())
+    seconds = int((get_utc_now() - datetime.datetime(1970, 1, 1)).total_seconds())
     file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + "_" + str(seconds) + ".csv"
     metrics['deleted_{}_records_file'.format(contract_type).lower()] = file_name
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]

@@ -11,7 +11,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import mark_job_status, filename_fyp_sub_format, get_timestamp
+from dataactcore.interfaces.function_bag import mark_job_status, filename_fyp_sub_format, get_timestamp, get_utc_now
 from dataactcore.models import lookups
 from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.jobModels import FileGeneration, Job, Submission
@@ -327,7 +327,7 @@ def update_generation_submission(sess, job):
     if submission.publish_status_id == lookups.PUBLISH_STATUS_DICT['published']:
         submission.publishable = False
         submission.publish_status_id = lookups.PUBLISH_STATUS_DICT['updated']
-        submission.updated_at = datetime.utcnow()
+        submission.updated_at = get_utc_now()
 
     # Retrieve and update the validation Job
     val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
