@@ -109,6 +109,7 @@ class ObjectClassProgramActivity(Base):
     sub_account_code = Column(Text)
     ussgl480100_undelivered_or_cpe = Column(Numeric)
     ussgl480100_undelivered_or_fyb = Column(Numeric)
+    ussgl480110_reinstated_del_cpe = Column(Numeric)
     ussgl480200_undelivered_or_cpe = Column(Numeric)
     ussgl480200_undelivered_or_fyb = Column(Numeric)
     ussgl483100_undelivered_or_cpe = Column(Numeric)
@@ -119,6 +120,7 @@ class ObjectClassProgramActivity(Base):
     ussgl488200_upward_adjustm_cpe = Column(Numeric)
     ussgl490100_delivered_orde_cpe = Column(Numeric)
     ussgl490100_delivered_orde_fyb = Column(Numeric)
+    ussgl490110_reinstated_del_cpe = Column(Numeric)
     ussgl490200_delivered_orde_cpe = Column(Numeric)
     ussgl490800_authority_outl_cpe = Column(Numeric)
     ussgl490800_authority_outl_fyb = Column(Numeric)
@@ -131,6 +133,8 @@ class ObjectClassProgramActivity(Base):
     display_tas = Column(Text, default=concat_display_tas)
     account_num = Column(Integer, nullable=True)
     disaster_emergency_fund_code = Column(Text)
+    pa_reporting_key = Column(Text, index=True)
+    prior_year_adjustment = Column(Text, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -198,6 +202,7 @@ class AwardFinancial(Base):
     uri = Column(Text, index=True)
     ussgl480100_undelivered_or_cpe = Column(Numeric)
     ussgl480100_undelivered_or_fyb = Column(Numeric)
+    ussgl480110_reinstated_del_cpe = Column(Numeric)
     ussgl480200_undelivered_or_cpe = Column(Numeric)
     ussgl480200_undelivered_or_fyb = Column(Numeric)
     ussgl483100_undelivered_or_cpe = Column(Numeric)
@@ -208,6 +213,7 @@ class AwardFinancial(Base):
     ussgl488200_upward_adjustm_cpe = Column(Numeric)
     ussgl490100_delivered_orde_cpe = Column(Numeric)
     ussgl490100_delivered_orde_fyb = Column(Numeric)
+    ussgl490110_reinstated_del_cpe = Column(Numeric)
     ussgl490200_delivered_orde_cpe = Column(Numeric)
     ussgl490800_authority_outl_cpe = Column(Numeric)
     ussgl490800_authority_outl_fyb = Column(Numeric)
@@ -221,6 +227,8 @@ class AwardFinancial(Base):
     account_num = Column(Integer, nullable=True, index=True)
     general_ledger_post_date = Column(Date)
     disaster_emergency_fund_code = Column(Text)
+    pa_reporting_key = Column(Text, index=True)
+    prior_year_adjustment = Column(Text, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -367,6 +375,7 @@ class PublishedObjectClassProgramActivity(Base):
     sub_account_code = Column(Text)
     ussgl480100_undelivered_or_cpe = Column(Numeric)
     ussgl480100_undelivered_or_fyb = Column(Numeric)
+    ussgl480110_reinstated_del_cpe = Column(Numeric)
     ussgl480200_undelivered_or_cpe = Column(Numeric)
     ussgl480200_undelivered_or_fyb = Column(Numeric)
     ussgl483100_undelivered_or_cpe = Column(Numeric)
@@ -377,6 +386,7 @@ class PublishedObjectClassProgramActivity(Base):
     ussgl488200_upward_adjustm_cpe = Column(Numeric)
     ussgl490100_delivered_orde_cpe = Column(Numeric)
     ussgl490100_delivered_orde_fyb = Column(Numeric)
+    ussgl490110_reinstated_del_cpe = Column(Numeric)
     ussgl490200_delivered_orde_cpe = Column(Numeric)
     ussgl490800_authority_outl_cpe = Column(Numeric)
     ussgl490800_authority_outl_fyb = Column(Numeric)
@@ -389,6 +399,8 @@ class PublishedObjectClassProgramActivity(Base):
     account_num = Column(Integer)
     display_tas = Column(Text)
     disaster_emergency_fund_code = Column(Text)
+    pa_reporting_key = Column(Text)
+    prior_year_adjustment = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -438,6 +450,7 @@ class PublishedAwardFinancial(Base):
     uri = Column(Text)
     ussgl480100_undelivered_or_cpe = Column(Numeric)
     ussgl480100_undelivered_or_fyb = Column(Numeric)
+    ussgl480110_reinstated_del_cpe = Column(Numeric)
     ussgl480200_undelivered_or_cpe = Column(Numeric)
     ussgl480200_undelivered_or_fyb = Column(Numeric)
     ussgl483100_undelivered_or_cpe = Column(Numeric)
@@ -448,6 +461,7 @@ class PublishedAwardFinancial(Base):
     ussgl488200_upward_adjustm_cpe = Column(Numeric)
     ussgl490100_delivered_orde_cpe = Column(Numeric)
     ussgl490100_delivered_orde_fyb = Column(Numeric)
+    ussgl490110_reinstated_del_cpe = Column(Numeric)
     ussgl490200_delivered_orde_cpe = Column(Numeric)
     ussgl490800_authority_outl_cpe = Column(Numeric)
     ussgl490800_authority_outl_fyb = Column(Numeric)
@@ -461,6 +475,8 @@ class PublishedAwardFinancial(Base):
     general_ledger_post_date = Column(Date)
     display_tas = Column(Text)
     disaster_emergency_fund_code = Column(Text)
+    pa_reporting_key = Column(Text)
+    prior_year_adjustment = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
