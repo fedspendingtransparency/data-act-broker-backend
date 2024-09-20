@@ -1,6 +1,7 @@
--- All the Direct Appropriation (D) amounts reported for (4801_CPE - 4801_FYB) + (4802_CPE - 4802_FYB) +
--- 4881_CPE + 4882_CPE + (4901_CPE - 4901_FYB) + 4902_CPE + (4908_CPE - 4908_FYB) + 4981_CPE + 4982_CPE =
--- the opposite sign of SF-133 line 2004 per TAS, for the same reporting period and TAS/DEFC combination.
+-- All the Direct Appropriation (D) amounts reported for (4801_CPE less 4801_FYB) + (4802_CPE less 4802_FYB)
+-- + 4881_CPE + 4882_CPE + (4901_CPE less 4901_FYB) + 4902_CPE + (4908_CPE less 4908_FYB) + 4981_CPE + 4982_CPE =
+-- the opposite sign of GTAS SF 133 line 2004 per TAS, for the same reporting period and TAS and DEFC combination
+-- where PYA = "X".
 WITH object_class_program_activity_b14_{0} AS
     (SELECT submission_id,
         tas,
@@ -21,7 +22,8 @@ WITH object_class_program_activity_b14_{0} AS
         ussgl498200_upward_adjustm_cpe,
         by_direct_reimbursable_fun
     FROM object_class_program_activity
-    WHERE submission_id = {0})
+    WHERE submission_id = {0}
+        AND COALESCE(UPPER(prior_year_adjustment), '') = 'X')
 SELECT DISTINCT
     NULL AS row_number,
     op.display_tas AS "tas",
