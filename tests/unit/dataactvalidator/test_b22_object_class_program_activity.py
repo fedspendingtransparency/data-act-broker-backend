@@ -78,13 +78,11 @@ def test_different_pya(database):
 
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year)
-
-    sf_1 = SF133Factory(line=3020, tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code='N')
-    sf_2 = SF133Factory(line=3020, tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code='M')
+    sf = SF133Factory(line=3020, tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code='N')
     op = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=1, tas=tas,
-                                           gross_outlay_amount_by_pro_cpe=1, disaster_emergency_fund_code='n')
+                                           gross_outlay_amount_by_pro_cpe=0, disaster_emergency_fund_code='n')
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[sf, op], submission=submission) == 0
 
 
 def test_failure(database):
