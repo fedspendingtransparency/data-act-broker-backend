@@ -1,5 +1,6 @@
--- ObligationsIncurredTotalByTAS_CPE (File A (appropriation)) = negative sum of
--- ObligationsIncurredByProgramObjectClass_CPE (File B (object class program activity)).
+-- The ObligationsIncurredTotalByTAS_CPE amount in the appropriations account file (A) must equal the
+-- negative (additive inverse) of the sum of the corresponding ObligationsIncurredByProgramObjectClass_CPE
+-- values in the object class and program activity file (B) where PYA = "X".
 WITH appropriation_a19_{0} AS
     (SELECT row_number,
         allocation_transfer_agency,
@@ -25,6 +26,7 @@ FROM appropriation_a19_{0} AS approp
     JOIN object_class_program_activity op
         ON approp.account_num = op.account_num
         AND approp.submission_id = op.submission_id
+WHERE COALESCE(UPPER(op.prior_year_adjustment), '') = 'X'
 GROUP BY approp.row_number,
     approp.allocation_transfer_agency,
     approp.agency_identifier,
