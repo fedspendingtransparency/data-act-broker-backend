@@ -1,5 +1,5 @@
--- ObligationsIncurredByProgramObjectClass_CPE = the negative (additive inverse) value for GTAS SF 133 line #2190 for
--- the same reporting period for the TAS and DEFC combination.
+-- ObligationsIncurredByProgramObjectClass_CPE = the negative (additive inverse) value for GTAS SF 133 line #2190
+-- for the same reporting period for the TAS and DEFC combination where PYA = "X".
 WITH object_class_program_activity_b25_{0} AS
     (SELECT submission_id,
         row_number,
@@ -8,7 +8,8 @@ WITH object_class_program_activity_b25_{0} AS
         display_tas,
         disaster_emergency_fund_code
     FROM object_class_program_activity
-    WHERE submission_id = {0})
+    WHERE submission_id = {0}
+        AND COALESCE(UPPER(prior_year_adjustment), '') = 'X')
 SELECT
     NULL AS "row_number",
     SUM(COALESCE(op.obligations_incurred_by_pr_cpe, 0)) AS "obligations_incurred_by_pr_cpe_sum",
