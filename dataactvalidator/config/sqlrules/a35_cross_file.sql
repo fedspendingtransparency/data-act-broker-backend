@@ -1,6 +1,6 @@
--- The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations account file (A) does not equal
--- the sum of the corresponding DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the object
--- class and program activity file (B).
+-- The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations account file (A) must equal the
+-- sum of the corresponding DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the object class
+-- and program activity file (B) where PYA = "X".
 WITH appropriation_a35_{0} AS
     (SELECT row_number,
         deobligations_recoveries_r_cpe,
@@ -15,7 +15,8 @@ ocpa_a35_{0} AS
         ussgl487200_downward_adjus_cpe,
         ussgl497200_downward_adjus_cpe
     FROM object_class_program_activity
-    WHERE submission_id = {0})
+    WHERE submission_id = {0}
+        AND COALESCE(UPPER(prior_year_adjustment), '') = 'X')
 SELECT
     approp.row_number AS "source_row_number",
     approp.deobligations_recoveries_r_cpe AS "source_value_deobligations_recoveries_r_cpe",
