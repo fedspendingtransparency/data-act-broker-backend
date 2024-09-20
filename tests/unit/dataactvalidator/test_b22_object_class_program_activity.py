@@ -8,7 +8,7 @@ _FILE = 'b22_object_class_program_activity'
 
 
 def test_column_headers(database):
-    expected_subset = {'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode', 'row_number',
+    expected_subset = {'uniqueid_TAS', 'prior_year_adjustment', 'uniqueid_DisasterEmergencyFundCode', 'row_number',
                        'gross_outlay_amount_by_pro_cpe_sum', 'expected_value_GTAS SF133 Line 3020', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
@@ -68,6 +68,7 @@ def test_non_matching_defc(database):
                                            prior_year_adjustment='x')
 
     assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op], submission=submission) == 0
+
 
 def test_different_pya(database):
     """ GrossOutlayAmountByProgramObjectClass_CPE = value for GTAS SF 133 line #3020 for the same reporting period for

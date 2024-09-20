@@ -18,6 +18,7 @@ WITH appropriation_a19_{0} AS
     WHERE submission_id = {0})
 SELECT
     approp.row_number AS "source_row_number",
+    UPPER(op.prior_year_adjustment) AS "target_prior_year_adjustment",
     approp.obligations_incurred_total_cpe AS "source_value_obligations_incurred_total_cpe",
     SUM(op.obligations_incurred_by_pr_cpe) AS "target_value_obligations_incurred_by_pr_cpe_sum",
     approp.obligations_incurred_total_cpe - (SUM(op.obligations_incurred_by_pr_cpe) * -1) AS "difference",
@@ -36,5 +37,6 @@ GROUP BY approp.row_number,
     approp.main_account_code,
     approp.sub_account_code,
     approp.obligations_incurred_total_cpe,
-    approp.display_tas
+    approp.display_tas,
+    UPPER(op.prior_year_adjustment)
 HAVING approp.obligations_incurred_total_cpe <> SUM(op.obligations_incurred_by_pr_cpe) * -1;

@@ -8,7 +8,8 @@ _TAS = 'a35_cross_file_tas'
 
 
 def test_column_headers(database):
-    expected_subset = {'source_row_number', 'source_value_deobligations_recoveries_r_cpe',
+    expected_subset = {'source_row_number', 'target_prior_year_adjustment',
+                       'source_value_deobligations_recoveries_r_cpe',
                        'target_value_ussgl487100_downward_adjus_cpe_sum',
                        'target_value_ussgl497100_downward_adjus_cpe_sum',
                        'target_value_ussgl487200_downward_adjus_cpe_sum',

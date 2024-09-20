@@ -26,7 +26,7 @@ def test_success(database):
                                            prior_year_adjustment='X')
     # Different values, Different PYA
     op2 = ObjectClassProgramActivityFactory(gross_outlays_undelivered_cpe=0, ussgl480200_undelivered_or_cpe=1,
-                                           ussgl483200_undelivered_or_cpe=1, ussgl488200_upward_adjustm_cpe=1)
+                                            ussgl483200_undelivered_or_cpe=1, ussgl488200_upward_adjustm_cpe=1)
 
     assert number_of_errors(_FILE, database, models=[op, op2]) == 0
 

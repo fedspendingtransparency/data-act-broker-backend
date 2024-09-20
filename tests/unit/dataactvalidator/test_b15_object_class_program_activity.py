@@ -8,14 +8,15 @@ _TAS = 'b15_object_class_program_activity_tas'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'tas', 'ussgl480100_undelivered_or_cpe_sum', 'ussgl480100_undelivered_or_fyb_sum',
-                       'ussgl480200_undelivered_or_cpe_sum', 'ussgl480200_undelivered_or_fyb_sum',
-                       'ussgl488100_upward_adjustm_cpe_sum', 'ussgl488200_upward_adjustm_cpe_sum',
-                       'ussgl490100_delivered_orde_cpe_sum', 'ussgl490100_delivered_orde_fyb_sum',
-                       'ussgl490200_delivered_orde_cpe_sum', 'ussgl490800_authority_outl_cpe_sum',
-                       'ussgl490800_authority_outl_fyb_sum', 'ussgl498100_upward_adjustm_cpe_sum',
-                       'ussgl498200_upward_adjustm_cpe_sum', 'expected_value_GTAS SF133 Line 2104',
-                       'difference', 'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode'}
+    expected_subset = {'row_number', 'tas', 'prior_year_adjustment', 'ussgl480100_undelivered_or_cpe_sum',
+                       'ussgl480100_undelivered_or_fyb_sum', 'ussgl480200_undelivered_or_cpe_sum',
+                       'ussgl480200_undelivered_or_fyb_sum', 'ussgl488100_upward_adjustm_cpe_sum',
+                       'ussgl488200_upward_adjustm_cpe_sum', 'ussgl490100_delivered_orde_cpe_sum',
+                       'ussgl490100_delivered_orde_fyb_sum', 'ussgl490200_delivered_orde_cpe_sum',
+                       'ussgl490800_authority_outl_cpe_sum', 'ussgl490800_authority_outl_fyb_sum',
+                       'ussgl498100_upward_adjustm_cpe_sum', 'ussgl498200_upward_adjustm_cpe_sum',
+                       'expected_value_GTAS SF133 Line 2104', 'difference', 'uniqueid_TAS',
+                       'uniqueid_DisasterEmergencyFundCode'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
@@ -100,7 +101,7 @@ def test_failure(database):
                                     ussgl490200_delivered_orde_cpe=1, ussgl490800_authority_outl_cpe=1,
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
                                     ussgl498200_upward_adjustm_cpe=1, disaster_emergency_fund_code='Q',
-                                     prior_year_adjustment='x')
+                                    prior_year_adjustment='x')
 
     op2 = ObjectClassProgramActivity(job_id=1, row_number=2, tas=tas, by_direct_reimbursable_fun='r',
                                      ussgl480100_undelivered_or_cpe=2, ussgl480100_undelivered_or_fyb=2,
@@ -126,5 +127,5 @@ def test_failure(database):
                                     ussgl490200_delivered_orde_cpe=0, ussgl490800_authority_outl_cpe=0,
                                     ussgl490800_authority_outl_fyb=0, ussgl498100_upward_adjustm_cpe=0,
                                     ussgl498200_upward_adjustm_cpe=0, disaster_emergency_fund_code='D',
-                                     prior_year_adjustment='x')
+                                    prior_year_adjustment='x')
     assert number_of_errors(_FILE, database, models=[sf, op]) == 1

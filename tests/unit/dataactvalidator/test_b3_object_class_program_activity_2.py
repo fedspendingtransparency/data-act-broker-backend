@@ -35,7 +35,7 @@ def test_success(database):
                                                   prior_year_adjustment='x')
     # Different values, different PYA
     ocpa_pya = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe=1, ussgl480100_undelivered_or_cpe=0,
-                                             ussgl483100_undelivered_or_cpe=0, ussgl488100_upward_adjustm_cpe=0)
+                                                 ussgl483100_undelivered_or_cpe=0, ussgl488100_upward_adjustm_cpe=0)
 
     assert number_of_errors(_FILE, database, models=[ocpa, ocpa_null, ocpa_pya]) == 0
 

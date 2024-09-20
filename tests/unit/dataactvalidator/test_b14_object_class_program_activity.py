@@ -8,14 +8,15 @@ _TAS = 'b14_object_class_program_activity_tas'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'tas', 'ussgl480100_undelivered_or_cpe_sum', 'ussgl480100_undelivered_or_fyb_sum',
-                       'ussgl480200_undelivered_or_cpe_sum', 'ussgl480200_undelivered_or_fyb_sum',
-                       'ussgl488100_upward_adjustm_cpe_sum', 'ussgl488200_upward_adjustm_cpe_sum',
-                       'ussgl490100_delivered_orde_cpe_sum', 'ussgl490100_delivered_orde_fyb_sum',
-                       'ussgl490200_delivered_orde_cpe_sum', 'ussgl490800_authority_outl_cpe_sum',
-                       'ussgl490800_authority_outl_fyb_sum', 'ussgl498100_upward_adjustm_cpe_sum',
-                       'ussgl498200_upward_adjustm_cpe_sum', 'expected_value_GTAS SF133 Line 2004',
-                       'difference', 'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode'}
+    expected_subset = {'row_number', 'tas', 'prior_year_adjustment', 'ussgl480100_undelivered_or_cpe_sum',
+                       'ussgl480100_undelivered_or_fyb_sum', 'ussgl480200_undelivered_or_cpe_sum',
+                       'ussgl480200_undelivered_or_fyb_sum', 'ussgl488100_upward_adjustm_cpe_sum',
+                       'ussgl488200_upward_adjustm_cpe_sum', 'ussgl490100_delivered_orde_cpe_sum',
+                       'ussgl490100_delivered_orde_fyb_sum', 'ussgl490200_delivered_orde_cpe_sum',
+                       'ussgl490800_authority_outl_cpe_sum', 'ussgl490800_authority_outl_fyb_sum',
+                       'ussgl498100_upward_adjustm_cpe_sum', 'ussgl498200_upward_adjustm_cpe_sum',
+                       'expected_value_GTAS SF133 Line 2004', 'difference', 'uniqueid_TAS',
+                       'uniqueid_DisasterEmergencyFundCode'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 

@@ -8,6 +8,7 @@ WITH object_class_program_activity_b15_{0} AS
         tas,
         display_tas,
         disaster_emergency_fund_code,
+        prior_year_adjustment,
         ussgl480100_undelivered_or_cpe,
         ussgl480100_undelivered_or_fyb,
         ussgl480200_undelivered_or_cpe,
@@ -28,6 +29,7 @@ WITH object_class_program_activity_b15_{0} AS
 SELECT DISTINCT
     NULL AS row_number,
     op.display_tas AS "tas",
+    UPPER(op.prior_year_adjustment) AS "prior_year_adjustment",
     SUM(ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum,
     SUM(ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum,
     SUM(ussgl480200_undelivered_or_cpe) AS ussgl480200_undelivered_or_cpe_sum,
@@ -67,7 +69,8 @@ WHERE sf.line = 2104
 GROUP BY op.tas,
     UPPER(op.disaster_emergency_fund_code),
     sf.amount,
-    op.display_tas
+    op.display_tas,
+    UPPER(prior_year_adjustment)
 HAVING (UPPER(op.disaster_emergency_fund_code) IN ('Q', 'QQQ')
         AND (
             SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +

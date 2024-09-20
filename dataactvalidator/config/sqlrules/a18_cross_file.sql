@@ -18,6 +18,7 @@ WITH appropriation_a18_{0} AS
     WHERE submission_id = {0})
 SELECT
     approp.row_number AS "source_row_number",
+    UPPER(op.prior_year_adjustment) AS "target_prior_year_adjustment",
     approp.gross_outlay_amount_by_tas_cpe AS "source_value_gross_outlay_amount_by_tas_cpe",
     SUM(op.gross_outlay_amount_by_pro_cpe) AS "target_value_gross_outlay_amount_by_pro_cpe_sum",
     approp.gross_outlay_amount_by_tas_cpe - SUM(op.gross_outlay_amount_by_pro_cpe) AS "difference",
@@ -36,5 +37,6 @@ GROUP BY approp.row_number,
     approp.main_account_code,
     approp.sub_account_code,
     approp.gross_outlay_amount_by_tas_cpe,
-    approp.display_tas
+    approp.display_tas,
+    UPPER(op.prior_year_adjustment)
 HAVING approp.gross_outlay_amount_by_tas_cpe <> SUM(op.gross_outlay_amount_by_pro_cpe);

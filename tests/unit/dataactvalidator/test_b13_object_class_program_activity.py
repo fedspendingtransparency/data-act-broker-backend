@@ -44,7 +44,7 @@ def test_failure(database):
                                            ussgl497200_downward_adjus_cpe=1, prior_year_adjustment='X')
 
     op2 = ObjectClassProgramActivityFactory(deobligations_recov_by_pro_cpe=1, ussgl487100_downward_adjus_cpe=None,
-                                           ussgl487200_downward_adjus_cpe=None, ussgl497100_downward_adjus_cpe=None,
-                                           ussgl497200_downward_adjus_cpe=None, prior_year_adjustment='x')
+                                            ussgl487200_downward_adjus_cpe=None, ussgl497100_downward_adjus_cpe=None,
+                                            ussgl497200_downward_adjus_cpe=None, prior_year_adjustment='x')
 
     assert number_of_errors(_FILE, database, models=[op, op2]) == 2

@@ -8,7 +8,7 @@ _FILE = 'b25_object_class_program_activity'
 
 
 def test_column_headers(database):
-    expected_subset = {'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode', 'row_number',
+    expected_subset = {'uniqueid_TAS', 'prior_year_adjustment', 'uniqueid_DisasterEmergencyFundCode', 'row_number',
                        'obligations_incurred_by_pr_cpe_sum', 'expected_value_GTAS SF133 Line 2190', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
@@ -44,10 +44,10 @@ def test_success_multiple_rows(database):
     sf = SF133Factory(line=2190, tas=tas, period=period, fiscal_year=year, amount=5, disaster_emergency_fund_code='N')
     op_1 = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=1, tas=tas, display_tas=tas,
                                              obligations_incurred_by_pr_cpe=-1, disaster_emergency_fund_code='n',
-                                           prior_year_adjustment='x')
+                                             prior_year_adjustment='x')
     op_2 = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=2, tas=tas, display_tas=tas,
                                              obligations_incurred_by_pr_cpe=-4, disaster_emergency_fund_code='n',
-                                           prior_year_adjustment='X')
+                                             prior_year_adjustment='X')
 
     assert number_of_errors(_FILE, database, models=[sf, op_1, op_2], submission=submission) == 0
 
@@ -70,6 +70,7 @@ def test_non_matching_defc(database):
                                            prior_year_adjustment='X')
 
     assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op], submission=submission) == 0
+
 
 def test_different_pya(database):
     """ ObligationsIncurredByProgramObjectClass_CPE = the negative (additive inverse) value for GTAS SF 133 line #2190

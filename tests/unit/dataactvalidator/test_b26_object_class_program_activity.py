@@ -8,7 +8,7 @@ _FILE = 'b26_object_class_program_activity'
 
 
 def test_column_headers(database):
-    expected_subset = {'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode', 'row_number',
+    expected_subset = {'uniqueid_TAS', 'prior_year_adjustment', 'uniqueid_DisasterEmergencyFundCode', 'row_number',
                        'deobligations_recov_by_pro_cpe_sum', 'expected_value_SUM of GTAS SF133 Lines 1021, 1033',
                        'difference'}
     actual = set(query_columns(_FILE, database))
@@ -46,7 +46,7 @@ def test_success_multiple_rows(database):
     sf_2 = SF133Factory(line=1033, tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code='N')
     op_1 = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=1, tas=tas, display_tas=tas,
                                              deobligations_recov_by_pro_cpe=1, disaster_emergency_fund_code='n',
-                                           prior_year_adjustment='X')
+                                             prior_year_adjustment='X')
     op_2 = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=2, tas=tas, display_tas=tas,
                                              deobligations_recov_by_pro_cpe=4, disaster_emergency_fund_code='n',
                                              prior_year_adjustment='x')
@@ -74,6 +74,7 @@ def test_non_matching_defc(database):
 
     assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, op], submission=submission) == 0
 
+
 def test_different_pya(database):
     """ DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE = value for GTAS SF 133 lines #1021+1033 for
         the same reporting period for the TAS and DEFC combination where PYA = "X". Ignore different PYA
@@ -90,6 +91,7 @@ def test_different_pya(database):
                                            prior_year_adjustment='x')
 
     assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op], submission=submission) == 1
+
 
 def test_failure(database):
     """ Fail DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE = value for GTAS SF 133 lines #1021+1033

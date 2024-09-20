@@ -10,6 +10,7 @@ WITH appropriation_a35_{0} AS
     WHERE submission_id = {0}),
 ocpa_a35_{0} AS
     (SELECT account_num,
+        prior_year_adjustment,
         ussgl487100_downward_adjus_cpe,
         ussgl497100_downward_adjus_cpe,
         ussgl487200_downward_adjus_cpe,
@@ -19,6 +20,7 @@ ocpa_a35_{0} AS
         AND COALESCE(UPPER(prior_year_adjustment), '') = 'X')
 SELECT
     approp.row_number AS "source_row_number",
+    UPPER(op.prior_year_adjustment) AS "target_prior_year_adjustment",
     approp.deobligations_recoveries_r_cpe AS "source_value_deobligations_recoveries_r_cpe",
     SUM(op.ussgl487100_downward_adjus_cpe) AS "target_value_ussgl487100_downward_adjus_cpe_sum",
     SUM(op.ussgl497100_downward_adjus_cpe) AS "target_value_ussgl497100_downward_adjus_cpe_sum",
@@ -34,7 +36,8 @@ FROM appropriation_a35_{0} AS approp
         ON approp.account_num = op.account_num
 GROUP BY approp.row_number,
     approp.deobligations_recoveries_r_cpe,
-    approp.display_tas
+    approp.display_tas,
+    UPPER(op.prior_year_adjustment)
 HAVING approp.deobligations_recoveries_r_cpe <>
         SUM(op.ussgl487100_downward_adjus_cpe) +
         SUM(op.ussgl497100_downward_adjus_cpe) +
