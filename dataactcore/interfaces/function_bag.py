@@ -3,7 +3,7 @@ from operator import attrgetter
 import sys
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -737,7 +737,16 @@ def get_timestamp():
         Returns:
             a string representing seconds since the epoch
     """
-    return str(int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()))
+    return str(int((get_utc_now() - datetime(1970, 1, 1)).total_seconds()))
+
+
+def get_utc_now():
+    """ Gets the current time in UTC
+
+        Returns:
+            a datetime with no timezone info that reflects the current time in UTC
+    """
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def update_external_data_load_date(start_time, end_time, data_type):

@@ -27,7 +27,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
     create_file_if_needed, write_file_error, mark_file_complete, run_job_checks, mark_job_status,
-    populate_job_error_info, get_action_dates
+    populate_job_error_info, get_action_dates, get_utc_now
 )
 from dataactcore.interfaces.db import db_connection
 
@@ -1103,7 +1103,7 @@ class ValidationManager:
             raise ResponseError('Bad job type for validator', StatusCode.INTERNAL_ERROR)
 
         # Update last validated date
-        job.last_validated = datetime.utcnow()
+        job.last_validated = get_utc_now()
         sess.commit()
         return JsonResponse.create(StatusCode.OK, {'message': 'Validation complete'})
 

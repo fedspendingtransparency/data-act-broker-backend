@@ -8,7 +8,7 @@ from dataactcore.broker_logging import configure_logging
 from dataactvalidator.health_check import create_app
 
 from dataactbroker.helpers.generic_helper import batch
-from dataactcore.utils.sam_recipient import update_sam_props, update_sam_recipient, LOAD_BATCH_SIZE
+from dataactcore.utils.sam_recipient import update_existing_recipients, update_sam_recipient, LOAD_BATCH_SIZE
 from dataactcore.models.domainModels import SAMRecipient
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def backfill_uei_via_entity_api(sess, table):
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
         df = pd.DataFrame(columns=['awardee_or_recipient_uniqu'])
         df = df.append(duns_batch)
-        df = update_sam_props(df)
+        df = update_existing_recipients(df)
         df = df[['awardee_or_recipient_uniqu', 'uei', 'ultimate_parent_uei']]
         update_sam_recipient(sess, df, table_name=table.__table__.name)
 
@@ -48,7 +48,7 @@ def backfill_uei_crosswalk(sess, table_name):
     for duns_batch in batch(duns_to_update, LOAD_BATCH_SIZE):
         df = pd.DataFrame()
         df['awardee_or_recipient_uniqu'] = duns_batch
-        df = update_sam_props(df, api='iqaas')
+        df = update_existing_recipients(df, api='iqaas')
         df = df[['awardee_or_recipient_uniqu', 'uei']]
         update_sam_recipient(sess, df, table_name=table_name)
 
