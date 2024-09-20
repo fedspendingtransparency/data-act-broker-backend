@@ -1,5 +1,5 @@
 -- DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE = value for GTAS SF 133 lines #1021+1033 for the
--- same reporting period for the TAS and DEFC combination.
+-- same reporting period for the TAS and DEFC combination where PYA = "X".
 WITH object_class_program_activity_b26_{0} AS
     (SELECT submission_id,
         SUM(COALESCE(deobligations_recov_by_pro_cpe, 0)) AS "deobligations_recov_by_pro_cpe_sum",
@@ -8,6 +8,7 @@ WITH object_class_program_activity_b26_{0} AS
         disaster_emergency_fund_code
     FROM object_class_program_activity
     WHERE submission_id = {0}
+        AND COALESCE(UPPER(prior_year_adjustment), '') = 'X'
     GROUP BY submission_id,
         tas,
         display_tas,
