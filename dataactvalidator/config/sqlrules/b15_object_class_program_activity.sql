@@ -1,12 +1,14 @@
--- All the Reimbursable (R) amounts reported for (4801_CPE less 4801_FYB) + (4802_CPE less 4802_FYB) + 4881_CPE +
--- 4882_CPE + (4901_CPE less 4901_FYB) + 4902_CPE + (4908_CPE less 4908_FYB) + 4981_CPE + 4982_CPE = the opposite sign
--- of SF 133 line 2104 per TAS, for the same reporting period and TAS/DEFC combination. If the DEFC is other than Q,
--- this value should be $0 since there should not be reimbursable work reported for disasters or emergencies.
+-- All the Reimbursable (R) amounts reported for (4801_CPE less 4801_FYB) + (4802_CPE less 4802_FYB)
+-- + 4881_CPE + 4882_CPE + (4901_CPE less 4901_FYB) + 4902_CPE + (4908_CPE less 4908_FYB) + 4981_CPE + 4982_CPE =
+-- the opposite sign of GTAS SF 133 line 2104 per TAS, for the same reporting period and TAS and DEFC combination
+-- where PYA = "X". If the DEFC is other than Q or QQQ, this value should be $0 since there should not be reimbursable
+-- work reported for disasters or emergencies.
 WITH object_class_program_activity_b15_{0} AS
     (SELECT submission_id,
         tas,
         display_tas,
         disaster_emergency_fund_code,
+        prior_year_adjustment,
         ussgl480100_undelivered_or_cpe,
         ussgl480100_undelivered_or_fyb,
         ussgl480200_undelivered_or_cpe,
@@ -22,10 +24,12 @@ WITH object_class_program_activity_b15_{0} AS
         ussgl498200_upward_adjustm_cpe,
         by_direct_reimbursable_fun
     FROM object_class_program_activity
-    WHERE submission_id = {0})
+    WHERE submission_id = {0}
+        AND COALESCE(UPPER(prior_year_adjustment), '') = 'X')
 SELECT DISTINCT
     NULL AS row_number,
     op.display_tas AS "tas",
+    UPPER(op.prior_year_adjustment) AS "prior_year_adjustment",
     SUM(ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum,
     SUM(ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum,
     SUM(ussgl480200_undelivered_or_cpe) AS ussgl480200_undelivered_or_cpe_sum,
@@ -65,7 +69,8 @@ WHERE sf.line = 2104
 GROUP BY op.tas,
     UPPER(op.disaster_emergency_fund_code),
     sf.amount,
-    op.display_tas
+    op.display_tas,
+    UPPER(prior_year_adjustment)
 HAVING (UPPER(op.disaster_emergency_fund_code) IN ('Q', 'QQQ')
         AND (
             SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +

@@ -6,8 +6,9 @@ _FILE = 'b6_object_class_program_activity_1'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'gross_outlays_undelivered_fyb', 'ussgl480200_undelivered_or_fyb', 'difference',
-                       'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode', 'uniqueid_ProgramActivityCode',
+    expected_subset = {'row_number', 'prior_year_adjustment', 'gross_outlays_undelivered_fyb',
+                       'ussgl480200_undelivered_or_fyb', 'difference', 'uniqueid_TAS',
+                       'uniqueid_DisasterEmergencyFundCode', 'uniqueid_ProgramActivityCode',
                        'uniqueid_ProgramActivityName', 'uniqueid_ObjectClass',
                        'uniqueid_ByDirectReimbursableFundingSource'}
     actual = set(query_columns(_FILE, database))
@@ -17,9 +18,12 @@ def test_column_headers(database):
 def test_success(database):
     """ Test Object Class Program Activity gross_outlays_undelivered_fyb equals ussgl480200_undelivered_or_fyb """
 
-    op = ObjectClassProgramActivityFactory(gross_outlays_undelivered_fyb=1, ussgl480200_undelivered_or_fyb=1)
+    op = ObjectClassProgramActivityFactory(gross_outlays_undelivered_fyb=1, ussgl480200_undelivered_or_fyb=1,
+                                           prior_year_adjustment='X')
+    # Different values, Different PYA
+    op2 = ObjectClassProgramActivityFactory(gross_outlays_undelivered_fyb=0, ussgl480200_undelivered_or_fyb=1)
 
-    assert number_of_errors(_FILE, database, models=[op]) == 0
+    assert number_of_errors(_FILE, database, models=[op, op2]) == 0
 
 
 def test_failure(database):
@@ -27,6 +31,7 @@ def test_failure(database):
         ussgl480200_undelivered_or_fyb
     """
 
-    op = ObjectClassProgramActivityFactory(gross_outlays_undelivered_fyb=1, ussgl480200_undelivered_or_fyb=0)
+    op = ObjectClassProgramActivityFactory(gross_outlays_undelivered_fyb=1, ussgl480200_undelivered_or_fyb=0,
+                                           prior_year_adjustment='x')
 
     assert number_of_errors(_FILE, database, models=[op]) == 1
