@@ -8,14 +8,15 @@ _FILE = 'c3_award_financial_2'
 def test_column_headers(database):
     expected_subset = {'row_number', 'obligations_undelivered_or_cpe', 'ussgl480100_undelivered_or_cpe',
                        'ussgl483100_undelivered_or_cpe', 'ussgl488100_upward_adjustm_cpe', 'difference', 'uniqueid_TAS',
-                       'uniqueid_DisasterEmergencyFundCode', 'uniqueid_PIID', 'uniqueid_FAIN', 'uniqueid_URI'}
+                       'uniqueid_DisasterEmergencyFundCode', 'uniqueid_PriorYearAdjustment', 'uniqueid_PIID',
+                       'uniqueid_FAIN', 'uniqueid_URI'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):
     """ ObligationsUndeliveredOrdersUnpaidTotal in File C = USSGL 4801 + 4881 in File C for the same date context
-        (CPE) and TAS/DEFC combination
+        (CPE) and TAS/DEFC/PYA combination
     """
 
     af = AwardFinancialFactory(obligations_undelivered_or_cpe=None, ussgl480100_undelivered_or_cpe=None,
@@ -31,7 +32,7 @@ def test_success(database):
 
 def test_failure(database):
     """ ObligationsUndeliveredOrdersUnpaidTotal in File C != USSGL 4801 + 4881 in File C for the same date context
-        (CPE) and TAS/DEFC combination
+        (CPE) and TAS/DEFC/PYA combination
     """
 
     af = AwardFinancialFactory(obligations_undelivered_or_cpe=1, ussgl480100_undelivered_or_cpe=None,
