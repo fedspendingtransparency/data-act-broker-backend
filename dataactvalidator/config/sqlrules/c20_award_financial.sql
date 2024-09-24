@@ -1,5 +1,6 @@
--- Each USSGL account balance or subtotal, when totaled by combination of TAS, object class code, and
--- direct/reimbursable flag provided in File C, should be a subset of, or equal to, the same combinations in File B.
+-- Each USSGL account balance or subtotal, when totaled by combination of TAS, object class code, direct/reimbursable
+-- flag, and PYA provided in File C, should be a subset of, or equal to, the same combinations in File B.
+-- If PYA is not provided in File C, then the TAS, object class code, direct/reimbursable flag combination is applied.
 -- For example, -10 in C and -100 in B would pass.
 -- This rule selects 32 distinct elements in Files B and C based on TAS/OC/DR combination
 -- The elements from both files are summed before comparing
@@ -235,7 +236,8 @@ SELECT NULL AS "source_row_number",
             END) AS "difference",
     award_financial_records.display_tas AS "uniqueid_TAS",
     award_financial_records.object_class AS "uniqueid_ObjectClass",
-    award_financial_records.by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource"
+    award_financial_records.by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
+    award_financial_records.prior_year_adjustment AS "uniqueid_PriorYearAdjustment"
 -- This first subquery is selecting the sum of 32 elements in File C based on TAS, OC, DR, and Submission ID
 FROM (
     SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
@@ -273,12 +275,14 @@ FROM (
         af.tas,
         af.object_class,
         UPPER(af.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun,
+        UPPER(af.prior_year_adjustment) AS prior_year_adjustment,
         af.display_tas
     FROM award_financial AS af
     WHERE af.submission_id = {0}
     GROUP BY af.tas,
         af.object_class,
         UPPER(af.by_direct_reimbursable_fun),
+        UPPER(af.prior_year_adjustment),
         af.display_tas,
         af.submission_id
 ) AS award_financial_records
@@ -320,18 +324,21 @@ FULL OUTER JOIN (
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
         op.object_class,
-        UPPER(op.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun
+        UPPER(op.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun,
+        UPPER(op.prior_year_adjustment) AS prior_year_adjustment
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
     GROUP BY op.tas,
         op.object_class,
         UPPER(op.by_direct_reimbursable_fun),
+        UPPER(op.prior_year_adjustment),
         op.submission_id
 ) AS object_class_records
     -- We join these two subqueries based on the same TAS, OC, and DR combination
     ON object_class_records.tas = award_financial_records.tas
     AND object_class_records.object_class = award_financial_records.object_class
     AND UPPER(COALESCE(object_class_records.by_direct_reimbursable_fun, '')) = UPPER(COALESCE(award_financial_records.by_direct_reimbursable_fun, ''))
+    AND UPPER(object_class_records.prior_year_adjustment) = UPPER(award_financial_records.prior_year_adjustment)
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value
