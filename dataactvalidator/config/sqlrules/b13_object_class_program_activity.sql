@@ -18,7 +18,7 @@ SELECT
     object_class AS "uniqueid_ObjectClass"
 FROM object_class_program_activity
 WHERE submission_id = {0}
-    AND COALESCE(UPPER(prior_year_adjustment), '') = 'X'
+    AND UPPER(prior_year_adjustment) = 'X'
     AND COALESCE(deobligations_recov_by_pro_cpe, 0) <>
         COALESCE(ussgl487100_downward_adjus_cpe, 0) +
         COALESCE(ussgl487200_downward_adjus_cpe, 0) +

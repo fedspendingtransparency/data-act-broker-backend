@@ -37,7 +37,8 @@ def test_success(database):
     ocpa_pya = ObjectClassProgramActivityFactory(obligations_delivered_orde_cpe=1,
                                                  ussgl490100_delivered_orde_cpe=0,
                                                  ussgl493100_delivered_orde_cpe=0,
-                                                 ussgl498100_upward_adjustm_cpe=0)
+                                                 ussgl498100_upward_adjustm_cpe=0,
+                                                 prior_year_adjustment='A')
 
     assert number_of_errors(_FILE, database, models=[ocpa, ocpa_null, ocpa_pya]) == 0
 

@@ -24,7 +24,7 @@ WITH object_class_program_activity_b14_{0} AS
         by_direct_reimbursable_fun
     FROM object_class_program_activity
     WHERE submission_id = {0}
-        AND COALESCE(UPPER(prior_year_adjustment), '') = 'X')
+        AND UPPER(prior_year_adjustment) = 'X')
 SELECT DISTINCT
     NULL AS row_number,
     op.display_tas AS "tas",

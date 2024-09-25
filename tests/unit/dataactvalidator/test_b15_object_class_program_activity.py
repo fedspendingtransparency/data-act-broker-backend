@@ -79,7 +79,8 @@ def test_success(database):
                                      ussgl490100_delivered_orde_cpe=2, ussgl490100_delivered_orde_fyb=2,
                                      ussgl490200_delivered_orde_cpe=2, ussgl490800_authority_outl_cpe=2,
                                      ussgl490800_authority_outl_fyb=2, ussgl498100_upward_adjustm_cpe=2,
-                                     ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='D')
+                                     ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='D',
+                                     prior_year_adjustment='A')
 
     assert number_of_errors(_FILE, database, models=[sf, op, op2, op3, op4, op5]) == 0
 

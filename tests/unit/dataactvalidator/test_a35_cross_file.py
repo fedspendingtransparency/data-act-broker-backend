@@ -70,7 +70,7 @@ def test_success_scenario2(database):
     # Doesn't contribute, different PYA
     op_4 = ObjectClassProgramActivityFactory(
         account_num=tas1.account_num, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
-        ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
+        ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1, prior_year_adjustment='A')
     assert number_of_errors(_FILE, database, models=[ap, op_1, op_2, op_3, op_4]) == 0
 
 

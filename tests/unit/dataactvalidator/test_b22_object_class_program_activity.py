@@ -81,7 +81,8 @@ def test_different_pya(database):
                                    reporting_fiscal_year=year)
     sf = SF133Factory(line=3020, tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code='N')
     op = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=1, tas=tas,
-                                           gross_outlay_amount_by_pro_cpe=0, disaster_emergency_fund_code='n')
+                                           gross_outlay_amount_by_pro_cpe=0, disaster_emergency_fund_code='n',
+                                           prior_year_adjustment='A')
 
     assert number_of_errors(_FILE, database, models=[sf, op], submission=submission) == 0
 

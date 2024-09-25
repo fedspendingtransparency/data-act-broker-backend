@@ -27,7 +27,7 @@ def test_sum_matches(database):
 
     op1 = ObjectClassProgramActivityFactory(account_num=tas.account_num, prior_year_adjustment='X')
     op2 = ObjectClassProgramActivityFactory(account_num=tas.account_num, prior_year_adjustment='x')
-    op3 = ObjectClassProgramActivityFactory(account_num=tas.account_num)
+    op3 = ObjectClassProgramActivityFactory(account_num=tas.account_num, prior_year_adjustment='A')
     approp_val = sum(op.gross_outlay_amount_by_pro_cpe for op in (op1, op2))
     approp = AppropriationFactory(account_num=tas.account_num, gross_outlay_amount_by_tas_cpe=approp_val)
     assert number_of_errors(_FILE, database, models=[approp, op1, op2, op3]) == 0

@@ -38,7 +38,7 @@ WHERE NOT EXISTS (
         FROM object_class_program_activity AS op
         WHERE sf.tas IS NOT DISTINCT FROM op.tas
             AND COALESCE(sf.disaster_emergency_fund_code, '') = UPPER(op.disaster_emergency_fund_code)
-            AND COALESCE(UPPER(op.prior_year_adjustment), '') = 'X'
+            AND UPPER(op.prior_year_adjustment) = 'X'
             AND op.submission_id = {0}
     )
     AND COALESCE(UPPER(tas_lookup.financial_indicator2), '') <> 'F';
