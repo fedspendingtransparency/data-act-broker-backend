@@ -386,6 +386,7 @@ EXTERNAL_DATA_TYPE = [
     LookupType(22, 'funding_opportunity_number', 'Funding Opportunity Number data loaded'),
     LookupType(23, 'gtas_boc', 'GTAS BOC data loaded'),
     LookupType(24, 'park', 'PARK data loaded'),
-    LookupType(25, 'park_upload', 'PARK file loaded into S3')
+    LookupType(25, 'park_upload', 'PARK file loaded into S3'),
+    LookupType(26, 'fabs_extract', 'FABS extract for SAM generated')
 ]
 EXTERNAL_DATA_TYPE_DICT = {item.name: item.id for item in EXTERNAL_DATA_TYPE}
