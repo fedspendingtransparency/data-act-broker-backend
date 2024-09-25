@@ -1,8 +1,14 @@
--- Each USSGL account balance or subtotal, when totaled by combination of TAS/DEFC provided in File C,
+-- Each USSGL account balance or subtotal, when totaled by combination of TAS, DEFC, and PYA provided in File C,
 -- should be a subset of, or equal to, the same combinations in File B.
 
--- This first cte is selecting the sum of 32 elements in File C based on TAS, DEFC, and Submission ID
-WITH award_financial_records AS (
+-- This first cte is getting all the relevant C data as we need to check if PYA is populated or not
+WITH award_financial_records_filtered_{0} AS (
+    SELECT *
+    FROM award_financial AS af
+    WHERE af.submission_id = {0}
+),
+-- This second cte is selecting the sum of 32 elements in File C based on TAS, DEFC, PYA, and Submission ID
+award_financial_records_{0} AS (
     SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
         SUM(af.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_c,
         SUM(af.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_c,
@@ -37,17 +43,23 @@ WITH award_financial_records AS (
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
         UPPER(af.disaster_emergency_fund_code) AS "disaster_emergency_fund_code",
+        UPPER(af.prior_year_adjustment) AS "prior_year_adjustment",
         af.display_tas
-    FROM award_financial AS af
-    WHERE af.submission_id = {0}
+    FROM award_financial_records_filtered_{0} AS af
+    -- We only want to do this grouping if there IS a PYA
+    WHERE EXISTS (
+        SELECT 1
+        FROM award_financial_records_filtered_{0}
+        WHERE COALESCE(prior_year_adjustment, '') <> ''
+    )
     GROUP BY af.tas,
         UPPER(af.disaster_emergency_fund_code),
         af.display_tas,
+        UPPER(af.prior_year_adjustment),
         af.submission_id),
--- The second cte selects the sum of the corresponding 32 elements in File B
--- Again, the sum is based on TAS, DEFC, and Submission ID
--- We do a FULL OUTER JOIN of this result, as we don't care if TAS/DEFC combinations from File B aren't in File C
-object_class_records AS (
+-- The third cte selects the sum of the corresponding 32 elements in File B
+-- Again, the sum is based on TAS, DEFC, PYA, and Submission ID
+object_class_records_{0} AS (
     SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_b,
         SUM(op.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_b,
@@ -81,15 +93,22 @@ object_class_records AS (
         SUM(op.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_b,
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
-        UPPER(op.disaster_emergency_fund_code) AS "disaster_emergency_fund_code"
+        UPPER(op.disaster_emergency_fund_code) AS "disaster_emergency_fund_code",
+        UPPER(op.prior_year_adjustment) AS "prior_year_adjustment"
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
+        AND EXISTS (
+            SELECT 1
+            FROM award_financial_records_filtered_{0}
+            WHERE COALESCE(prior_year_adjustment, '') <> '')
     GROUP BY op.tas,
         UPPER(op.disaster_emergency_fund_code),
+        UPPER(op.prior_year_adjustment),
         op.submission_id)
 SELECT NULL AS "source_row_number",
-    award_financial_records.display_tas AS "source_value_tas",
-    award_financial_records.disaster_emergency_fund_code AS "source_value_disaster_emergency_fund_code",
+    afr.display_tas AS "source_value_tas",
+    afr.disaster_emergency_fund_code AS "source_value_disaster_emergency_fund_code",
+    afr.prior_year_adjustment AS "source_value_prior_year_adjustment",
     ussgl480100_undelivered_or_fyb_sum_c AS "source_value_ussgl480100_undelivered_or_fyb_sum_c",
     ussgl480100_undelivered_or_cpe_sum_c AS "source_value_ussgl480100_undelivered_or_cpe_sum_c",
     ussgl483100_undelivered_or_cpe_sum_c AS "source_value_ussgl483100_undelivered_or_cpe_sum_c",
@@ -315,13 +334,15 @@ SELECT NULL AS "source_row_number",
             THEN 'deobligations_recov_by_awa_cpe_sum: ' || (deobligations_recov_by_awa_cpe_sum_c - deobligations_recov_by_pro_cpe_sum_b)
             ELSE NULL
             END) AS "difference",
-    award_financial_records.display_tas AS "uniqueid_TAS",
-    award_financial_records.disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
-FROM award_financial_records
-FULL OUTER JOIN object_class_records
-    -- We join the two ctes based on the same TAS and PAC combination
-    ON object_class_records.tas = award_financial_records.tas
-    AND object_class_records.disaster_emergency_fund_code = award_financial_records.disaster_emergency_fund_code
+    afr.display_tas AS "uniqueid_TAS",
+    afr.disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
+    afr.prior_year_adjustment AS "uniqueid_uniqueid_PriorYearAdjustment"
+FROM award_financial_records_{0} AS afr
+-- We do a FULL OUTER JOIN of this result, as we don't care if TAS/DEFC/PYA combinations from File B aren't in File C
+FULL OUTER JOIN object_class_records_{0} AS ocr
+    ON ocr.tas = afr.tas
+    AND ocr.disaster_emergency_fund_code = afr.disaster_emergency_fund_code
+    AND UPPER(ocr.prior_year_adjustment) = UPPER(COALESCE(afr.prior_year_adjustment, ''))
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value
