@@ -69,7 +69,7 @@ def test_success_ignore_lines(database):
                                            prior_year_adjustment='X')
     # Different PYA
     op2 = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id,
-                                           prior_year_adjustment='A')
+                                            prior_year_adjustment='A')
 
     errors = number_of_errors(_FILE, database, models=[sf1, sf2, sf3, op, op2], submission=submission)
     assert errors == 0
