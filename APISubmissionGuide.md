@@ -44,7 +44,7 @@ While the Submission API has been designed to be as easy to understand as possib
     - Your `Client ID` generated from Step 1. 
     - Your organization/agency name that owns the system.
     - A system-wide email representing your system.
-    - Once you have confirmation that your system account has been registered, move onto Step 3.
+    - Once you have confirmation that your system account has been registered and approved, move onto Step 3.
 - Step 3: Using the `client_id`/`client_secret` with the Broker.
     - Each call to the Broker below in this guide (or any other endpoint referenced in the documentation) will be called slightly different:
         - The root url will be replaced:
