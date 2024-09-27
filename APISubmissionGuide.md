@@ -33,7 +33,7 @@ While the Submission API has been designed to be as easy to understand as possib
     - Go to the [Data Broker Experience API]().
     - You will be prompted to log into CAIA with your PIV.
     - Once on the main page, you will see **"Request Access"** on the top right side.
-        - For **"API Instance"**, select the only version.
+        - For **"API Instance"**, select the version under **"Production"**.
         - For **"Application"**, select **"Create a new application"**.
             - For **"Application Name"**, use a name representing your agency application that will be accessing the Broker.
             - Do not fill in any other fields and click **"Create"**.
