@@ -15,7 +15,7 @@ SELECT
     object_class AS "uniqueid_ObjectClass"
 FROM object_class_program_activity
 WHERE submission_id = {0}
-    AND COALESCE(UPPER(prior_year_adjustment), '') = 'X'
+    AND UPPER(prior_year_adjustment) = 'X'
     AND COALESCE(gross_outlay_amount_by_pro_fyb, 0) <>
         COALESCE(gross_outlays_undelivered_fyb, 0) +
         COALESCE(gross_outlays_delivered_or_fyb, 0);

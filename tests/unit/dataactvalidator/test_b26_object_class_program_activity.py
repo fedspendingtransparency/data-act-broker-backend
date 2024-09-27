@@ -88,9 +88,9 @@ def test_different_pya(database):
     sf_2 = SF133Factory(line=1033, tas=tas, period=period, fiscal_year=year, amount=0, disaster_emergency_fund_code='N')
     op = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=1, tas=tas, display_tas=tas,
                                            deobligations_recov_by_pro_cpe=0, disaster_emergency_fund_code='n',
-                                           prior_year_adjustment='x')
+                                           prior_year_adjustment='A')
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op], submission=submission) == 0
 
 
 def test_failure(database):

@@ -29,7 +29,7 @@ def test_success(database):
     # Different values, Different PYA
     op3 = ObjectClassProgramActivityFactory(deobligations_recov_by_pro_cpe=0, ussgl487100_downward_adjus_cpe=1,
                                             ussgl487200_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
-                                            ussgl497200_downward_adjus_cpe=1)
+                                            ussgl497200_downward_adjus_cpe=1, prior_year_adjustment='A')
 
     assert number_of_errors(_FILE, database, models=[op, op2, op3]) == 0
 

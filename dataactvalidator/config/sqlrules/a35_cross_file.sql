@@ -17,7 +17,7 @@ ocpa_a35_{0} AS
         ussgl497200_downward_adjus_cpe
     FROM object_class_program_activity
     WHERE submission_id = {0}
-        AND COALESCE(UPPER(prior_year_adjustment), '') = 'X')
+        AND UPPER(prior_year_adjustment) = 'X')
 SELECT
     approp.row_number AS "source_row_number",
     UPPER(op.prior_year_adjustment) AS "target_prior_year_adjustment",

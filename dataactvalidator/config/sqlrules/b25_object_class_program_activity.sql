@@ -10,7 +10,7 @@ WITH object_class_program_activity_b25_{0} AS
         prior_year_adjustment
     FROM object_class_program_activity
     WHERE submission_id = {0}
-        AND COALESCE(UPPER(prior_year_adjustment), '') = 'X')
+        AND UPPER(prior_year_adjustment) = 'X')
 SELECT
     NULL AS "row_number",
     UPPER(op.prior_year_adjustment) AS "prior_year_adjustment",

@@ -14,5 +14,5 @@ SELECT
     by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource"
 FROM object_class_program_activity
 WHERE submission_id = {0}
-    AND COALESCE(UPPER(prior_year_adjustment), '') = 'X'
+    AND UPPER(prior_year_adjustment) = 'X'
     AND COALESCE(obligations_delivered_orde_fyb, 0) <> COALESCE(ussgl490100_delivered_orde_fyb, 0);
