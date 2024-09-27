@@ -30,7 +30,7 @@ While the Submission API has been designed to be as easy to understand as possib
 
 - Step 1: Request access to the Data Broker Experience API and obtain the `client_id`/`client_secret` credentials.
     - **NOTE**: Ensure this step is completed by a user that will manage/own your system account. If that role is passed onto another, the system account can still be used but any changes to that account may result in needing to repeat this process.
-    - Go to the [Data Broker Experience API]().
+    - Go to the [Data Broker Experience API](https://gov.anypoint.mulesoft.com/exchange/bdc8b2f6-1876-4267-8ab1-cc4ccab4d7b8/data-act-broker-experience-api/minor/1.0/).
     - You will be prompted to log into CAIA with your PIV.
     - Once on the main page, you will see **"Request Access"** on the top right side.
         - For **"API Instance"**, select the version under **"Production"**.
