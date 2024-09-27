@@ -29,7 +29,7 @@ While the Submission API has been designed to be as easy to understand as possib
 #### TODO: Add proper Data Broker Experience API URL
 
 - Step 1: Request access to the Data Broker Experience API and obtain the `client_id`/`client_secret` credentials.
-    - **NOTE**: Ensure this step is completed by a user that will manage/own your system account. If that role is passed onto another, the system account can still be used but any changes to that account may need to result in repeating this process.
+    - **NOTE**: Ensure this step is completed by a user that will manage/own your system account. If that role is passed onto another, the system account can still be used but any changes to that account may result in needing to repeat this process.
     - Go to the [Data Broker Experience API]().
     - You will be prompted to log into CAIA with your PIV.
     - Once on the main page, you will see **"Request Access"** on the top right side.
