@@ -39,7 +39,7 @@ While the Submission API has been designed to be as easy to understand as possib
             - Do not fill in any other fields and click **"Create"**.
         - For **"SLA Tier"**, select **"API User"**.
         - Select **"Request Access"**.
-        - You will be provided with a `Client ID` and `Client Secret`.
+        - This generates a `Client ID` and `Client Secret` which you can access via "Exchange" -> "My Applications".
             - **NOTE**: It is **imperative** that you copy these credentials down as they will be your only way of using the Broker with your application. You **won't** be able to see these values again. If they are lost, then you need to repeat Step 1 to generate new credentials.
 - Step 2: Request via Service Desk to register a system account to use the Broker API proxy. You will need to provide: 
     - Your `Client ID` generated from Step 1. 
