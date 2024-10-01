@@ -731,7 +731,7 @@ def give_up(e):
 
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
 @sleep_and_retry
-@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=10, logger=logger, giveup=give_up)
+@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=15, logger=logger, giveup=give_up)
 def _request_sam_api(url, request_type, headers=None, params=None, body=None):
     """ Calls one of the SAM APIs and returns its content
 
