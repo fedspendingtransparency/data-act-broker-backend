@@ -29,7 +29,7 @@ While the Submission API has been designed to be as easy to understand as possib
 - Step 1: Get access to Treasury Mulesoft Exchange to view the Data Broker Experience API.
     - **NOTE**: Ensure Step 1 and 2 is completed by a user that will manage/own your system account. If that role is passed onto another, the system account can still be used but any changes to that account may result in needing to repeat this process.
     - Visit the [Treasury Mulesoft Exchange](https://gov.anypoint.mulesoft.com/accounts/login/fs) and log in.
-        - If you reach a page that says "an entitlement request as been submitted to enable privileged access", then wait the following day or two for your access to be approved.
+        - If you reach a page that says "an entitlement request as been submitted to enable privileged access", wait for a day or two for your access to be approved.
     - Once you're able to log in to the Treasury Mulesoft Exchange, visit the [Data Broker Experience API](https://gov.anypoint.mulesoft.com/exchange/bdc8b2f6-1876-4267-8ab1-cc4ccab4d7b8/data-act-broker-experience-api/minor/1.0/).
         - If you reach a forbidden page, reach out to the Service Desk that you need viewing access to the Data Broker Experience API. They will let you know when access has been granted.
     - When you're able to visit the Data Broker Experience API, move onto Step 2.
