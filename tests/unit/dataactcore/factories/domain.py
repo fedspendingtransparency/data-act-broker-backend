@@ -144,6 +144,21 @@ class ProgramActivityFactory(factory.Factory):
     program_activity_name = fuzzy.FuzzyText()
 
 
+class ProgramActivityPARKFactory(factory.Factory):
+    class Meta:
+        model = domainModels.ProgramActivityPARK
+
+    program_activity_park_id = None
+    fiscal_year = fuzzy.FuzzyInteger(2010, 2040)
+    period = fuzzy.FuzzyInteger(1, 12)
+    agency_id = fuzzy.FuzzyText()
+    allocation_transfer_id = fuzzy.FuzzyText()
+    main_account_number = fuzzy.FuzzyText()
+    sub_account_number = fuzzy.FuzzyText()
+    park_code = fuzzy.FuzzyText()
+    park_name = fuzzy.FuzzyText()
+
+
 class ObjectClassFactory(factory.Factory):
     class Meta:
         model = domainModels.ObjectClass

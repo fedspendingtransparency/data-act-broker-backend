@@ -35,7 +35,7 @@ WHERE submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM program_activity_park AS park
-        WHERE pa_reporting_key = park_code
+        WHERE UPPER(pa_reporting_key) = UPPER(park_code)
             AND park.sub_account_number IS NULL
             AND COALESCE(park.agency_id, '') = COALESCE(ocpa.agency_identifier, '')
             AND COALESCE(park.allocation_transfer_id, '') = COALESCE(ocpa.allocation_transfer_agency, '')
@@ -45,7 +45,7 @@ WHERE submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM program_activity_park AS park
-        WHERE pa_reporting_key = park_code
+        WHERE UPPER(pa_reporting_key) = UPPER(park_code)
             AND park.sub_account_number IS NOT NULL
             AND COALESCE(park.agency_id, '') = COALESCE(ocpa.agency_identifier, '')
             AND COALESCE(park.allocation_transfer_id, '') = COALESCE(ocpa.allocation_transfer_agency, '')
