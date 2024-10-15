@@ -17,12 +17,14 @@ def test_success(database):
     # Has a PARK
     sub = SubmissionFactory(submission_id=1, reporting_fiscal_year=2026)
     op = ObjectClassProgramActivityFactory(pa_reporting_key='aBcD')
+
     assert number_of_errors(_FILE, database, models=[op], submission=sub) == 0
 
     # Ignored for FY before 2025
     sub = SubmissionFactory(submission_id=2, reporting_fiscal_year=2025)
     op1 = ObjectClassProgramActivityFactory(pa_reporting_key='')
     op2 = ObjectClassProgramActivityFactory(pa_reporting_key=None)
+
     assert number_of_errors(_FILE, database, models=[op1, op2], submission=sub) == 0
 
 
@@ -33,4 +35,5 @@ def test_failure(database):
     sub = SubmissionFactory(submission_id=3, reporting_fiscal_year=2026)
     op1 = ObjectClassProgramActivityFactory(pa_reporting_key='')
     op2 = ObjectClassProgramActivityFactory(pa_reporting_key=None)
+
     assert number_of_errors(_FILE, database, models=[op1, op2], submission=sub) == 2
