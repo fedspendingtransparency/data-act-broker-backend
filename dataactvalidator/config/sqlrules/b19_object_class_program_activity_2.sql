@@ -3,7 +3,7 @@
 -- uniqueness check.
 SELECT
     row_number,
-    display_tas AS "TAS",
+    display_tas AS "tas",
     object_class,
     pa_reporting_key,
     by_direct_reimbursable_fun,

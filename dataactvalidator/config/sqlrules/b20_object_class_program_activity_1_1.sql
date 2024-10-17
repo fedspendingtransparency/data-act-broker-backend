@@ -30,7 +30,7 @@ ocpa_b20_{0} AS
             OR COALESCE(program_activity_name, '') <> ''))
 SELECT
     af.row_number AS "source_row_number",
-    af.display_tas AS "source_value_TAS",
+    af.display_tas AS "source_value_tas",
     af.program_activity_code AS "source_value_program_activity_code",
     af.program_activity_name AS "source_value_program_activity_name",
     af.object_class AS "source_value_object_class",

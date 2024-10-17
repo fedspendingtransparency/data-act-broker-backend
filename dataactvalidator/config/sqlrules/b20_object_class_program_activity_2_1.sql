@@ -26,7 +26,7 @@ ocpa_b20_{0} AS
         AND COALESCE(pa_reporting_key, '') <> '')
 SELECT
     af.row_number AS "source_row_number",
-    af.display_tas AS "source_value_TAS",
+    af.display_tas AS "source_value_tas",
     af.pa_reporting_key AS "source_value_pa_reporting_key",
     af.object_class AS "source_value_object_class",
     af.disaster_emergency_fund_code AS "source_value_disaster_emergency_fund_code",

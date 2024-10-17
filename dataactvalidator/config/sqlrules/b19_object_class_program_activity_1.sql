@@ -3,7 +3,7 @@
 -- of the uniqueness check.
 SELECT
     row_number,
-    display_tas AS "TAS",
+    display_tas AS "tas",
     object_class,
     program_activity_code,
     program_activity_name,
