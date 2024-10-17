@@ -1,0 +1,59 @@
+-- The combination of TAS, object class, PARK, direct/reimbursable flag, DEFC, Award ID, and PYA in File C (award
+-- financial) must be unique for USSGL-related balances.
+SELECT
+    row_number,
+    display_tas AS "tas",
+    object_class,
+    pa_reporting_key,
+    by_direct_reimbursable_fun,
+    disaster_emergency_fund_code,
+    fain,
+    uri,
+    piid,
+    parent_award_id,
+    prior_year_adjustment,
+    display_tas AS "uniqueid_TAS",
+    pa_reporting_key AS "uniqueid_ProgramActivityReportingKey",
+    object_class AS "uniqueid_ObjectClass",
+    by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
+    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
+    fain AS "uniqueid_FAIN",
+    uri AS "uniqueid_URI",
+    piid AS "uniqueid_PIID",
+    parent_award_id AS "uniqueid_ParentAwardId",
+    prior_year_adjustment AS "uniqueid_PriorYearAdjustment"
+FROM (
+    SELECT af.row_number,
+        af.display_tas,
+        af.object_class,
+        UPPER(af.pa_reporting_key) AS pa_reporting_key,
+        UPPER(af.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun,
+        af.submission_id,
+        af.tas,
+        af.prior_year_adjustment,
+        UPPER(af.fain) AS fain,
+        UPPER(af.uri) AS uri,
+        UPPER(af.piid) AS piid,
+        UPPER(af.parent_award_id) AS parent_award_id,
+        UPPER(af.disaster_emergency_fund_code) AS disaster_emergency_fund_code,
+        -- numbers all instances of this unique combination incrementally (1, 2, 3, etc)
+        ROW_NUMBER() OVER (PARTITION BY
+            UPPER(af.display_tas),
+            af.object_class,
+            UPPER(af.pa_reporting_key),
+            UPPER(af.by_direct_reimbursable_fun),
+            UPPER(af.prior_year_adjustment),
+            UPPER(af.fain),
+            UPPER(af.uri),
+            UPPER(af.piid),
+            UPPER(af.parent_award_id),
+            UPPER(af.disaster_emergency_fund_code)
+            ORDER BY af.row_number
+        ) AS row
+    FROM award_financial AS af
+    WHERE af.submission_id = {0}
+        AND af.transaction_obligated_amou IS NULL
+        AND COALESCE(pa_reporting_key, '') <> ''
+    ) duplicates
+-- if there is any row numbered over 1, that means there's more than one instance of that unique combination
+WHERE duplicates.row > 1;
