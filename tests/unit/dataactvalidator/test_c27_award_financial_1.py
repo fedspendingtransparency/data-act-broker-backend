@@ -357,7 +357,7 @@ def test_success(database):
                                              prior_year_adjustment='b')
 
     sub_pya_curr = SubmissionFactory(submission_id=9, reporting_fiscal_year=2018, reporting_fiscal_period=4,
-                                        cgac_code='test', frec_code=None, is_quarter_format=False, is_fabs=False)
+                                     cgac_code='test', frec_code=None, is_quarter_format=False, is_fabs=False)
     af_pya_diff = PublishedAwardFinancialFactory(submission_id=sub_pya_curr.submission_id, tas='test_tas',
                                                  fain='efgh', uri=None, piid=None, parent_award_id=None,
                                                  disaster_emergency_fund_code='N', program_activity_code='',
