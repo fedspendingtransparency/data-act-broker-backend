@@ -1,22 +1,18 @@
--- The combination of TAS/object class/program activity code+name/reimbursable flag/DEFC/Award ID in
--- File C (award financial) should be unique for USSGL-related balances.
+-- The combination of TAS/object class/program activity code+name/reimbursable flag/DEFC/Award ID in File C (award
+-- financial) must be unique for USSGL-related balances.
 SELECT
     row_number,
-    beginning_period_of_availa,
-    ending_period_of_availabil,
-    agency_identifier,
-    allocation_transfer_agency,
-    availability_type_code,
-    main_account_code,
-    sub_account_code,
+    display_tas AS "tas",
     object_class,
     program_activity_code,
+    program_activity_name,
     by_direct_reimbursable_fun,
     disaster_emergency_fund_code,
     fain,
     uri,
     piid,
     parent_award_id,
+    prior_year_adjustment,
     display_tas AS "uniqueid_TAS",
     program_activity_code AS "uniqueid_ProgramActivityCode",
     program_activity_name AS "uniqueid_ProgramActivityName",
@@ -26,23 +22,18 @@ SELECT
     fain AS "uniqueid_FAIN",
     uri AS "uniqueid_URI",
     piid AS "uniqueid_PIID",
-    parent_award_id AS "uniqueid_ParentAwardId"
+    parent_award_id AS "uniqueid_ParentAwardId",
+    prior_year_adjustment AS "uniqueid_PriorYearAdjustment"
 FROM (
     SELECT af.row_number,
-        af.beginning_period_of_availa,
-        af.ending_period_of_availabil,
-        af.agency_identifier,
-        af.allocation_transfer_agency,
-        UPPER(af.availability_type_code) AS availability_type_code,
-        af.main_account_code,
-        af.sub_account_code,
+        af.display_tas,
         af.object_class,
         af.program_activity_code,
         UPPER(af.program_activity_name) AS program_activity_name,
         UPPER(af.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun,
         af.submission_id,
         af.tas,
-        af.display_tas,
+        af.prior_year_adjustment,
         UPPER(af.fain) AS fain,
         UPPER(af.uri) AS uri,
         UPPER(af.piid) AS piid,
@@ -50,17 +41,12 @@ FROM (
         UPPER(af.disaster_emergency_fund_code) AS disaster_emergency_fund_code,
         -- numbers all instances of this unique combination incrementally (1, 2, 3, etc)
         ROW_NUMBER() OVER (PARTITION BY
-            af.beginning_period_of_availa,
-            af.ending_period_of_availabil,
-            af.agency_identifier,
-            af.allocation_transfer_agency,
-            UPPER(af.availability_type_code),
-            af.main_account_code,
-            af.sub_account_code,
+            UPPER(af.display_tas),
             af.object_class,
             af.program_activity_code,
             UPPER(af.program_activity_name),
             UPPER(af.by_direct_reimbursable_fun),
+            UPPER(af.prior_year_adjustment),
             UPPER(af.fain),
             UPPER(af.uri),
             UPPER(af.piid),
@@ -71,6 +57,8 @@ FROM (
     FROM award_financial AS af
     WHERE af.submission_id = {0}
         AND af.transaction_obligated_amou IS NULL
+        AND (COALESCE(program_activity_code, '') <> ''
+            OR COALESCE(program_activity_name, '') <> '')
     ) duplicates
 -- if there is any row numbered over 1, that means there's more than one instance of that unique combination
 WHERE duplicates.row > 1;
