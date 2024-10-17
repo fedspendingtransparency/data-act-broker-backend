@@ -37,7 +37,9 @@ c27_prev_outlays_{0} AS (
     FROM published_award_financial AS paf
     JOIN c27_prev_sub_{0} AS sub
         ON sub.submission_id = paf.submission_id
-    WHERE COALESCE(gross_outlay_amount_by_awa_cpe, 0) <> 0)
+    WHERE COALESCE(gross_outlay_amount_by_awa_cpe, 0) <> 0
+        AND (COALESCE(program_activity_code, '') <> ''
+            OR COALESCE(program_activity_name, '') <> ''))
 SELECT
     NULL AS "row_number",
     po.tas,
@@ -73,9 +75,12 @@ WHERE NOT EXISTS (
         AND (UPPER(COALESCE(po.disaster_emergency_fund_code, '')) = UPPER(COALESCE(af.disaster_emergency_fund_code, ''))
             OR UPPER(COALESCE(po.disaster_emergency_fund_code, '')) = '9')
         AND UPPER(COALESCE(po.object_class, '')) = UPPER(COALESCE(af.object_class, ''))
+--        AND UPPER(COALESCE(po.program_activity_code, '')) = UPPER(COALESCE(af.program_activity_code, ''))
         AND UPPER(COALESCE(po.program_activity_name, '')) = UPPER(COALESCE(af.program_activity_name, ''))
         AND UPPER(COALESCE(po.object_class, '')) = UPPER(COALESCE(af.object_class, ''))
         AND UPPER(COALESCE(po.by_direct_reimbursable_fun, '')) = UPPER(COALESCE(af.by_direct_reimbursable_fun, ''))
         AND af.submission_id = {0}
+        AND (COALESCE(af.program_activity_code, '') <> ''
+            OR COALESCE(af.program_activity_name, '') <> '')
         AND af.gross_outlay_amount_by_awa_cpe IS NOT NULL
 );

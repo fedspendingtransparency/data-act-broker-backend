@@ -4,15 +4,14 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns, p
 
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 
-_FILE = 'c27_award_financial'
+_FILE = 'c27_award_financial_2'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'tas', 'disaster_emergency_fund_code', 'program_activity_code',
-                       'program_activity_name', 'object_class', 'by_direct_reimbursable_fun', 'fain', 'uri', 'piid',
-                       'parent_award_id', 'gross_outlay_amount_by_awa_cpe', 'uniqueid_TAS',
-                       'uniqueid_DisasterEmergencyFundCode', 'uniqueid_ProgramActivityCode',
-                       'uniqueid_ProgramActivityCode', 'uniqueid_ProgramActivityName', 'uniqueid_ObjectClass',
+    expected_subset = {'row_number', 'tas', 'disaster_emergency_fund_code', 'pa_reporting_key', 'object_class',
+                       'by_direct_reimbursable_fun', 'fain', 'uri', 'piid', 'parent_award_id',
+                       'gross_outlay_amount_by_awa_cpe', 'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode',
+                       'uniqueid_ProgramActivityReportingKey', 'uniqueid_ObjectClass',
                        'uniqueid_ByDirectReimbursableFundingSource', 'uniqueid_FAIN', 'uniqueid_URI', 'uniqueid_PIID',
                        'uniqueid_ParentAwardId'}
     actual = set(query_columns(_FILE, database))
@@ -21,9 +20,9 @@ def test_column_headers(database):
 
 def test_success(database):
     """
-        Test File C GrossOutlayAmountByAward_CPE balance for a TAS, DEFC, program activity code + name, object class
-        code, direct/reimbursable flag, and Award ID combination should continue to be reported in subsequent periods
-        during the FY, once it has been submitted to Data Broker, unless the most recently reported outlay balance for
+        Test The File C GrossOutlayAmountByAward_CPE balance for a TAS, DEFC, PARK, object class code,
+        direct/reimbursable flag, Award ID, and PYA combination should continue to be reported in subsequent periods
+        during the FY, once it has been submitted to DATA Broker, unless the most recently reported outlay balance for
         this award breakdown was zero. This only applies to File C outlays, not TOA.
     """
     populate_publish_status(database)
@@ -32,63 +31,52 @@ def test_success(database):
                               frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False)
     paf_fain = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='aBcD', uri=None,
                                               piid=None, parent_award_id=None, disaster_emergency_fund_code='N',
-                                              program_activity_code=None, program_activity_name=None,
-                                              object_class=None, by_direct_reimbursable_fun=None,
+                                              pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
                                               gross_outlay_amount_by_awa_cpe=5)
     paf_uri = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain=None, uri='eFgH',
                                              piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
-                                             program_activity_code=None, program_activity_name=None,
-                                             object_class=None, by_direct_reimbursable_fun=None,
+                                             pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
                                              gross_outlay_amount_by_awa_cpe=5)
     paf_piid = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain=None, uri=None,
                                               piid='iJkL', parent_award_id=None, disaster_emergency_fund_code='n',
-                                              program_activity_code=None, program_activity_name=None,
-                                              object_class=None, by_direct_reimbursable_fun=None,
+                                              pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
                                               gross_outlay_amount_by_awa_cpe=5)
     paf_paid = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_TAS', fain=None, uri=None,
                                               piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='N',
-                                              program_activity_code=None, program_activity_name=None,
-                                              object_class=None, by_direct_reimbursable_fun=None,
+                                              pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
                                               gross_outlay_amount_by_awa_cpe=5)
     paf_zero = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='xYz', uri=None,
                                               piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
-                                              program_activity_code=None, program_activity_name=None,
-                                              object_class=None, by_direct_reimbursable_fun=None,
+                                              pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
                                               gross_outlay_amount_by_awa_cpe=0)
     paf_null = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='xyZ', uri=None,
                                               piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
-                                              program_activity_code=None, program_activity_name=None,
-                                              object_class=None, by_direct_reimbursable_fun=None,
+                                              pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
                                               gross_outlay_amount_by_awa_cpe=None)
     paf_tas = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='different_tas', fain='hiJK',
                                              uri=None, piid=None, parent_award_id=None,
-                                             disaster_emergency_fund_code='n', program_activity_code=None,
-                                             program_activity_name=None, object_class=None,
+                                             disaster_emergency_fund_code='n', pa_reporting_key='a', object_class=None,
                                              by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     paf_all_9 = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='aBcD',
                                                uri='eFgH', piid='mNoP', parent_award_id='qRsT',
-                                               disaster_emergency_fund_code='9', program_activity_code='c',
-                                               program_activity_name=None, object_class=None,
-                                               by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                               disaster_emergency_fund_code='9', pa_reporting_key='a',
+                                               object_class=None, by_direct_reimbursable_fun=None,
+                                               gross_outlay_amount_by_awa_cpe=5)
     paf_pac = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='hiJK',
                                              uri=None, piid=None, parent_award_id=None,
-                                             disaster_emergency_fund_code='n', program_activity_code='c',
-                                             program_activity_name=None, object_class=None,
+                                             disaster_emergency_fund_code='n', pa_reporting_key='a', object_class=None,
                                              by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     paf_pan = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='hiJK',
                                              uri=None, piid=None, parent_award_id=None,
-                                             disaster_emergency_fund_code='n', program_activity_code=None,
-                                             program_activity_name='n', object_class=None,
+                                             disaster_emergency_fund_code='n', pa_reporting_key='a', object_class=None,
                                              by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     paf_obj = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='hiJK',
                                              uri=None, piid=None, parent_award_id=None,
-                                             disaster_emergency_fund_code='n', program_activity_code=None,
-                                             program_activity_name=None, object_class='c',
+                                             disaster_emergency_fund_code='n', pa_reporting_key='a', object_class='c',
                                              by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     paf_dr = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='hiJK',
                                             uri=None, piid=None, parent_award_id=None,
-                                            disaster_emergency_fund_code='n', program_activity_code=None,
-                                            program_activity_name=None, object_class=None,
+                                            disaster_emergency_fund_code='n', pa_reporting_key='a', object_class=None,
                                             by_direct_reimbursable_fun='r', gross_outlay_amount_by_awa_cpe=5)
     database.session.add_all([sub_1, paf_fain, paf_uri, paf_piid, paf_paid, paf_zero, paf_null, paf_tas, paf_all_9,
                               paf_pac, paf_pan, paf_obj, paf_dr])
@@ -99,55 +87,51 @@ def test_success(database):
                               frec_code=None, is_quarter_format=True, is_fabs=False)
     af_fain = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='abcd', uri=None, piid=None,
                                     parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=0)
+                                    pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=0)
     af_uri = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain=None, uri='efgh', piid=None,
                                    parent_award_id=None, disaster_emergency_fund_code='n',
-                                   program_activity_code=None, program_activity_name=None, object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
+                                   pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=3)
     af_piid = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain=None, uri=None, piid='ijkl',
                                     parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=7)
+                                    pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=7)
     af_paid = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain=None, uri=None, piid='mnop',
                                     parent_award_id='qrst', disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+                                    pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=2)
     af_zero = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='xyz', uri=None, piid=None,
                                     parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=6)
+                                    pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=6)
     af_null = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='xyz', uri=None, piid=None,
                                     parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
+                                    pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=3)
     af_tas = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='different_tas', fain='hijk', uri=None,
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
-                                   program_activity_code=None, program_activity_name=None, object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+                                   pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=2)
     af_9_match = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
                                        piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
-                                       program_activity_code=None, program_activity_name=None, object_class=None,
-                                       by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                       pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                       gross_outlay_amount_by_awa_cpe=5)
     af_pac = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='hiJK',
                                    uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code='c',
-                                   program_activity_name=None, object_class=None,
+                                   disaster_emergency_fund_code='n', pa_reporting_key='a', object_class=None,
                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=1)
     af_pan = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='hiJK',
                                    uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code=None,
-                                   program_activity_name='n', object_class=None,
+                                   disaster_emergency_fund_code='n', pa_reporting_key='a', object_class=None,
                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
     af_obj = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='hiJK',
                                    uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code=None,
-                                   program_activity_name=None, object_class='c',
+                                   disaster_emergency_fund_code='n', pa_reporting_key='a', object_class='c',
                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
     af_dr = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='test_tas', fain='hiJK',
                                   uri=None, piid=None, parent_award_id=None,
-                                  disaster_emergency_fund_code='n', program_activity_code=None,
-                                  program_activity_name=None, object_class=None,
+                                  disaster_emergency_fund_code='n', pa_reporting_key='a', object_class=None,
                                   by_direct_reimbursable_fun='r', gross_outlay_amount_by_awa_cpe=4)
     # Additional line doesn't mess anything up
     af_bonus = AwardFinancialFactory(submission_id=sub_q.submission_id, tas='something_different')
@@ -161,58 +145,53 @@ def test_success(database):
     sub_p = SubmissionFactory(submission_id=3, reporting_fiscal_year=2020, reporting_fiscal_period=4, cgac_code='test',
                               frec_code=None, is_quarter_format=True, is_fabs=False)
     af_fain = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='abcd', uri=None, piid=None,
-                                    parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=9)
+                                    parent_award_id=None, disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                    object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=9)
     af_uri = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain=None, uri='efgh', piid=None,
-                                   parent_award_id=None, disaster_emergency_fund_code='n',
-                                   program_activity_code=None, program_activity_name=None, object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
+                                   parent_award_id=None, disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                   object_class=None, by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
     af_piid = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain=None, uri=None, piid='ijkl',
-                                    parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=7)
+                                    parent_award_id=None, disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                    object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=7)
     af_paid = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain=None, uri=None, piid='mnop',
-                                    parent_award_id='qrst', disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+                                    parent_award_id='qrst', disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                    object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=2)
     af_zero = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='xyz', uri=None, piid=None,
-                                    parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=6)
+                                    parent_award_id=None, disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                    object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=6)
     af_null = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='xyz', uri=None, piid=None,
-                                    parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
+                                    parent_award_id=None, disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                    object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=3)
     af_tas = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='different_tas', fain='hijk', uri=None,
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
-                                   program_activity_code=None, program_activity_name=None, object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+                                   pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=2)
     # matches the DEFC of 9 with a different DEFC
     af_9_match = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
                                        piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
-                                       program_activity_code=None, program_activity_name=None, object_class=None,
-                                       by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                       pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                       gross_outlay_amount_by_awa_cpe=5)
     af_pac = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='hiJK',
-                                   uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code='c',
-                                   program_activity_name=None, object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=1)
+                                   uri=None, piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
+                                   pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=1)
     af_pan = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='hiJK',
-                                   uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code=None,
-                                   program_activity_name='n', object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+                                   uri=None, piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
+                                   pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=2)
     af_obj = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='hiJK',
-                                   uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code=None,
-                                   program_activity_name=None, object_class='c',
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
+                                   uri=None, piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
+                                   pa_reporting_key='a', object_class='c', by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=3)
     af_dr = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='test_tas', fain='hiJK',
-                                  uri=None, piid=None, parent_award_id=None,
-                                  disaster_emergency_fund_code='n', program_activity_code=None,
-                                  program_activity_name=None, object_class=None,
-                                  by_direct_reimbursable_fun='r', gross_outlay_amount_by_awa_cpe=4)
+                                  uri=None, piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
+                                  pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun='r',
+                                  gross_outlay_amount_by_awa_cpe=4)
     # Additional line doesn't mess anything up
     af_bonus = AwardFinancialFactory(submission_id=sub_p.submission_id, tas='something_different')
 
@@ -225,49 +204,44 @@ def test_success(database):
     sub_4 = SubmissionFactory(submission_id=4, reporting_fiscal_year=2020, reporting_fiscal_period=6, cgac_code='test',
                               frec_code=None, is_quarter_format=True, is_fabs=False)
     af_fain = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None, piid=None,
-                                    parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=9)
+                                    parent_award_id=None, disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                    object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=9)
     af_uri = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain=None, uri='efgh', piid=None,
-                                   parent_award_id=None, disaster_emergency_fund_code='n',
-                                   program_activity_code=None, program_activity_name=None, object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
+                                   parent_award_id=None, disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                   object_class=None, by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
     af_piid = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain=None, uri=None, piid='ijkl',
-                                    parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=7)
+                                    parent_award_id=None, disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                    object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=7)
     af_paid = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain=None, uri=None, piid='mnop',
-                                    parent_award_id='qrst', disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+                                    parent_award_id='qrst', disaster_emergency_fund_code='n', pa_reporting_key='a',
+                                    object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=2)
     af_tas = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='different_tas', fain='hijk', uri=None,
                                    piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
-                                   program_activity_code=None, program_activity_name=None, object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+                                   pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=2)
     af_9_match = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='aBcD', uri='eFgH',
                                        piid='mNoP', parent_award_id='qRsT', disaster_emergency_fund_code='n',
-                                       program_activity_code=None, program_activity_name=None, object_class=None,
-                                       by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                       pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                       gross_outlay_amount_by_awa_cpe=5)
     af_pac = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='hiJK',
-                                   uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code='c',
-                                   program_activity_name=None, object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=1)
+                                   uri=None, piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
+                                   pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=1)
     af_pan = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='hiJK',
-                                   uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code=None,
-                                   program_activity_name='n', object_class=None,
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=2)
+                                   uri=None, piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
+                                   pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=2)
     af_obj = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='hiJK',
-                                   uri=None, piid=None, parent_award_id=None,
-                                   disaster_emergency_fund_code='n', program_activity_code=None,
-                                   program_activity_name=None, object_class='c',
-                                   by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=3)
+                                   uri=None, piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
+                                   pa_reporting_key='a', object_class='c', by_direct_reimbursable_fun=None,
+                                   gross_outlay_amount_by_awa_cpe=3)
     af_dr = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='hiJK',
-                                  uri=None, piid=None, parent_award_id=None,
-                                  disaster_emergency_fund_code='n', program_activity_code=None,
-                                  program_activity_name=None, object_class=None,
-                                  by_direct_reimbursable_fun='r', gross_outlay_amount_by_awa_cpe=4)
+                                  uri=None, piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
+                                  pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun='r',
+                                  gross_outlay_amount_by_awa_cpe=4)
 
     errors = number_of_errors(_FILE, database, models=[af_fain, af_uri, af_piid, af_paid, af_tas, af_pac, af_pan,
                                                        af_obj, af_dr, af_9_match],
@@ -281,13 +255,36 @@ def test_success(database):
     errors = number_of_errors(_FILE, database, models=[], submission=sub_5)
     assert errors == 0
 
+    # Submission from previous period that has NULL PARK
+    sub_park_null_prev = SubmissionFactory(submission_id=6, cgac_code='test', reporting_fiscal_year=2018,
+                                           reporting_fiscal_period=3, frec_code=None,
+                                           publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False)
+    paf_park_null = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='aBcD',
+                                                   uri=None, piid=None, parent_award_id=None,
+                                                   disaster_emergency_fund_code='N', pa_reporting_key='',
+                                                   object_class=None, by_direct_reimbursable_fun=None,
+                                                   gross_outlay_amount_by_awa_cpe=5)
+
+    sub_park_curr = SubmissionFactory(submission_id=7, reporting_fiscal_year=2018, reporting_fiscal_period=4,
+                                      cgac_code='test', frec_code=None, is_quarter_format=False, is_fabs=False)
+    af_park_diff = PublishedAwardFinancialFactory(submission_id=sub_park_curr.submission_id, tas='test_tas',
+                                                  fain='efgh', uri=None, piid=None, parent_award_id=None,
+                                                  disaster_emergency_fund_code='N', pa_reporting_key='',
+                                                  object_class=None, by_direct_reimbursable_fun=None,
+                                                  gross_outlay_amount_by_awa_cpe=5)
+
+    database.session.add_all([sub_park_null_prev, paf_park_null])
+    database.session.commit()
+    errors = number_of_errors(_FILE, database, models=[af_park_diff], submission=sub_park_curr)
+    assert errors == 0
+
 
 def test_failure(database):
     """
-        Test fail File C GrossOutlayAmountByAward_CPE balance for a TAS, DEFC, program activity code + name, object
-        class code, direct/reimbursable flag, and Award ID combination should continue to be reported in subsequent
-        periods during the FY, once it has been submitted to Data Broker, unless the most recently reported outlay
-        balance for this award breakdown was zero. This only applies to File C outlays, not TOA.
+        Test fail The File C GrossOutlayAmountByAward_CPE balance for a TAS, DEFC, PARK, object class code,
+        direct/reimbursable flag, Award ID, and PYA combination should continue to be reported in subsequent periods
+        during the FY, once it has been submitted to DATA Broker, unless the most recently reported outlay balance for
+        this award breakdown was zero. This only applies to File C outlays, not TOA.
     """
     populate_publish_status(database)
     # Base submission
@@ -295,19 +292,16 @@ def test_failure(database):
                               frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'], is_fabs=False)
     paf_fain = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd', uri=None,
                                               piid=None, parent_award_id=None, disaster_emergency_fund_code='N',
-                                              program_activity_code=None, program_activity_name=None,
-                                              object_class=None, by_direct_reimbursable_fun=None,
+                                              pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
                                               gross_outlay_amount_by_awa_cpe=5)
     paf_defc = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd', uri=None,
                                               piid=None, parent_award_id='testingHere',
-                                              disaster_emergency_fund_code='O', program_activity_code=None,
-                                              program_activity_name=None, object_class=None,
+                                              disaster_emergency_fund_code='O', pa_reporting_key='a', object_class=None,
                                               by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
     paf_defc_9 = PublishedAwardFinancialFactory(submission_id=sub_1.submission_id, tas='test_tas', fain='abcd',
                                                 uri=None, piid=None, parent_award_id='testingHere',
-                                                disaster_emergency_fund_code='9', program_activity_code=None,
-                                                program_activity_name=None, object_class=None,
-                                                gross_outlay_amount_by_awa_cpe=5)
+                                                disaster_emergency_fund_code='9', pa_reporting_key='a',
+                                                object_class=None, gross_outlay_amount_by_awa_cpe=5)
     database.session.add_all([sub_1, paf_fain, paf_defc, paf_defc_9])
     database.session.commit()
 
@@ -323,18 +317,24 @@ def test_failure(database):
                               frec_code=None, is_quarter_format=False, is_fabs=False)
     af_other = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri='efgh',
                                      piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
-                                     program_activity_code=None, program_activity_name=None, object_class=None,
-                                     by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                     pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                     gross_outlay_amount_by_awa_cpe=5)
     af_defc = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri=None,
                                     piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='O',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                    pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=5)
     af_defc_9 = AwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd', uri=None,
                                       piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='9',
-                                      program_activity_code=None, program_activity_name=None, object_class=None,
-                                      by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                      pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                      gross_outlay_amount_by_awa_cpe=5)
+    # Ignored because of NULL PARK
+    af_null_park = PublishedAwardFinancialFactory(submission_id=sub_3.submission_id, tas='test_tas', fain='abcd',
+                                                  uri=None, piid=None, parent_award_id=None,
+                                                  disaster_emergency_fund_code='N', pa_reporting_key=None,
+                                                  object_class=None, by_direct_reimbursable_fun=None,
+                                                  gross_outlay_amount_by_awa_cpe=5)
 
-    errors = number_of_errors(_FILE, database, models=[af_other, af_defc, af_defc_9], submission=sub_3)
+    errors = number_of_errors(_FILE, database, models=[af_other, af_defc, af_defc_9, af_null_park], submission=sub_3)
     assert errors == 2
 
     # submission with a row that matches but has gross outlay of NULL
@@ -342,16 +342,16 @@ def test_failure(database):
                               frec_code=None, is_quarter_format=False, is_fabs=False)
     af_null = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
                                     piid=None, parent_award_id=None, disaster_emergency_fund_code='n',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=None)
+                                    pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=None)
     af_defc_9 = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
                                       piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='n',
-                                      program_activity_code=None, program_activity_name=None, object_class=None,
-                                      by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                      pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                      gross_outlay_amount_by_awa_cpe=5)
     af_defc = AwardFinancialFactory(submission_id=sub_4.submission_id, tas='test_tas', fain='abcd', uri=None,
                                     piid=None, parent_award_id='testingHere', disaster_emergency_fund_code='o',
-                                    program_activity_code=None, program_activity_name=None, object_class=None,
-                                    by_direct_reimbursable_fun=None, gross_outlay_amount_by_awa_cpe=5)
+                                    pa_reporting_key='a', object_class=None, by_direct_reimbursable_fun=None,
+                                    gross_outlay_amount_by_awa_cpe=5)
 
     errors = number_of_errors(_FILE, database, models=[af_null, af_defc, af_defc_9], submission=sub_4)
     assert errors == 2
