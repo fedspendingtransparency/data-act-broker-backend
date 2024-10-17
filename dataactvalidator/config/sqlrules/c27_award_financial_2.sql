@@ -32,12 +32,14 @@ c27_prev_outlays_{0} AS (
         uri,
         piid,
         parent_award_id,
-        gross_outlay_amount_by_awa_cpe
+        gross_outlay_amount_by_awa_cpe,
+        prior_year_adjustment
     FROM published_award_financial AS paf
     JOIN c27_prev_sub_{0} AS sub
         ON sub.submission_id = paf.submission_id
     WHERE COALESCE(gross_outlay_amount_by_awa_cpe, 0) <> 0
-        AND COALESCE(pa_reporting_key, '') <> '')
+        AND COALESCE(pa_reporting_key, '') <> ''
+        AND UPPER(COALESCE(prior_year_adjustment, 'X')) = 'X')
 SELECT
     NULL AS "row_number",
     po.tas,
@@ -45,6 +47,7 @@ SELECT
     po.pa_reporting_key,
     po.object_class,
     po.by_direct_reimbursable_fun,
+    po.prior_year_adjustment,
     po.fain,
     po.uri,
     po.piid,
@@ -55,6 +58,7 @@ SELECT
     po.pa_reporting_key AS "uniqueid_ProgramActivityReportingKey",
     po.object_class AS "uniqueid_ObjectClass",
     po.by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
+    po.prior_year_adjustment AS "uniqueid_PriorYearAdjustment",
     po.fain AS "uniqueid_FAIN",
     po.uri AS "uniqueid_URI",
     po.piid AS "uniqueid_PIID",
@@ -74,7 +78,7 @@ WHERE NOT EXISTS (
         AND UPPER(COALESCE(po.pa_reporting_key, '')) = UPPER(COALESCE(af.pa_reporting_key, ''))
         AND UPPER(COALESCE(po.object_class, '')) = UPPER(COALESCE(af.object_class, ''))
         AND UPPER(COALESCE(po.by_direct_reimbursable_fun, '')) = UPPER(COALESCE(af.by_direct_reimbursable_fun, ''))
+        AND UPPER(COALESCE(po.prior_year_adjustment, '')) = UPPER(COALESCE(af.prior_year_adjustment, ''))
         AND af.submission_id = {0}
-        AND COALESCE(af.pa_reporting_key, '') <> ''
         AND af.gross_outlay_amount_by_awa_cpe IS NOT NULL
 );
