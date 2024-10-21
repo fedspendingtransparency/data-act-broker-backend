@@ -6,7 +6,7 @@ _FILE = 'b19_object_class_program_activity_2'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'TAS', 'object_class', 'pa_reporting_key', 'by_direct_reimbursable_fun',
+    expected_subset = {'row_number', 'tas', 'object_class', 'pa_reporting_key', 'by_direct_reimbursable_fun',
                        'disaster_emergency_fund_code', 'prior_year_adjustment', 'uniqueid_TAS',
                        'uniqueid_ProgramActivityReportingKey', 'uniqueid_ObjectClass',
                        'uniqueid_ByDirectReimbursableFundingSource', 'uniqueid_DisasterEmergencyFundCode',
