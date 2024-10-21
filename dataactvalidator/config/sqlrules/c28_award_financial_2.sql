@@ -42,11 +42,11 @@ FROM (
             af.object_class,
             UPPER(af.pa_reporting_key),
             UPPER(af.by_direct_reimbursable_fun),
-            UPPER(af.prior_year_adjustment),
-            UPPER(af.fain),
-            UPPER(af.uri),
-            UPPER(af.piid),
-            UPPER(af.parent_award_id),
+            COALESCE(UPPER(af.prior_year_adjustment), ''),
+            COALESCE(UPPER(af.fain), ''),
+            COALESCE(UPPER(af.uri), ''),
+            COALESCE(UPPER(af.piid), ''),
+            COALESCE(UPPER(af.parent_award_id), ''),
             UPPER(af.disaster_emergency_fund_code)
             ORDER BY af.row_number
         ) AS row

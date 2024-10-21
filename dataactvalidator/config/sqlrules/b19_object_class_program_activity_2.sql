@@ -30,7 +30,7 @@ FROM (
             UPPER(display_tas),
             RPAD(op.object_class, 4 ,'0'),
             UPPER(op.pa_reporting_key),
-            UPPER(op.by_direct_reimbursable_fun),
+            COALESCE(UPPER(op.by_direct_reimbursable_fun), ''),
             UPPER(op.disaster_emergency_fund_code),
             UPPER(prior_year_adjustment)
             ORDER BY op.row_number

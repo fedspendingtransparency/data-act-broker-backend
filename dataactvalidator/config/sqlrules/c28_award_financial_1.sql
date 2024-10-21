@@ -43,14 +43,14 @@ FROM (
         ROW_NUMBER() OVER (PARTITION BY
             UPPER(af.display_tas),
             af.object_class,
-            af.program_activity_code,
-            UPPER(af.program_activity_name),
+            COALESCE(af.program_activity_code, ''),
+            COALESCE(UPPER(af.program_activity_name), ''),
             UPPER(af.by_direct_reimbursable_fun),
-            UPPER(af.prior_year_adjustment),
-            UPPER(af.fain),
-            UPPER(af.uri),
-            UPPER(af.piid),
-            UPPER(af.parent_award_id),
+            COALESCE(UPPER(af.prior_year_adjustment), ''),
+            COALESCE(UPPER(af.fain), ''),
+            COALESCE(UPPER(af.uri), ''),
+            COALESCE(UPPER(af.piid), ''),
+            COALESCE(UPPER(af.parent_award_id), ''),
             UPPER(af.disaster_emergency_fund_code)
             ORDER BY af.row_number
         ) AS row
