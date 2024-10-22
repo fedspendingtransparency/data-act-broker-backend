@@ -53,7 +53,7 @@ af_dict = dict(
 def test_column_headers(database):
     expected_subset = {
         'source_row_number', 'source_value_tas', 'source_value_program_activity_code',
-        'source_value_program_activity_name',
+        'source_value_program_activity_name', 'source_value_prior_year_adjustment',
         'source_value_ussgl480100_undelivered_or_fyb_sum_c', 'source_value_ussgl480100_undelivered_or_cpe_sum_c',
         'source_value_ussgl480110_reinstated_del_cpe_sum_c', 'source_value_ussgl483100_undelivered_or_cpe_sum_c',
         'source_value_ussgl488100_upward_adjustm_cpe_sum_c', 'source_value_obligations_undelivered_or_fyb_sum_c',

@@ -9,6 +9,7 @@ SELECT NULL AS "source_row_number",
     award_financial_records.display_tas AS "source_value_tas",
     award_financial_records.program_activity_code AS "source_value_program_activity_code",
     award_financial_records.program_activity_name AS "source_value_program_activity_name",
+    award_financial_records.prior_year_adjustment AS "source_value_prior_year_adjustment",
     ussgl480100_undelivered_or_fyb_sum_c AS "source_value_ussgl480100_undelivered_or_fyb_sum_c",
     ussgl480100_undelivered_or_cpe_sum_c AS "source_value_ussgl480100_undelivered_or_cpe_sum_c",
     ussgl480110_reinstated_del_cpe_sum_c AS "source_value_ussgl480110_reinstated_del_cpe_sum_c",
@@ -290,7 +291,8 @@ FROM (
         af.tas,
         af.program_activity_code,
         UPPER(af.program_activity_name) AS program_activity_name,
-        af.display_tas
+        af.display_tas,
+        UPPER(af.prior_year_adjustment) AS prior_year_adjustment
     FROM award_financial AS af
     WHERE af.submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
@@ -300,7 +302,8 @@ FROM (
         af.program_activity_code,
         UPPER(af.program_activity_name),
         af.display_tas,
-        af.submission_id
+        af.submission_id,
+        UPPER(af.prior_year_adjustment)
 ) AS award_financial_records
 -- The second subquery selects the sum of the corresponding 32 elements in File B
 -- Again, the sum is based on TAS, PAC, PAN, and Submission ID
@@ -342,7 +345,8 @@ FULL OUTER JOIN (
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
         op.program_activity_code,
-        UPPER(op.program_activity_name) AS program_activity_name
+        UPPER(op.program_activity_name) AS program_activity_name,
+        UPPER(op.prior_year_adjustment) AS prior_year_adjustment
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
@@ -351,12 +355,14 @@ FULL OUTER JOIN (
     GROUP BY op.tas,
         op.program_activity_code,
         UPPER(op.program_activity_name),
-        op.submission_id
+        op.submission_id,
+        UPPER(op.prior_year_adjustment)
 ) AS object_class_records
     -- We join these two subqueries based on the same TAS, PAC, and PAN combination
     ON object_class_records.tas = award_financial_records.tas
     AND COALESCE(object_class_records.program_activity_code, '') = COALESCE(award_financial_records.program_activity_code, '')
     AND UPPER(COALESCE(object_class_records.program_activity_name, '')) = UPPER(COALESCE(award_financial_records.program_activity_name, ''))
+    AND object_class_records.prior_year_adjustment = award_financial_records.prior_year_adjustment
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value

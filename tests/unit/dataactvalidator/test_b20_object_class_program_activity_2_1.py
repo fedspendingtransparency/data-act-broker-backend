@@ -8,7 +8,8 @@ _FILE = 'b20_object_class_program_activity_2_1'
 
 def test_column_headers(database):
     expected_subset = {'source_row_number', 'source_value_tas', 'source_value_pa_reporting_key',
-                       'source_value_object_class', 'source_value_disaster_emergency_fund_code', 'uniqueid_TAS',
+                       'source_value_object_class', 'source_value_disaster_emergency_fund_code',
+                       'source_value_prior_year_adjustment', 'uniqueid_TAS',
                        'uniqueid_ProgramActivityReportingKey', 'uniqueid_ObjectClass',
                        'uniqueid_DisasterEmergencyFundCode'}
     actual = set(query_columns(_FILE, database))

@@ -11,7 +11,8 @@ WITH award_financial_b20_{0} AS
         object_class,
         account_num,
         disaster_emergency_fund_code,
-        display_tas
+        display_tas,
+        prior_year_adjustment
     FROM award_financial
     WHERE submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
@@ -22,7 +23,8 @@ ocpa_b20_{0} AS
         program_activity_code,
         program_activity_name,
         object_class,
-        disaster_emergency_fund_code
+        disaster_emergency_fund_code,
+        prior_year_adjustment
     FROM object_class_program_activity
     WHERE submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
@@ -35,6 +37,7 @@ SELECT
     af.program_activity_name AS "source_value_program_activity_name",
     af.object_class AS "source_value_object_class",
     af.disaster_emergency_fund_code AS "source_value_disaster_emergency_fund_code",
+    af.prior_year_adjustment AS "source_value_prior_year_adjustment",
     af.display_tas AS "uniqueid_TAS",
     af.program_activity_code AS "uniqueid_ProgramActivityCode",
     af.program_activity_name AS "uniqueid_ProgramActivityName",
@@ -60,6 +63,7 @@ WHERE NOT EXISTS (
                 )
             )
             AND UPPER(COALESCE(af.disaster_emergency_fund_code, '')) = UPPER(COALESCE(op.disaster_emergency_fund_code, ''))
+            AND UPPER(af.prior_year_adjustment) = UPPER(op.prior_year_adjustment)
     )
     AND NOT (UPPER(af.program_activity_code) = 'OPTN'
         AND UPPER(af.program_activity_name) = 'FIELD IS OPTIONAL PRIOR TO FY21'

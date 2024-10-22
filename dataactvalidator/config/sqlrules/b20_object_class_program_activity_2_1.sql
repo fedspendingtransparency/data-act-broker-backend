@@ -10,7 +10,8 @@ WITH award_financial_b20_{0} AS
         object_class,
         account_num,
         disaster_emergency_fund_code,
-        display_tas
+        display_tas,
+        prior_year_adjustment
     FROM award_financial
     WHERE submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
@@ -19,7 +20,8 @@ ocpa_b20_{0} AS
     (SELECT account_num,
         pa_reporting_key,
         object_class,
-        disaster_emergency_fund_code
+        disaster_emergency_fund_code,
+        prior_year_adjustment
     FROM object_class_program_activity
     WHERE submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
@@ -30,6 +32,7 @@ SELECT
     af.pa_reporting_key AS "source_value_pa_reporting_key",
     af.object_class AS "source_value_object_class",
     af.disaster_emergency_fund_code AS "source_value_disaster_emergency_fund_code",
+    af.prior_year_adjustment AS "source_value_prior_year_adjustment",
     af.display_tas AS "uniqueid_TAS",
     af.pa_reporting_key AS "uniqueid_ProgramActivityReportingKey",
     af.object_class AS "uniqueid_ObjectClass",
@@ -46,4 +49,5 @@ WHERE NOT EXISTS (
                 )
             )
             AND UPPER(COALESCE(af.disaster_emergency_fund_code, '')) = UPPER(COALESCE(op.disaster_emergency_fund_code, ''))
+            AND UPPER(af.prior_year_adjustment) = UPPER(op.prior_year_adjustment)
     );
