@@ -8,6 +8,7 @@ SELECT
     object_class AS "uniqueid_ObjectClass"
 FROM object_class_program_activity AS ocpa
 WHERE submission_id = {0}
+    AND COALESCE(pa_reporting_key, '') <> ''
     AND (COALESCE(ussgl480100_undelivered_or_fyb, 0) <> 0
         OR COALESCE(ussgl480100_undelivered_or_cpe, 0) <> 0
         OR COALESCE(ussgl480110_reinstated_del_cpe, 0) <> 0

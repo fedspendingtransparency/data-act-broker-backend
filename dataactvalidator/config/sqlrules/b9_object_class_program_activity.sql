@@ -22,6 +22,8 @@ FROM object_class_program_activity_b9_{0} AS op
      INNER JOIN submission AS sub
         ON op.submission_id = sub.submission_id
 WHERE (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 6), ('2017', 9))
+    AND (COALESCE(op.program_activity_code, '') <> ''
+        OR COALESCE(op.program_activity_name, '') <> '')
     AND NOT EXISTS (
         SELECT 1
         FROM program_activity AS pa
