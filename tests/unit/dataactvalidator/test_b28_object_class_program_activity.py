@@ -42,7 +42,10 @@ def test_success(database):
                                             ussgl490800_authority_outl_cpe=0, ussgl493100_delivered_orde_cpe=0,
                                             ussgl497100_downward_adjus_cpe=0, ussgl497200_downward_adjus_cpe=0,
                                             ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0)
-    assert number_of_errors(_FILE, database, models=[op1, op2, op3, park, park_sub]) == 0
+    # Ignored for NULL PARK
+    op4 = ObjectClassProgramActivityFactory(agency_identifier='123', allocation_transfer_agency=None,
+                                            main_account_code='0002', sub_account_code='003', pa_reporting_key=None)
+    assert number_of_errors(_FILE, database, models=[op1, op2, op3, op4, park, park_sub]) == 0
 
 
 def test_failure(database):
