@@ -23,6 +23,45 @@ While the Submission API has been designed to be as easy to understand as possib
     `Location=https://broker-api.usaspending.gov?ticket=ST-123456-abcdefghijklmnopqrst-login.max.gov`
 - Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login. For details on its use, click [here](./doc/api_docs/login/max_login.md)
     - Be sure to use the provided ticket within 30 seconds to ensure it does not expire.
+  
+### Login to the CAIA
+
+- Step 1: Get access to Treasury Mulesoft Exchange to view the Data Broker Experience API.
+    - **NOTE**: Ensure Step 1 and 2 are completed by a user that will manage/own your system account. If that role is passed onto another, the system account can still be used but any changes to that account may result in needing to repeat this process.
+    - Visit the [Treasury Mulesoft Exchange](https://gov.anypoint.mulesoft.com/accounts/login/fs) and log in.
+        - If you reach a page that says "an entitlement request as been submitted to enable privileged access", wait for a day or two for your access to be approved.
+    - Once you're able to log in to the Treasury Mulesoft Exchange, visit the [Data Broker Experience API](https://gov.anypoint.mulesoft.com/exchange/bdc8b2f6-1876-4267-8ab1-cc4ccab4d7b8/data-act-broker-experience-api/minor/1.0/).
+        - If you reach a forbidden page, reach out to the Service Desk that you need viewing access to the Data Broker Experience API. They will let you know when access has been granted.
+    - When you're able to visit the Data Broker Experience API, move onto Step 2.
+- Step 2: Request access to the Data Broker Experience API and obtain the `client_id`/`client_secret` credentials.
+    - Go to the [Data Broker Experience API](https://gov.anypoint.mulesoft.com/exchange/bdc8b2f6-1876-4267-8ab1-cc4ccab4d7b8/data-act-broker-experience-api/minor/1.0/).
+    - You will be prompted to log into CAIA with your PIV.
+    - Once on the main page, you will see **"Request Access"** on the top right side.
+        - For **"API Instance"**, select the version under **"Production"**.
+        - For **"Application"**, select **"Create a new application"**.
+            - For **"Application Name"**, use a name representing your agency application that will be accessing the Broker.
+            - Do not fill in any other fields and click **"Create"**.
+        - For **"SLA Tier"**, select **"API User"**.
+        - Select **"Request Access"**.
+        - This generates a `Client ID` and `Client Secret` which you can access via **"Exchange"** -> **"My Applications"**.
+- Step 3: Request via Service Desk to register a system account to use the Broker API proxy. You will need to provide: 
+    - Your `Client ID` generated from Step 1. 
+    - Your organization/agency name that owns the system.
+    - A system-wide email representing your system.
+    - Once you have confirmation that your system account has been registered and approved, move onto Step 3.
+- Step 4: Using the `client_id`/`client_secret` with the Broker.
+    - Each call to the Broker below in this guide (or any other endpoint referenced in the documentation) will be called slightly different:
+        - The root url will be replaced:
+            - Before: `https://broker-api.usaspending.gov/`
+            - After: `https://api.fiscal.treasury.gov/ap/prod/exp/v1/data-act-broker/`
+        - Two new headers must be added in every request:
+            - `client_id`: The `Client ID` copied from earlier.
+            - `client_secret`: The `Client Secret` copied from earlier.
+    - Simply call `/v1/active_user` (GET) to get a new session started and confirm the user is correct.
+- Troubleshooting
+    - When finally logging into the Broker using the new credentials and you receive a message:
+        - **"Authentication denied"**: The `client_id`/`client_secret` headers were not included. Make sure to include them.
+        - **"Invalid Client"**: Your `client_id`/`client_secret` credentials were provided but incorrect. Ensure the values are correct.
 
 ## DABS Submission Process
 
