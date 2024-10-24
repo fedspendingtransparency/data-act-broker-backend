@@ -27,7 +27,8 @@ def test_success_populated_ata(database):
                        agency_identifier='some-other-code', disaster_emergency_fund_code='N', line=3020, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
-    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id)
+    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id,
+                                           prior_year_adjustment='x')
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
     assert errors == 0
@@ -42,7 +43,8 @@ def test_success_null_ata(database):
                        agency_identifier=code, disaster_emergency_fund_code='N', line=2190, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
-    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id)
+    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id,
+                                           prior_year_adjustment='X')
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
     assert errors == 0
@@ -63,9 +65,13 @@ def test_success_ignore_lines(database):
                        agency_identifier='some-other-code', disaster_emergency_fund_code='L', line=3020, amount=0)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
-    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id)
+    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id,
+                                           prior_year_adjustment='X')
+    # Different PYA
+    op2 = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id,
+                                            prior_year_adjustment='A')
 
-    errors = number_of_errors(_FILE, database, models=[sf1, sf2, sf3, op], submission=submission)
+    errors = number_of_errors(_FILE, database, models=[sf1, sf2, sf3, op, op2], submission=submission)
     assert errors == 0
 
 
@@ -79,7 +85,7 @@ def test_failure_populated_ata(database):
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas='a-different-tas', submission_id=submission_id,
-                                           disaster_emergency_fund_code='n')
+                                           disaster_emergency_fund_code='n', prior_year_adjustment='x')
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
     assert errors == 1
@@ -95,7 +101,7 @@ def test_failure_null_ata(database):
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas='a-different-tas', submission_id=submission_id,
-                                           disaster_emergency_fund_code='n')
+                                           disaster_emergency_fund_code='n', prior_year_adjustment='X')
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
     assert errors == 1
@@ -144,7 +150,7 @@ def test_ignore_quarterly_submissions(database):
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=True)
     op = ObjectClassProgramActivityFactory(tas='a-different-tas', submission_id=submission_id,
-                                           disaster_emergency_fund_code='n')
+                                           disaster_emergency_fund_code='n', prior_year_adjustment='X')
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
     assert errors == 0
@@ -159,7 +165,8 @@ def test_non_matching_defc(database):
                        agency_identifier='some-other-code', disaster_emergency_fund_code='N', line=3020, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
-    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='m', submission_id=submission_id)
+    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='m', submission_id=submission_id,
+                                           prior_year_adjustment='x')
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
     assert errors == 1

@@ -1,8 +1,8 @@
--- For monthly submissions, all TAS and COVID-19 Disaster Emergency Fund Code combinations required to be reported to
--- GTAS are reported in File B, with the exception of Financing Accounts (or when all obligation and outlay monetary
--- amounts are zero for the TAS). As noted in A33, allocation accounts should be reported by the Child Agency, not by
--- the Parent agency, and the AllocationTransferAgencyIdentifier listed should match the Common Government-wide
--- Accounting Classification (CGAC) of the submitting agency.
+-- For monthly submissions, all TAS and Disaster Emergency Fund Code (DEFC) combinations where PYA = "X" and required
+-- to be reported to GTAS are reported in File B, with the exception of Financing Accounts (or when all obligation and
+-- outlay monetary amounts are zero for the TAS). As noted in A33, allocation accounts should be reported by the Child
+-- Agency, not by the Parent agency, and the AllocationTransferAgencyIdentifier listed should match the
+-- Common Government-wide Accounting Classification (CGAC) of the submitting agency.
 WITH limited_lines_sf_133_b21_{0} AS
     (SELECT sf.*
     FROM sf_133 AS sf
@@ -38,6 +38,7 @@ WHERE NOT EXISTS (
         FROM object_class_program_activity AS op
         WHERE sf.tas IS NOT DISTINCT FROM op.tas
             AND COALESCE(sf.disaster_emergency_fund_code, '') = UPPER(op.disaster_emergency_fund_code)
+            AND UPPER(op.prior_year_adjustment) = 'X'
             AND op.submission_id = {0}
     )
     AND COALESCE(UPPER(tas_lookup.financial_indicator2), '') <> 'F';

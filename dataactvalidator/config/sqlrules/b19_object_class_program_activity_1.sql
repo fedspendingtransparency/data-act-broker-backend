@@ -1,33 +1,24 @@
--- The combination of TAS/object class/program activity code+name/reimbursable flag/DEFC in File B (object class program
--- activity) should be unique
+-- The combination of TAS, object class, program activity code+name, reimbursable flag, DEFC, and PYA in File B (object
+-- class program activity) must be unique. Object classes in ### and ###0 formats are treated as equivalent for purposes
+-- of the uniqueness check.
 SELECT
     row_number,
-    beginning_period_of_availa,
-    ending_period_of_availabil,
-    agency_identifier,
-    allocation_transfer_agency,
-    availability_type_code,
-    main_account_code,
-    sub_account_code,
+    display_tas AS "tas",
     object_class,
     program_activity_code,
+    program_activity_name,
     by_direct_reimbursable_fun,
     disaster_emergency_fund_code,
+    prior_year_adjustment,
     display_tas AS "uniqueid_TAS",
     program_activity_code AS "uniqueid_ProgramActivityCode",
     program_activity_name AS "uniqueid_ProgramActivityName",
     object_class AS "uniqueid_ObjectClass",
     by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
-    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
+    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
+    prior_year_adjustment AS "uniqueid_PriorYearAdjustment"
 FROM (
     SELECT op.row_number,
-        op.beginning_period_of_availa,
-        op.ending_period_of_availabil,
-        op.agency_identifier,
-        op.allocation_transfer_agency,
-        UPPER(op.availability_type_code) AS availability_type_code,
-        op.main_account_code,
-        op.sub_account_code,
         op.object_class,
         op.program_activity_code,
         UPPER(op.program_activity_name) AS program_activity_name,
@@ -36,24 +27,23 @@ FROM (
         op.tas,
         op.display_tas,
         UPPER(op.disaster_emergency_fund_code) AS disaster_emergency_fund_code,
+        prior_year_adjustment,
         -- numbers all instances of this unique combination incrementally (1, 2, 3, etc)
         ROW_NUMBER() OVER (PARTITION BY
-            op.beginning_period_of_availa,
-            op.ending_period_of_availabil,
-            op.agency_identifier,
-            op.allocation_transfer_agency,
-            UPPER(op.availability_type_code),
-            op.main_account_code,
-            op.sub_account_code,
+            UPPER(display_tas),
             RPAD(op.object_class, 4 ,'0'),
-            op.program_activity_code,
-            UPPER(op.program_activity_name),
-            UPPER(op.by_direct_reimbursable_fun),
-            UPPER(op.disaster_emergency_fund_code)
+            COALESCE(op.program_activity_code, ''),
+            COALESCE(UPPER(op.program_activity_name), ''),
+            COALESCE(UPPER(op.by_direct_reimbursable_fun), ''),
+            UPPER(op.disaster_emergency_fund_code),
+            UPPER(prior_year_adjustment)
             ORDER BY op.row_number
         ) AS row
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
+        AND (COALESCE(op.program_activity_code, '') <> ''
+            OR COALESCE(op.program_activity_name, '') <> ''
+        )
     ) duplicates
 -- if there is any row numbered over 1, that means there's more than one instance of that unique combination
 WHERE duplicates.row > 1;
