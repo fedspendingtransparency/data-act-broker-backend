@@ -1,12 +1,15 @@
--- ObligationsDeliveredOrdersUnpaidTotal (CPE) = USSGL(4901 + 4931 + 4981) for the same TAS/DEFC combination.
--- This applies to the program activity and object class level.
+-- ObligationsDeliveredOrdersUnpaidTotal (CPE) = USSGL(4901 + 490110 + 4931 + 4981) for the same TAS/DEFC combination
+-- where PYA = "X". This applies to the program activity and object class level.
 SELECT
     row_number,
+    prior_year_adjustment,
     obligations_delivered_orde_cpe,
     ussgl490100_delivered_orde_cpe,
+    ussgl490110_reinstated_del_cpe,
     ussgl493100_delivered_orde_cpe,
     ussgl498100_upward_adjustm_cpe,
     COALESCE(obligations_delivered_orde_cpe, 0) - (COALESCE(ussgl490100_delivered_orde_cpe, 0) +
+                                                   COALESCE(ussgl490110_reinstated_del_cpe, 0) +
                                                    COALESCE(ussgl493100_delivered_orde_cpe, 0) +
                                                    COALESCE(ussgl498100_upward_adjustm_cpe, 0)) AS "difference",
     display_tas AS "uniqueid_TAS",
@@ -17,7 +20,9 @@ SELECT
     by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource"
 FROM object_class_program_activity
 WHERE submission_id = {0}
+    AND UPPER(prior_year_adjustment) = 'X'
     AND COALESCE(obligations_delivered_orde_cpe, 0) <>
         COALESCE(ussgl490100_delivered_orde_cpe, 0) +
+        COALESCE(ussgl490110_reinstated_del_cpe, 0) +
         COALESCE(ussgl493100_delivered_orde_cpe, 0) +
         COALESCE(ussgl498100_upward_adjustm_cpe, 0);
