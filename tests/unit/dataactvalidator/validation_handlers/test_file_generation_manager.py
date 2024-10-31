@@ -782,7 +782,7 @@ def test_generate_boc(database, monkeypatch):
     boc7 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas3_str, dollar_amount=4, ussgl_number='480100',
                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
                           reimbursable_flag='D', prior_year_adjustment_code='X', **tas3_dict)
-    # This has a non-X, non-null PYA and should be ignored
+    # This has a non-X, non-null PYA and shouldn't be ignored
     boc8 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=2, ussgl_number='480100',
                           begin_end='B', debit_credit='C', disaster_emergency_fund_code='Q', budget_object_class='1110',
                           reimbursable_flag='D', prior_year_adjustment_code='Y', **tas1_dict)
@@ -797,19 +797,22 @@ def test_generate_boc(database, monkeypatch):
                                                         ussgl480100_undelivered_or_fyb=-0.5,
                                                         ussgl480100_undelivered_or_cpe=1.5,
                                                         ussgl487100_downward_adjus_cpe=8,
-                                                        by_direct_reimbursable_fun='D', row_number=1, **tas1_dict)
+                                                        by_direct_reimbursable_fun='D', row_number=1,
+                                                        prior_year_adjustment='X', **tas1_dict)
     pub_b2 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas1_str,
                                                         disaster_emergency_fund_code='Q', object_class='111',
                                                         ussgl480100_undelivered_or_fyb=0,
                                                         ussgl480100_undelivered_or_cpe=0.5,
                                                         ussgl487100_downward_adjus_cpe=-4,
-                                                        by_direct_reimbursable_fun='D', row_number=5, **tas1_dict)
+                                                        by_direct_reimbursable_fun='D', row_number=5,
+                                                        prior_year_adjustment='X', **tas1_dict)
     pub_b3 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas2_str,
                                                         disaster_emergency_fund_code='Q', object_class='111',
                                                         ussgl480100_undelivered_or_fyb=0,
                                                         ussgl480100_undelivered_or_cpe=13,
                                                         ussgl487100_downward_adjus_cpe=-4,
-                                                        by_direct_reimbursable_fun='D', row_number=9, **tas2_dict)
+                                                        by_direct_reimbursable_fun='D', row_number=9,
+                                                        prior_year_adjustment='', **tas2_dict)
 
     sub = SubmissionFactory(submission_id=sub_id, reporting_fiscal_year=year, reporting_fiscal_period=6,
                             publish_status_id=PUBLISH_STATUS_DICT['published'], cgac_code=agency_cgac)
@@ -838,7 +841,7 @@ def test_generate_boc(database, monkeypatch):
     # check body
     # BOC 1 and 2 and published B 1 and 2
     expected1 = [tas1_str] + list(tas1_dict.values()) +\
-                [boc1.budget_object_class, 'D', 'Q', '', boc1.begin_end, str(year), '6', boc1.ussgl_number, '-0.5',
+                [boc1.budget_object_class, 'D', 'Q', 'X', boc1.begin_end, str(year), '6', boc1.ussgl_number, '-0.5',
                  '-0.5', '0.0']
     # TAS 2
     tas2_dict['allocation_transfer_agency'] = ''
@@ -848,18 +851,24 @@ def test_generate_boc(database, monkeypatch):
 
     # TAS 3
     expected3 = [tas3_str] + list(tas3_dict.values()) + \
-                [boc7.budget_object_class, 'D', 'Q', '', boc7.begin_end, str(year), '6', boc7.ussgl_number, '4',
+                [boc7.budget_object_class, 'D', 'Q', 'X', boc7.begin_end, str(year), '6', boc7.ussgl_number, '4',
                  '0', '4']
 
     # TAS 4
     expected4 = [tas4_str] + list(tas4_dict.values()) + \
-                [boc9.budget_object_class, 'D', 'Q', '', boc9.begin_end, str(year), '6', boc9.ussgl_number, '1.5',
+                [boc9.budget_object_class, 'D', 'Q', 'X', boc9.begin_end, str(year), '6', boc9.ussgl_number, '1.5',
                  '0', '1.5']
+    # TAS 1 but with a PYA of Y
+    expected5 = [tas1_str] + list(tas1_dict.values()) + \
+                [boc8.budget_object_class, 'C', 'Q', 'Y', boc8.begin_end, str(year), '6', boc8.ussgl_number, '2',
+                 '0', '-2']
 
+    print(file_rows)
     assert expected1 in file_rows
     assert expected2 in file_rows
     assert expected3 in file_rows
     assert expected4 not in file_rows
+    assert expected5 in file_rows
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
