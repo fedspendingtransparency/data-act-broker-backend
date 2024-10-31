@@ -860,10 +860,9 @@ def test_generate_boc(database, monkeypatch):
                  '0', '1.5']
     # TAS 1 but with a PYA of Y
     expected5 = [tas1_str] + list(tas1_dict.values()) + \
-                [boc8.budget_object_class, 'C', 'Q', 'Y', boc8.begin_end, str(year), '6', boc8.ussgl_number, '2',
+                [boc8.budget_object_class, 'D', 'Q', 'Y', boc8.begin_end, str(year), '6', boc8.ussgl_number, '-2',
                  '0', '-2']
 
-    print(file_rows)
     assert expected1 in file_rows
     assert expected2 in file_rows
     assert expected3 in file_rows
