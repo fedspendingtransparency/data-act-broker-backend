@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from sqlalchemy import or_, and_, func, null, values, column
+from sqlalchemy import or_, and_, func, values, column
 from sqlalchemy.sql.expression import case, literal
 
 from dataactbroker.helpers.filters_helper import tas_agency_filter
@@ -101,8 +101,10 @@ def sum_published_file_b(session, submission_id):
         fileb_model.disaster_emergency_fund_code,
         func.rpad(fileb_model.object_class, 4, '0').label('object_class'),
         fileb_model.by_direct_reimbursable_fun,
+        func.coalesce(func.upper(fileb_model.prior_year_adjustment), '').label('prior_year_adjustment'),
         func.sum(fileb_model.ussgl480100_undelivered_or_cpe).label('sum_ussgl480100_undelivered_or_cpe'),
         func.sum(fileb_model.ussgl480100_undelivered_or_fyb).label('sum_ussgl480100_undelivered_or_fyb'),
+        func.sum(fileb_model.ussgl480110_reinstated_del_cpe).label('sum_ussgl480110_reinstated_del_cpe'),
         func.sum(fileb_model.ussgl480200_undelivered_or_cpe).label('sum_ussgl480200_undelivered_or_cpe'),
         func.sum(fileb_model.ussgl480200_undelivered_or_fyb).label('sum_ussgl480200_undelivered_or_fyb'),
         func.sum(fileb_model.ussgl483100_undelivered_or_cpe).label('sum_ussgl483100_undelivered_or_cpe'),
@@ -113,6 +115,7 @@ def sum_published_file_b(session, submission_id):
         func.sum(fileb_model.ussgl488200_upward_adjustm_cpe).label('sum_ussgl488200_upward_adjustm_cpe'),
         func.sum(fileb_model.ussgl490100_delivered_orde_cpe).label('sum_ussgl490100_delivered_orde_cpe'),
         func.sum(fileb_model.ussgl490100_delivered_orde_fyb).label('sum_ussgl490100_delivered_orde_fyb'),
+        func.sum(fileb_model.ussgl490110_reinstated_del_cpe).label('sum_ussgl490110_reinstated_del_cpe'),
         func.sum(fileb_model.ussgl490200_delivered_orde_cpe).label('sum_ussgl490200_delivered_orde_cpe'),
         func.sum(fileb_model.ussgl490800_authority_outl_cpe).label('sum_ussgl490800_authority_outl_cpe'),
         func.sum(fileb_model.ussgl490800_authority_outl_fyb).label('sum_ussgl490800_authority_outl_fyb'),
@@ -127,7 +130,8 @@ def sum_published_file_b(session, submission_id):
                  fileb_model.beginning_period_of_availa, fileb_model.ending_period_of_availabil,
                  fileb_model.availability_type_code, fileb_model.main_account_code, fileb_model.sub_account_code,
                  fileb_model.disaster_emergency_fund_code, func.rpad(fileb_model.object_class, 4, '0'),
-                 fileb_model.by_direct_reimbursable_fun).\
+                 fileb_model.by_direct_reimbursable_fun,
+                 func.coalesce(func.upper(fileb_model.prior_year_adjustment), '')).\
         cte('summed_pub_b')
 
     return summed_b
@@ -144,11 +148,12 @@ def ussgl_values(model):
     """
     # Create a list of the values we need to pivot on/display from the USSGLs
     ussgl_list = [model.sum_ussgl480100_undelivered_or_cpe, model.sum_ussgl480100_undelivered_or_fyb,
-                  model.sum_ussgl480200_undelivered_or_cpe, model.sum_ussgl480200_undelivered_or_fyb,
-                  model.sum_ussgl483100_undelivered_or_cpe, model.sum_ussgl483200_undelivered_or_cpe,
-                  model.sum_ussgl487100_downward_adjus_cpe, model.sum_ussgl487200_downward_adjus_cpe,
-                  model.sum_ussgl488100_upward_adjustm_cpe, model.sum_ussgl488200_upward_adjustm_cpe,
-                  model.sum_ussgl490100_delivered_orde_cpe, model.sum_ussgl490100_delivered_orde_fyb,
+                  model.sum_ussgl480110_reinstated_del_cpe, model.sum_ussgl480200_undelivered_or_cpe,
+                  model.sum_ussgl480200_undelivered_or_fyb, model.sum_ussgl483100_undelivered_or_cpe,
+                  model.sum_ussgl483200_undelivered_or_cpe, model.sum_ussgl487100_downward_adjus_cpe,
+                  model.sum_ussgl487200_downward_adjus_cpe, model.sum_ussgl488100_upward_adjustm_cpe,
+                  model.sum_ussgl488200_upward_adjustm_cpe, model.sum_ussgl490100_delivered_orde_cpe,
+                  model.sum_ussgl490100_delivered_orde_fyb, model.sum_ussgl490110_reinstated_del_cpe,
                   model.sum_ussgl490200_delivered_orde_cpe, model.sum_ussgl490800_authority_outl_cpe,
                   model.sum_ussgl490800_authority_outl_fyb, model.sum_ussgl493100_delivered_orde_cpe,
                   model.sum_ussgl497100_downward_adjus_cpe, model.sum_ussgl497200_downward_adjus_cpe,
@@ -162,7 +167,8 @@ def ussgl_values(model):
             (model.display_tas, model.allocation_transfer_agency, model.agency_identifier,
              model.beginning_period_of_availa, model.ending_period_of_availabil, model.availability_type_code,
              model.main_account_code, model.sub_account_code, model.disaster_emergency_fund_code, model.object_class,
-             model.by_direct_reimbursable_fun, begin_end, ussgl_num, ussgl_val, model.row_numbers))
+             model.by_direct_reimbursable_fun, model.prior_year_adjustment, begin_end, ussgl_num, ussgl_val,
+             model.row_numbers))
 
     # Create a VALUES subquery. The "lateral" can be explained as: "LATERAL join is like a SQL foreach loop, in which
     # PostgreSQL will iterate over each row in a result set and evaluate a subquery using that row as a parameter"
@@ -180,6 +186,7 @@ def ussgl_values(model):
         column('disaster_emergency_fund_code'),
         column('object_class'),
         column('by_direct_reimbursable_fun'),
+        column('prior_year_adjustment'),
         column('begin_end_indicator'),
         column('ussgl_account_number'),
         column('dollar_amount'),
@@ -193,7 +200,7 @@ def ussgl_published_file_b_cte(session, ussgl_vals, model):
 
         Args:
             session: The current DB session
-            ussgs_vals: The lateral collection of VALUES defined to retrieve for the given file B
+            ussgl_vals: The lateral collection of VALUES defined to retrieve for the given file B
             model: subquery model to get data from
 
         Returns:
@@ -211,6 +218,7 @@ def ussgl_published_file_b_cte(session, ussgl_vals, model):
         model.disaster_emergency_fund_code,
         model.object_class,
         model.by_direct_reimbursable_fun,
+        model.prior_year_adjustment,
         ussgl_vals.c.begin_end_indicator,
         ussgl_vals.c.ussgl_account_number,
         ussgl_vals.c.dollar_amount,
@@ -218,7 +226,8 @@ def ussgl_published_file_b_cte(session, ussgl_vals, model):
     ).join(ussgl_vals, and_(ussgl_vals.c.display_tas == model.display_tas,
                             ussgl_vals.c.disaster_emergency_fund_code == model.disaster_emergency_fund_code,
                             ussgl_vals.c.object_class == model.object_class,
-                            ussgl_vals.c.by_direct_reimbursable_fun == model.by_direct_reimbursable_fun)).\
+                            ussgl_vals.c.by_direct_reimbursable_fun == model.by_direct_reimbursable_fun,
+                            ussgl_vals.c.prior_year_adjustment == model.prior_year_adjustment)).\
         cte('ussgl_pub_file_b')
 
     return ussgl_pub_file_b
@@ -252,17 +261,17 @@ def sum_gtas_boc(session, period, year, agency_code):
         boc_model.budget_object_class,
         boc_model.reimbursable_flag,
         boc_model.begin_end,
+        func.coalesce(func.upper(boc_model.prior_year_adjustment_code), '').label('prior_year_adjustment'),
         boc_model.ussgl_number,
         func.sum(boc_model.dollar_amount * case([(boc_model.debit_credit == 'D', 1)], else_=-1)).
         label('sum_dollar_amount')
-    ).filter(boc_model.fiscal_year == year, boc_model.period == period,
-             func.coalesce(func.upper(boc_model.prior_year_adjustment_code), 'X') == 'X',
-             exists_query).\
+    ).filter(boc_model.fiscal_year == year, boc_model.period == period, exists_query).\
         group_by(boc_model.display_tas, boc_model.allocation_transfer_agency, boc_model.agency_identifier,
                  boc_model.beginning_period_of_availa, boc_model.ending_period_of_availabil,
                  boc_model.availability_type_code, boc_model.main_account_code, boc_model.sub_account_code,
                  boc_model.disaster_emergency_fund_code, boc_model.budget_object_class,
-                 boc_model.reimbursable_flag, boc_model.begin_end, boc_model.ussgl_number).\
+                 boc_model.reimbursable_flag, boc_model.begin_end, boc_model.ussgl_number,
+                 func.coalesce(func.upper(boc_model.prior_year_adjustment_code), '')).\
         cte('summed_gtas_boc')
     return sum_boc
 
@@ -298,7 +307,8 @@ def initial_query(session, model, summed_boc_model, period, year):
                       summed_boc_model.c.reimbursable_flag).label('by_direct_reimbursable_fun'),
         func.coalesce(model.disaster_emergency_fund_code,
                       summed_boc_model.c.disaster_emergency_fund_code).label('disaster_emergency_fund_code'),
-        null().label('prior_year_adjustment'),
+        func.coalesce(model.prior_year_adjustment,
+                      summed_boc_model.c.prior_year_adjustment).label('prior_year_adjustment'),
         func.coalesce(model.begin_end_indicator, summed_boc_model.c.begin_end).label('begin_end'),
         literal(year).label('reporting_fiscal_year'),
         literal(period).label('reporting_fiscal_period'),
@@ -314,5 +324,6 @@ def initial_query(session, model, summed_boc_model, period, year):
                 model.object_class == summed_boc_model.c.budget_object_class,
                 model.by_direct_reimbursable_fun == summed_boc_model.c.reimbursable_flag,
                 model.begin_end_indicator == summed_boc_model.c.begin_end,
-                model.ussgl_account_number == summed_boc_model.c.ussgl_number),
+                model.ussgl_account_number == summed_boc_model.c.ussgl_number,
+                model.prior_year_adjustment == summed_boc_model.c.prior_year_adjustment),
            full=True)
