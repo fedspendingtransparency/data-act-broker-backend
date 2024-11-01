@@ -10,7 +10,7 @@ from dataactcore.scripts.pipeline import load_gtas_boc
 def test_load_sf133_local(database):
     """ This function loads the data from a local file to the database """
     sess = database.session
-    sf133_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'OMB_Extract_BOC_2023_09.txt')
+    sf133_path = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'OMB_Extract_BOC_2023_09.csv')
 
     load_gtas_boc.load_boc(sess, sf133_path, 2021, 5)
 
