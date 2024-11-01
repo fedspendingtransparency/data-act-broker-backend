@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from sqlalchemy import or_, and_, func, null, values, column
+from sqlalchemy import or_, and_, func, values, column
 from sqlalchemy.sql.expression import case, literal
 
 from dataactbroker.helpers.filters_helper import tas_agency_filter
