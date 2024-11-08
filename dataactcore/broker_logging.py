@@ -43,7 +43,7 @@ DEFAULT_CONFIG = {
     'disable_existing_loggers': False,
     'formatters': {
         'default': {
-            'format': "%(asctime)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s] %(levelname)s:%(name)s:%(message)s %(msg)s"
+            'format': "%(asctime)s %(levelname)s:%(name)s:%(message)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s]"
         },
     },
     'handlers': {
