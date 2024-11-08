@@ -1,4 +1,3 @@
-import os
 import logging
 import csv
 import inspect
@@ -71,7 +70,7 @@ def run_app():
             # Creates a Context object with parent set as current span
             # any Child span using .start_span() will automatically be the child of the parent
             # Refer to this link: https://github.com/open-telemetry/opentelemetry-python/issues/2787
-            ctx = trace.set_span_in_context(parent)
+            trace.set_span_in_context(parent)
 
             queue = sqs_queue()
             log_job_message(logger=logger, message="Starting SQS polling", job_type=JOB_TYPE)
@@ -81,7 +80,8 @@ def run_app():
 
             while keep_polling:
                 # With cleanup handling engaged, allowing retries
-                dispatcher = SQSWorkDispatcher(queue, worker_process_name=JOB_TYPE, worker_can_start_child_processes=True)
+                dispatcher = SQSWorkDispatcher(queue, worker_process_name=JOB_TYPE,
+                                               worker_can_start_child_processes=True)
 
                 def choose_job_by_message_attributes(message):
                     # Determine if this is a retry of this message, in which case job execution should know so it can
@@ -133,8 +133,7 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
     with SubprocessTrace(
             name=f"job.{JOB_TYPE}.file_generation",
             kind=SpanKind.INTERNAL,
-            service="bulk-download",
-            attributes={"service": JOB_TYPE.lower()}
+            service=JOB_TYPE.lower()
     ) as span:
         file_gen_data = {}
         span.set_attributes(tag_data)
@@ -180,7 +179,7 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                     'file_type': file_generation.file_type,
                     'file_path': file_generation.file_path,
                 }
-                span.resource = f"file_generation/{file_generation.file_type}"
+                file_gen_data['resource'] = f"file_generation/{file_generation.file_type}"
                 span.set_attributes(file_gen_data)
             elif file_generation is None:
                 raise ResponseError('FileGeneration ID {} not found in database'.format(file_gen_id),
@@ -244,7 +243,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
     with SubprocessTrace(
             name=f"job.{JOB_TYPE}.validation",
             kind=SpanKind.INTERNAL,
-            attributes={"service": JOB_TYPE.lower()}
+            service=JOB_TYPE.lower()
     ) as span:
         job_data = {}
         span.set_attributes(tag_data)
@@ -288,7 +287,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                     'job_type': job.job_type.name,
                     'file_type': job.file_type.name if job.file_type else None,
                 }
-                span.resource = job.job_type.name + (f"/{job.file_type.name}" if job.file_type else "")
+                job_data['resource'] = job.job_type.name + (f"/{job.file_type.name}" if job.file_type else "")
                 span.set_attributes(job_data)
             elif job is None:
                 validation_error_type = ValidationError.job_error

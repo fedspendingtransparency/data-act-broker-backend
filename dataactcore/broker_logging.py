@@ -26,6 +26,7 @@ def deep_merge(left, right):
     else:
         return right
 
+
 # CUSTOM Logging EXPORTER for debugging
 class LoggingSpanProcessor(SpanProcessor):
     def on_end(self, span: ReadableSpan) -> None:
@@ -36,6 +37,7 @@ class LoggingSpanProcessor(SpanProcessor):
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
         return True
+
 
 # Reasonable defaults to avoid clutter in our config files
 DEFAULT_CONFIG = {
