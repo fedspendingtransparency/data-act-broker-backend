@@ -6,6 +6,7 @@ Specifically leveraging the Grafana Open Telemetry tracing client.
 import logging
 
 from opentelemetry import trace
+from opentelemetry.trace import SpanKind
 from opentelemetry.trace.status import Status, StatusCode
 
 from typing import Optional, Callable
@@ -59,12 +60,14 @@ class SubprocessTrace:
     def __init__(
         self,
         name: str,
+        kind: SpanKind,
         service: str = None,
         can_drop_sample: bool = True,
         **tags,
     ) -> None:
         self.name = name
         self.service = service
+        self.kind = kind
         self.can_drop_sample = can_drop_sample
         self.tags = tags
         self.span: Optional[trace.Span] = None

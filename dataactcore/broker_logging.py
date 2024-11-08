@@ -43,7 +43,7 @@ DEFAULT_CONFIG = {
     'disable_existing_loggers': False,
     'formatters': {
         'default': {
-            'format': "%(asctime)s %(levelname)s:%(name)s:%(message)s"
+            'format': "%(asctime)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s] %(levelname)s:%(name)s:%(message)s %(msg)s"
         },
     },
     'handlers': {
@@ -80,6 +80,11 @@ DEFAULT_CONFIG = {
 
 
 def configure_logging(service_name='broker'):
+    config = DEFAULT_CONFIG
+    if 'python_config' in CONFIG_LOGGING:
+        config = deep_merge(config, CONFIG_LOGGING['python_config'])
+    logging.config.dictConfig(config)
+
     resource = Resource.create(attributes={"service.name": service_name})
     provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
@@ -102,13 +107,8 @@ def configure_logging(service_name='broker'):
     trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(exporter))
 
     LoggingInstrumentor(logging_format="%(msg)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s]")
-    LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=True)
+    LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=False)
     URLLibInstrumentor().instrument(tracer_provider=trace.get_tracer_provider())
-
-    # config = DEFAULT_CONFIG
-    # if 'python_config' in CONFIG_LOGGING:
-    #     config = deep_merge(config, CONFIG_LOGGING['python_config'])
-    # logging.config.dictConfig(config)
 
     logging.getLogger('boto3').setLevel(logging.CRITICAL)
     logging.getLogger('botocore').setLevel(logging.CRITICAL)

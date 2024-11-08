@@ -8,6 +8,9 @@ import pandas as pd
 
 from flask import Flask, g, current_app
 
+from opentelemetry.trace import SpanKind
+from opentelemetry import trace
+
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
@@ -49,21 +52,36 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        queue = sqs_queue()
-
-        logger.info("Starting SQS polling")
-        keep_polling = True
-        while keep_polling:
-            # Start a trace for this poll iter to capture activity in APM
-            with SubprocessTrace(
+        # Start a trace for this poll iter to capture activity in APM
+        with SubprocessTrace(
                 name=f"job.{JOB_TYPE}",
-                attributes={"service": JOB_TYPE.lower(), "resource": queue.url},
-            ) as span:
-                # Set True to add trace to App Analytics
-                span.set_attribute("analytics_sample_rate", 1.0)
+                kind=SpanKind.INTERNAL,
+                service=JOB_TYPE.lower(),
+        ) as parent:
+            # Set True to add trace to App Analytics
+            parent.set_attributes(
+                {
+                    "service": JOB_TYPE.lower(),
+                    "job_type": str(JOB_TYPE),
+                    "message": "Starting SQS worker session",
+                    "analytics_sample_rate": 1.0
+                }
+            )
 
+            # Creates a Context object with parent set as current span
+            # any Child span using .start_span() will automatically be the child of the parent
+            # Refer to this link: https://github.com/open-telemetry/opentelemetry-python/issues/2787
+            ctx = trace.set_span_in_context(parent)
+
+            queue = sqs_queue()
+            log_job_message(logger=logger, message="Starting SQS polling", job_type=JOB_TYPE)
+
+            message_found = None
+            keep_polling = True
+
+            while keep_polling:
                 # With cleanup handling engaged, allowing retries
-                dispatcher = SQSWorkDispatcher(queue, worker_can_start_child_processes=True)
+                dispatcher = SQSWorkDispatcher(queue, worker_process_name=JOB_TYPE, worker_can_start_child_processes=True)
 
                 def choose_job_by_message_attributes(message):
                     # Determine if this is a retry of this message, in which case job execution should know so it can
@@ -88,9 +106,9 @@ def run_app():
                                          "is_retry": is_retry}
                     return job_signature
 
-                found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
+                message_found = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 
-                if not found_message:
+                if not message_found:
                     # When you receive an empty response from the queue, wait before trying again
                     time.sleep(1)
 
@@ -114,6 +132,8 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
     tag_data = locals()
     with SubprocessTrace(
             name=f"job.{JOB_TYPE}.file_generation",
+            kind=SpanKind.INTERNAL,
+            service="bulk-download",
             attributes={"service": JOB_TYPE.lower()}
     ) as span:
         file_gen_data = {}
@@ -137,6 +157,14 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                     is_debug=True
                 )
                 return
+        else:
+            log_job_message(
+                logger=logger,
+                message="Starting processing of file generation request",
+                job_type=JOB_TYPE,
+                job_id=file_gen_id,
+                is_debug=True
+            )
 
         sess = GlobalDB.db().session
         file_generation = None
@@ -215,6 +243,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
     tag_data = locals()
     with SubprocessTrace(
             name=f"job.{JOB_TYPE}.validation",
+            kind=SpanKind.INTERNAL,
             attributes={"service": JOB_TYPE.lower()}
     ) as span:
         job_data = {}
@@ -238,6 +267,14 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                     is_debug=True
                 )
                 return
+        else:
+            log_job_message(
+                logger=logger,
+                message="Starting processing of validation request",
+                job_type=JOB_TYPE,
+                job_id=job_id,
+                is_debug=True
+            )
 
         sess = GlobalDB.db().session
         job = None
