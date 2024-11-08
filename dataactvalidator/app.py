@@ -136,7 +136,7 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
             service=JOB_TYPE.lower()
     ) as span:
         file_gen_data = {}
-        span.set_attributes(tag_data)
+        span.set_attributes({k:str(v) for k,v in tag_data.items()})
         if is_retry:
             if cleanup_generation(file_gen_id):
                 log_job_message(
@@ -246,7 +246,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             service=JOB_TYPE.lower()
     ) as span:
         job_data = {}
-        span.set_attributes(tag_data)
+        span.set_attributes({k:str(v) for k,v in tag_data.items()})
         if is_retry:
             if cleanup_validation(job_id):
                 log_job_message(

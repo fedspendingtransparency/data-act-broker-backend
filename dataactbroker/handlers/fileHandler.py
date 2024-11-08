@@ -1875,7 +1875,6 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
         Returns:
             Limited list of submissions and the total number of submissions the user has access to
     """
-    logger.info('STARTING LIST SUBMISSIONS - TEST')
     sess = GlobalDB.db().session
     submission_updated_view = SubmissionUpdatedView()
     offset = limit * (page - 1)
