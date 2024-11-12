@@ -68,7 +68,8 @@ class ErrorWarningTests(BaseTestValidator):
             val_job: the validation job to be used for all the tests
     """
     CHUNK_SIZES = [4]
-    PARALLEL_OPTIONS = [True, False]
+    # TODO: Re-add True to PARALLEL_OPTIONS after figuring out opentelemtry with multiprocessing to prevent locking
+    PARALLEL_OPTIONS = [False]
     BATCH_SQL_OPTIONS = [True, False]
     CONFIGS = list(itertools.product(CHUNK_SIZES, PARALLEL_OPTIONS, BATCH_SQL_OPTIONS))
 
