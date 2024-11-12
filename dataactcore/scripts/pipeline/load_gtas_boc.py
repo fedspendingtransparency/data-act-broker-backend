@@ -16,7 +16,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date, exit_if_nonlocal, get_utc_now
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import GTASBOC, concat_display_tas_dict
-from dataactcore.utils.loader_utils import insert_dataframe
+from dataactcore.utils.loader_utils import insert_dataframe, clean_data
 
 from dataactvalidator.health_check import create_app
 
@@ -42,8 +42,8 @@ def load_all_boc(boc_path=None, force_load=False, aws_prefix='OMB_Extract_BOC'):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        boc_list = get_prefixed_file_list(boc_path, aws_prefix, file_extension='txt')
-        boc_re = re.compile(r'OMB_Extract_BOC_(?P<year>\d{4})_(?P<period>\d{2})\.txt')
+        boc_list = get_prefixed_file_list(boc_path, aws_prefix, file_extension='csv')
+        boc_re = re.compile(r'OMB_Extract_BOC_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
         for boc in boc_list:
             # for each BOC file, parse out fiscal year and period and call the BOC loader
             file_match = boc_re.match(boc.file)
@@ -97,81 +97,62 @@ def load_boc(sess, filename, fiscal_year, fiscal_period, force_load=False, metri
                     f' Skipping file.')
         return
 
-    boc_col_lengths = {
-        'fiscal_year': 4,
-        'period': 2,
-        'allocation_transfer_agency': 3,
-        'agency_identifier': 3,
-        'beginning_period_of_availa': 4,
-        'ending_period_of_availabil': 4,
-        'availability_type_code': 1,
-        'main_account_code': 4,
-        'sub_account_code': 3,
-        'ussgl_number': 6,
-        'dollar_amount': 21,
-        'debit_credit': 1,
-        'begin_end': 1,
-        'authority_type': 1,
-        'reimbursable_flag': 1,
-        'apportionment_cat_code': 1,
-        'apportionment_cat_b_prog': 4,
-        'program_report_cat_number': 2,
-        'federal_nonfederal': 1,
-        'trading_partner_agency_ide': 3,
-        'trading_partner_mac': 4,
-        'year_of_budget_auth_code': 3,
-        'availability_time': 1,
-        'bea_category': 1,
-        'borrowing_source': 1,
-        'exchange_or_nonexchange': 1,
-        'custodial_noncustodial': 1,
-        'budget_impact': 1,
-        'prior_year_adjustment_code': 1,
-        'credit_cohort_year': 4,
-        'disaster_emergency_fund_code': 3,
-        'reduction_type': 3,
-        'budget_object_class': 4
+    boc_col_mapping = {
+        'fiscal_year': 'fiscal_year',
+        'period': 'period',
+        'ata': 'allocation_transfer_agency',
+        'aid': 'agency_identifier',
+        'bpoa': 'beginning_period_of_availa',
+        'epoa': 'ending_period_of_availabil',
+        'availability_type_code': 'availability_type_code',
+        'main_account': 'main_account_code',
+        'sub_account': 'sub_account_code',
+        'ussgl_account': 'ussgl_number',
+        'dollar_amount': 'dollar_amount',
+        'debit_credit_indicator': 'debit_credit',
+        'begin_end_indicator': 'begin_end',
+        'authority_type': 'authority_type',
+        'reimburseable_flag_indicator': 'reimbursable_flag',
+        'apportionment_category_code': 'apportionment_cat_code',
+        'apportionment_category_b_program': 'apportionment_cat_b_prog',
+        'program_report_category_number': 'program_report_cat_number',
+        'federal_nonfederal_indicator': 'federal_nonfederal',
+        'trading_partner_aid': 'trading_partner_agency_ide',
+        'trading_partner_main': 'trading_partner_mac',
+        'year_of_budget_authority_code': 'year_of_budget_auth_code',
+        'availability_time_indicator': 'availability_time',
+        'bea_category_indicator': 'bea_category',
+        'borrowing_source': 'borrowing_source',
+        'exchange_nonexchange_indicator': 'exchange_or_nonexchange',
+        'custodial_noncustodial_indicator': 'custodial_noncustodial',
+        'budget_impact_indicator': 'budget_impact',
+        'prior_year_adjustment_code': 'prior_year_adjustment_code',
+        'credit_cohort_year': 'credit_cohort_year',
+        'defc': 'disaster_emergency_fund_code',
+        'reduction_type_code': 'reduction_type',
+        'boc': 'budget_object_class',
+        'bureau_code': 'budget_bureau_code',
+        'atb_submission_status': 'atb_submission_status',
+        'atb_upload_user': 'atb_upload_user',
+        'atb_update_datetime': 'atb_update_datetime'
     }
-    boc_col_types = {
-        'fiscal_year': int,
-        'period': int,
-        'allocation_transfer_agency': str,
-        'agency_identifier': str,
-        'beginning_period_of_availa': str,
-        'ending_period_of_availabil': str,
-        'availability_type_code': str,
-        'main_account_code': str,
-        'sub_account_code': str,
-        'ussgl_number': str,
-        'dollar_amount': float,
-        'debit_credit': str,
-        'begin_end': str,
-        'authority_type': str,
-        'reimbursable_flag': str,
-        'apportionment_cat_code': str,
-        'apportionment_cat_b_prog': str,
-        'program_report_cat_number': str,
-        'federal_nonfederal': str,
-        'trading_partner_agency_ide': str,
-        'trading_partner_mac': str,
-        'year_of_budget_auth_code': str,
-        'availability_time': str,
-        'bea_category': str,
-        'borrowing_source': str,
-        'exchange_or_nonexchange': str,
-        'custodial_noncustodial': str,
-        'budget_impact': str,
-        'prior_year_adjustment_code': str,
-        'credit_cohort_year': int,
-        'disaster_emergency_fund_code': str,
-        'reduction_type': str,
-        'budget_object_class': str
-    }
-    boc_data = pd.read_fwf(filename,
-                           widths=boc_col_lengths.values(),
-                           names=boc_col_lengths.keys(),
-                           converters=boc_col_types)
 
+    boc_data = pd.read_csv(filename, dtype=str)
+    boc_data = clean_data(
+        boc_data,
+        GTASBOC,
+        boc_col_mapping,
+        {
+            'period': {'pad_to_length': 2},
+            'allocation_transfer_agency': {'pad_to_length': 3, 'keep_null': True},
+            'beginning_period_of_availa': {'pad_to_length': 0, 'keep_null': True},
+            'ending_period_of_availabil': {'pad_to_length': 0, 'keep_null': True},
+            'availability_type_code': {'pad_to_length': 0, 'keep_null': True},
+            'agency_identifier': {'pad_to_length': 3},
+            'main_account_code': {'pad_to_length': 4},
+            'sub_account_code': {'pad_to_length': 3, 'keep_null': True}
+        }
+    )
     boc_data = boc_data.replace({np.nan: None})
 
     # Drop all rows where availability type code is F or C

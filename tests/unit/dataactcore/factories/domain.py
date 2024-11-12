@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 import factory
 from factory import fuzzy
@@ -66,6 +66,10 @@ class GTASBOCFactory(factory.Factory):
     disaster_emergency_fund_code = fuzzy.FuzzyText()
     reduction_type = fuzzy.FuzzyText()
     budget_object_class = fuzzy.FuzzyText()
+    budget_bureau_code = fuzzy.FuzzyText()
+    atb_submission_status = fuzzy.FuzzyText()
+    atb_upload_user = fuzzy.FuzzyText()
+    atb_update_datetime = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
 
 
 class CGACFactory(factory.Factory):
