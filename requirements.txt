@@ -14,9 +14,9 @@ Flask-Login==0.6.3
 future==1.0.0
 marshmallow==3.21.1
 numpy==1.26.4
-# Need to run 'opentelemetry-bootstrap -a install' command and it is a CLI tool and should be run seperately
-# The command reads through the list of packages installed in your active site-packages folder,
-# and installs the corresponding instrumentation libraries for these packages,
+# Need to run 'opentelemetry-bootstrap -a install' after doing pip install for the first time and with any additional
+# opentelemetry imports. It is a CLI tool installed from the distro that reads through the list of packages installed in
+# your active site-packages folder and installs the corresponding instrumentation libraries for these packages.
 opentelemetry-distro==0.47b0
 opentelemetry-exporter-otlp==1.14.0
 opentelemetry-instrumentation==0.47b0
@@ -83,4 +83,4 @@ WebTest==3.0.0
 
 
 # botocore hasn't been updated with a fix for md5s and python3.9
--e git+https://github.com/fedspendingtransparency/botocore-python39-md5.git@md5-fix-1-34-58#egg=botocore
+git+https://github.com/fedspendingtransparency/botocore-python39-md5.git@md5-fix-1-34-58#egg=botocore
