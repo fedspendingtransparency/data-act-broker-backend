@@ -783,3 +783,7 @@ class GTASBOC(Base):
     disaster_emergency_fund_code = Column(Text, index=True)
     reduction_type = Column(Text)
     budget_object_class = Column(Text)
+    budget_bureau_code = Column(Text)
+    atb_submission_status = Column(Text)
+    atb_upload_user = Column(Text)
+    atb_update_datetime = Column(DateTime)
