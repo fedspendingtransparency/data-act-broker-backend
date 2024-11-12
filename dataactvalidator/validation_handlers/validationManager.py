@@ -9,6 +9,7 @@ import psutil as ps
 from multiprocessing import Pool, Manager
 import time
 from datetime import timedelta
+from opentelemetry import trace
 
 from datetime import datetime
 
@@ -22,6 +23,7 @@ from dataactbroker.helpers.validation_helper import (
     derive_unique_id_vectorized, update_val_progress)
 
 from dataactcore.aws.s3Handler import S3Handler
+from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
@@ -541,6 +543,8 @@ class ValidationManager:
                 """ ensure the parent proc's database connections are not touched in the new connection pool """
                 engine.dispose(close=False)
 
+                configure_logging('broker-validator')
+
             m_lock = server_manager.Lock()
             pool = Pool(MULTIPROCESSING_POOLS, initializer=initializer())
             results = []
@@ -617,8 +621,11 @@ class ValidationManager:
             if shared_data['errored']:
                 return
 
+        tracer = trace.get_tracer(__name__)
+
         try:
-            self.process_data_chunk(chunk_df, shared_data, file_row_count, m_lock=m_lock)
+            with tracer.start_as_current_span("validation_child"):
+                self.process_data_chunk(chunk_df, shared_data, file_row_count, m_lock=m_lock)
         except Exception as e:
             with lockable:
                 shared_data['errored'] = True
