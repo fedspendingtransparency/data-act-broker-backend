@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import logging
 from multiprocessing import Pool, Manager
 from opentelemetry.context import attach, get_current
-from opentelemetry.propagate import extract, inject
 import os
 import pandas as pd
 import psutil as ps
@@ -542,8 +541,7 @@ class ValidationManager:
 
             m_lock = server_manager.Lock()
             pool = Pool(MULTIPROCESSING_POOLS, initializer=initializer())
-            trace_context = {}
-            inject(trace_context, get_current())
+            trace_context = get_current()
             results = []
             try:
                 for chunk_df in reader_obj:
@@ -613,7 +611,7 @@ class ValidationManager:
                 trace_context: the parent trace context for opentelemtry
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
-        attach(extract(trace_context))
+        attach(trace_context)
 
         # If one of the processes has errored, we don't want to run any more chunks
         lockable = m_lock if m_lock else NoLock
