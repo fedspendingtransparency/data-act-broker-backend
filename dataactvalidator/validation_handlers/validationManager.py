@@ -1,18 +1,16 @@
 import boto3
 import csv
+from datetime import datetime, timedelta
 import logging
+from multiprocessing import Pool, Manager
+from opentelemetry.context import attach, get_current
 import os
-import re
-import traceback
 import pandas as pd
 import psutil as ps
-from multiprocessing import Pool, Manager
-import time
-from datetime import timedelta
-
-from datetime import datetime
-
+import re
 from sqlalchemy import and_, or_
+import traceback
+import time
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 from dataactbroker.helpers.validation_helper import (
@@ -543,11 +541,12 @@ class ValidationManager:
 
             m_lock = server_manager.Lock()
             pool = Pool(MULTIPROCESSING_POOLS, initializer=initializer())
+            trace_context = get_current()
             results = []
             try:
                 for chunk_df in reader_obj:
                     result = pool.apply_async(func=self.parallel_process_data_chunk,
-                                              args=(chunk_df, shared_data, file_row_count, m_lock))
+                                              args=(chunk_df, shared_data, file_row_count, trace_context, m_lock))
                     results.append(result)
             except pd.errors.ParserError as e:
                 # if pandas can't read a later portion after starting,
@@ -602,15 +601,18 @@ class ValidationManager:
         self.error_rows = shared_data['error_rows']
         self.error_list = shared_data['error_list']
 
-    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
+    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, trace_context, m_lock=None):
         """ Wrapper around process_data_chunk for parallelization and error catching
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
                 file_row_count: the total number of rows in the file
+                trace_context: the parent trace context for opentelemtry
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
+        attach(trace_context)
+
         # If one of the processes has errored, we don't want to run any more chunks
         lockable = m_lock if m_lock else NoLock
         with lockable:
