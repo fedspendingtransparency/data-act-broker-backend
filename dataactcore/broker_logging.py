@@ -9,8 +9,7 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExport
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.urllib import URLLibInstrumentor
 
-from dataactcore.config import CONFIG_BROKER
-from dataactcore.config import CONFIG_LOGGING
+from dataactcore.config import CONFIG_BROKER, CONFIG_LOGGING
 
 
 def deep_merge(left, right):
