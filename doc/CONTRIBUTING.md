@@ -89,9 +89,7 @@ Your prompt should then look as below to show you are _in_ the virtual environme
 
 ### Opentelemtry Setup
 
-If you are using opentelemetry for additional monitoring, make sure to run the bootstrap script after doing pip install
-for the first time and with any additional opentelemetry imports. It is a CLI tool installed from the distro that reads
-through the list of packages installed in your active site-packages folder and installs the corresponding instrumentation libraries for these packages.
+If you are using opentelemetry for additional monitoring, make sure to run the bootstrap script after doing pip install for the first time and with any additional opentelemetry imports. It is a CLI tool installed from the distro that reads through the list of packages installed in your active site-packages folder and installs the corresponding instrumentation libraries for these packages.
 
 ```bash
 (broker-backend) $ opentelemetry-bootstrap -a install
