@@ -6,10 +6,13 @@ import re
 import traceback
 import pandas as pd
 import psutil as ps
-from multiprocessing import Pool, Manager
+import multiprocessing as mp
 import time
 from datetime import timedelta
 from opentelemetry import trace
+import sys
+from opentelemetry.context import attach, get_current
+from opentelemetry.propagate import extract, inject
 
 from datetime import datetime
 
@@ -47,6 +50,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import report_file_name
 from dataactcore.utils.loader_utils import insert_dataframe
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.tracing import SubprocessTrace
 
 from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner, StringCleaner
@@ -517,7 +521,9 @@ class ValidationManager:
                 reader_obj: the iterator reader object to iterate over all the chunks
                 file_row_count: the total number of rows in the file
         """
-        with Manager() as server_manager:
+        logger.info('PREPARE TO FORK')
+        ctx = mp.get_context("fork")
+        with mp.Manager() as server_manager:
             # These variables will need to be shared among the processes and used later overall
             shared_data = server_manager.dict(
                 total_rows=self.total_rows,
@@ -540,18 +546,23 @@ class ValidationManager:
             engine = conn.engine
 
             def initializer():
+                logger.info('WE INSIDE')
                 """ ensure the parent proc's database connections are not touched in the new connection pool """
                 engine.dispose(close=False)
 
-                configure_logging('broker-validator')
-
             m_lock = server_manager.Lock()
-            pool = Pool(MULTIPROCESSING_POOLS, initializer=initializer())
+            pool = ctx.Pool(MULTIPROCESSING_POOLS, initializer=initializer())
+            trace_context = {}
+            inject(trace_context, get_current())
             results = []
+            logger.info('FORKING')
+            index = 0
             try:
                 for chunk_df in reader_obj:
+                    index = index + 1
+                    logger.info(f'COUNT: {index}')
                     result = pool.apply_async(func=self.parallel_process_data_chunk,
-                                              args=(chunk_df, shared_data, file_row_count, m_lock))
+                                              args=(chunk_df, shared_data, file_row_count, trace_context, m_lock))
                     results.append(result)
             except pd.errors.ParserError as e:
                 # if pandas can't read a later portion after starting,
@@ -564,6 +575,7 @@ class ValidationManager:
             # Raises any exceptions if such occur
             for result in results:
                 result.get()
+            logger.info('AND WE\'RE DONE')
 
             # Resetting these out here as they are used later in the process
             self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
@@ -606,7 +618,7 @@ class ValidationManager:
         self.error_rows = shared_data['error_rows']
         self.error_list = shared_data['error_list']
 
-    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
+    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, trace_context, m_lock=None):
         """ Wrapper around process_data_chunk for parallelization and error catching
 
             Args:
@@ -621,15 +633,29 @@ class ValidationManager:
             if shared_data['errored']:
                 return
 
-        tracer = trace.get_tracer(__name__)
-
         try:
-            with tracer.start_as_current_span("validation_child"):
+            attach(extract(trace_context))
+            with SubprocessTrace(
+                name="child",
+                service="child",
+                kind="test"
+            ) as child:
+                # Set True to add trace to App Analytics
+                child.set_attributes(
+                    {
+                        "service": "child",
+                        "job_type": "child",
+                        "message": "Testing child",
+                    }
+                )
                 self.process_data_chunk(chunk_df, shared_data, file_row_count, m_lock=m_lock)
+                logger.info('MADE IT HERE SUCCESS')
         except Exception as e:
             with lockable:
                 shared_data['errored'] = True
             raise e
+        finally:
+            logger.info('MADE IT HERE FINALLY. EXITING')
 
     def process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
         """ Loads in a chunk of the file and performs initial validations
