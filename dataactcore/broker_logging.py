@@ -100,8 +100,6 @@ def configure_logging(service_name='broker'):
         # custom debug information
         logging_span_processor = LoggingSpanProcessor()
         trace.get_tracer_provider().add_span_processor(logging_span_processor)
-
-        trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
     else:
         # if prod or non-prod send trace information to the endpoint
         exporter = OTLPSpanExporter(
