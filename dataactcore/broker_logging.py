@@ -95,19 +95,19 @@ def configure_logging(service_name='broker'):
     # for more exporter configuration
     if CONFIG_BROKER['local']:
         # if local print the traces to the console
-        # exporter = ConsoleSpanExporter()
+        exporter = ConsoleSpanExporter()
 
         # custom debug information
         logging_span_processor = LoggingSpanProcessor()
         trace.get_tracer_provider().add_span_processor(logging_span_processor)
 
-        # trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
+        trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
     else:
         # if prod or non-prod send trace information to the endpoint
         exporter = OTLPSpanExporter(
             endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
         )
-        trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
+    trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
 
     LoggingInstrumentor(logging_format="%(msg)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s]")
     LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=False)
