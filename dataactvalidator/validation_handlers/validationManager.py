@@ -521,7 +521,6 @@ class ValidationManager:
                 reader_obj: the iterator reader object to iterate over all the chunks
                 file_row_count: the total number of rows in the file
         """
-        logger.info('PREPARE TO FORK')
         ctx = mp.get_context("fork")
         with mp.Manager() as server_manager:
             # These variables will need to be shared among the processes and used later overall
@@ -546,7 +545,6 @@ class ValidationManager:
             engine = conn.engine
 
             def initializer():
-                logger.info('WE INSIDE')
                 """ ensure the parent proc's database connections are not touched in the new connection pool """
                 engine.dispose(close=False)
 
@@ -555,12 +553,8 @@ class ValidationManager:
             trace_context = {}
             inject(trace_context, get_current())
             results = []
-            logger.info('FORKING')
-            index = 0
             try:
                 for chunk_df in reader_obj:
-                    index = index + 1
-                    logger.info(f'COUNT: {index}')
                     result = pool.apply_async(func=self.parallel_process_data_chunk,
                                               args=(chunk_df, shared_data, file_row_count, trace_context, m_lock))
                     results.append(result)
@@ -575,7 +569,6 @@ class ValidationManager:
             # Raises any exceptions if such occur
             for result in results:
                 result.get()
-            logger.info('AND WE\'RE DONE')
 
             # Resetting these out here as they are used later in the process
             self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
@@ -625,6 +618,7 @@ class ValidationManager:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
                 file_row_count: the total number of rows in the file
+                trace_context: the opentelemetry trace context from the parent process
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
         # If one of the processes has errored, we don't want to run any more chunks
@@ -649,13 +643,10 @@ class ValidationManager:
                     }
                 )
                 self.process_data_chunk(chunk_df, shared_data, file_row_count, m_lock=m_lock)
-                logger.info('MADE IT HERE SUCCESS')
         except Exception as e:
             with lockable:
                 shared_data['errored'] = True
             raise e
-        finally:
-            logger.info('MADE IT HERE FINALLY. EXITING')
 
     def process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
         """ Loads in a chunk of the file and performs initial validations
