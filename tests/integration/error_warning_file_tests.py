@@ -690,9 +690,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Field Name': 'grossoutlayamountbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
-                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriations account file (A) does not'
+                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriations account file (A) must'
                                 ' equal the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values'
-                                ' in the object class and program activity file (B).',
+                                ' in the object class and program activity file (B) where PYA = "X".',
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
@@ -707,9 +707,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target File': 'program_activity',
                 'Target Field Name': 'obligations_incurred_by_pr_cpe_sum',
                 'Rule Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriations account file (A)'
-                                ' does not equal the negative (additive inverse) of the sum of the corresponding'
+                                ' must equal the negative (additive inverse) of the sum of the corresponding'
                                 ' ObligationsIncurredByProgramObjectClass_CPE values in the object class and program'
-                                ' activity file (B).',
+                                ' activity file (B) where PYA = "X".',
                 'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
                 'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
                 'Difference': '18000',
@@ -725,9 +725,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl487200_downward_adjus_cpe_sum,'
                                      ' ussgl497100_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
                 'Rule Message': 'The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations'
-                                ' account file (A) does not equal the sum of the corresponding'
+                                ' account file (A) must equal the sum of the corresponding'
                                 ' DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the'
-                                ' object class and program activity file (B).',
+                                ' object class and program activity file (B) where PYA = "X".',
                 'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
@@ -744,9 +744,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Field Name': 'grossoutlayamountbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
-                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriations account file (A) does not'
+                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriations account file (A) must'
                                 ' equal the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values'
-                                ' in the object class and program activity file (B).',
+                                ' in the object class and program activity file (B) where PYA = "X".',
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
@@ -761,9 +761,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target File': 'program_activity',
                 'Target Field Name': 'obligations_incurred_by_pr_cpe_sum',
                 'Rule Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriations account file (A)'
-                                ' does not equal the negative (additive inverse) of the sum of the corresponding'
+                                ' must equal the negative (additive inverse) of the sum of the corresponding'
                                 ' ObligationsIncurredByProgramObjectClass_CPE values in the object class and program'
-                                ' activity file (B).',
+                                ' activity file (B) where PYA = "X".',
                 'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
                 'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
                 'Difference': '18000',
@@ -779,9 +779,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl487200_downward_adjus_cpe_sum,'
                                      ' ussgl497100_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
                 'Rule Message': 'The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations'
-                                ' account file (A) does not equal the sum of the corresponding'
+                                ' account file (A) must equal the sum of the corresponding'
                                 ' DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the'
-                                ' object class and program activity file (B).',
+                                ' object class and program activity file (B) where PYA = "X".',
                 'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
@@ -798,9 +798,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Field Name': 'grossoutlayamountbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
-                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriations account file (A) does not'
+                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriations account file (A) must'
                                 ' equal the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values'
-                                ' in the object class and program activity file (B).',
+                                ' in the object class and program activity file (B) where PYA = "X".',
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
@@ -815,9 +815,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target File': 'program_activity',
                 'Target Field Name': 'obligations_incurred_by_pr_cpe_sum',
                 'Rule Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriations account file (A)'
-                                ' does not equal the negative (additive inverse) of the sum of the corresponding'
+                                ' must equal the negative (additive inverse) of the sum of the corresponding'
                                 ' ObligationsIncurredByProgramObjectClass_CPE values in the object class and program'
-                                ' activity file (B).',
+                                ' activity file (B) where PYA = "X".',
                 'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
                 'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
                 'Difference': '18000',
@@ -833,9 +833,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl487200_downward_adjus_cpe_sum,'
                                      ' ussgl497100_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
                 'Rule Message': 'The DeobligationsRecoveriesRefundsOfPriorYearByTAS_CPE amount in the appropriations'
-                                ' account file (A) does not equal the sum of the corresponding'
+                                ' account file (A) must equal the sum of the corresponding'
                                 ' DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE values in the'
-                                ' object class and program activity file (B).',
+                                ' object class and program activity file (B) where PYA = "X".',
                 'Source Value Provided': 'deobligationsrecoveriesrefundsofprioryearbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'

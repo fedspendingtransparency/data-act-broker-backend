@@ -24,13 +24,15 @@ def test_success(database):
 
     op_1 = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test',
                                              main_account_code='test', program_activity_name='test',
-                                             program_activity_code='test'
-                                             )
+                                             program_activity_code='test')
 
     op_2 = ObjectClassProgramActivityFactory(row_number=2, submission_id=1, agency_identifier='test',
                                              main_account_code='test', program_activity_name='test',
-                                             program_activity_code='test'
-                                             )
+                                             program_activity_code='test')
+    # Ignore blank PAC/PAN
+    op_3 = ObjectClassProgramActivityFactory(row_number=3, submission_id=1, agency_identifier='fail',
+                                             main_account_code='test', program_activity_name='',
+                                             program_activity_code=None)
 
     pa = ProgramActivityFactory(fiscal_year_period='FY16P12', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
@@ -38,7 +40,7 @@ def test_success(database):
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=12,
                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[op_1, op_2, op_3, pa], submission=submission) == 0
 
 
 def test_success_fiscal_year_period(database):

@@ -248,6 +248,17 @@ def load_county_data(force_reload):
     with RetrieveFileFromUri(county_file_url, 'r').get_file_object() as county_file:
         new_data = parse_county_file(county_file)
 
+    # parse legacy county code data
+    legacy_county_file_url = '{}/GOVT_UNITS_LEGACY.txt'.format(CONFIG_BROKER['usas_public_reference_url'])
+    with RetrieveFileFromUri(legacy_county_file_url, 'r').get_file_object() as legacy_county_file:
+        legacy_data = parse_county_file(legacy_county_file)
+
+    # only add legacy county code data if the state is not already in the new county data
+    unique_new_states = set(new_data['state_code'].unique())
+    unique_legacy_states = set(legacy_data['state_code'].unique())
+    add_legacy_data = legacy_data[legacy_data['state_code'].isin(unique_legacy_states - unique_new_states)]
+    new_data = pd.concat([new_data, add_legacy_data], axis=0)
+
     diff_found = check_dataframe_diff(new_data, CountyCode, ['county_code_id'], ['county_number', 'state_code'])
 
     if force_reload or diff_found:

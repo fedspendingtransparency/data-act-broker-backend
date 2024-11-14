@@ -1,16 +1,19 @@
 -- GrossOutlayAmountByProgramObjectClass_CPE = value for GTAS SF 133 line #3020 for the same reporting period for the
--- TAS and DEFC combination.
+-- TAS and DEFC combination where PYA = "X".
 WITH object_class_program_activity_b22_{0} AS
     (SELECT submission_id,
         row_number,
         gross_outlay_amount_by_pro_cpe,
         tas,
         display_tas,
-        disaster_emergency_fund_code
+        disaster_emergency_fund_code,
+        prior_year_adjustment
     FROM object_class_program_activity
-    WHERE submission_id = {0})
+    WHERE submission_id = {0}
+        AND UPPER(prior_year_adjustment) = 'X')
 SELECT
     NULL AS "row_number",
+    UPPER(op.prior_year_adjustment) AS "prior_year_adjustment",
     SUM(COALESCE(op.gross_outlay_amount_by_pro_cpe, 0)) AS "gross_outlay_amount_by_pro_cpe_sum",
     sf.amount AS "expected_value_GTAS SF133 Line 3020",
     SUM(COALESCE(op.gross_outlay_amount_by_pro_cpe, 0)) - sf.amount AS "difference",
@@ -27,5 +30,6 @@ FROM object_class_program_activity_b22_{0} AS op
 WHERE sf.line = 3020
 GROUP BY op.display_tas,
     UPPER(op.disaster_emergency_fund_code),
-    sf.amount
+    sf.amount,
+    UPPER(op.prior_year_adjustment)
 HAVING SUM(COALESCE(op.gross_outlay_amount_by_pro_cpe, 0)) <> sf.amount;
