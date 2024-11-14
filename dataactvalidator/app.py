@@ -411,7 +411,7 @@ def cleanup_validation(job_id):
 
 
 if __name__ == "__main__":
-    configure_logging('broker-validator')
+    configure_logging(f'broker-validator-{CONFIG_BROKER['environment']}')
     # Configure Tracer to drop traces of polls of the queue that have been flagged as uninteresting
     OpenTelemetryEagerlyDropTraceFilter.activate()
     run_app()

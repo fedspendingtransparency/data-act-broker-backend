@@ -154,12 +154,12 @@ def run_app():
         port=CONFIG_SERVICES['broker_api_port']
     )
 
-
+service_name = f'broker-api-{CONFIG_BROKER['environment']}'
 if __name__ == '__main__':
-    configure_logging(service_name='broker-api')
+    configure_logging(service_name=service_name)
     run_app()
 
 elif __name__[0:5] == "uwsgi":
-    configure_logging(service_name='broker-api')
+    configure_logging(service_name=service_name)
     app = create_app()
     app.wsgi_app = OpenTelemetryMiddleware(app.wsgi_app)
