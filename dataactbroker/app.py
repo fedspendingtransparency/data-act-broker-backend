@@ -1,3 +1,4 @@
+import ddtrace
 import json
 import logging
 import os
@@ -6,10 +7,6 @@ import os.path
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask, g, session, request
-
-from opentelemetry.instrumentation.wsgi import OpenTelemetryMiddleware
-from opentelemetry import trace
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
 
 from dataactbroker.exception_handler import add_exception_handlers
 from dataactbroker.handlers.account_handler import AccountHandler
@@ -35,6 +32,37 @@ from dataactcore.utils.statusCode import StatusCode
 
 logger = logging.getLogger(__name__)
 
+# Replace below param with enabled=True during env-deploys to turn on
+ddtrace.tracer.configure(enabled=False)
+if ddtrace.tracer.enabled:
+    ddtrace.config.flask["service_name"] = "api"
+    ddtrace.config.flask["analytics_enabled"] = True  # capture APM "Traces" & "Analyzed Spans" in App Analytics
+    ddtrace.config.flask["analytics_sample_rate"] = 1.0  # Including 100% of traces in sample
+    ddtrace.config.flask["trace_query_string"] = True
+    # Distributed tracing only needed if picking up disjoint traces by HTTP Header value
+    ddtrace.config.flask["distributed_tracing_enabled"] = False
+    # Trace HTTP Request or Response Headers listed in this whitelist
+    ddtrace.config.trace_headers(
+        [
+            "content-length",  # req and resp
+            "content-type",  # req and resp
+            "host",
+            "origin",
+            "referer",
+            "user-agent",
+            "x-forwarded-for",
+            "x-requested-with",
+            "x-session-id",
+            # Response Headers
+            "allow",
+            "strict-transport-security",
+        ]
+    )
+    # patch_all() captures traces from integrated components' libraries by patching them. See:
+    # - http://pypi.datadoghq.com/trace/docs/advanced_usage.html#patch-all
+    # - Integrated Libs: http://pypi.datadoghq.com/trace/docs/index.html#supported-libraries
+    ddtrace.patch_all()
+
 
 def create_app():
     """Set up the application."""
@@ -50,9 +78,6 @@ def create_app():
 
     # Future: Override config w/ environment variable, if set
     flask_app.config.from_envvar('BROKER_SETTINGS', silent=True)
-
-    # Telemetry
-    FlaskInstrumentor().instrument_app(flask_app, tracer_provider=trace.get_tracer_provider())
 
     # Set parameters
     broker_file_path = CONFIG_BROKER['broker_files']
@@ -156,10 +181,9 @@ def run_app():
 
 
 if __name__ == '__main__':
-    configure_logging(service_name='broker-api')
+    configure_logging()
     run_app()
 
 elif __name__[0:5] == "uwsgi":
-    configure_logging(service_name='broker-api')
+    configure_logging()
     app = create_app()
-    app.wsgi_app = OpenTelemetryMiddleware(app.wsgi_app)

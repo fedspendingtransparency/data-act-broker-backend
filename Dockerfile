@@ -16,8 +16,6 @@ RUN pip install -r /data-act/backend/requirements.txt
 # uwsgi fails to build its wheel on Alpine Linux without CPUCOUNT=1 - https://github.com/unbit/uwsgi/issues/1318
 RUN CPUCOUNT=1 pip install -r /data-act/backend/server_requirements.txt
 
-RUN opentelemetry-bootstrap -a install
-
 ENV PYTHONPATH /data-act/backend
 WORKDIR /data-act/backend
 
