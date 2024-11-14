@@ -90,9 +90,6 @@ def configure_logging(service_name='broker'):
     provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
 
-    # Set up the OTLP exporter
-    # Check out https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
-    # for more exporter configuration
     if CONFIG_BROKER['local']:
         # if local, print the traces to the console
         # trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
@@ -100,11 +97,13 @@ def configure_logging(service_name='broker'):
         # custom debug information
         trace.get_tracer_provider().add_span_processor(LoggingSpanProcessor())
     else:
-        # if prod or non-prod send trace information to the endpoint
-        exporter = OTLPSpanExporter(
-            endpoint=os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
-        )
-        trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
+        # Set up the OTLP exporter
+        # Check out https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
+        # for more exporter configuration
+        otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+        if otel_endpoint:
+            exporter = OTLPSpanExporter(endpoint=otel_endpoint)
+            trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
 
     LoggingInstrumentor(logging_format="%(msg)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s]")
     LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=False)
