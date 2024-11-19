@@ -8,7 +8,8 @@ _FILE = 'c5_award_financial_1'
 def test_column_headers(database):
     expected_subset = {'row_number', 'gross_outlay_amount_by_awa_fyb', 'gross_outlays_undelivered_fyb',
                        'gross_outlays_delivered_or_fyb', 'difference', 'uniqueid_TAS',
-                       'uniqueid_DisasterEmergencyFundCode', 'uniqueid_PIID', 'uniqueid_FAIN', 'uniqueid_URI'}
+                       'uniqueid_DisasterEmergencyFundCode', 'uniqueid_PriorYearAdjustment', 'uniqueid_PIID',
+                       'uniqueid_FAIN', 'uniqueid_URI'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
