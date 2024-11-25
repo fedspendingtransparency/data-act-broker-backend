@@ -22,7 +22,6 @@ from dataactbroker.helpers.validation_helper import (
     derive_unique_id_vectorized, update_val_progress)
 
 from dataactcore.aws.s3Handler import S3Handler
-from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
@@ -46,7 +45,6 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import report_file_name
 from dataactcore.utils.loader_utils import insert_dataframe
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.tracing import SubprocessTrace
 
 from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner, StringCleaner
