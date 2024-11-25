@@ -9,10 +9,6 @@ import psutil as ps
 import multiprocessing as mp
 import time
 from datetime import timedelta
-from opentelemetry import trace
-import sys
-from opentelemetry.context import attach, get_current
-from opentelemetry.propagate import extract, inject
 
 from datetime import datetime
 
@@ -565,7 +561,6 @@ class ValidationManager:
                 # Raises any exceptions if such occur
                 for result in results:
                     result.get()
-
 
             # Resetting these out here as they are used later in the process
             self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)

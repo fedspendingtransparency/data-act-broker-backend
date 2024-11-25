@@ -1,6 +1,5 @@
 import os
 import csv
-import logging
 import itertools
 import pandas as pd
 import psutil as ps
@@ -197,16 +196,20 @@ class ErrorWarningTests(BaseTestValidator):
         return os.path.join(CONFIG_SERVICES['error_report_path'], filename)
 
     def setup_csv_record_validation(self, file, file_type):
+        self.session.commit()
         self.session.query(Job).delete(synchronize_session='fetch')
         self.val_job = insert_job(self.session, FILE_TYPE_DICT[file_type], JOB_STATUS_DICT['ready'],
                                   JOB_TYPE_DICT['csv_record_validation'], self.submission_id,
                                   filename=file)
+        self.session.commit()
 
     def setup_validation(self):
+        self.session.commit()
         self.session.query(Job).delete(synchronize_session='fetch')
         self.val_job = insert_job(self.session, None, JOB_STATUS_DICT['ready'],
                                   JOB_TYPE_DICT['validation'], self.submission_id,
                                   filename=None)
+        self.session.commit()
 
     def get_report_content(self, report_path, cross_file=False):
         report_content = []
@@ -256,6 +259,7 @@ class ErrorWarningTests(BaseTestValidator):
         new_reports = set(os.listdir(CONFIG_SERVICES['error_report_path'])) - self.original_reports
         for new_report in new_reports:
             os.remove(os.path.join(CONFIG_SERVICES['error_report_path'], new_report))
+        self.session.commit()
         self.session.query(Appropriation).delete(synchronize_session='fetch')
         self.session.query(ObjectClassProgramActivity).delete(synchronize_session='fetch')
         self.session.query(AwardFinancial).delete(synchronize_session='fetch')

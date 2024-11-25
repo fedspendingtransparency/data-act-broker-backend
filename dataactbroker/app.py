@@ -154,6 +154,7 @@ def run_app():
         port=CONFIG_SERVICES['broker_api_port']
     )
 
+
 if __name__ == '__main__':
     configure_logging(service_name=f'broker-api-{CONFIG_BROKER['environment']}')
     run_app()
