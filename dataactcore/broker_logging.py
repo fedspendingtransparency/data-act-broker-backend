@@ -8,6 +8,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExpor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.urllib import URLLibInstrumentor
+from opentelemetry.instrumentation.threading import ThreadingInstrumentor
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_LOGGING
 
@@ -92,7 +93,7 @@ def configure_logging(service_name='broker'):
 
     if CONFIG_BROKER['local']:
         # if local, print the traces to the console
-        # trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+        trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
 
         # custom debug information
         trace.get_tracer_provider().add_span_processor(LoggingSpanProcessor())
@@ -108,6 +109,7 @@ def configure_logging(service_name='broker'):
     LoggingInstrumentor(logging_format="%(msg)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s]")
     LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=False)
     URLLibInstrumentor().instrument(tracer_provider=trace.get_tracer_provider())
+    ThreadingInstrumentor().instrument()
 
     logging.getLogger('boto3').setLevel(logging.CRITICAL)
     logging.getLogger('botocore').setLevel(logging.CRITICAL)

@@ -521,7 +521,6 @@ class ValidationManager:
                 reader_obj: the iterator reader object to iterate over all the chunks
                 file_row_count: the total number of rows in the file
         """
-        ctx = mp.get_context("fork")
         with mp.Manager() as server_manager:
             # These variables will need to be shared among the processes and used later overall
             shared_data = server_manager.dict(
@@ -549,15 +548,12 @@ class ValidationManager:
                 engine.dispose(close=False)
 
             m_lock = server_manager.Lock()
-            pool = ctx.Pool(MULTIPROCESSING_POOLS, initializer=initializer())
-            trace_context = {}
-            inject(trace_context, get_current())
-            trace_context = get_current()
+            pool = mp.Pool(MULTIPROCESSING_POOLS, initializer=initializer())
             results = []
             try:
                 for chunk_df in reader_obj:
                     result = pool.apply_async(func=self.parallel_process_data_chunk,
-                                              args=(chunk_df, shared_data, file_row_count, trace_context, m_lock))
+                                              args=(chunk_df, shared_data, file_row_count, m_lock))
                     results.append(result)
             except pd.errors.ParserError as e:
                 # if pandas can't read a later portion after starting,
@@ -565,11 +561,11 @@ class ValidationManager:
                 raise e
             finally:
                 pool.close()
-                pool.join()
 
-            # Raises any exceptions if such occur
-            for result in results:
-                result.get()
+                # Raises any exceptions if such occur
+                for result in results:
+                    result.get()
+
 
             # Resetting these out here as they are used later in the process
             self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
@@ -612,14 +608,13 @@ class ValidationManager:
         self.error_rows = shared_data['error_rows']
         self.error_list = shared_data['error_list']
 
-    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, trace_context, m_lock=None):
+    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
         """ Wrapper around process_data_chunk for parallelization and error catching
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
                 file_row_count: the total number of rows in the file
-                trace_context: the opentelemetry trace context from the parent process
                 m_lock: manager lock if provided to ensure processes don't override each other
         """
         # If one of the processes has errored, we don't want to run any more chunks
@@ -628,59 +623,48 @@ class ValidationManager:
             if shared_data['errored']:
                 return
 
+        if m_lock:
+            # make a new connection per process
+            conn = db_connection()
+            sess = conn.session
+
         try:
-            # attach(extract(trace_context))
-            attach(trace_context)
-            with SubprocessTrace(
-                name="child",
-                service="child",
-                kind="test"
-            ) as child:
-                # Set True to add trace to App Analytics
-                child.set_attributes(
-                    {
-                        "service": "child",
-                        "job_type": "child",
-                        "message": "Testing child",
-                    }
-                )
-                self.process_data_chunk(chunk_df, shared_data, file_row_count, m_lock=m_lock)
+            self.process_data_chunk(chunk_df, shared_data, file_row_count, sess=sess, lockable=lockable)
         except Exception as e:
+            logger.exception(e)
             with lockable:
                 shared_data['errored'] = True
             raise e
+        finally:
+            sess.commit()
+            sess.close()
+            logging.shutdown()
 
-    def process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
+    def process_data_chunk(self, chunk_df, shared_data, file_row_count, sess=None, lockable=None):
         """ Loads in a chunk of the file and performs initial validations
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
                 file_row_count: the total number of rows in the file
-                m_lock: manager lock if provided to ensure processes don't override each other
+                sess: database connection
+                lockable: manager lock if provided to ensure processes don't override each other
         """
-        if m_lock:
-            # make a new connection per process
-            conn = db_connection()
-            sess = conn.session
-            lockable = m_lock
-        else:
+        if not sess:
             sess = GlobalDB.db().session
-            # Using our no-op object to bypass locking for iterating loads
+        if not lockable:
             lockable = NoLock()
 
-        # Short-circuit if provided an empty dataframe
         if chunk_df.empty:
-            with lockable:
-                logger.warning({
-                    'message': 'Empty chunk provided.',
-                    'message_type': 'ValidatorWarning',
-                    'submission_id': self.submission_id,
-                    'job_id': self.job_id,
-                    'file_type': self.file_type_name,
-                    'action': 'data_loading',
-                    'status': 'end'
-                })
+            logger.warning({
+                'message': 'Empty chunk provided.',
+                'message_type': 'ValidatorWarning',
+                'submission_id': self.submission_id,
+                'job_id': self.job_id,
+                'file_type': self.file_type_name,
+                'action': 'data_loading',
+                'status': 'end'
+            })
             return
 
         # initializing warning/error files and dataframes
@@ -710,16 +694,15 @@ class ValidationManager:
         for row in sorted(self.long_rows):
             chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
 
-        with lockable:
-            logger.info({
-                'message': 'Loading rows starting from {}'.format(chunk_df['row_number'].iloc[0]),
-                'message_type': 'ValidatorInfo',
-                'submission_id': self.submission_id,
-                'job_id': self.job_id,
-                'file_type': self.file_type_name,
-                'action': 'data_loading',
-                'status': 'start'
-            })
+        logger.info({
+            'message': 'Loading rows starting from {}'.format(chunk_df['row_number'].iloc[0]),
+            'message_type': 'ValidatorInfo',
+            'submission_id': self.submission_id,
+            'job_id': self.job_id,
+            'file_type': self.file_type_name,
+            'action': 'data_loading',
+            'status': 'start'
+        })
 
         # Drop rows that were too short and pandas filled in with Nones
         chunk_df = chunk_df[~chunk_df['row_number'].isin(self.short_rows)]
@@ -733,16 +716,15 @@ class ValidationManager:
 
         # Recheck for empty dataframe after cleanup of vacuous rows, and short-circuit if no data left to process
         if chunk_df.empty:
-            with lockable:
-                logger.warning({
-                    'message': 'Only empty rows found. No data loaded in this chunk',
-                    'message_type': 'ValidatorWarning',
-                    'submission_id': self.submission_id,
-                    'job_id': self.job_id,
-                    'file_type': self.file_type_name,
-                    'action': 'data_loading',
-                    'status': 'end'
-                })
+            logger.warning({
+                'message': 'Only empty rows found. No data loaded in this chunk',
+                'message_type': 'ValidatorWarning',
+                'submission_id': self.submission_id,
+                'job_id': self.job_id,
+                'file_type': self.file_type_name,
+                'action': 'data_loading',
+                'status': 'end'
+            })
             return
 
         with lockable:
@@ -893,38 +875,32 @@ class ValidationManager:
 
             # Adding the entire set of flex fields
             rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection(), method='copy')
-            with lockable:
-                logger.info({
-                    'message': 'Loaded {} flex field rows for batch'.format(rows_inserted),
-                    'message_type': 'ValidatorInfo',
-                    'submission_id': self.submission_id,
-                    'job_id': self.job_id,
-                    'file_type': self.file_type_name,
-                    'action': 'data_loading',
-                    'status': 'end'
-                })
+            logger.info({
+                'message': 'Loaded {} flex field rows for batch'.format(rows_inserted),
+                'message_type': 'ValidatorInfo',
+                'submission_id': self.submission_id,
+                'job_id': self.job_id,
+                'file_type': self.file_type_name,
+                'action': 'data_loading',
+                'status': 'end'
+            })
+
         with lockable:
             sess.commit()
-
             # Seeing how far into the file we currently are
             self.basic_val_progress = shared_data['total_data_rows'] / file_row_count * 100
             update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
                                 self.final_progress)
-        if m_lock:
-            with lockable:
-                conn.close()
-
         if not chunk_df.empty:
-            with lockable:
-                logger.info({
-                    'message': 'Loaded rows up to {}'.format(chunk_df['row_number'].iloc[-1]),
-                    'message_type': 'ValidatorInfo',
-                    'submission_id': self.submission_id,
-                    'job_id': self.job_id,
-                    'file_type': self.file_type_name,
-                    'action': 'data_loading',
-                    'status': 'end'
-                })
+            logger.info({
+                'message': 'Loaded rows up to {}'.format(chunk_df['row_number'].iloc[-1]),
+                'message_type': 'ValidatorInfo',
+                'submission_id': self.submission_id,
+                'job_id': self.job_id,
+                'file_type': self.file_type_name,
+                'action': 'data_loading',
+                'status': 'end'
+            })
 
     def run_sql_validations(self, short_colnames, writer, warning_writer):
         """ Run all SQL rules for this file type

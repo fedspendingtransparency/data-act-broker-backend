@@ -24,6 +24,7 @@ opentelemetry-instrumentation-flask==0.47b0
 opentelemetry-instrumentation-logging==0.47b0
 opentelemetry-instrumentation-urllib==0.47b0
 opentelemetry-instrumentation-wsgi==0.47b0
+opentelemetry-instrumentation-threading==0.47b0
 # Keeping pandas before 2.2.0 which requires SQLAlchemy to be 2.0.0
 pandas==2.1.4
 psutil==5.9.8
@@ -54,7 +55,7 @@ colorama==0.4.4
 decorator==5.1.1
 docutils==0.16
 faker==24.0.0
-freezegun==1.4.0
+freezegun==1.5.1
 importlib_metadata==7.0.2
 iso3166==2.1.1
 itsdangerous==2.1.2

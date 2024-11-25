@@ -223,6 +223,9 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
             # future attempts at handling messages from SQS
             if not isinstance(e, ResponseError):
                 raise e
+        finally:
+            sess.commit()
+            sess.close()
 
 
 def validator_process_job(job_id, agency_code, is_retry=False):
@@ -361,6 +364,9 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                 pass
 
             raise e
+        finally:
+            sess.commit()
+            sess.close()
 
 
 def cleanup_generation(file_gen_id):
