@@ -3,7 +3,7 @@ import os
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider, ReadableSpan, SpanProcessor
+from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
@@ -27,25 +27,13 @@ def deep_merge(left, right):
         return right
 
 
-# CUSTOM Logging EXPORTER for debugging
-class LoggingSpanProcessor(SpanProcessor):
-    def on_end(self, span: ReadableSpan) -> None:
-        trace_id = span.context.trace_id
-        span_id = span.context.span_id
-        logger = logging.getLogger(__name__)
-        logger.info(f"Span ended: trace_id={trace_id}, span_id={span_id}, {span.name}_attributes={span.attributes}")
-
-    def force_flush(self, timeout_millis: int = 30000) -> bool:
-        return True
-
-
 # Reasonable defaults to avoid clutter in our config files
 DEFAULT_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'default': {
-            'format': "%(asctime)s %(levelname)s:%(name)s:%(message)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s]"
+            'format': "%(asctime)s %(levelname)s:%(name)s:%(message)s"
         },
     },
     'handlers': {
@@ -94,9 +82,6 @@ def configure_logging(service_name='broker'):
     if CONFIG_BROKER['local']:
         # if local, print the traces to the console
         trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
-
-        # custom debug information
-        trace.get_tracer_provider().add_span_processor(LoggingSpanProcessor())
     else:
         # Set up the OTLP exporter
         # Check out https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
@@ -106,7 +91,7 @@ def configure_logging(service_name='broker'):
             exporter = OTLPSpanExporter(endpoint=otel_endpoint)
             trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
 
-    LoggingInstrumentor(logging_format="%(msg)s [span_id=%(otelSpanID)s trace_id=%(otelTraceID)s]")
+    LoggingInstrumentor(logging_format="%(asctime)s %(levelname)s:%(name)s:%(message)s")
     LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=False)
     URLLibInstrumentor().instrument(tracer_provider=trace.get_tracer_provider())
     ThreadingInstrumentor().instrument()

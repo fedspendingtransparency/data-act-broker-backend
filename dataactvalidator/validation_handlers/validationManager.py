@@ -347,6 +347,8 @@ class ValidationManager:
             if self.reader:
                 self.reader.close()
 
+            sess.commit()
+
             validation_duration = (datetime.now() - validation_start).total_seconds()
             logger.info({
                 'message': 'Completed run_validation {}'.format(self.log_str),
@@ -457,7 +459,7 @@ class ValidationManager:
         self.job_id = self.job.job_id
 
         if PARALLEL:
-            self.parallel_data_loading(sess, reader_obj, file_row_count)
+            self.parallel_data_loading(reader_obj, file_row_count)
         else:
             self.iterative_data_loading(reader_obj, file_row_count)
 
@@ -507,11 +509,10 @@ class ValidationManager:
 
         return file_row_count
 
-    def parallel_data_loading(self, sess, reader_obj, file_row_count):
+    def parallel_data_loading(self, reader_obj, file_row_count):
         """ The parallelized version of data loading that processes multiple chunks simultaneously
 
             Args:
-                sess: the database connection
                 reader_obj: the iterator reader object to iterate over all the chunks
                 file_row_count: the total number of rows in the file
         """
@@ -549,16 +550,15 @@ class ValidationManager:
                     result = pool.apply_async(func=self.parallel_process_data_chunk,
                                               args=(chunk_df, shared_data, file_row_count, m_lock))
                     results.append(result)
-            except pd.errors.ParserError as e:
-                # if pandas can't read a later portion after starting,
-                # make sure the pool is closed/joined first
-                raise e
-            finally:
                 pool.close()
 
                 # Raises any exceptions if such occur
                 for result in results:
                     result.get()
+            except pd.errors.ParserError as e:
+                # if pandas can't read a later portion after starting,
+                # make sure the pool is closed/joined first
+                raise e
 
             # Resetting these out here as they are used later in the process
             self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
@@ -630,7 +630,7 @@ class ValidationManager:
             raise e
         finally:
             sess.commit()
-            sess.close()
+            conn.close()
             logging.shutdown()
 
     def process_data_chunk(self, chunk_df, shared_data, file_row_count, sess=None, lockable=None):
