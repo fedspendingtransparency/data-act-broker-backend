@@ -62,6 +62,7 @@ def db_connection():
 
     # Create sqlalchemy connection and session
     uri = db_uri(db_name)
+    # pool_reset_on_return=None for split sessions and transactions (multiprocessing/threading)
     engine = sqlalchemy.create_engine(uri, pool_size=100, max_overflow=50, pool_reset_on_return=None)
     connection = engine.connect()
     scoped_session_maker = scoped_session(sessionmaker(bind=engine))
