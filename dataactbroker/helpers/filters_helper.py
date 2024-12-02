@@ -236,4 +236,3 @@ def tas_exception_filter(query_filters, agency_code, tas_model, filter_mode):
     # Adding anything that needs adding
     if filter_mode == 'add' and agency_code in extra_list.keys():
         query_filters.append(func.upper(tas_model.display_tas).in_(extra_list[agency_code]))
-
