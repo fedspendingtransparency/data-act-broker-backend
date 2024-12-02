@@ -794,6 +794,11 @@ def test_generate_boc(database, monkeypatch):
     boc10 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=1.5, ussgl_number='480100',
                            begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='999',
                            reimbursable_flag='D', prior_year_adjustment_code='X', **tas1_dict)
+    # USSGL of 101000 should be ignored
+    boc11 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=1.5, ussgl_number='101000',
+                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q',
+                           budget_object_class='1110', reimbursable_flag='D', prior_year_adjustment_code='X',
+                           **tas1_dict)
 
     # The first two will end up in the same place, there is an implied "different PAC/PAN"
     pub_b1 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas1_str,
@@ -832,8 +837,8 @@ def test_generate_boc(database, monkeypatch):
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['boc_comparison'], filename=None, start_date='03/01/2017',
                      end_date='03/31/2017', submission=None)
-    sess.add_all([tas1, tas2, tas3, tas4, boc1, boc2, boc3, boc4, boc5, boc6, boc7, boc8, boc9, boc10, sub, job, pub_b1,
-                  pub_b2, pub_b3, pub_b4])
+    sess.add_all([tas1, tas2, tas3, tas4, boc1, boc2, boc3, boc4, boc5, boc6, boc7, boc8, boc9, boc10, boc11, sub, job,
+                  pub_b1, pub_b2, pub_b3, pub_b4])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
@@ -878,10 +883,15 @@ def test_generate_boc(database, monkeypatch):
 
     # TAS 1 but ignored because of BOC 999 or 000 (depending on the location)
     expected6 = [tas1_str] + list(tas1_dict.values()) + \
-                [boc10.budget_object_class, 'D', 'Q', 'X', boc10.begin_end, str(year), '6', boc8.ussgl_number, '1.5',
+                [boc10.budget_object_class, 'D', 'Q', 'X', boc10.begin_end, str(year), '6', boc10.ussgl_number, '1.5',
                  '0', '1.5']
     expected7 = [tas1_str] + list(tas1_dict.values()) + \
                 ['0000', 'D', 'Q', 'X', 'B', str(year), '6', '480100', '0', '-0.5', '0.5']
+
+    # TAS 1 but ignored because USSGL number not in file B USSGL list
+    expected8 = [tas1_str] + list(tas1_dict.values()) + \
+                [boc11.budget_object_class, 'D', 'Q', 'X', boc11.begin_end, str(year), '6', boc11.ussgl_number, '1.5',
+                 '0', '1.5']
 
     assert expected1 in file_rows
     assert expected2 in file_rows
@@ -890,6 +900,7 @@ def test_generate_boc(database, monkeypatch):
     assert expected5 in file_rows
     assert expected6 not in file_rows
     assert expected7 not in file_rows
+    assert expected8 not in file_rows
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")

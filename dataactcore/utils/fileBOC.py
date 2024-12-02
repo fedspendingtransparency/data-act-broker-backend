@@ -1,3 +1,5 @@
+import re
+
 from collections import OrderedDict
 from sqlalchemy import or_, and_, func, values, column
 from sqlalchemy.sql.expression import case, literal
@@ -249,6 +251,8 @@ def sum_gtas_boc(session, period, year, agency_code):
     agency_filters = tas_agency_filter(session, agency_code, TASLookup)
     exists_query = session.query(TASLookup).filter(TASLookup.display_tas == boc_model.display_tas,
                                                    or_(*agency_filters)).exists()
+    ussgl_list = list(set([re.findall(r'ussgl(\d+)_.*', col.name)[0] for col in fileb_model.__table__.columns if
+                           col.name.startswith('ussgl')]))
     sum_boc = session.query(
         boc_model.display_tas,
         boc_model.allocation_transfer_agency,
@@ -267,7 +271,8 @@ def sum_gtas_boc(session, period, year, agency_code):
         func.sum(boc_model.dollar_amount * case([(boc_model.debit_credit == 'D', 1)], else_=-1)).
         label('sum_dollar_amount')
     ).filter(boc_model.fiscal_year == year, boc_model.period == period,
-             func.coalesce(func.rpad(boc_model.budget_object_class, 4, '9'), '') != '9999', exists_query).\
+             func.coalesce(func.rpad(boc_model.budget_object_class, 4, '9'), '') != '9999',
+             boc_model.ussgl_number.in_(ussgl_list), exists_query).\
         group_by(boc_model.display_tas, boc_model.allocation_transfer_agency, boc_model.agency_identifier,
                  boc_model.beginning_period_of_availa, boc_model.ending_period_of_availabil,
                  boc_model.availability_type_code, boc_model.main_account_code, boc_model.sub_account_code,
