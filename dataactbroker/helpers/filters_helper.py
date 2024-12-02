@@ -1,4 +1,4 @@
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 from sqlalchemy.orm import outerjoin
 from flask import g
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT
@@ -205,4 +205,35 @@ def tas_agency_filter(sess, agency_code, filter_model):
                                    filter_model.agency_identifier == '011',
                                    filter_model.fr_entity_type.in_(frec_list)))
 
+    # Filtering for specific TAS exceptions
+    tas_exception_filter(agency_filters, agency_code, filter_model, 'add')
+
     return agency_filters
+
+
+def tas_exception_filter(query_filters, agency_code, tas_model, filter_mode):
+    """ Adds a filter for special exception TAS codes to go into different agency files
+
+            Args:
+                query_filters: the array of filters to use in the query or the query itself depending on filter_mode
+                agency_code: the agency code to check
+                tas_model: the model to filter on
+                filter_mode: whether to add or ignore TAS, can be 'ignore' or 'add'
+
+            Return:
+                The same queryset provided with an additional filter if relevant if in 'add' mode, no return otherwise
+        """
+    ignore_list = {'020': ['020-X-5688-000']}
+    extra_list = {'070': ['020-X-5688-000']}
+
+    # Ignoring anything that needs ignoring
+    if filter_mode == 'ignore':
+        if agency_code in ignore_list.keys():
+            return query_filters.filter(func.upper(tas_model.display_tas).notin_(ignore_list[agency_code]))
+        else:
+            return query_filters
+
+    # Adding anything that needs adding
+    if filter_mode == 'add' and agency_code in extra_list.keys():
+        query_filters.append(func.upper(tas_model.display_tas).in_(extra_list[agency_code]))
+
