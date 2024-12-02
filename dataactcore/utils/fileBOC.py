@@ -2,7 +2,7 @@ from collections import OrderedDict
 from sqlalchemy import or_, and_, func, values, column
 from sqlalchemy.sql.expression import case, literal
 
-from dataactbroker.helpers.filters_helper import tas_agency_filter
+from dataactbroker.helpers.filters_helper import tas_agency_filter, tas_exception_filter
 from dataactcore.models.domainModels import GTASBOC, TASLookup
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from dataactcore.models.stagingModels import PublishedObjectClassProgramActivity
@@ -248,7 +248,8 @@ def sum_gtas_boc(session, period, year, agency_code):
     """
     agency_filters = tas_agency_filter(session, agency_code, TASLookup)
     exists_query = session.query(TASLookup).filter(TASLookup.display_tas == boc_model.display_tas,
-                                                   or_(*agency_filters)).exists()
+                                                   or_(*agency_filters))
+    exists_query = tas_exception_filter(exists_query, agency_code, TASLookup, 'ignore').exists()
     ussgl_list = ['480100', '480110', '480200', '483100', '483200', '487100', '487200', '488100', '488200', '490100',
                   '490110', '490200', '490800', '490800', '493100', '497100', '497200', '498100', '498200']
     sum_boc = session.query(
