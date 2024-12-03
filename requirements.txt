@@ -4,7 +4,6 @@ backoff==2.2.1
 beautifulsoup4==4.12.3
 boto3==1.34.58
 coverage==7.4.3
-ddtrace==2.7.2
 factory-boy==3.3.0
 flake8==7.0.0
 Flask==3.0.2
@@ -15,6 +14,17 @@ Flask-Login==0.6.3
 future==1.0.0
 marshmallow==3.21.1
 numpy==1.26.4
+# Need to run 'opentelemetry-bootstrap -a install' after doing pip install for the first time and with any additional
+# opentelemetry imports. It is a CLI tool installed from the distro that reads through the list of packages installed in
+# your active site-packages folder and installs the corresponding instrumentation libraries for these packages.
+opentelemetry-distro==0.47b0
+opentelemetry-exporter-otlp==1.14.0
+opentelemetry-instrumentation==0.47b0
+opentelemetry-instrumentation-flask==0.47b0
+opentelemetry-instrumentation-logging==0.47b0
+opentelemetry-instrumentation-urllib==0.47b0
+opentelemetry-instrumentation-wsgi==0.47b0
+opentelemetry-instrumentation-threading==0.47b0
 # Keeping pandas before 2.2.0 which requires SQLAlchemy to be 2.0.0
 pandas==2.1.4
 psutil==5.9.8
@@ -45,7 +55,7 @@ colorama==0.4.4
 decorator==5.1.1
 docutils==0.16
 faker==24.0.0
-freezegun==1.4.0
+freezegun==1.5.1
 importlib_metadata==7.0.2
 iso3166==2.1.1
 itsdangerous==2.1.2
@@ -74,4 +84,4 @@ WebTest==3.0.0
 
 
 # botocore hasn't been updated with a fix for md5s and python3.9
--e git+https://github.com/fedspendingtransparency/botocore-python39-md5.git@md5-fix-1-34-58#egg=botocore
+git+https://github.com/fedspendingtransparency/botocore-python39-md5.git@md5-fix-1-34-58#egg=botocore
