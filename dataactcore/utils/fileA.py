@@ -2,7 +2,7 @@ from collections import OrderedDict
 from sqlalchemy import or_, and_, func, null
 from sqlalchemy.sql.expression import case, literal_column
 
-from dataactbroker.helpers.filters_helper import tas_agency_filter
+from dataactbroker.helpers.filters_helper import tas_agency_filter, tas_exception_filter
 from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.domainModels import SF133, TASLookup, TASFailedEdits
 from dataactcore.models.jobModels import SubmissionWindowSchedule
@@ -64,7 +64,7 @@ def query_data(session, agency_code, period, year):
                  tas_gtas_fail.c.main_account_code,
                  tas_gtas_fail.c.sub_account_code,
                  tas_gtas_fail.c.gtas_status)
-
+    rows = tas_exception_filter(rows, agency_code, tas_gtas_fail.c, 'ignore')
     return rows
 
 
@@ -91,7 +91,8 @@ def tas_gtas_combo(session, period, year):
         gtas_model.line.label('line'),
         tas_model.financial_indicator2.label('financial_indicator2'),
         tas_model.fr_entity_type.label('fr_entity_type'),
-        gtas_model.tas.label('tas')).\
+        gtas_model.tas.label('tas'),
+        gtas_model.display_tas.label('display_tas')).\
         join(tas_model, gtas_model.tas == tas_model.tas).\
         filter(gtas_model.period == period).\
         filter(gtas_model.fiscal_year == year)
