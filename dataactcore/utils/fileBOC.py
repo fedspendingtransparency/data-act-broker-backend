@@ -1,3 +1,5 @@
+import re
+
 from collections import OrderedDict
 from sqlalchemy import or_, and_, func, values, column
 from sqlalchemy.sql.expression import case, literal
@@ -250,8 +252,9 @@ def sum_gtas_boc(session, period, year, agency_code):
     exists_query = session.query(TASLookup).filter(TASLookup.display_tas == boc_model.display_tas,
                                                    or_(*agency_filters))
     exists_query = tas_exception_filter(exists_query, agency_code, TASLookup, 'ignore').exists()
-    ussgl_list = ['480100', '480110', '480200', '483100', '483200', '487100', '487200', '488100', '488200', '490100',
-                  '490110', '490200', '490800', '490800', '493100', '497100', '497200', '498100', '498200']
+    ussgl_list = list(set([re.findall(r'ussgl(\d+)_.*', col.name)[0] for col in fileb_model.__table__.columns if
+                           col.name.startswith('ussgl')]))
+
     sum_boc = session.query(
         boc_model.display_tas,
         boc_model.allocation_transfer_agency,
