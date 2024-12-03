@@ -297,7 +297,7 @@ def test_generate_a_tas_exceptions(database, monkeypatch):
         'beginning_period_of_availa': '',
         'ending_period_of_availabil': '',
         'availability_type_code': 'X',
-        'main_account_code': '0001',
+        'main_account_code': '5688',
         'sub_account_code': '000'
     }
     tas2_str = concat_tas_dict(tas2_dict)
@@ -365,7 +365,8 @@ def test_generate_a_tas_exceptions(database, monkeypatch):
             expected2.append('')
 
     assert expected1 in file_rows
-    assert expected2 in file_rows
+    assert expected2 not in file_rows
+    assert expected2 in file_rows2
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
