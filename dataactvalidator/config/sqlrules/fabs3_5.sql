@@ -1,5 +1,5 @@
 -- ActionType should be "A" for the initial transaction of a new, non-aggregate award (RecordType = 2 or 3) and
--- “A” or “E” for a new aggregate award (RecordType = 1). An aggregate record transaction is considered the initial
+-- "A" or "E" for a new aggregate award (RecordType = 1). An aggregate record transaction is considered the initial
 -- transaction of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when compared to
 -- currently published FABS records of the same RecordType. A non-aggregate (RecordType = 2 or 3) transaction is
 -- considered the initial transaction of a new award if it contains a unique combination of FAIN +

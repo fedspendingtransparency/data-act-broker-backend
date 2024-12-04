@@ -4,6 +4,7 @@
 
 
 broker:
+    environment: local
 
     # Specify the number or rows to process at a time during submission validation
     validator_batch_size: 10000

@@ -6,7 +6,7 @@ import re
 import traceback
 import pandas as pd
 import psutil as ps
-from multiprocessing import Pool, Manager
+import multiprocessing as mp
 import time
 from datetime import timedelta
 
@@ -347,6 +347,8 @@ class ValidationManager:
             if self.reader:
                 self.reader.close()
 
+            sess.commit()
+
             validation_duration = (datetime.now() - validation_start).total_seconds()
             logger.info({
                 'message': 'Completed run_validation {}'.format(self.log_str),
@@ -457,7 +459,7 @@ class ValidationManager:
         self.job_id = self.job.job_id
 
         if PARALLEL:
-            self.parallel_data_loading(sess, reader_obj, file_row_count)
+            self.parallel_data_loading(reader_obj, file_row_count)
         else:
             self.iterative_data_loading(reader_obj, file_row_count)
 
@@ -507,15 +509,14 @@ class ValidationManager:
 
         return file_row_count
 
-    def parallel_data_loading(self, sess, reader_obj, file_row_count):
+    def parallel_data_loading(self, reader_obj, file_row_count):
         """ The parallelized version of data loading that processes multiple chunks simultaneously
 
             Args:
-                sess: the database connection
                 reader_obj: the iterator reader object to iterate over all the chunks
                 file_row_count: the total number of rows in the file
         """
-        with Manager() as server_manager:
+        with mp.Manager() as server_manager:
             # These variables will need to be shared among the processes and used later overall
             shared_data = server_manager.dict(
                 total_rows=self.total_rows,
@@ -542,24 +543,22 @@ class ValidationManager:
                 engine.dispose(close=False)
 
             m_lock = server_manager.Lock()
-            pool = Pool(MULTIPROCESSING_POOLS, initializer=initializer())
+            pool = mp.Pool(MULTIPROCESSING_POOLS, initializer=initializer())
             results = []
             try:
                 for chunk_df in reader_obj:
                     result = pool.apply_async(func=self.parallel_process_data_chunk,
                                               args=(chunk_df, shared_data, file_row_count, m_lock))
                     results.append(result)
+                pool.close()
+
+                # Raises any exceptions if such occur
+                for result in results:
+                    result.get()
             except pd.errors.ParserError as e:
                 # if pandas can't read a later portion after starting,
                 # make sure the pool is closed/joined first
                 raise e
-            finally:
-                pool.close()
-                pool.join()
-
-            # Raises any exceptions if such occur
-            for result in results:
-                result.get()
 
             # Resetting these out here as they are used later in the process
             self.total_proc_obligations = round(shared_data['total_proc_obligations'], 2)
@@ -617,33 +616,38 @@ class ValidationManager:
             if shared_data['errored']:
                 return
 
+        if m_lock:
+            # make a new connection per process
+            conn = db_connection()
+            sess = conn.session
+
         try:
-            self.process_data_chunk(chunk_df, shared_data, file_row_count, m_lock=m_lock)
+            self.process_data_chunk(chunk_df, shared_data, file_row_count, sess=sess, lockable=lockable)
         except Exception as e:
+            logger.exception(e)
             with lockable:
                 shared_data['errored'] = True
             raise e
+        finally:
+            sess.commit()
+            conn.close()
+            logging.shutdown()
 
-    def process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
+    def process_data_chunk(self, chunk_df, shared_data, file_row_count, sess=None, lockable=None):
         """ Loads in a chunk of the file and performs initial validations
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
                 file_row_count: the total number of rows in the file
-                m_lock: manager lock if provided to ensure processes don't override each other
+                sess: database connection
+                lockable: manager lock if provided to ensure processes don't override each other
         """
-        if m_lock:
-            # make a new connection per process
-            conn = db_connection()
-            sess = conn.session
-            lockable = m_lock
-        else:
+        if not sess:
             sess = GlobalDB.db().session
-            # Using our no-op object to bypass locking for iterating loads
+        if not lockable:
             lockable = NoLock()
 
-        # Short-circuit if provided an empty dataframe
         if chunk_df.empty:
             logger.warning({
                 'message': 'Empty chunk provided.',
@@ -873,15 +877,13 @@ class ValidationManager:
                 'action': 'data_loading',
                 'status': 'end'
             })
-        sess.commit()
+
         with lockable:
+            sess.commit()
             # Seeing how far into the file we currently are
             self.basic_val_progress = shared_data['total_data_rows'] / file_row_count * 100
             update_val_progress(sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress,
                                 self.final_progress)
-        if m_lock:
-            conn.close()
-
         if not chunk_df.empty:
             logger.info({
                 'message': 'Loaded rows up to {}'.format(chunk_df['row_number'].iloc[-1]),
