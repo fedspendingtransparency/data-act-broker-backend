@@ -159,6 +159,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                 # python batching to ensure the flex data calls are safe
                 for failure_batch in batcher(list(failures), n=SQL_VALIDATION_BATCH_SIZE):
                     process_failures(failure_batch, failures.keys())
+        sess.commit()
 
         rules_finished += 1
         update_cross_val_progress(sess, job, pairs_finished, num_rules, rules_finished)
@@ -281,6 +282,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False
             if failures.rowcount:
                 for failure in process_batch(failures, failures.keys()):
                     yield failure
+        sess.commit()
 
         rule_duration = (datetime.now() - rule_start).total_seconds()
         logger.info({

@@ -11,7 +11,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests if ActionType is one of the following values: “A”, “B”, “C”, “D”, or "E". """
+    """ Tests if ActionType is one of the following values: "A", "B", "C", "D", or "E". """
     fabs_1 = FABSFactory(action_type='a', correction_delete_indicatr='')
     fabs_2 = FABSFactory(action_type='B', correction_delete_indicatr=None)
     fabs_3 = FABSFactory(action_type='c', correction_delete_indicatr='c')
@@ -25,7 +25,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests if ActionType is not one of the following values: “A”, “B”, “C”, “D”, or "E". """
+    """ Tests if ActionType is not one of the following values: "A", "B", "C", "D", or "E". """
     fabs_1 = FABSFactory(action_type='random', correction_delete_indicatr='c')
     fabs_2 = FABSFactory(action_type='', correction_delete_indicatr='')
     fabs_3 = FABSFactory(action_type=None, correction_delete_indicatr='C')

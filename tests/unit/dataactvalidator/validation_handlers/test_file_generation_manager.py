@@ -271,6 +271,105 @@ def test_generate_a(database, monkeypatch):
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
+def test_generate_a_tas_exceptions(database, monkeypatch):
+    sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
+    agency_cgac = '020'
+    agency_cgac2 = '070'
+    year = 2017
+
+    tas1_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '',
+        'beginning_period_of_availa': '',
+        'ending_period_of_availabil': '',
+        'availability_type_code': 'X',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas1_str = concat_tas_dict(tas1_dict)
+
+    # Ignored for 020, added to 070
+    tas2_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '',
+        'beginning_period_of_availa': '',
+        'ending_period_of_availabil': '',
+        'availability_type_code': 'X',
+        'main_account_code': '5688',
+        'sub_account_code': '000'
+    }
+    tas2_str = concat_tas_dict(tas2_dict)
+
+    sf1 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1160, amount='1.00', **tas1_dict)
+    sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1180, amount='2.00', **tas1_dict)
+    sf3 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1160, amount='1.00', **tas2_dict)
+    sf4 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1180, amount='2.00', **tas2_dict)
+    tas1 = TASFactory(financial_indicator2=' ', **tas1_dict)
+    tas2 = TASFactory(financial_indicator2=' ', **tas2_dict)
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2017',
+                     end_date='03/31/2017', submission=None)
+    job2 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                      file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2017',
+                      end_date='03/31/2017', submission=None)
+    sess.add_all([sf1, sf2, sf3, sf4, tas1, tas2, job, job2])
+    sess.commit()
+
+    # 020 CGAC
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
+    file_gen_manager.generate_file(agency_cgac)
+    file_rows = read_file_rows(job.filename)
+
+    # 070 CGAC
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job2)
+    file_gen_manager.generate_file(agency_cgac2)
+    file_rows2 = read_file_rows(job2.filename)
+
+    # check body
+    sf1 = sess.query(SF133).filter_by(tas=tas1_str).first()
+    sf2 = sess.query(SF133).filter_by(tas=tas2_str).first()
+    expected1 = []
+    expected2 = []
+    sum_cols = [
+        'total_budgetary_resources_cpe',
+        'budget_authority_appropria_cpe',
+        'budget_authority_unobligat_fyb',
+        'adjustments_to_unobligated_cpe',
+        'other_budgetary_resources_cpe',
+        'contract_authority_amount_cpe',
+        'borrowing_authority_amount_cpe',
+        'spending_authority_from_of_cpe',
+        'status_of_budgetary_resour_cpe',
+        'obligations_incurred_total_cpe',
+        'gross_outlay_amount_by_tas_cpe',
+        'unobligated_balance_cpe',
+        'deobligations_recoveries_r_cpe'
+    ]
+    zero_sum_cols = {sum_col: '0' for sum_col in sum_cols}
+    expected1_sum_cols = zero_sum_cols.copy()
+    expected1_sum_cols['budget_authority_appropria_cpe'] = '3.00'
+    expected2_sum_cols = zero_sum_cols.copy()
+    expected2_sum_cols['budget_authority_appropria_cpe'] = '3.00'
+    for value in file_generation_manager.fileA.db_columns:
+        # loop through all values and format date columns
+        if value in sf1.__dict__:
+            expected1.append(str(sf1.__dict__[value] or ''))
+            expected2.append(str(sf2.__dict__[value] or ''))
+        elif value in expected1_sum_cols:
+            expected1.append(expected1_sum_cols[value])
+            expected2.append(expected2_sum_cols[value])
+        elif value == 'gtas_status':
+            expected1.append('')
+            expected2.append('')
+
+    assert expected1 in file_rows
+    assert expected2 not in file_rows
+    assert expected2 in file_rows2
+
+
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_generate_a_after_2020(database, monkeypatch):
     sess = database.session
     monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
@@ -682,8 +781,6 @@ def test_generate_a_gtas_status(database, monkeypatch):
             expected_9.append('GTAS window open')
             expected_10.append('')
 
-    print(file_rows_1)
-
     assert expected_1 in file_rows_1
     assert expected_2 in file_rows_1
     assert expected_3 in file_rows_1
@@ -790,6 +887,15 @@ def test_generate_boc(database, monkeypatch):
     boc9 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas4_str, dollar_amount=1.5, ussgl_number='480100',
                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
                           reimbursable_flag='D', prior_year_adjustment_code='X', **tas4_dict)
+    # BOC of 999 should be ignored
+    boc10 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=1.5, ussgl_number='480100',
+                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='999',
+                           reimbursable_flag='D', prior_year_adjustment_code='X', **tas1_dict)
+    # USSGL of 101000 should be ignored
+    boc11 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=1.5, ussgl_number='101000',
+                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q',
+                           budget_object_class='1110', reimbursable_flag='D', prior_year_adjustment_code='X',
+                           **tas1_dict)
 
     # The first two will end up in the same place, there is an implied "different PAC/PAN"
     pub_b1 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas1_str,
@@ -813,14 +919,23 @@ def test_generate_boc(database, monkeypatch):
                                                         ussgl487100_downward_adjus_cpe=-4,
                                                         by_direct_reimbursable_fun='D', row_number=9,
                                                         prior_year_adjustment='', **tas2_dict)
+    # Object class of 000 should be ignored
+    pub_b4 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas1_str,
+                                                        disaster_emergency_fund_code='Q', object_class='000',
+                                                        ussgl480100_undelivered_or_fyb=-0.5,
+                                                        ussgl480100_undelivered_or_cpe=1.5,
+                                                        ussgl487100_downward_adjus_cpe=8,
+                                                        by_direct_reimbursable_fun='D', row_number=1,
+                                                        prior_year_adjustment='X', begin_end_indicator='B',
+                                                        **tas1_dict)
 
     sub = SubmissionFactory(submission_id=sub_id, reporting_fiscal_year=year, reporting_fiscal_period=6,
                             publish_status_id=PUBLISH_STATUS_DICT['published'], cgac_code=agency_cgac)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['boc_comparison'], filename=None, start_date='03/01/2017',
                      end_date='03/31/2017', submission=None)
-    sess.add_all([tas1, tas2, tas3, tas4, boc1, boc2, boc3, boc4, boc5, boc6, boc7, boc8, boc9, sub, job, pub_b1,
-                  pub_b2, pub_b3])
+    sess.add_all([tas1, tas2, tas3, tas4, boc1, boc2, boc3, boc4, boc5, boc6, boc7, boc8, boc9, boc10, boc11, sub, job,
+                  pub_b1, pub_b2, pub_b3, pub_b4])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
@@ -863,11 +978,118 @@ def test_generate_boc(database, monkeypatch):
                 [boc8.budget_object_class, 'D', 'Q', 'Y', boc8.begin_end, str(year), '6', boc8.ussgl_number, '-2',
                  '0', '-2']
 
+    # TAS 1 but ignored because of BOC 999 or 000 (depending on the location)
+    expected6 = [tas1_str] + list(tas1_dict.values()) + \
+                [boc10.budget_object_class, 'D', 'Q', 'X', boc10.begin_end, str(year), '6', boc10.ussgl_number, '1.5',
+                 '0', '1.5']
+    expected7 = [tas1_str] + list(tas1_dict.values()) + \
+                ['0000', 'D', 'Q', 'X', 'B', str(year), '6', '480100', '0', '-0.5', '0.5']
+
+    # TAS 1 but ignored because USSGL number not in file B USSGL list
+    expected8 = [tas1_str] + list(tas1_dict.values()) + \
+                [boc11.budget_object_class, 'D', 'Q', 'X', boc11.begin_end, str(year), '6', boc11.ussgl_number, '1.5',
+                 '0', '1.5']
+
     assert expected1 in file_rows
     assert expected2 in file_rows
     assert expected3 in file_rows
     assert expected4 not in file_rows
     assert expected5 in file_rows
+    assert expected6 not in file_rows
+    assert expected7 not in file_rows
+    assert expected8 not in file_rows
+
+
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
+def test_generate_boc_tas_exceptions(database, monkeypatch):
+    sess = database.session
+    monkeypatch.setattr(file_generation_manager, 'get_timestamp', Mock(return_value='123456789'))
+
+    agency_cgac = '020'
+    agency_cgac2 = '070'
+    year = 2017
+    sub_id = 99
+    sub_id2 = 100
+
+    tas1_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '',
+        'beginning_period_of_availa': '',
+        'ending_period_of_availabil': '',
+        'availability_type_code': 'X',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas1_str = concat_display_tas_dict(tas1_dict)
+
+    # Ignored for CGAC 020, added for cgac 070
+    tas2_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '',
+        'beginning_period_of_availa': '',
+        'ending_period_of_availabil': '',
+        'availability_type_code': 'X',
+        'main_account_code': '5688',
+        'sub_account_code': '000'
+    }
+    tas2_str = concat_display_tas_dict(tas2_dict)
+
+    tas1 = TASFactory(**tas1_dict)
+    tas2 = TASFactory(**tas2_dict)
+
+    boc1 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas1_str, dollar_amount=1.5, ussgl_number='480100',
+                          begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', prior_year_adjustment_code='X', **tas1_dict)
+    boc2 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas2_str, dollar_amount=1.5, ussgl_number='480100',
+                          begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q', budget_object_class='1110',
+                          reimbursable_flag='D', prior_year_adjustment_code='X', **tas2_dict)
+
+    sub = SubmissionFactory(submission_id=sub_id, reporting_fiscal_year=year, reporting_fiscal_period=6,
+                            publish_status_id=PUBLISH_STATUS_DICT['published'], cgac_code=agency_cgac)
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['boc_comparison'], filename=None, start_date='03/01/2017',
+                     end_date='03/31/2017', submission=None)
+    # Data for
+    sub2 = SubmissionFactory(submission_id=sub_id2, reporting_fiscal_year=year, reporting_fiscal_period=6,
+                             publish_status_id=PUBLISH_STATUS_DICT['published'], cgac_code=agency_cgac2)
+    job2 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                      file_type_id=FILE_TYPE_DICT['boc_comparison'], filename=None, start_date='03/01/2017',
+                      end_date='03/31/2017', submission=None)
+    sess.add_all([tas1, tas2, boc1, boc2, sub, sub2, job, job2])
+    sess.commit()
+
+    # 020 CGAC
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
+    file_gen_manager.generate_file(agency_cgac)
+
+    # 070 CGAC
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job2)
+    file_gen_manager.generate_file(agency_cgac2)
+
+    # check headers
+    file_rows = read_file_rows(job.filename)
+    file_rows2 = read_file_rows(job2.filename)
+
+    # Removing the file B rows for testing purposes because there's no way to know what order they'll show up in
+    for row in file_rows:
+        row.pop()
+
+    for row in file_rows2:
+        row.pop()
+
+    # check body
+    # BOC 1 and 2 and published B 1 and 2
+    expected1 = [tas1_str] + list(tas1_dict.values()) +\
+                [boc1.budget_object_class, 'D', 'Q', 'X', boc1.begin_end, str(year), '6', boc1.ussgl_number, '1.5',
+                 '0', '1.5']
+    # TAS 2, this is the "ignored" TAS
+    expected2 = [tas2_str] + list(tas2_dict.values()) + \
+                [boc2.budget_object_class, 'D', 'Q', 'X', boc2.begin_end, str(year), '6', boc2.ussgl_number, '1.5',
+                 '0', '1.5']
+
+    assert expected1 in file_rows
+    assert expected2 not in file_rows
+    assert expected2 in file_rows2
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
