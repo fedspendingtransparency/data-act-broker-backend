@@ -87,6 +87,14 @@ Your prompt should then look as below to show you are _in_ the virtual environme
 (broker-backend) $ pip install -r requirements.txt
 ```
 
+### Opentelemtry Setup
+
+If you are using opentelemetry for additional monitoring, make sure to run the bootstrap script after doing pip install for the first time and with any additional opentelemetry imports. It is a CLI tool installed from the distro that reads through the list of packages installed in your active site-packages folder and installs the corresponding instrumentation libraries for these packages.
+
+```bash
+(broker-backend) $ opentelemetry-bootstrap -a install
+``` 
+
 ### Database Migrations
 
 If part of your Data Broker development involves changing the database models, use the following process for generating database migration files. We're using Alembic to create and run database migrations, which is installed as part of the broker.

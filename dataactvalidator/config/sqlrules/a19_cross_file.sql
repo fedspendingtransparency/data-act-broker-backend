@@ -3,13 +3,6 @@
 -- values in the object class and program activity file (B) where PYA = "X".
 WITH appropriation_a19_{0} AS
     (SELECT row_number,
-        allocation_transfer_agency,
-        agency_identifier,
-        beginning_period_of_availa,
-        ending_period_of_availabil,
-        availability_type_code,
-        main_account_code,
-        sub_account_code,
         obligations_incurred_total_cpe,
         account_num,
         submission_id,
@@ -29,13 +22,6 @@ FROM appropriation_a19_{0} AS approp
         AND approp.submission_id = op.submission_id
 WHERE UPPER(op.prior_year_adjustment) = 'X'
 GROUP BY approp.row_number,
-    approp.allocation_transfer_agency,
-    approp.agency_identifier,
-    approp.beginning_period_of_availa,
-    approp.ending_period_of_availabil,
-    approp.availability_type_code,
-    approp.main_account_code,
-    approp.sub_account_code,
     approp.obligations_incurred_total_cpe,
     approp.display_tas,
     UPPER(op.prior_year_adjustment)
