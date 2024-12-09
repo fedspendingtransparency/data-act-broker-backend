@@ -1,11 +1,11 @@
 import logging.config
-import os
+# import os
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+# from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.urllib import URLLibInstrumentor
 from opentelemetry.instrumentation.threading import ThreadingInstrumentor
