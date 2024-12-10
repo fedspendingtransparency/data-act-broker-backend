@@ -1,8 +1,10 @@
+import re
+
 from collections import OrderedDict
 from sqlalchemy import or_, and_, func, values, column
 from sqlalchemy.sql.expression import case, literal
 
-from dataactbroker.helpers.filters_helper import tas_agency_filter
+from dataactbroker.helpers.filters_helper import tas_agency_filter, tas_exception_filter
 from dataactcore.models.domainModels import GTASBOC, TASLookup
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from dataactcore.models.stagingModels import PublishedObjectClassProgramActivity
@@ -79,7 +81,7 @@ def query_data(session, agency_code, period, year):
 
 
 def sum_published_file_b(session, submission_id):
-    """ Sums the specified published file B to ignore PAC/PAN
+    """ Sums the specified published file B to ignore PAC/PAN. Ignores BOC of 0, 00, 000, or 0000
 
         Args:
             session: The current DB session
@@ -125,7 +127,8 @@ def sum_published_file_b(session, submission_id):
         func.sum(fileb_model.ussgl498100_upward_adjustm_cpe).label('sum_ussgl498100_upward_adjustm_cpe'),
         func.sum(fileb_model.ussgl498200_upward_adjustm_cpe).label('sum_ussgl498200_upward_adjustm_cpe'),
         func.array_agg(fileb_model.row_number).label('row_numbers')
-    ).filter(fileb_model.submission_id == submission_id).\
+    ).filter(fileb_model.submission_id == submission_id,
+             func.rpad(fileb_model.object_class, 4, '0') != '0000').\
         group_by(fileb_model.display_tas, fileb_model.allocation_transfer_agency, fileb_model.agency_identifier,
                  fileb_model.beginning_period_of_availa, fileb_model.ending_period_of_availabil,
                  fileb_model.availability_type_code, fileb_model.main_account_code, fileb_model.sub_account_code,
@@ -234,7 +237,7 @@ def ussgl_published_file_b_cte(session, ussgl_vals, model):
 
 
 def sum_gtas_boc(session, period, year, agency_code):
-    """ Sums the GTAS BOC data for the given year/period/agency to ignore PYA since we don't have that to compare to
+    """ Sums the GTAS BOC data for the given year/period/agency to ignore BOC of 999 or 9999
 
         Args:
             session: The current DB session
@@ -247,7 +250,11 @@ def sum_gtas_boc(session, period, year, agency_code):
     """
     agency_filters = tas_agency_filter(session, agency_code, TASLookup)
     exists_query = session.query(TASLookup).filter(TASLookup.display_tas == boc_model.display_tas,
-                                                   or_(*agency_filters)).exists()
+                                                   or_(*agency_filters))
+    exists_query = tas_exception_filter(exists_query, agency_code, TASLookup, 'ignore').exists()
+    ussgl_list = list(set([re.findall(r'ussgl(\d+)_.*', col.name)[0] for col in fileb_model.__table__.columns if
+                           col.name.startswith('ussgl')]))
+
     sum_boc = session.query(
         boc_model.display_tas,
         boc_model.allocation_transfer_agency,
@@ -265,7 +272,9 @@ def sum_gtas_boc(session, period, year, agency_code):
         boc_model.ussgl_number,
         func.sum(boc_model.dollar_amount * case([(boc_model.debit_credit == 'D', 1)], else_=-1)).
         label('sum_dollar_amount')
-    ).filter(boc_model.fiscal_year == year, boc_model.period == period, exists_query).\
+    ).filter(boc_model.fiscal_year == year, boc_model.period == period,
+             func.coalesce(func.rpad(boc_model.budget_object_class, 4, '9'), '') != '9999',
+             boc_model.ussgl_number.in_(ussgl_list), exists_query).\
         group_by(boc_model.display_tas, boc_model.allocation_transfer_agency, boc_model.agency_identifier,
                  boc_model.beginning_period_of_availa, boc_model.ending_period_of_availabil,
                  boc_model.availability_type_code, boc_model.main_account_code, boc_model.sub_account_code,
