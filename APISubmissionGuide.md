@@ -62,6 +62,7 @@ While the Submission API has been designed to be as easy to understand as possib
     - When finally logging into the Broker using the new credentials and you receive a message:
         - **"Authentication denied"**: The `client_id`/`client_secret` headers were not included. Make sure to include them.
         - **"Invalid Client"**: Your `client_id`/`client_secret` credentials were provided but incorrect. Ensure the values are correct.
+        - **"HTTP POST on resource '.../v1/proxy_login' failed: unauthorized (401)."**: Your system email was not initially entered into the database. Please reach out to the service desk with this error.
 
 ## DABS Submission Process
 
