@@ -54,7 +54,8 @@ class SQSWorkDispatcher:
     """
     _logger = logging.getLogger(__name__)
 
-    EXIT_SIGNALS = [signal.SIGHUP, signal.SIGABRT, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM]
+    sig_names = ['SIGHUP', 'SIGABRT', 'SIGINT', 'SIGQUIT', 'SIGTERM']
+    EXIT_SIGNALS = [getattr(signal, sig_name) for sig_name in sig_names if sig_name in signal.__dir__()]
     # NOTE: We are not handling signal.SIGSTOP or signal.SIGTSTP because those are suspensions.
     # There may be valid cases to suspend and then later resume the process.
     # It is even done here via multiprocessing.Process.suspend() to suspend during cleanup.
