@@ -6,24 +6,6 @@ While the Submission API has been designed to be as easy to understand as possib
 
 ## Login Process
 
-### Login to Max
-- Step 1: Authenticate with MAX directly to obtain the `ticket` value for Step 2
-    - Please refer to documentation provided by MAX.gov [here](./Using_Digital_Certificates_for_MAX_Authentication.pdf).
-    - Information about requesting Data Broker permissions within MAX can be found [here](https://community.max.gov/x/fJwuRQ).
-    - While we do not control MAX's login process, for simplicity purposes, here is a sample CURL request to the MAX login endpoint:
-    ```
-        curl -L -j -D - -b none 
-            --cert max.crt 
-            --key max.key 
-           https://serviceauth.max.gov/cas-cert/login?service=https://broker-api.usaspending.gov
-   ```
-    
-- **NOTE**: Do **NOT** end the above service parameter url with a "/"
-- You would locate the `ticket` value in the `Location` header in the first header block returned by this request, i.e.,
-    `Location=https://broker-api.usaspending.gov?ticket=ST-123456-abcdefghijklmnopqrst-login.max.gov`
-- Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login. For details on its use, click [here](./doc/api_docs/login/max_login.md)
-    - Be sure to use the provided ticket within 30 seconds to ensure it does not expire.
-  
 ### Login to the CAIA
 
 - Step 1: Get access to Treasury Mulesoft Exchange to view the Data Broker Experience API.

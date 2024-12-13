@@ -141,7 +141,7 @@ _:bulb: TIP: Many of the commands below use the format `docker exec -it dataact-
 ```bash
 $ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -a
 ```
-This creates a local admin user that you can use to log in. The Broker utilizes MAX.gov for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. The credentials for the user created are the values you have configured in the `db.admin_email` and `db.admin_password` config params in `config.yml` or overridden in `local_config.yml`.
+This creates a local admin user that you can use to log in. The Broker utilizes CAIA for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. The credentials for the user created are the values you have configured in the `db.admin_email` and `db.admin_password` config params in `config.yml` or overridden in `local_config.yml`.
 
 Now try to browse to http://localhost:3002, and login with the configured credentials (`valid.email@domain.com` / `password`). You should get past the login screen to the home screen.
 
