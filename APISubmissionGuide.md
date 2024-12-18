@@ -36,7 +36,7 @@ While the Submission API has been designed to be as easy to understand as possib
         - The root url will be replaced:
             - Before: `https://broker-api.usaspending.gov/`
             - After: `https://api.fiscal.treasury.gov/ap/exp/v1/data-act-broker/`
-            - **NOTE**: The API Proxy does **not** support endpoint URLs ending with a trailing slash (`/`). Please ensure that all your calls to the API do not include said trailing slash.
+            - **NOTE**: The API Proxy does **not** support endpoint URLs ending with a trailing slash (`/`). Please ensure that all your calls to the API do not include a trailing slash.
         - Two new headers must be added in every request:
             - `client_id`: The `Client ID` copied from earlier.
             - `client_secret`: The `Client Secret` copied from earlier.
