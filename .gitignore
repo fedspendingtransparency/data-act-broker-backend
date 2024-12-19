@@ -1,4 +1,5 @@
 .idea/*
+.devcontainer/*
 .cache/*
 .DS_Store
 dataactcore/.idea/*
