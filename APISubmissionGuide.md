@@ -35,7 +35,8 @@ While the Submission API has been designed to be as easy to understand as possib
     - Each call to the Broker below in this guide (or any other endpoint referenced in the documentation) will be called slightly different:
         - The root url will be replaced:
             - Before: `https://broker-api.usaspending.gov/`
-            - After: `https://api.fiscal.treasury.gov/ap/prod/exp/v1/data-act-broker/`
+            - After: `https://api.fiscal.treasury.gov/ap/exp/v1/data-act-broker/`
+            - **NOTE**: The API Proxy does **not** support endpoint URLs ending with a trailing slash (`/`). Please ensure that all your calls to the API do not include a trailing slash.
         - Two new headers must be added in every request:
             - `client_id`: The `Client ID` copied from earlier.
             - `client_secret`: The `Client Secret` copied from earlier.
@@ -45,6 +46,7 @@ While the Submission API has been designed to be as easy to understand as possib
         - **"Authentication denied"**: The `client_id`/`client_secret` headers were not included. Make sure to include them.
         - **"Invalid Client"**: Your `client_id`/`client_secret` credentials were provided but incorrect. Ensure the values are correct.
         - **"HTTP POST on resource '.../v1/proxy_login' failed: unauthorized (401)."**: Your system email was not initially entered into the database. Please reach out to the service desk with this error.
+        - **"resource_not_found"**: Your endpoint URL is ending with a slash which is currently not supported with the API proxy specifically. To resolve, simply remove the final slash.
 
 ## DABS Submission Process
 
