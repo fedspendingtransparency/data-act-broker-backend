@@ -94,17 +94,6 @@ broker:
     usas_public_reference_url: new-url.com
     usas_public_submissions_url: new-url.com
 
-    # link to help for failed MAX login
-    max_help_url: https://max_help_url.gov
-
-    # MAX login
-    cas_service_url: https://cas.service.url
-    parent_group: sample
-
-    max:
-        federal_hierarchy_api_url: https://federal.hierarchy.api.uri.gov/?api_key={}
-        federal_hierarchy_api_key: example
-
     # Session timeout, in seconds
     session_timeout: 1800
 

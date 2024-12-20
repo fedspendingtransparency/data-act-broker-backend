@@ -3,7 +3,6 @@ import logging
 from operator import attrgetter
 import re
 import requests
-import xmltodict
 
 from flask import g
 
@@ -152,76 +151,6 @@ class AccountHandler:
         except Exception as e:
             # Return 500
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-
-    def max_login(self, session):
-        """ Logs a user in if their password matches using MAX
-
-            Args:
-                session: Session object from flask
-
-            Returns:
-                A JsonResponse containing the user information or details on which error occurred, such as whether a
-                type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
-                different, unexpected error occurred.
-        """
-        try:
-            safe_dictionary = RequestDictionary(self.request)
-
-            ticket = safe_dictionary.get_value("ticket")
-            service = safe_dictionary.get_value('service')
-
-            # Call MAX's serviceValidate endpoint and retrieve the response
-            max_dict = get_max_dict(ticket, service)
-
-            if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
-                raise ValueError("The Max CAS endpoint was unable to locate your session "
-                                 "using the ticket/service combination you provided.")
-            cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
-
-            # Grab MAX ID to see if a service account is being logged in
-            max_id_components = cas_attrs['cas:MAX-ID'].split('_')
-            service_account_flag = (len(max_id_components) > 1 and max_id_components[0].lower() == 's')
-
-            # Grab the email and list of groups from MAX's response
-            email = cas_attrs['cas:Email-Address']
-
-            try:
-                sess = GlobalDB.db().session
-                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
-
-                # If the user does not exist, create them since they are allowed to access the site because they got
-                # past the above group membership checks
-                if user is None:
-                    user = User()
-                    user.email = email
-
-                first_name = cas_attrs['cas:First-Name']
-                middle_name = cas_attrs['cas:Middle-Name']
-                last_name = cas_attrs['cas:Last-Name']
-                set_user_name(user, first_name, middle_name, last_name)
-
-                set_max_perms(user, cas_attrs['cas:GroupList'], service_account_flag)
-
-                sess.add(user)
-                sess.commit()
-
-            except MultipleResultsFound:
-                raise ValueError("An error occurred during login.")
-
-            return self.create_session_and_response(session, user)
-
-        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly.
-        # We add the error parameter here because this endpoint needs to provide better feedback, and to avoid changing
-        # the default behavior of the JsonResponse class globally.
-        except (TypeError, KeyError, NotImplementedError) as e:
-            # Return a 400 with appropriate message
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR, error=str(e))
-        except ValueError as e:
-            # Return a 401 for login denied
-            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED, error=str(e))
-        except Exception as e:
-            # Return 500
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR, error=str(e))
 
     def caia_login(self, session):
         """ Logs a user in if their CAIA validation succeeds
@@ -376,8 +305,8 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
 
 
-def perms_to_affiliations(perms, user_id, service_account_flag=False):
-    """ Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms
+def perms_to_affiliations(perms, user_id):
+    """ Convert a list of perms from CAIA to a list of UserAffiliations. Filter out and log any malformed perms
 
         Args:
             perms: list of permissions (as lists [code, perm]) for the user
@@ -413,10 +342,7 @@ def perms_to_affiliations(perms, user_id, service_account_flag=False):
 
         perm_level = perm_level.lower()
 
-        if service_account_flag:
-            # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
-            perm_level = 'we'
-        elif perm_level not in 'rwsef':
+        if perm_level not in 'rwsef':
             logger.warning(log_data)
             continue
 
@@ -466,7 +392,7 @@ def best_affiliation(affiliations):
 
 
 def set_user_name(user, first_name, middle_name, last_name):
-    """ Update the name for the user based on the MAX attributes.
+    """ Update the name for the user based on the CAIA attributes.
 
         Args:
             user: the User object
@@ -477,54 +403,6 @@ def set_user_name(user, first_name, middle_name, last_name):
         user.name = first_name + " " + last_name
     else:
         user.name = first_name + " " + middle_name[0] + ". " + last_name
-
-
-def set_max_perms(user, max_group_list, service_account_flag=False):
-    """ Convert the user group lists present on MAX into a list of UserAffiliations and/or website_admin status.
-
-        Permissions are encoded as a comma-separated list of:
-        {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S-E-F}
-        {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S-E-F}
-        or
-        {parent-group}-CGAC_SYS to indicate website_admin
-
-        Args:
-            user: the User object
-            max_group_list: list of all MAX groups the user has
-            service_account_flag: flag to indicate a service account
-    """
-    prefix = CONFIG_BROKER['parent_group'] + '-CGAC_'
-
-    # Each group name that we care about begins with the prefix, but once we have that list, we don't need the
-    # prefix anymore, so trim it off.
-    if max_group_list is not None:
-        group_names = [group_name[len(prefix):]
-                       for group_name in max_group_list.split(',')
-                       if group_name.startswith(prefix)]
-    elif service_account_flag:
-        raise ValueError("There are no Data Broker permissions assigned to this Service Account. You may request "
-                         "permissions at https://community.max.gov/x/fJwuRQ")
-    else:
-        group_names = []
-
-    if 'SYS' in group_names:
-        user.website_admin = True
-        user.affiliations = []
-    else:
-        user.website_admin = False
-        perms = []
-        for group_name in group_names:
-            # Always starts with the 3-digit CGAC
-            code = group_name[:3]
-            if 'FREC' in group_name:
-                # If FREC, then its the [3-digit CGAC]-FREC_[4-digit FREC code]
-                code = group_name[9:13]
-            # Permission level is always the last character
-            perm = group_name[-1]
-            perms.append((code, perm))
-
-        if perms:
-            user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
 
 
 def set_caia_perms(user, roles):
@@ -569,21 +447,6 @@ def json_for_user(user, session_id):
                          for affil in user.affiliations],
         "session_id": session_id
     }
-
-
-def get_max_dict(ticket, service):
-    """ Get the result from MAX's serviceValidate functionality
-
-        Args:
-            ticket: the ticket to send to MAX
-            service: the service to send to MAX
-
-        Returns:
-            A dictionary of the response from MAX
-    """
-    url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
-    max_xml = requests.get(url).content
-    return xmltodict.parse(max_xml)
 
 
 def get_caia_tokens(code, redirect_uri):
@@ -637,7 +500,7 @@ def refresh_tokens(refresh_token, redirect_uri):
 
 
 def get_caia_user_dict(accces_token):
-    """ Get the result from MAX's serviceValidate functionality
+    """ Get the result from CAIA's serviceValidate functionality
 
         Args:
             accces_token: the access token of the logged in user

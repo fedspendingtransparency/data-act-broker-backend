@@ -138,8 +138,8 @@ def test_logging_trace_spans(caplog, capsys):
 
     captured = capsys.readouterr()
     assert test_msg in caplog.text, "caplog.text did not seem to capture logging output during test"
-    assert hex(trace_id) in captured.out, "trace_id not found in logging output"
-    assert hex(span_id) in captured.out, "span_id not found in logging output"
+    assert f'{trace_id:x}' in captured.out, "trace_id not found in logging output"
+    assert f'{span_id:x}' in captured.out, "span_id not found in logging output"
     assert f"{test}_resource" in captured.out, "traced resource not found in logging output"
 
 
