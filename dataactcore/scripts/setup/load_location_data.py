@@ -220,6 +220,16 @@ def load_city_data(force_reload):
     with RetrieveFileFromUri(city_file_url, 'r').get_file_object() as city_file:
         new_data = parse_city_file(city_file)
 
+    # parse the legacy city code data
+    legacy_city_filename = 'NationalFedCodes_LEGACY.txt'
+    legacy_city_url = f'{CONFIG_BROKER["usas_public_reference_url"]}/{legacy_city_filename}'
+    with RetrieveFileFromUri(legacy_city_url, 'r').get_file_object() as legacy_city_file:
+        legacy_data = parse_city_file(legacy_city_file)
+
+    # only add legacy city code data if the state is not already in the new city data
+    add_legacy_data = legacy_data.loc[~legacy_data['state_code'].isin(new_data['state_code'].unique())]
+    new_data = pd.concat([new_data, add_legacy_data])
+
     diff_found = check_dataframe_diff(new_data, CityCode, ['city_code_id'], ['state_code', 'city_code'])
 
     if force_reload or diff_found:
