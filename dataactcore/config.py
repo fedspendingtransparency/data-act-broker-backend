@@ -20,7 +20,6 @@ else:
     env = "local"
 
 ENV_PATH = os.path.join(dirname(abspath(__file__)), '{}_config.yml'.format(env))
-# SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
 path_list = [CONFIG_PATH, ENV_PATH]
 
 # set the location of the Alembic config file
@@ -56,16 +55,13 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
         if not CONFIG_BROKER[k]:
             raise ValueError('Config error: use_aws is True but {} value is missing'.format(k))
 
-    # Load in secrets from Parameter Store
+    # Parameter Store secrets
     account = 'prod' if env in ('prod', 'staging') else 'nonprod'
-    secrets_param = f'/{account}/broker/broker_{env}_secrets'
+    secrets_param_name = f'/{account}/broker/broker_{env}_secrets'
 
     s3_client = boto3.client('ssm', region_name=CONFIG_BROKER['aws_region'])
-    secrets_yaml = s3_client.get_parameter(Name=secrets_param, WithDecryption=True)
-    SECRETS_CONFIG = yaml.load(secrets_yaml['Parameter']['Value'], Loader=yaml.FullLoader)
-
-    for category_name in CONFIG_CATEGORIES:
-        CONFIG_CATEGORIES[category_name].update(SECRETS_CONFIG.get(category_name, {}))
+    secrets_yaml_param = s3_client.get_parameter(Name=secrets_param_name, WithDecryption=True)
+    SECRETS_CONFIG = yaml.load(secrets_yaml_param['Parameter']['Value'], Loader=yaml.FullLoader) or {}
 else:
     CONFIG_BROKER['local'] = True
     CONFIG_BROKER['aws_bucket'] = None
@@ -78,6 +74,21 @@ else:
         error_report_path = os.path.join(expanduser('~'), 'data_act_broker')
     normpath(error_report_path)
     CONFIG_SERVICES['error_report_path'] = error_report_path
+
+    # Local secrets
+    SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
+    try:
+        with open(SECRET_PATH) as c:
+            # Default to empty dictionary if file is empty
+            SECRETS_CONFIG = yaml.load(c, Loader=yaml.FullLoader) or {}
+    except IOError:
+        raise IOError('Error reading a config file. Please make sure this file exists'
+                      ' before starting the Data Broker: {}'.format(SECRET_PATH))
+
+# Override any values with secrets if applicable
+if SECRETS_CONFIG:
+    for category_name in CONFIG_CATEGORIES:
+        CONFIG_CATEGORIES[category_name].update(SECRETS_CONFIG.get(category_name, {}))
 
 storage_path = CONFIG_BROKER['d_file_storage_path']
 if storage_path[-1] != os.path.sep:
