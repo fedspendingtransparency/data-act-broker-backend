@@ -59,8 +59,8 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     account = 'prod' if env in ('prod', 'staging') else 'nonprod'
     secrets_param_name = f'/{account}/broker/broker_{env}_secrets'
 
-    s3_client = boto3.client('ssm', region_name=CONFIG_BROKER['aws_region'])
-    secrets_yaml_param = s3_client.get_parameter(Name=secrets_param_name, WithDecryption=True)
+    ssm_client = boto3.client('ssm', region_name=CONFIG_BROKER['aws_region'])
+    secrets_yaml_param = ssm_client.get_parameter(Name=secrets_param_name, WithDecryption=True)
     SECRETS_CONFIG = yaml.load(secrets_yaml_param['Parameter']['Value'], Loader=yaml.FullLoader) or {}
 else:
     CONFIG_BROKER['local'] = True
