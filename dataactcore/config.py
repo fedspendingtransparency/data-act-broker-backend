@@ -62,7 +62,7 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
 
     s3_client = boto3.client('ssm', region_name=CONFIG_BROKER['aws_region'])
     secrets_yaml = s3_client.get_parameter(Name=secrets_param, WithDecryption=True)
-    SECRETS_CONFIG = yaml.load(secrets_yaml, Loader=yaml.FullLoader)
+    SECRETS_CONFIG = yaml.load(secrets_yaml['Value'], Loader=yaml.FullLoader)
 
     for category_name in CONFIG_CATEGORIES:
         CONFIG_CATEGORIES[category_name].update(SECRETS_CONFIG.get(category_name, {}))
