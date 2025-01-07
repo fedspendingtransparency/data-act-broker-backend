@@ -3,6 +3,7 @@ import os.path
 from os.path import expanduser, normpath, dirname, abspath
 import yaml
 import re
+import boto3
 
 CONFIG_BROKER = {}
 CONFIG_SERVICES = {}
@@ -19,8 +20,8 @@ else:
     env = "local"
 
 ENV_PATH = os.path.join(dirname(abspath(__file__)), '{}_config.yml'.format(env))
-SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
-path_list = [CONFIG_PATH, ENV_PATH, SECRET_PATH]
+# SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
+path_list = [CONFIG_PATH, ENV_PATH]
 
 # set the location of the Alembic config file
 ALEMBIC_PATH = os.path.join(dirname(abspath(__file__)), 'alembic.ini')
@@ -54,6 +55,17 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
                            format(k))
         if not CONFIG_BROKER[k]:
             raise ValueError('Config error: use_aws is True but {} value is missing'.format(k))
+
+    # Load in secrets from Parameter Store
+    account = 'prod' if env in ('prod', 'staging') else 'nonprod'
+    secrets_param = f'/{account}/broker/broker_{env}_secrets'
+
+    s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+    secrets_yaml = s3_client.get_parameter(Name=secrets_param, WithDecryption=True)
+    SECRETS_CONFIG = yaml.load(secrets_yaml, Loader=yaml.FullLoader)
+
+    for category_name in CONFIG_CATEGORIES:
+        CONFIG_CATEGORIES[category_name].update(SECRETS_CONFIG.get(category_name, {}))
 else:
     CONFIG_BROKER['local'] = True
     CONFIG_BROKER['aws_bucket'] = None
