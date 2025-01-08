@@ -2,16 +2,16 @@
 -- Program Activity Mapping File. Ignore rule for $0 rows
 SELECT
     row_number,
-    pa_reporting_key,
+    program_activity_reporting_key,
     by_direct_reimbursable_fun,
     display_tas AS "uniqueid_TAS",
     object_class AS "uniqueid_ObjectClass"
 FROM object_class_program_activity AS ocpa
 WHERE submission_id = {0}
-    AND COALESCE(pa_reporting_key, '') <> ''
+    AND COALESCE(program_activity_reporting_key, '') <> ''
     AND (COALESCE(ussgl480100_undelivered_or_fyb, 0) <> 0
         OR COALESCE(ussgl480100_undelivered_or_cpe, 0) <> 0
-        OR COALESCE(ussgl480110_reinstated_del_cpe, 0) <> 0
+        OR COALESCE(ussgl480110_rein_undel_ord_cpe, 0) <> 0
         OR COALESCE(ussgl480200_undelivered_or_cpe, 0) <> 0
         OR COALESCE(ussgl480200_undelivered_or_fyb, 0) <> 0
         OR COALESCE(ussgl483100_undelivered_or_cpe, 0) <> 0
@@ -22,7 +22,7 @@ WHERE submission_id = {0}
         OR COALESCE(ussgl488200_upward_adjustm_cpe, 0) <> 0
         OR COALESCE(ussgl490100_delivered_orde_fyb, 0) <> 0
         OR COALESCE(ussgl490100_delivered_orde_cpe, 0) <> 0
-        OR COALESCE(ussgl490110_reinstated_del_cpe, 0) <> 0
+        OR COALESCE(ussgl490110_rein_deliv_ord_cpe, 0) <> 0
         OR COALESCE(ussgl490200_delivered_orde_cpe, 0) <> 0
         OR COALESCE(ussgl490800_authority_outl_fyb, 0) <> 0
         OR COALESCE(ussgl490800_authority_outl_cpe, 0) <> 0
@@ -36,7 +36,7 @@ WHERE submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM program_activity_park AS park
-        WHERE UPPER(pa_reporting_key) = UPPER(park_code)
+        WHERE UPPER(program_activity_reporting_key) = UPPER(park_code)
             AND park.sub_account_number IS NULL
             AND COALESCE(park.agency_id, '') = COALESCE(ocpa.agency_identifier, '')
             AND COALESCE(park.allocation_transfer_id, '') = COALESCE(ocpa.allocation_transfer_agency, '')
@@ -46,7 +46,7 @@ WHERE submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM program_activity_park AS park
-        WHERE UPPER(pa_reporting_key) = UPPER(park_code)
+        WHERE UPPER(program_activity_reporting_key) = UPPER(park_code)
             AND park.sub_account_number IS NOT NULL
             AND COALESCE(park.agency_id, '') = COALESCE(ocpa.agency_identifier, '')
             AND COALESCE(park.allocation_transfer_id, '') = COALESCE(ocpa.allocation_transfer_agency, '')

@@ -4,11 +4,11 @@ SELECT
     row_number,
     obligations_undelivered_or_cpe,
     ussgl480100_undelivered_or_cpe,
-    ussgl480110_reinstated_del_cpe,
+    ussgl480110_rein_undel_ord_cpe,
     ussgl483100_undelivered_or_cpe,
     ussgl488100_upward_adjustm_cpe,
     COALESCE(obligations_undelivered_or_cpe, 0) - (COALESCE(ussgl480100_undelivered_or_cpe, 0) +
-                                                   COALESCE(ussgl480110_reinstated_del_cpe, 0) +
+                                                   COALESCE(ussgl480110_rein_undel_ord_cpe, 0) +
                                                    COALESCE(ussgl483100_undelivered_or_cpe, 0) +
                                                    COALESCE(ussgl488100_upward_adjustm_cpe, 0)) AS "difference",
     display_tas AS "uniqueid_TAS",
@@ -21,6 +21,6 @@ FROM award_financial
 WHERE submission_id = {0}
     AND COALESCE(obligations_undelivered_or_cpe, 0) <>
         COALESCE(ussgl480100_undelivered_or_cpe, 0) +
-        COALESCE(ussgl480110_reinstated_del_cpe, 0) +
+        COALESCE(ussgl480110_rein_undel_ord_cpe, 0) +
         COALESCE(ussgl483100_undelivered_or_cpe, 0) +
         COALESCE(ussgl488100_upward_adjustm_cpe, 0);

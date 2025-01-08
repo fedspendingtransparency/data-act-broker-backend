@@ -55,12 +55,12 @@ def test_success(database):
 
     # 2 with the same PARK but no PAC/PAN, ignored
     op9 = ObjectClassProgramActivityFactory(display_tas='abcde', object_class='1', program_activity_code='',
-                                            program_activity_name=None, pa_reporting_key='abc',
+                                            program_activity_name=None, program_activity_reporting_key='abc',
                                             by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n',
                                             prior_year_adjustment='a')
 
     op10 = ObjectClassProgramActivityFactory(display_tas='abcde', object_class='1', program_activity_code='',
-                                             program_activity_name=None, pa_reporting_key='abc',
+                                             program_activity_name=None, program_activity_reporting_key='abc',
                                              by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n',
                                              prior_year_adjustment='a')
 
