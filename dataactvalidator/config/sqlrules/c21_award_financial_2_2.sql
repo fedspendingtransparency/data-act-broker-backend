@@ -8,7 +8,7 @@
 
 SELECT NULL AS "source_row_number",
     award_financial_records.display_tas AS "source_value_tas",
-    award_financial_records.pa_reporting_key AS "source_value_pa_reporting_key",
+    award_financial_records.program_activity_reporting_key AS "source_value_program_activity_reporting_key",
     ussgl480100_undelivered_or_fyb_sum_c AS "source_value_ussgl480100_undelivered_or_fyb_sum_c",
     ussgl480100_undelivered_or_cpe_sum_c AS "source_value_ussgl480100_undelivered_or_cpe_sum_c",
     ussgl480110_reinstated_del_cpe_sum_c AS "source_value_ussgl480110_reinstated_del_cpe_sum_c",
@@ -249,7 +249,7 @@ SELECT NULL AS "source_row_number",
             ELSE NULL
             END) AS "difference",
     award_financial_records.display_tas AS "uniqueid_TAS",
-    award_financial_records.pa_reporting_key AS "uniqueid_ProgramActivityReportingKey"
+    award_financial_records.program_activity_reporting_key AS "uniqueid_ProgramActivityReportingKey"
 -- This first subquery is selecting the sum of 32 elements in File C based on TAS, PAC, PAN, and Submission ID
 FROM (
     SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
@@ -287,14 +287,14 @@ FROM (
         SUM(af.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_c,
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
-        UPPER(af.pa_reporting_key) AS pa_reporting_key,
+        UPPER(af.program_activity_reporting_key) AS program_activity_reporting_key,
         af.display_tas
     FROM award_financial AS af
     WHERE af.submission_id = {0}
         AND COALESCE(prior_year_adjustment, '') = ''
-        AND COALESCE(pa_reporting_key, '') <> ''
+        AND COALESCE(program_activity_reporting_key, '') <> ''
     GROUP BY af.tas,
-        UPPER(af.pa_reporting_key),
+        UPPER(af.program_activity_reporting_key),
         af.display_tas,
         af.submission_id
 ) AS award_financial_records
@@ -337,17 +337,17 @@ FULL OUTER JOIN (
         SUM(op.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_b,
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
-        UPPER(op.pa_reporting_key) AS pa_reporting_key
+        UPPER(op.program_activity_reporting_key) AS program_activity_reporting_key
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
-        AND COALESCE(pa_reporting_key, '') <> ''
+        AND COALESCE(program_activity_reporting_key, '') <> ''
     GROUP BY op.tas,
-        UPPER(op.pa_reporting_key),
+        UPPER(op.program_activity_reporting_key),
         op.submission_id
 ) AS object_class_records
     -- We join these two subqueries based on the same TAS, PAC, and PAN combination
     ON object_class_records.tas = award_financial_records.tas
-    AND object_class_records.pa_reporting_key = award_financial_records.pa_reporting_key
+    AND object_class_records.program_activity_reporting_key = award_financial_records.program_activity_reporting_key
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value

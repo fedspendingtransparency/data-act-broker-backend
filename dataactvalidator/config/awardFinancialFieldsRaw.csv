@@ -26,7 +26,7 @@ ParentAwardId,parent_award_id,Conditional per Award Type,string,50
 PIID,piid,Conditional per Award Type,string,50
 ProgramActivityCode,program_activity_code,Conditional per Validation Rule,string,4
 ProgramActivityName,program_activity_name,Conditional per Validation Rule,string,164
-ProgramActivityReportingKey,pa_reporting_key,Conditional per Validation Rule,string,15
+ProgramActivityReportingKey,program_activity_reporting_key,Conditional per Validation Rule,string,15
 PriorYearAdjustment,prior_year_adjustment,Conditional per Validation Rule,string,1
 SubAccountCode,sub_account_code,Required,string,3
 TransactionObligatedAmount,transaction_obligated_amou,Conditional per Validation Rule,numeric,21

@@ -10,7 +10,7 @@ _FILE = 'c21_award_financial_2_2'
 af_dict = dict(
     submission_id=randint(1000, 10000),
     tas='some-tas',
-    pa_reporting_key='some-code',
+    program_activity_reporting_key='some-code',
     prior_year_adjustment='',
     ussgl480100_undelivered_or_fyb=randint(-10000, -1000),
     ussgl480100_undelivered_or_cpe=randint(-10000, -1000),
@@ -51,7 +51,7 @@ af_dict = dict(
 
 def test_column_headers(database):
     expected_subset = {
-        'source_row_number', 'source_value_tas', 'source_value_pa_reporting_key',
+        'source_row_number', 'source_value_tas', 'source_value_program_activity_reporting_key',
         'source_value_ussgl480100_undelivered_or_fyb_sum_c', 'source_value_ussgl480100_undelivered_or_cpe_sum_c',
         'source_value_ussgl480110_reinstated_del_cpe_sum_c', 'source_value_ussgl483100_undelivered_or_cpe_sum_c',
         'source_value_ussgl488100_upward_adjustm_cpe_sum_c', 'source_value_obligations_undelivered_or_fyb_sum_c',
@@ -104,7 +104,7 @@ def test_success(database):
 
     af_dict_null_park = dict(**af_dict)
     af_dict_null_park['tas'] = 'null_park_tas'
-    af_dict_null_park['pa_reporting_key'] = None
+    af_dict_null_park['program_activity_reporting_key'] = None
 
     af1 = AwardFinancialFactory(**af_dict)
     af2 = AwardFinancialFactory(**af_dict)
@@ -147,7 +147,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
         tas=af_dict['tas'],
-        pa_reporting_key=af_dict['pa_reporting_key'],
+        program_activity_reporting_key=af_dict['program_activity_reporting_key'],
         prior_year_adjustment='X',
         submission_id=af_dict['submission_id']
     )
@@ -188,7 +188,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
         tas='some-other-tas',
-        pa_reporting_key=af_dict['pa_reporting_key'],
+        program_activity_reporting_key=af_dict['program_activity_reporting_key'],
         prior_year_adjustment='b',
         submission_id=af_dict['submission_id']
     )
@@ -229,7 +229,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 2,
         tas=af_dict['tas'],
-        pa_reporting_key='some-other-code',
+        program_activity_reporting_key='some-other-code',
         prior_year_adjustment='X',
         submission_id=af_dict['submission_id']
     )
@@ -288,7 +288,7 @@ def test_failure(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 1,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas=af_dict['tas'],
-        pa_reporting_key=af_dict['pa_reporting_key'],
+        program_activity_reporting_key=af_dict['program_activity_reporting_key'],
         prior_year_adjustment=af_dict['prior_year_adjustment'],
         submission_id=af_dict['submission_id']
     )

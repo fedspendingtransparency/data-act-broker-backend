@@ -26,7 +26,7 @@ ParentAwardId,parentawardid,parent_award_id,FALSE,str,50,
 PIID,piid,piid,FALSE,str,50,
 ProgramActivityCode,programactivitycode,program_activity_code,FALSE,str,4,TRUE
 ProgramActivityName,programactivityname,program_activity_name,FALSE,str,164,
-ProgramActivityReportingKey,programactivityreportingkey,pa_reporting_key,FALSE,str,15,
+ProgramActivityReportingKey,programactivityreportingkey,program_activity_reporting_key,FALSE,str,15,
 PriorYearAdjustment,prioryearadjustment,prior_year_adjustment,FALSE,str,1,
 SubAccountCode,subaccountcode,sub_account_code,TRUE,str,3,TRUE
 TransactionObligatedAmount,transactionobligatedamount,transaction_obligated_amou,FALSE,float,21,

@@ -6,12 +6,13 @@ _FILE = 'c28_award_financial_2'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'tas', 'object_class', 'pa_reporting_key', 'by_direct_reimbursable_fun',
-                       'disaster_emergency_fund_code', 'fain', 'uri', 'piid', 'parent_award_id',
-                       'prior_year_adjustment', 'uniqueid_TAS', 'uniqueid_ProgramActivityReportingKey',
-                       'uniqueid_ObjectClass', 'uniqueid_ByDirectReimbursableFundingSource',
-                       'uniqueid_DisasterEmergencyFundCode', 'uniqueid_FAIN', 'uniqueid_URI', 'uniqueid_PIID',
-                       'uniqueid_ParentAwardId', 'uniqueid_PriorYearAdjustment'}
+    expected_subset = {'row_number', 'tas', 'object_class', 'program_activity_reporting_key',
+                       'by_direct_reimbursable_fun', 'disaster_emergency_fund_code', 'fain', 'uri', 'piid',
+                       'parent_award_id', 'prior_year_adjustment', 'uniqueid_TAS',
+                       'uniqueid_ProgramActivityReportingKey', 'uniqueid_ObjectClass',
+                       'uniqueid_ByDirectReimbursableFundingSource', 'uniqueid_DisasterEmergencyFundCode',
+                       'uniqueid_FAIN', 'uniqueid_URI', 'uniqueid_PIID', 'uniqueid_ParentAwardId',
+                       'uniqueid_PriorYearAdjustment'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
@@ -22,49 +23,49 @@ def test_success(database):
         should be unique for USSGL-related balances.
     """
 
-    af1 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af1 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af2 = AwardFinancial(job_id=1, row_number=1, display_tas='2', object_class='1', pa_reporting_key='1',
+    af2 = AwardFinancial(job_id=1, row_number=1, display_tas='2', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af3 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='2', pa_reporting_key='1',
+    af3 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='2', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af4 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='2',
+    af4 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='2',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af5 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af5 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='d', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af6 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af6 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='b')
 
     # Same values but a different DEFC
-    af7 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af7 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='m', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af8 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af8 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='2', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af9 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af9 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='2', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af10 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af10 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                           program_activity_name='n', by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n',
                           fain='1', uri='1', piid='2', parent_award_id='1', transaction_obligated_amou=None,
                           prior_year_adjustment='X')
 
-    af11 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af11 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                           by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                           parent_award_id='2', transaction_obligated_amou=None, prior_year_adjustment='X')
 
@@ -77,11 +78,11 @@ def test_ignore_toa(database):
         financial) are not unique for USSGL-related balances, ignoring when TOA is not NULL
     """
 
-    af1 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af1 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=0, prior_year_adjustment='X')
 
-    af2 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af2 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=0, prior_year_adjustment='X')
 
@@ -94,11 +95,11 @@ def test_ignore_null_pacpan(database):
         financial) are not unique for USSGL-related balances, ignoring when PARK is null
     """
 
-    af1 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key=None,
+    af1 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key=None,
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af2 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='',
+    af2 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
@@ -111,11 +112,11 @@ def test_failure(database):
         financial) are not unique for USSGL-related balances.
     """
 
-    af1 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af1 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='n', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='X')
 
-    af2 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', pa_reporting_key='1',
+    af2 = AwardFinancial(job_id=1, row_number=1, display_tas='1', object_class='1', program_activity_reporting_key='1',
                          by_direct_reimbursable_fun='r', disaster_emergency_fund_code='N', fain='1', uri='1', piid='1',
                          parent_award_id='1', transaction_obligated_amou=None, prior_year_adjustment='x')
 

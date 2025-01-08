@@ -6,7 +6,7 @@ _FILE = 'b28_object_class_program_activity'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'pa_reporting_key', 'uniqueid_TAS', 'uniqueid_ObjectClass'}
+    expected_subset = {'row_number', 'program_activity_reporting_key', 'uniqueid_TAS', 'uniqueid_ObjectClass'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
@@ -24,13 +24,16 @@ def test_success(database):
 
     # Main account code that has no sub in PARK, sub ignored
     op1 = ObjectClassProgramActivityFactory(agency_identifier='123', allocation_transfer_agency=None,
-                                            main_account_code='0001', sub_account_code='123', pa_reporting_key='aBcD')
+                                            main_account_code='0001', sub_account_code='123',
+                                            program_activity_reporting_key='aBcD')
     # Matching main and sub accounts
     op2 = ObjectClassProgramActivityFactory(agency_identifier='123', allocation_transfer_agency=None,
-                                            main_account_code='0002', sub_account_code='001', pa_reporting_key='aBcDeF')
+                                            main_account_code='0002', sub_account_code='001',
+                                            program_activity_reporting_key='aBcDeF')
     # Not matching main account but all 0s in USSGLs so ignored
     op3 = ObjectClassProgramActivityFactory(agency_identifier='123', allocation_transfer_agency=None,
-                                            main_account_code='0002', sub_account_code='001', pa_reporting_key='XYZ',
+                                            main_account_code='0002', sub_account_code='001',
+                                            program_activity_reporting_key='XYZ',
                                             ussgl480100_undelivered_or_fyb=0, ussgl480100_undelivered_or_cpe=0,
                                             ussgl480110_reinstated_del_cpe=0, ussgl480200_undelivered_or_cpe=0,
                                             ussgl480200_undelivered_or_fyb=0, ussgl483100_undelivered_or_cpe=0,
@@ -44,7 +47,8 @@ def test_success(database):
                                             ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0)
     # Ignored for NULL PARK
     op4 = ObjectClassProgramActivityFactory(agency_identifier='123', allocation_transfer_agency=None,
-                                            main_account_code='0002', sub_account_code='003', pa_reporting_key=None)
+                                            main_account_code='0002', sub_account_code='003',
+                                            program_activity_reporting_key=None)
     assert number_of_errors(_FILE, database, models=[op1, op2, op3, op4, park, park_sub]) == 0
 
 
@@ -60,12 +64,15 @@ def test_failure(database):
                                           sub_account_number='001', park_code='ABCDEF')
     # Non-matching sub account code
     op1 = ObjectClassProgramActivityFactory(agency_identifier='123', allocation_transfer_agency=None,
-                                            main_account_code='0002', sub_account_code='123', pa_reporting_key='ABCDEF')
+                                            main_account_code='0002', sub_account_code='123',
+                                            program_activity_reporting_key='ABCDEF')
     # Non-matching TAS even though PARK exists
     op2 = ObjectClassProgramActivityFactory(agency_identifier='321', allocation_transfer_agency=None,
-                                            main_account_code='0001', sub_account_code='123', pa_reporting_key='ABCD')
+                                            main_account_code='0001', sub_account_code='123',
+                                            program_activity_reporting_key='ABCD')
     # PARK that doesn't exist even though TAS does
     op3 = ObjectClassProgramActivityFactory(agency_identifier='123', allocation_transfer_agency=None,
-                                            main_account_code='0001', sub_account_code='123', pa_reporting_key='ABCDE')
+                                            main_account_code='0001', sub_account_code='123',
+                                            program_activity_reporting_key='ABCDE')
 
     assert number_of_errors(_FILE, database, models=[op1, op2, op3, park, park_sub]) == 3
