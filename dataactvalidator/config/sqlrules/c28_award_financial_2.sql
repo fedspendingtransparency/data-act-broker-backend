@@ -4,7 +4,7 @@ SELECT
     row_number,
     display_tas AS "tas",
     object_class,
-    pa_reporting_key,
+    program_activity_reporting_key,
     by_direct_reimbursable_fun,
     disaster_emergency_fund_code,
     fain,
@@ -13,7 +13,7 @@ SELECT
     parent_award_id,
     prior_year_adjustment,
     display_tas AS "uniqueid_TAS",
-    pa_reporting_key AS "uniqueid_ProgramActivityReportingKey",
+    program_activity_reporting_key AS "uniqueid_ProgramActivityReportingKey",
     object_class AS "uniqueid_ObjectClass",
     by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
@@ -26,7 +26,7 @@ FROM (
     SELECT af.row_number,
         af.display_tas,
         af.object_class,
-        UPPER(af.pa_reporting_key) AS pa_reporting_key,
+        UPPER(af.program_activity_reporting_key) AS program_activity_reporting_key,
         UPPER(af.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun,
         af.submission_id,
         af.tas,
@@ -40,7 +40,7 @@ FROM (
         ROW_NUMBER() OVER (PARTITION BY
             UPPER(af.display_tas),
             af.object_class,
-            UPPER(af.pa_reporting_key),
+            UPPER(af.program_activity_reporting_key),
             UPPER(af.by_direct_reimbursable_fun),
             COALESCE(UPPER(af.prior_year_adjustment), ''),
             COALESCE(UPPER(af.fain), ''),
@@ -53,7 +53,7 @@ FROM (
     FROM award_financial AS af
     WHERE af.submission_id = {0}
         AND af.transaction_obligated_amou IS NULL
-        AND COALESCE(pa_reporting_key, '') <> ''
+        AND COALESCE(program_activity_reporting_key, '') <> ''
     ) duplicates
 -- if there is any row numbered over 1, that means there's more than one instance of that unique combination
 WHERE duplicates.row > 1;

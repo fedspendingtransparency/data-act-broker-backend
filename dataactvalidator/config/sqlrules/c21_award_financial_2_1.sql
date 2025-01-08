@@ -7,18 +7,18 @@
 
 SELECT NULL AS "source_row_number",
     award_financial_records.display_tas AS "source_value_tas",
-    award_financial_records.pa_reporting_key AS "source_value_pa_reporting_key",
+    award_financial_records.program_activity_reporting_key AS "source_value_program_activity_reporting_key",
     award_financial_records.prior_year_adjustment AS "source_value_prior_year_adjustment",
     ussgl480100_undelivered_or_fyb_sum_c AS "source_value_ussgl480100_undelivered_or_fyb_sum_c",
     ussgl480100_undelivered_or_cpe_sum_c AS "source_value_ussgl480100_undelivered_or_cpe_sum_c",
-    ussgl480110_reinstated_del_cpe_sum_c AS "source_value_ussgl480110_reinstated_del_cpe_sum_c",
+    ussgl480110_rein_undel_ord_cpe_sum_c AS "source_value_ussgl480110_rein_undel_ord_cpe_sum_c",
     ussgl483100_undelivered_or_cpe_sum_c AS "source_value_ussgl483100_undelivered_or_cpe_sum_c",
     ussgl488100_upward_adjustm_cpe_sum_c AS "source_value_ussgl488100_upward_adjustm_cpe_sum_c",
     obligations_undelivered_or_fyb_sum_c AS "source_value_obligations_undelivered_or_fyb_sum_c",
     obligations_undelivered_or_cpe_sum_c AS "source_value_obligations_undelivered_or_cpe_sum_c",
     ussgl490100_delivered_orde_fyb_sum_c AS "source_value_ussgl490100_delivered_orde_fyb_sum_c",
     ussgl490100_delivered_orde_cpe_sum_c AS "source_value_ussgl490100_delivered_orde_cpe_sum_c",
-    ussgl490110_reinstated_del_cpe_sum_c AS "source_value_ussgl490110_reinstated_del_cpe_sum_c",
+    ussgl490110_rein_deliv_ord_cpe_sum_c AS "source_value_ussgl490110_rein_deliv_ord_cpe_sum_c",
     ussgl493100_delivered_orde_cpe_sum_c AS "source_value_ussgl493100_delivered_orde_cpe_sum_c",
     ussgl498100_upward_adjustm_cpe_sum_c AS "source_value_ussgl498100_upward_adjustm_cpe_sum_c",
     obligations_delivered_orde_fyb_sum_c AS "source_value_obligations_delivered_orde_fyb_sum_c",
@@ -45,14 +45,14 @@ SELECT NULL AS "source_row_number",
     deobligations_recov_by_awa_cpe_sum_c AS "source_value_deobligations_recov_by_awa_cpe_sum_c",
     ussgl480100_undelivered_or_fyb_sum_b AS "target_value_ussgl480100_undelivered_or_fyb_sum_b",
     ussgl480100_undelivered_or_cpe_sum_b AS "target_value_ussgl480100_undelivered_or_cpe_sum_b",
-    ussgl480110_reinstated_del_cpe_sum_b AS "target_value_ussgl480110_reinstated_del_cpe_sum_b",
+    ussgl480110_rein_undel_ord_cpe_sum_b AS "target_value_ussgl480110_rein_undel_ord_cpe_sum_b",
     ussgl483100_undelivered_or_cpe_sum_b AS "target_value_ussgl483100_undelivered_or_cpe_sum_b",
     ussgl488100_upward_adjustm_cpe_sum_b AS "target_value_ussgl488100_upward_adjustm_cpe_sum_b",
     obligations_undelivered_or_fyb_sum_b AS "target_value_obligations_undelivered_or_fyb_sum_b",
     obligations_undelivered_or_cpe_sum_b AS "target_value_obligations_undelivered_or_cpe_sum_b",
     ussgl490100_delivered_orde_fyb_sum_b AS "target_value_ussgl490100_delivered_orde_fyb_sum_b",
     ussgl490100_delivered_orde_cpe_sum_b AS "target_value_ussgl490100_delivered_orde_cpe_sum_b",
-    ussgl490110_reinstated_del_cpe_sum_b AS "target_value_ussgl490110_reinstated_del_cpe_sum_b",
+    ussgl490110_rein_deliv_ord_cpe_sum_b AS "target_value_ussgl490110_rein_deliv_ord_cpe_sum_b",
     ussgl493100_delivered_orde_cpe_sum_b AS "target_value_ussgl493100_delivered_orde_cpe_sum_b",
     ussgl498100_upward_adjustm_cpe_sum_b AS "target_value_ussgl498100_upward_adjustm_cpe_sum_b",
     obligations_delivered_orde_fyb_sum_b AS "target_value_obligations_delivered_orde_fyb_sum_b",
@@ -88,9 +88,9 @@ SELECT NULL AS "source_row_number",
             THEN 'ussgl480100_undelivered_or_cpe_sum: ' || (ussgl480100_undelivered_or_cpe_sum_c - ussgl480100_undelivered_or_cpe_sum_b)
             ELSE NULL
             END,
-        CASE WHEN ussgl480110_reinstated_del_cpe_sum_c < ussgl480110_reinstated_del_cpe_sum_b
-                AND COALESCE(ussgl480110_reinstated_del_cpe_sum_c - ussgl480110_reinstated_del_cpe_sum_b, 0) != 0
-            THEN 'ussgl480110_reinstated_del_cpe_sum: ' || (ussgl480110_reinstated_del_cpe_sum_c - ussgl480110_reinstated_del_cpe_sum_b)
+        CASE WHEN ussgl480110_rein_undel_ord_cpe_sum_c < ussgl480110_rein_undel_ord_cpe_sum_b
+                AND COALESCE(ussgl480110_rein_undel_ord_cpe_sum_c - ussgl480110_rein_undel_ord_cpe_sum_b, 0) != 0
+            THEN 'ussgl480110_rein_undel_ord_cpe_sum: ' || (ussgl480110_rein_undel_ord_cpe_sum_c - ussgl480110_rein_undel_ord_cpe_sum_b)
             ELSE NULL
             END,
         CASE WHEN ussgl483100_undelivered_or_cpe_sum_c < ussgl483100_undelivered_or_cpe_sum_b
@@ -123,9 +123,9 @@ SELECT NULL AS "source_row_number",
             THEN 'ussgl490100_delivered_orde_cpe_sum: ' || (ussgl490100_delivered_orde_cpe_sum_c - ussgl490100_delivered_orde_cpe_sum_b)
             ELSE NULL
             END,
-        CASE WHEN ussgl490110_reinstated_del_cpe_sum_c < ussgl490110_reinstated_del_cpe_sum_b
-                AND COALESCE(ussgl490110_reinstated_del_cpe_sum_c - ussgl490110_reinstated_del_cpe_sum_b, 0) != 0
-            THEN 'ussgl490110_reinstated_del_cpe_sum: ' || (ussgl490110_reinstated_del_cpe_sum_c - ussgl490110_reinstated_del_cpe_sum_b)
+        CASE WHEN ussgl490110_rein_deliv_ord_cpe_sum_c < ussgl490110_rein_deliv_ord_cpe_sum_b
+                AND COALESCE(ussgl490110_rein_deliv_ord_cpe_sum_c - ussgl490110_rein_deliv_ord_cpe_sum_b, 0) != 0
+            THEN 'ussgl490110_rein_deliv_ord_cpe_sum: ' || (ussgl490110_rein_deliv_ord_cpe_sum_c - ussgl490110_rein_deliv_ord_cpe_sum_b)
             ELSE NULL
             END,
         CASE WHEN ussgl493100_delivered_orde_cpe_sum_c < ussgl493100_delivered_orde_cpe_sum_b
@@ -249,19 +249,19 @@ SELECT NULL AS "source_row_number",
             ELSE NULL
             END) AS "difference",
     award_financial_records.display_tas AS "uniqueid_TAS",
-    award_financial_records.pa_reporting_key AS "uniqueid_ProgramActivityReportingKey"
+    award_financial_records.program_activity_reporting_key AS "uniqueid_ProgramActivityReportingKey"
 -- This first subquery is selecting the sum of 32 elements in File C based on TAS, PAC, PAN, and Submission ID
 FROM (
     SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
         SUM(af.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_c,
-        SUM(af.ussgl480110_reinstated_del_cpe) AS ussgl480110_reinstated_del_cpe_sum_c,
+        SUM(af.ussgl480110_rein_undel_ord_cpe) AS ussgl480110_rein_undel_ord_cpe_sum_c,
         SUM(af.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_c,
         SUM(af.ussgl488100_upward_adjustm_cpe) AS ussgl488100_upward_adjustm_cpe_sum_c,
         SUM(af.obligations_undelivered_or_fyb) AS obligations_undelivered_or_fyb_sum_c,
         SUM(af.obligations_undelivered_or_cpe) AS obligations_undelivered_or_cpe_sum_c,
         SUM(af.ussgl490100_delivered_orde_fyb) AS ussgl490100_delivered_orde_fyb_sum_c,
         SUM(af.ussgl490100_delivered_orde_cpe) AS ussgl490100_delivered_orde_cpe_sum_c,
-        SUM(af.ussgl490110_reinstated_del_cpe) AS ussgl490110_reinstated_del_cpe_sum_c,
+        SUM(af.ussgl490110_rein_deliv_ord_cpe) AS ussgl490110_rein_deliv_ord_cpe_sum_c,
         SUM(af.ussgl493100_delivered_orde_cpe) AS ussgl493100_delivered_orde_cpe_sum_c,
         SUM(af.ussgl498100_upward_adjustm_cpe) AS ussgl498100_upward_adjustm_cpe_sum_c,
         SUM(af.obligations_delivered_orde_fyb) AS obligations_delivered_orde_fyb_sum_c,
@@ -287,15 +287,15 @@ FROM (
         SUM(af.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_c,
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
-        UPPER(af.pa_reporting_key) AS pa_reporting_key,
+        UPPER(af.program_activity_reporting_key) AS program_activity_reporting_key,
         af.display_tas,
         UPPER(af.prior_year_adjustment) AS prior_year_adjustment
     FROM award_financial AS af
     WHERE af.submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
-        AND COALESCE(pa_reporting_key, '') <> ''
+        AND COALESCE(program_activity_reporting_key, '') <> ''
     GROUP BY af.tas,
-        UPPER(af.pa_reporting_key),
+        UPPER(af.program_activity_reporting_key),
         af.display_tas,
         af.submission_id,
         UPPER(af.prior_year_adjustment)
@@ -306,14 +306,14 @@ FROM (
 FULL OUTER JOIN (
     SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_b,
-        SUM(op.ussgl480110_reinstated_del_cpe) AS ussgl480110_reinstated_del_cpe_sum_b,
+        SUM(op.ussgl480110_rein_undel_ord_cpe) AS ussgl480110_rein_undel_ord_cpe_sum_b,
         SUM(op.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_b,
         SUM(op.ussgl488100_upward_adjustm_cpe) AS ussgl488100_upward_adjustm_cpe_sum_b,
         SUM(op.obligations_undelivered_or_fyb) AS obligations_undelivered_or_fyb_sum_b,
         SUM(op.obligations_undelivered_or_cpe) AS obligations_undelivered_or_cpe_sum_b,
         SUM(op.ussgl490100_delivered_orde_fyb) AS ussgl490100_delivered_orde_fyb_sum_b,
         SUM(op.ussgl490100_delivered_orde_cpe) AS ussgl490100_delivered_orde_cpe_sum_b,
-        SUM(op.ussgl490110_reinstated_del_cpe) AS ussgl490110_reinstated_del_cpe_sum_b,
+        SUM(op.ussgl490110_rein_deliv_ord_cpe) AS ussgl490110_rein_deliv_ord_cpe_sum_b,
         SUM(op.ussgl493100_delivered_orde_cpe) AS ussgl493100_delivered_orde_cpe_sum_b,
         SUM(op.ussgl498100_upward_adjustm_cpe) AS ussgl498100_upward_adjustm_cpe_sum_b,
         SUM(op.obligations_delivered_orde_fyb) AS obligations_delivered_orde_fyb_sum_b,
@@ -339,34 +339,34 @@ FULL OUTER JOIN (
         SUM(op.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_b,
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
-        UPPER(op.pa_reporting_key) AS pa_reporting_key,
+        UPPER(op.program_activity_reporting_key) AS program_activity_reporting_key,
         UPPER(op.prior_year_adjustment) AS prior_year_adjustment
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
-        AND COALESCE(pa_reporting_key, '') <> ''
+        AND COALESCE(program_activity_reporting_key, '') <> ''
     GROUP BY op.tas,
-        UPPER(op.pa_reporting_key),
+        UPPER(op.program_activity_reporting_key),
         op.submission_id,
         UPPER(op.prior_year_adjustment)
 ) AS object_class_records
     -- We join these two subqueries based on the same TAS, PAC, and PAN combination
     ON object_class_records.tas = award_financial_records.tas
-    AND object_class_records.pa_reporting_key = award_financial_records.pa_reporting_key
+    AND object_class_records.program_activity_reporting_key = award_financial_records.program_activity_reporting_key
     AND object_class_records.prior_year_adjustment = award_financial_records.prior_year_adjustment
 -- For the final five values, the numbers in file B are expected to be larger than those in file C. For the rest,
 -- they are expected to be larger in absolute value but negative, therefore farther left on the number line and smaller
 -- in numeric value
 WHERE ussgl480100_undelivered_or_fyb_sum_c < ussgl480100_undelivered_or_fyb_sum_b
     OR ussgl480100_undelivered_or_cpe_sum_c < ussgl480100_undelivered_or_cpe_sum_b
-    OR ussgl480110_reinstated_del_cpe_sum_c < ussgl480110_reinstated_del_cpe_sum_b
+    OR ussgl480110_rein_undel_ord_cpe_sum_c < ussgl480110_rein_undel_ord_cpe_sum_b
     OR ussgl483100_undelivered_or_cpe_sum_c < ussgl483100_undelivered_or_cpe_sum_b
     OR ussgl488100_upward_adjustm_cpe_sum_c < ussgl488100_upward_adjustm_cpe_sum_b
     OR obligations_undelivered_or_fyb_sum_c < obligations_undelivered_or_fyb_sum_b
     OR obligations_undelivered_or_cpe_sum_c < obligations_undelivered_or_cpe_sum_b
     OR ussgl490100_delivered_orde_fyb_sum_c < ussgl490100_delivered_orde_fyb_sum_b
     OR ussgl490100_delivered_orde_cpe_sum_c < ussgl490100_delivered_orde_cpe_sum_b
-    OR ussgl490110_reinstated_del_cpe_sum_c < ussgl490110_reinstated_del_cpe_sum_b
+    OR ussgl490110_rein_deliv_ord_cpe_sum_c < ussgl490110_rein_deliv_ord_cpe_sum_b
     OR ussgl493100_delivered_orde_cpe_sum_c < ussgl493100_delivered_orde_cpe_sum_b
     OR ussgl498100_upward_adjustm_cpe_sum_c < ussgl498100_upward_adjustm_cpe_sum_b
     OR obligations_delivered_orde_fyb_sum_c < obligations_delivered_orde_fyb_sum_b

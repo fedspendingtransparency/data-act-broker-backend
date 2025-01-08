@@ -25,7 +25,7 @@ WITH c27_prev_sub_{0} AS
 c27_prev_outlays_{0} AS (
     SELECT tas,
         disaster_emergency_fund_code,
-        pa_reporting_key,
+        program_activity_reporting_key,
         object_class,
         by_direct_reimbursable_fun,
         fain,
@@ -38,13 +38,13 @@ c27_prev_outlays_{0} AS (
     JOIN c27_prev_sub_{0} AS sub
         ON sub.submission_id = paf.submission_id
     WHERE COALESCE(gross_outlay_amount_by_awa_cpe, 0) <> 0
-        AND COALESCE(pa_reporting_key, '') <> ''
+        AND COALESCE(program_activity_reporting_key, '') <> ''
         AND UPPER(COALESCE(prior_year_adjustment, 'X')) = 'X')
 SELECT
     NULL AS "row_number",
     po.tas,
     po.disaster_emergency_fund_code,
-    po.pa_reporting_key,
+    po.program_activity_reporting_key,
     po.object_class,
     po.by_direct_reimbursable_fun,
     po.prior_year_adjustment,
@@ -55,7 +55,7 @@ SELECT
     po.gross_outlay_amount_by_awa_cpe,
     po.tas AS "uniqueid_TAS",
     po.disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
-    po.pa_reporting_key AS "uniqueid_ProgramActivityReportingKey",
+    po.program_activity_reporting_key AS "uniqueid_ProgramActivityReportingKey",
     po.object_class AS "uniqueid_ObjectClass",
     po.by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
     po.prior_year_adjustment AS "uniqueid_PriorYearAdjustment",
@@ -75,7 +75,7 @@ WHERE NOT EXISTS (
         AND (UPPER(COALESCE(po.disaster_emergency_fund_code, '')) = UPPER(COALESCE(af.disaster_emergency_fund_code, ''))
             OR UPPER(COALESCE(po.disaster_emergency_fund_code, '')) = '9')
         AND UPPER(COALESCE(po.object_class, '')) = UPPER(COALESCE(af.object_class, ''))
-        AND UPPER(COALESCE(po.pa_reporting_key, '')) = UPPER(COALESCE(af.pa_reporting_key, ''))
+        AND UPPER(COALESCE(po.program_activity_reporting_key, '')) = UPPER(COALESCE(af.program_activity_reporting_key, ''))
         AND UPPER(COALESCE(po.object_class, '')) = UPPER(COALESCE(af.object_class, ''))
         AND UPPER(COALESCE(po.by_direct_reimbursable_fun, '')) = UPPER(COALESCE(af.by_direct_reimbursable_fun, ''))
         AND UPPER(COALESCE(po.prior_year_adjustment, '')) = UPPER(COALESCE(af.prior_year_adjustment, ''))
