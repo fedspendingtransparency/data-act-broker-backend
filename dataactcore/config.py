@@ -39,7 +39,7 @@ for config_path in path_list:
         CONFIG_CATEGORIES[category_name].update(CONFIG_ALL.get(category_name, {}))
 
 # Override any values with secrets if applicable
-# Must happen before additional local/remote setup
+# Must occur before additional local/remote setup
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     # Parameter Store
     account = 'prod' if env in ('prod', 'staging') else 'nonprod'
@@ -49,7 +49,7 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     secrets_yaml_param = ssm_client.get_parameter(Name=secrets_param_name, WithDecryption=True)
     SECRETS_CONFIG = yaml.load(secrets_yaml_param['Parameter']['Value'], Loader=yaml.FullLoader) or {}
 else:
-    # Local
+    # Local Secrets
     SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
     try:
         with open(SECRET_PATH) as c:
