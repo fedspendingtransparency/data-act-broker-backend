@@ -38,6 +38,30 @@ for config_path in path_list:
     for category_name in CONFIG_CATEGORIES:
         CONFIG_CATEGORIES[category_name].update(CONFIG_ALL.get(category_name, {}))
 
+# Override any values with secrets if applicable
+# Must happen before additional local/remote setup
+if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
+    # Parameter Store
+    account = 'prod' if env in ('prod', 'staging') else 'nonprod'
+    secrets_param_name = f'/{account}/broker/broker_{env}_secrets'
+
+    ssm_client = boto3.client('ssm', region_name=CONFIG_BROKER['aws_region'])
+    secrets_yaml_param = ssm_client.get_parameter(Name=secrets_param_name, WithDecryption=True)
+    SECRETS_CONFIG = yaml.load(secrets_yaml_param['Parameter']['Value'], Loader=yaml.FullLoader) or {}
+else:
+    # Local
+    SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
+    try:
+        with open(SECRET_PATH) as c:
+            # Default to empty dictionary if file is empty
+            SECRETS_CONFIG = yaml.load(c, Loader=yaml.FullLoader) or {}
+    except IOError:
+        raise IOError('Error reading a config file. Please make sure this file exists'
+                      ' before starting the Data Broker: {}'.format(SECRET_PATH))
+if SECRETS_CONFIG:
+    for category_name in CONFIG_CATEGORIES:
+        CONFIG_CATEGORIES[category_name].update(SECRETS_CONFIG.get(category_name, {}))
+
 # Get path to installation
 CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
 
@@ -54,14 +78,6 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
                            format(k))
         if not CONFIG_BROKER[k]:
             raise ValueError('Config error: use_aws is True but {} value is missing'.format(k))
-
-    # Parameter Store secrets
-    account = 'prod' if env in ('prod', 'staging') else 'nonprod'
-    secrets_param_name = f'/{account}/broker/broker_{env}_secrets'
-
-    ssm_client = boto3.client('ssm', region_name=CONFIG_BROKER['aws_region'])
-    secrets_yaml_param = ssm_client.get_parameter(Name=secrets_param_name, WithDecryption=True)
-    SECRETS_CONFIG = yaml.load(secrets_yaml_param['Parameter']['Value'], Loader=yaml.FullLoader) or {}
 else:
     CONFIG_BROKER['local'] = True
     CONFIG_BROKER['aws_bucket'] = None
@@ -74,21 +90,6 @@ else:
         error_report_path = os.path.join(expanduser('~'), 'data_act_broker')
     normpath(error_report_path)
     CONFIG_SERVICES['error_report_path'] = error_report_path
-
-    # Local secrets
-    SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
-    try:
-        with open(SECRET_PATH) as c:
-            # Default to empty dictionary if file is empty
-            SECRETS_CONFIG = yaml.load(c, Loader=yaml.FullLoader) or {}
-    except IOError:
-        raise IOError('Error reading a config file. Please make sure this file exists'
-                      ' before starting the Data Broker: {}'.format(SECRET_PATH))
-
-# Override any values with secrets if applicable
-if SECRETS_CONFIG:
-    for category_name in CONFIG_CATEGORIES:
-        CONFIG_CATEGORIES[category_name].update(SECRETS_CONFIG.get(category_name, {}))
 
 storage_path = CONFIG_BROKER['d_file_storage_path']
 if storage_path[-1] != os.path.sep:
