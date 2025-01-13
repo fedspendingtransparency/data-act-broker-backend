@@ -226,8 +226,8 @@ def main():
                         help='Specify start date in mm/dd/yyyy format to compare to mod date. Overrides --auto option.',
                         nargs=1, type=str)
     parser.add_argument('--end_date',
-                        help='Specify end date in mm/dd/yyyy format to compare to mod date. Inclusive.'
-                            + 'Overrides --auto option.',
+                        help='Specify end date in mm/dd/yyyy format to compare to mod date. Inclusive. '
+                             + 'Overrides --auto option.',
                         nargs=1, type=str)
     parser.add_argument('--auto',
                         help='Polls S3 for the most recently uploaded FABS_for_SAM file, '
@@ -295,9 +295,9 @@ def main():
 
     filename = f'FABS_for_SAM_{formatted_today}.csv'
     if args.start_date or args.end_date:
-        start_string = f"_from_{datetime.strptime(start_log,'%m/%d/%Y').strftime('%Y%m%d')}" if args.start_date \
+        start_string = f"_from_{datetime.strptime(start_log, '%m/%d/%Y').strftime('%Y%m%d')}" if args.start_date \
             else ''
-        end_string = f'_to_{datetime.strptime(end_log,'%m/%d/%Y').strftime('%Y%m%d')}' if args.end_date else ''
+        end_string = f'_to_{datetime.strptime(end_log, '%m/%d/%Y').strftime('%Y%m%d')}' if args.end_date else ''
         filename = f'FABS_for_SAM{start_string}{end_string}.csv'
 
     local_file = os.path.join(os.getcwd(), filename)
