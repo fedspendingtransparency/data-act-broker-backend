@@ -74,3 +74,18 @@ def test_grouping(database):
     assert len(result_list) == 1
     assert result_list[0].base_obligation_date == '2000-03-22'
     assert result_list[0].last_modified_date == '2024-02-04'
+
+
+def test_range(database):
+    sess = database.session
+    pf1 = PublishedFABSFactory(updated_at=date(2024, 2, 1), record_type=2, assistance_type='04', fain='tooearly')
+    pf2 = PublishedFABSFactory(updated_at=date(2024, 2, 4), record_type=2, assistance_type='04', fain='justright')
+    pf3 = PublishedFABSFactory(updated_at=date(2024, 2, 8), record_type=2, assistance_type='04', fain='toolate')
+    sess.add_all([pf1, pf2, pf3])
+    sess.commit()
+
+    results = sess.execute(get_award_updates_query('02/03/2024', '02/05/2024'))
+    result_list = results.all()
+
+    assert len(result_list) == 1
+    assert result_list[0].federal_award_id == 'justright'
