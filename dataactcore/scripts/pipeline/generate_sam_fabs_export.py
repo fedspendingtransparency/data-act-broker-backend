@@ -47,7 +47,7 @@ def get_award_updates_query(start_date=None, end_date=None):
     query_filter = ' AND '.join(filter_array)
 
     # Query Summary:
-    # Each row is the latest instance of any transaction that has been updated since the specified start_date
+    # Each row is the latest instance of any transaction that has been updated in the requested time period
     update_query = f"""
         WITH updated_transactions AS (
             SELECT *
