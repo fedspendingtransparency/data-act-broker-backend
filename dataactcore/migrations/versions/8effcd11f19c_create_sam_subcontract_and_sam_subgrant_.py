@@ -1,13 +1,13 @@
-"""Create sam subaward tables
+"""Create sam_subcontract and sam_subgrant tables
 
-Revision ID: 336bc43d70cd
+Revision ID: 8effcd11f19c
 Revises: 2eebdba5bed7
-Create Date: 2025-01-10 18:47:20.531090
+Create Date: 2025-01-14 18:53:28.837319
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '336bc43d70cd'
+revision = '8effcd11f19c'
 down_revision = '2eebdba5bed7'
 branch_labels = None
 depends_on = None
@@ -37,21 +37,12 @@ def upgrade_data_broker():
     sa.Column('subaward_report_number', sa.String(), nullable=True),
     sa.Column('unique_award_key', sa.String(), nullable=True),
     sa.Column('date_submitted', sa.Date(), nullable=True),
-    sa.Column('report_type', sa.String(), nullable=True),
-    sa.Column('transaction_type', sa.String(), nullable=True),
     sa.Column('program_title', sa.String(), nullable=True),
     sa.Column('contract_agency_code', sa.String(), nullable=True),
     sa.Column('contract_idv_agency_code', sa.String(), nullable=True),
-    sa.Column('treasury_symbol', sa.String(), nullable=True),
-    sa.Column('prime_recovery_model_q1', sa.Boolean(), nullable=True),
-    sa.Column('prime_recovery_model_q2', sa.Boolean(), nullable=True),
-    sa.Column('prime_ppop_address_line1', sa.String(), nullable=True),
-    sa.Column('report_year', sa.String(), nullable=True),
-    sa.Column('report_month', sa.String(), nullable=True),
     sa.Column('award_number', sa.String(), nullable=True),
     sa.Column('award_amount', sa.String(), nullable=True),
     sa.Column('action_date', sa.Date(), nullable=True),
-    sa.Column('duns', sa.String(), nullable=True),
     sa.Column('uei', sa.String(), nullable=True),
     sa.Column('legal_business_name', sa.String(), nullable=True),
     sa.Column('parent_uei', sa.String(), nullable=True),
@@ -74,17 +65,18 @@ def upgrade_data_broker():
     sa.Column('ppop_city_name', sa.String(), nullable=True),
     sa.Column('ppop_zip_code', sa.String(), nullable=True),
     sa.Column('ppop_congressional_district', sa.String(), nullable=True),
-    sa.Column('business_type_codes', sa.ARRAY(sa.Text()), nullable=True),
-    sa.Column('business_type_names', sa.ARRAY(sa.Text()), nullable=True),
     sa.Column('description', sa.String(), nullable=True),
-    sa.Column('funding_agency_code', sa.String(), nullable=True),
-    sa.Column('funding_agency_name', sa.String(), nullable=True),
-    sa.Column('funding_office_code', sa.String(), nullable=True),
-    sa.Column('funding_office_name', sa.String(), nullable=True),
     sa.Column('naics', sa.String(), nullable=True),
-    sa.Column('recovery_model_q1', sa.Boolean(), nullable=True),
-    sa.Column('recovery_model_q2', sa.Boolean(), nullable=True),
-    sa.Column('recovery_amount', sa.String(), nullable=True),
+    sa.Column('high_comp_officer1_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer1_amount', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer2_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer2_amount', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer3_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer3_amount', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer4_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer4_amount', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer5_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer5_amount', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('sam_subcontract_id')
     )
     op.create_index(op.f('ix_sam_subcontract_subaward_report_id'), 'sam_subcontract', ['subaward_report_id'], unique=False)
@@ -98,18 +90,10 @@ def upgrade_data_broker():
     sa.Column('subaward_report_number', sa.String(), nullable=True),
     sa.Column('unique_award_key', sa.String(), nullable=True),
     sa.Column('date_submitted', sa.Date(), nullable=True),
-    sa.Column('prime_dunsplus4', sa.String(), nullable=True),
-    sa.Column('prime_compensation_q1', sa.Boolean(), nullable=True),
-    sa.Column('prime_compensation_q2', sa.Boolean(), nullable=True),
     sa.Column('prime_ppop_address_line1', sa.String(), nullable=True),
-    sa.Column('report_year', sa.String(), nullable=True),
-    sa.Column('report_month', sa.String(), nullable=True),
     sa.Column('award_number', sa.String(), nullable=True),
     sa.Column('award_amount', sa.String(), nullable=True),
     sa.Column('action_date', sa.Date(), nullable=True),
-    sa.Column('duns', sa.String(), nullable=True),
-    sa.Column('dunsplus4', sa.String(), nullable=True),
-    sa.Column('parent_duns', sa.String(), nullable=True),
     sa.Column('uei', sa.String(), nullable=True),
     sa.Column('legal_business_name', sa.String(), nullable=True),
     sa.Column('parent_uei', sa.String(), nullable=True),
@@ -132,16 +116,17 @@ def upgrade_data_broker():
     sa.Column('ppop_city_name', sa.String(), nullable=True),
     sa.Column('ppop_zip_code', sa.String(), nullable=True),
     sa.Column('ppop_congressional_district', sa.String(), nullable=True),
-    sa.Column('business_type_codes', sa.ARRAY(sa.Text()), nullable=True),
-    sa.Column('business_type_names', sa.ARRAY(sa.Text()), nullable=True),
     sa.Column('description', sa.String(), nullable=True),
-    sa.Column('funding_agency_code', sa.String(), nullable=True),
-    sa.Column('funding_agency_name', sa.String(), nullable=True),
-    sa.Column('federal_agency_code', sa.String(), nullable=True),
-    sa.Column('federal_agency_name', sa.String(), nullable=True),
-    sa.Column('assistance_listing_numbers', sa.ARRAY(sa.Text()), nullable=True),
-    sa.Column('compensation_q1', sa.Boolean(), nullable=True),
-    sa.Column('compensation_q2', sa.Boolean(), nullable=True),
+    sa.Column('high_comp_officer1_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer1_amount', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer2_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer2_amount', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer3_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer3_amount', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer4_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer4_amount', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer5_full_na', sa.Text(), nullable=True),
+    sa.Column('high_comp_officer5_amount', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('sam_subgrant_id')
     )
     op.create_index(op.f('ix_sam_subgrant_subaward_report_id'), 'sam_subgrant', ['subaward_report_id'], unique=False)
