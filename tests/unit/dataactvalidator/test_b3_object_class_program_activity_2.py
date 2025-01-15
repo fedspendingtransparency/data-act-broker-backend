@@ -8,7 +8,7 @@ _FILE = 'b3_object_class_program_activity_2'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'prior_year_adjustment', 'obligations_undelivered_or_cpe',
-                       'ussgl480100_undelivered_or_cpe', 'ussgl480110_reinstated_del_cpe',
+                       'ussgl480100_undelivered_or_cpe', 'ussgl480110_rein_undel_ord_cpe',
                        'ussgl483100_undelivered_or_cpe', 'ussgl488100_upward_adjustm_cpe', 'difference', 'uniqueid_TAS',
                        'uniqueid_DisasterEmergencyFundCode', 'uniqueid_ProgramActivityCode',
                        'uniqueid_ProgramActivityName', 'uniqueid_ObjectClass',
@@ -28,18 +28,18 @@ def test_success(database):
                                              ussgl480100_undelivered_or_cpe=value1,
                                              ussgl483100_undelivered_or_cpe=value2,
                                              ussgl488100_upward_adjustm_cpe=value3,
-                                             ussgl480110_reinstated_del_cpe=value4,
+                                             ussgl480110_rein_undel_ord_cpe=value4,
                                              prior_year_adjustment='X')
     ocpa_null = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe=value1,
                                                   ussgl480100_undelivered_or_cpe=None,
                                                   ussgl483100_undelivered_or_cpe=None,
                                                   ussgl488100_upward_adjustm_cpe=value1,
-                                                  ussgl480110_reinstated_del_cpe=None,
+                                                  ussgl480110_rein_undel_ord_cpe=None,
                                                   prior_year_adjustment='x')
     # Different values, different PYA
     ocpa_pya = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe=1, ussgl480100_undelivered_or_cpe=0,
                                                  ussgl483100_undelivered_or_cpe=0, ussgl488100_upward_adjustm_cpe=0,
-                                                 ussgl480110_reinstated_del_cpe=2, prior_year_adjustment='A')
+                                                 ussgl480110_rein_undel_ord_cpe=2, prior_year_adjustment='A')
 
     assert number_of_errors(_FILE, database, models=[ocpa, ocpa_null, ocpa_pya]) == 0
 
@@ -52,7 +52,7 @@ def test_failure(database):
                                              ussgl480100_undelivered_or_cpe=value2,
                                              ussgl483100_undelivered_or_cpe=value2,
                                              ussgl488100_upward_adjustm_cpe=value2,
-                                             ussgl480110_reinstated_del_cpe=value2,
+                                             ussgl480110_rein_undel_ord_cpe=value2,
                                              prior_year_adjustment='x')
 
     assert number_of_errors(_FILE, database, models=[ocpa]) == 1
