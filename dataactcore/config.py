@@ -42,8 +42,8 @@ for config_path in path_list:
 # Must occur before additional local/remote setup
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     # Parameter Store
-    account = 'prod' if env in ('prod', 'staging') else 'nonprod'
-    secrets_param_name = f'/{account}/broker/broker_{env}_secrets'
+    env_group = 'prod' if env == 'prod' else 'nonprod'
+    secrets_param_name = f'/{env_group}/broker/broker_{env}_secrets'
 
     ssm_client = boto3.client('ssm', region_name=CONFIG_BROKER['aws_region'])
     secrets_yaml_param = ssm_client.get_parameter(Name=secrets_param_name, WithDecryption=True)
