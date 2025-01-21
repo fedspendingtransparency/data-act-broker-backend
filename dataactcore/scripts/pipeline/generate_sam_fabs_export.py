@@ -2,9 +2,9 @@ import argparse
 import re
 import logging
 import os
-import datetime
 import json
 
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from dataactcore.broker_logging import configure_logging
@@ -28,18 +28,26 @@ BUCKET_NAME = CONFIG_BROKER['sam']['extract']['bucket_name']
 BUCKET_PREFIX = CONFIG_BROKER['sam']['extract']['bucket_prefix']
 
 
-def get_award_updates_query(mod_date):
+def get_award_updates_query(start_date=None, end_date=None):
     """ Creates a string to run as the update query. This is needed because the mod date is a variable and therefore
         a constant cannot be created.
 
         Args:
-            mod_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
+            start_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
+            end_date: a string in the mm/dd/yyyy format of the date until which to run the SQL
 
         Returns:
             A string representing the SQL query to run.
     """
+    filter_array = []
+    if start_date:
+        filter_array.append(f'updated_at >= \'{start_date}\'')
+    if end_date:
+        filter_array.append(f'updated_at < \'{end_date}\'')
+    query_filter = ' AND '.join(filter_array)
+
     # Query Summary:
-    # Each row is the latest instance of any transaction that has been updated since the specified mod_date
+    # Each row is the latest instance of any transaction that has been updated in the requested time period
     update_query = f"""
         WITH updated_transactions AS (
             SELECT *
@@ -113,7 +121,7 @@ def get_award_updates_query(mod_date):
                         ORDER BY updated_at DESC
                     ) AS row_num
                 FROM published_fabs
-                WHERE updated_at >= '{mod_date}') duplicates
+                WHERE {query_filter}) duplicates
             WHERE duplicates.row_num = 1),
         grouped_transaction AS (
             SELECT unique_award_key,
@@ -212,10 +220,14 @@ def get_award_updates_query(mod_date):
 
 
 def main():
-    now = datetime.datetime.now()
+    now = datetime.now()
     parser = argparse.ArgumentParser(description='Pull')
-    parser.add_argument('--date',
-                        help='Specify modified date in mm/dd/yyyy format. Overrides --auto option.',
+    parser.add_argument('--start_date',
+                        help='Specify start date in mm/dd/yyyy format to compare to mod date. Overrides --auto option.',
+                        nargs=1, type=str)
+    parser.add_argument('--end_date',
+                        help='Specify end date in mm/dd/yyyy format to compare to mod date. Inclusive. '
+                             + 'Overrides --auto option.',
                         nargs=1, type=str)
     parser.add_argument('--auto',
                         help='Polls S3 for the most recently uploaded FABS_for_SAM file, '
@@ -230,51 +242,82 @@ def main():
         'start_date': ''
     }
 
-    if args.auto:
+    start_date = None
+    end_date = None
+    start_log = 'project start'
+    end_log = 'present'
+
+    if args.auto and not (start_date or end_date):
         sess = GlobalDB.db().session
         # find yesterday and the date of the last successful generation
-        yesterday = datetime.datetime.now().date() - relativedelta(days=1)
+        yesterday = datetime.now().date() - relativedelta(days=1)
         last_update = sess.query(ExternalDataLoadDate). \
             filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['fabs_extract']).one_or_none()
-        mod_date = last_update.last_load_date_start.date() if last_update else yesterday
-        mod_date = mod_date.strftime('%m/%d/%Y')
+        start_date = last_update.last_load_date_start.date() if last_update else yesterday
+        start_date = start_date.strftime('%m/%d/%Y')
+        start_log = start_date
 
-    if args.date:
-        arg_date = args.date[0]
+    if args.start_date:
+        arg_date = args.start_date[0]
         given_date = arg_date.split('/')
         if not re.match(r'^\d{2}$', given_date[0]) or not re.match(r'^\d{2}$', given_date[1])\
                 or not re.match(r'^\d{4}$', given_date[2]):
-            logger.error("Date " + arg_date + " not in proper mm/dd/yyyy format")
+            logger.error(f'Date {arg_date} not in proper mm/dd/yyyy format')
             return
-        mod_date = arg_date
+        start_date = arg_date
+        start_log = start_date
 
-    if not mod_date:
-        logger.error("Date or auto setting is required.")
-        return
+    if args.end_date:
+        arg_date = args.end_date[0]
+        given_date = arg_date.split('/')
+        if not re.match(r'^\d{2}$', given_date[0]) or not re.match(r'^\d{2}$', given_date[1])\
+                or not re.match(r'^\d{4}$', given_date[2]):
+            logger.error(f'Date {arg_date} not in proper mm/dd/yyyy format')
+            return
+        end_date = datetime.strptime(arg_date, '%m/%d/%Y') + relativedelta(days=1)
+        end_date = end_date.strftime('%m/%d/%Y')
+        end_log = end_date
 
-    metrics_json['start_date'] = mod_date
+    # Validate that start/end date have been provided in some way and that they are in the right order
+    if not (start_date or end_date):
+        logger.error('start_date, end_date, or auto setting is required.')
+        raise ValueError('start_date, end_date, or auto setting is required.')
 
-    update_query = get_award_updates_query(mod_date)
+    if start_date and end_date \
+            and datetime.strptime(start_date, '%m/%d/%Y') >= datetime.strptime(end_date, '%m/%d/%Y'):
+        logger.error('Start date cannot be later than end date.')
+        raise ValueError('Start date cannot be later than end date.')
+
+    metrics_json['start_date'] = start_date
+
+    update_query = get_award_updates_query(start_date, end_date)
     formatted_today = now.strftime('%Y%m%d')
 
-    local_file = os.path.join(os.getcwd(), f'FABS_for_SAM_{formatted_today}.csv')
-    file_path = f'{BUCKET_PREFIX}/FABS_for_SAM_{formatted_today}.csv' if CONFIG_BROKER['use_aws'] else local_file
+    filename = f'FABS_for_SAM_{formatted_today}.csv'
+    if args.start_date or args.end_date:
+        start_string = f"_from_{datetime.strptime(start_log, '%m/%d/%Y').strftime('%Y%m%d')}" if args.start_date \
+            else ''
+        end_string = f'_to_{datetime.strptime(end_log, '%m/%d/%Y').strftime('%Y%m%d')}' if args.end_date else ''
+        filename = f'FABS_for_SAM{start_string}{end_string}.csv'
+
+    local_file = os.path.join(os.getcwd(), filename)
+    file_path = f'{BUCKET_PREFIX}/{filename}' if CONFIG_BROKER['use_aws'] else local_file
     sess = GlobalDB.db().session
 
-    logger.info(f"Starting SQL query of financial assistance records from {mod_date} to present...")
+    logger.info(f'Starting SQL query of financial assistance records from {start_log} to {end_log}...')
     write_stream_query(sess, update_query, local_file, file_path, CONFIG_BROKER['local'],
                        generate_headers=True, generate_string=False, bucket=BUCKET_NAME, set_region=False)
     logger.info('Completed SQL query, file written')
 
     # We only want to update the external data load date if it was an automatic run, not a specific one
     if args.auto:
-        update_external_data_load_date(now, datetime.datetime.now(), 'fabs_extract')
+        update_external_data_load_date(now, datetime.now(), 'fabs_extract')
 
-    metrics_json['duration'] = str(datetime.datetime.now() - now)
+    metrics_json['duration'] = str(datetime.now() - now)
 
     with open('generate_sam_fabs_export_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
-    logger.info("Script complete")
+    logger.info('Script complete')
 
 
 if __name__ == '__main__':
