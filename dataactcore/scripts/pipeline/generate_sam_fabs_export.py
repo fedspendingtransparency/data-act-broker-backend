@@ -20,12 +20,7 @@ logger = logging.getLogger(__name__)
 
 '''
 This script is used to pull updated financial assistance records (from --date to present) for SAM.
-It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_PREFIX}) for the most
-recent file that was uploaded, and use the boto3 response for --date.
 '''
-
-BUCKET_NAME = CONFIG_BROKER['sam']['extract']['bucket_name']
-BUCKET_PREFIX = CONFIG_BROKER['sam']['extract']['bucket_prefix']
 
 
 def get_award_updates_query(start_date=None, end_date=None):
@@ -301,12 +296,10 @@ def main():
         filename = f'FABS_for_SAM{start_string}{end_string}.csv'
 
     local_file = os.path.join(os.getcwd(), filename)
-    file_path = f'{BUCKET_PREFIX}/{filename}' if CONFIG_BROKER['use_aws'] else local_file
     sess = GlobalDB.db().session
 
     logger.info(f'Starting SQL query of financial assistance records from {start_log} to {end_log}...')
-    write_stream_query(sess, update_query, local_file, file_path, CONFIG_BROKER['local'],
-                       generate_headers=True, generate_string=False, bucket=BUCKET_NAME, set_region=False)
+    write_stream_query(sess, update_query, local_file, local_file, True, generate_headers=True, generate_string=False)
     logger.info('Completed SQL query, file written')
 
     # We only want to update the external data load date if it was an automatic run, not a specific one
