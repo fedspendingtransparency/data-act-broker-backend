@@ -19,7 +19,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 
 '''
-This script is used to pull updated financial assistance records (from --date to present) for SAM.
+This script iss used to pull updated financial assistance records (from --date to present) for SAM.
 It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_PREFIX}) for the most
 recent file that was uploaded, and use the boto3 response for --date.
 '''
