@@ -26,7 +26,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests failure if PYA is not X, B, P, or Blank """
+    """ Tests failure if PYA is not X, B, or P"""
 
     afs = [
         ObjectClassProgramActivityFactory(prior_year_adjustment=''),
