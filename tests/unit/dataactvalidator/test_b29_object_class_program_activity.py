@@ -14,7 +14,7 @@ def test_column_headers(database):
 def test_success(database):
     """ PYA must be X, B, P, or Blank """
 
-    afs =[
+    afs = [
         ObjectClassProgramActivityFactory(prior_year_adjustment='X'),
         ObjectClassProgramActivityFactory(prior_year_adjustment='x'),
         ObjectClassProgramActivityFactory(prior_year_adjustment='B'),
