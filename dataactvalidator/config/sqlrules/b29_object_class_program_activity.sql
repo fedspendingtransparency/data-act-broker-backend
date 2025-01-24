@@ -5,7 +5,5 @@ SELECT
     display_tas AS "uniqueid_TAS"
 FROM object_class_program_activity
 WHERE (submission_id = {0}
-    AND (UPPER(prior_year_adjustment) NOT IN ('X', 'B', 'P')
-        OR prior_year_adjustment IS NULL
-    )
+    AND UPPER(prior_year_adjustment) NOT IN ('X', 'B', 'P')
 );

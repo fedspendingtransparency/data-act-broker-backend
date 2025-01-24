@@ -29,11 +29,10 @@ def test_failure(database):
     """ Tests failure if PYA is not X, B, P, or Blank """
 
     afs = [
-        ObjectClassProgramActivityFactory(prior_year_adjustment=None),
         ObjectClassProgramActivityFactory(prior_year_adjustment=''),
         ObjectClassProgramActivityFactory(prior_year_adjustment='Fail'),
         ObjectClassProgramActivityFactory(prior_year_adjustment=0),
         ObjectClassProgramActivityFactory(prior_year_adjustment='None'),
         ObjectClassProgramActivityFactory(prior_year_adjustment='A'),
     ]
-    assert number_of_errors(_FILE, database, models=afs) == 6
+    assert number_of_errors(_FILE, database, models=afs) == 5

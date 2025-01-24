@@ -5,6 +5,5 @@ SELECT
     display_tas AS "uniqueid_TAS"
 FROM award_financial
 WHERE (submission_id = {0}
-    AND UPPER(prior_year_adjustment) NOT IN ('X', 'B', 'P', '')
-    AND prior_year_adjustment IS NOT NULL
+    AND UPPER(COALESCE(prior_year_adjustment, '')) NOT IN ('X', 'B', 'P', '')
 );
