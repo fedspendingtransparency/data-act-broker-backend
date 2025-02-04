@@ -169,7 +169,6 @@ class SAMSubcontract(Base):
     subaward_report_number = Column(Text, index=True)
     unique_award_key = Column(Text, index=True)
     date_submitted = Column(Date)
-    program_title = Column(Text)
     contract_agency_code = Column(Text)
     contract_idv_agency_code = Column(Text)
     award_number = Column(Text)

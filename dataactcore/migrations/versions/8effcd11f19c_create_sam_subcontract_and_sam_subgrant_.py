@@ -37,7 +37,6 @@ def upgrade_data_broker():
     sa.Column('subaward_report_number', sa.Text(), nullable=True),
     sa.Column('unique_award_key', sa.Text(), nullable=True),
     sa.Column('date_submitted', sa.Date(), nullable=True),
-    sa.Column('program_title', sa.Text(), nullable=True),
     sa.Column('contract_agency_code', sa.Text(), nullable=True),
     sa.Column('contract_idv_agency_code', sa.Text(), nullable=True),
     sa.Column('award_number', sa.Text(), nullable=True),
