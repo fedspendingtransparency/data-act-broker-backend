@@ -199,7 +199,6 @@ class SAMSubcontract(Base):
     business_type_codes = Column(ARRAY(Text))
     business_type_names = Column(ARRAY(Text))
     description = Column(Text)
-    naics = Column(Text)
     high_comp_officer1_full_na = Column(Text)
     high_comp_officer1_amount = Column(Text)
     high_comp_officer2_full_na = Column(Text)

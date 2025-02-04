@@ -67,7 +67,6 @@ def upgrade_data_broker():
     sa.Column('business_types_codes', sa.ARRAY(sa.Text()), nullable=True),
     sa.Column('business_types_names', sa.ARRAY(sa.Text()), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('naics', sa.Text(), nullable=True),
     sa.Column('high_comp_officer1_full_na', sa.Text(), nullable=True),
     sa.Column('high_comp_officer1_amount', sa.Text(), nullable=True),
     sa.Column('high_comp_officer2_full_na', sa.Text(), nullable=True),
