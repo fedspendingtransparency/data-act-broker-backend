@@ -1,11 +1,11 @@
 import logging.config
-# import os
+import os
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
-# from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.urllib import URLLibInstrumentor
 from opentelemetry.instrumentation.threading import ThreadingInstrumentor
@@ -83,16 +83,13 @@ def configure_logging(service_name='broker'):
         # if local, print the traces to the console
         trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
     else:
-        # TODO: Uncomment below to re-activate the OTEL exporter
-        pass
-
         # Set up the OTLP exporter
         # Check out https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
         # for more exporter configuration
-        # otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
-        # if otel_endpoint:
-        #     exporter = OTLPSpanExporter(endpoint=otel_endpoint)
-        #     trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
+        otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+        if otel_endpoint:
+            exporter = OTLPSpanExporter(endpoint=otel_endpoint)
+            trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
 
     LoggingInstrumentor(logging_format="%(asctime)s %(levelname)s:%(name)s:%(message)s")
     LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=False)
