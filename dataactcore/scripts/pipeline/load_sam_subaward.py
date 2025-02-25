@@ -4,14 +4,15 @@ import datetime
 import json
 import logging
 import pandas as pd
+from sqlalchemy import func
 import sys
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
-from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant  # Subaward
-# from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
+from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
+from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table_sam, fix_broken_links_sam
 from dataactcore.utils.loader_utils import insert_dataframe
 
 from dataactbroker.helpers.script_helper import (get_with_exception_hand, validate_load_dates, trim_nested_obj,
@@ -42,6 +43,8 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
             end_load_date: latest reportUpdatedDate to pull from, None for the present
             update_db: Boolean; update the DB tables with the new data from the API.
             metrics: an object containing information for the metrics file
+        Returns:
+            list of report_numbers pulled
         Raises:
             ValueError if load_type not specified
     """
@@ -77,13 +80,14 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
 
     if total_expected_records == 0:
         logger.info('No records returned.')
-        return
+        return []
 
     # Note: there currently are no sort params with their API, so we aren't logically guaranteed that the
     #       results in the pages will be in the same order every request. As of now from basic testing,
     #       it looks like they are sorting it on their end, so we can assume the page continuity for now.
 
     entries_processed = 0
+    report_numbers_pulled = []
     while True:
         # Create an dataframe with all the data from the API
         new_subawards = pd.DataFrame()
@@ -97,6 +101,7 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
                     if new_subaward:
                         new_subawards = pd.concat([pd.DataFrame.from_dict([new_subaward]), new_subawards])
         new_subawards.reset_index(drop=True, inplace=True)
+        report_numbers_pulled.extend(new_subawards[['subawardReportNumber']].toList())
 
         if update_db and not new_subawards.empty:
             if load_type == 'published':
@@ -118,6 +123,8 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
 
     if update_db:
         sess.commit()
+
+    return list(set(report_numbers_pulled))
 
 
 def pull_subawards(api_url, params, entries_processed=0):
@@ -349,36 +356,38 @@ if __name__ == '__main__':
 
         start_date, end_date = validate_load_dates(args.start_date, args.end_date, args.auto, 'subaward', '%m/%d/%Y',
                                                    '%Y-%m-%d')
-
         data_types = ['contract', 'assistance'] if args.data_type == 'both' else [args.data_type]
         load_types = ['published', 'deleted'] if args.load_type == 'both' else [args.load_type]
+
+        # there may be more transaction data since we've last run, let's fix any links before importing new data
+        last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
+        if last_updated_at:
+            for data_type in data_types:
+                # TODO: Fix broken links
+                fix_broken_links_sam(sess, data_type, min_date=last_updated_at)
+
+        start_ingestion_datetime = get_utc_now()
+        pulled_report_nums = {}
         for data_type in data_types:
             for load_type in load_types:
                 logger.info(f'Loading {load_type} SAM Subaward reports for {data_type}')
-                load_subawards(sess, data_type, load_type=load_type, start_load_date=start_date, end_load_date=end_date,
-                               update_db=not args.ignore_db, metrics=metrics_json)
+                report_nums = load_subawards(sess, data_type, load_type=load_type, start_load_date=start_date,
+                                             end_load_date=end_date, update_db=not args.ignore_db, metrics=metrics_json)
+                pulled_report_nums[f'{load_type}-{data_type}'] = report_nums
                 logger.info(f'Loaded {load_type} SAM Subaward reports for {data_type}')
 
-        # TODO: Update the subaward table based off the new raw sam subaward data
-        # logger.info('Populating subaward table based off new data')
-        # new_procurements = (SERVICE_MODEL[PROCUREMENT].next_id(sess) > original_min_procurement_id)
-        # new_grants = (SERVICE_MODEL[GRANT].next_id(sess) > original_min_grant_id)
-        # proc_ids = list(set(updated_proc_internal_ids))
-        # grant_ids = list(set(updated_grant_internal_ids))
-        #
-        # if len(sys.argv) <= 1:
-        #     if new_procurements:
-        #         sess.query(Subaward).filter(Subaward.internal_id.in_(proc_ids)).delete(synchronize_session=False)
-        #         populate_subaward_table(sess, PROCUREMENT, min_id=original_min_procurement_id)
-        #     if new_grants:
-        #         sess.query(Subaward).filter(Subaward.internal_id.in_(grant_ids)).delete(synchronize_session=False)
-        #         populate_subaward_table(sess, GRANT, min_id=original_min_grant_id)
-        # elif args.procurement and new_procurements and args.ids:
-        #     sess.query(Subaward).filter(Subaward.internal_id.in_(proc_ids)).delete(synchronize_session=False)
-        #     populate_subaward_table(sess, PROCUREMENT, ids=args.ids)
-        # elif args.grants and new_grants and args.ids:
-        #     sess.query(Subaward).filter(Subaward.internal_id.in_(grant_ids)).delete(synchronize_session=False)
-        #     populate_subaward_table(sess, GRANT, ids=args.ids)
+        logger.info('Populating subaward table based off new data')
+        for loader_portion, report_nums in pulled_report_nums.items():
+            load_type, data_type = tuple(loader_portion.split('-'))
+
+            # For all scenarios, we're deleting the existing records. Only for additions, we're repopulating them.
+            # TODO: Update subaward to store new SAM Subaward fields (or reuse internal_id?)
+            logger.info(f'Deleting existing {load_type}-{data_type} records from the subaward table')
+            sess.query(Subaward).filter(Subaward.internal_id.in_(report_nums)).delete(synchronize_session=False)
+
+            if load_type != 'deleted':
+                logger.info(f'Populating {load_type}-{data_type} records to the subaward table')
+                populate_subaward_table_sam(sess, data_type, min_date=start_ingestion_datetime, report_nums=report_nums)
 
         if args.data_type == 'both' and args.load_type == 'both':
             update_external_data_load_date(now, datetime.datetime.now(), 'subaward')
