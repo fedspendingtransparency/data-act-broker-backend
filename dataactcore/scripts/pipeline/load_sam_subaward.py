@@ -172,7 +172,7 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "description": "subawardDescription",
             "subaward_report_id": "subawardReportId",
             "subaward_report_number": "subawardReportNumber",
-            "unique_award_key": "uniqueAwardKey",
+            "unique_award_key": "primeAwardKey",
             "date_submitted": "submittedDate",
             "award_number": "fain",
             "award_amount": "subAwardAmount",  # TODO: scientific notation, rounding to cents?
@@ -220,7 +220,7 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "description": "subawardDescription",
             "subaward_report_id": "subAwardReportId",
             "subaward_report_number": "subAwardReportNumber",
-            "unique_award_key": "uniqueAwardKey",  # "primeContractKey"?
+            "unique_award_key": "primeContractKey",
             "date_submitted": "submittedDate",
 
             "contract_agency_code": "agencyId",
