@@ -308,7 +308,7 @@ def store_subawards(sess, new_subawards, data_type):
         raise ValueError('data_type must be \'assistance\' or \'contract\'')
 
     # TODO: Confirm subaward uniquness and update accordingly
-    new_sub_report_nums = new_subawards[['subawardReportNumber']].toList()
+    new_sub_report_nums = new_subawards['subaward_report_number'].tolist()
     old_subs = sess.query(sam_subaward_model).filter(sam_subaward_model.subaward_report_number.in_(new_sub_report_nums))
     old_subs.delete(synchronize_session=False)
 
