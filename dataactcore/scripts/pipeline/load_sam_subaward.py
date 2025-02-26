@@ -12,7 +12,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
 from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
-from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table_sam, fix_broken_links_sam
+from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactcore.utils.loader_utils import insert_dataframe
 
 from dataactbroker.helpers.script_helper import (get_with_exception_hand, validate_load_dates, trim_nested_obj,
@@ -364,7 +364,7 @@ if __name__ == '__main__':
         if last_updated_at:
             for data_type in data_types:
                 # TODO: Fix broken links
-                fix_broken_links_sam(sess, data_type, min_date=last_updated_at)
+                fix_broken_links(sess, data_type, min_date=last_updated_at)
 
         start_ingestion_datetime = get_utc_now()
         pulled_report_nums = {}
@@ -387,7 +387,7 @@ if __name__ == '__main__':
 
             if load_type != 'deleted':
                 logger.info(f'Populating {load_type}-{data_type} records to the subaward table')
-                populate_subaward_table_sam(sess, data_type, min_date=start_ingestion_datetime, report_nums=report_nums)
+                populate_subaward_table(sess, data_type, min_date=start_ingestion_datetime, report_nums=report_nums)
 
         if args.data_type == 'both' and args.load_type == 'both':
             update_external_data_load_date(now, datetime.datetime.now(), 'subaward')
