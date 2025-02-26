@@ -70,9 +70,7 @@ CREATE TEMPORARY TABLE aw_dap ON COMMIT DROP AS
         WHERE UPPER(sam_subcontract.unique_award_key) = UPPER(dap.unique_award_key)
             AND {0}
     ));
-CREATE INDEX ix_aw_dap_piid_upp ON aw_dap (UPPER(piid));
-CREATE INDEX ix_aw_dap_paid_upp ON aw_dap (UPPER(parent_award_id));
-CREATE INDEX ix_aw_dap_subtier_upp ON aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_aw_dap_uak_upp ON aw_dap (unique_award_key);
 CREATE INDEX ix_aw_dap_act_date ON aw_dap (action_date);
 CREATE INDEX ix_aw_dap_act_date_desc ON aw_dap (action_date DESC);
 CREATE INDEX ix_aw_dap_act_type ON aw_dap (action_type_sort);
@@ -82,9 +80,7 @@ CREATE INDEX ix_aw_dap_mod_num_sort_desc ON aw_dap (mod_num_sort DESC);
 
 CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
-            UPPER(dap.piid),
-            UPPER(dap.parent_award_id),
-            UPPER(dap.awarding_sub_tier_agency_c)
+            dap.unique_award_key
         )
         dap.unique_award_key AS unique_award_key,
         dap.piid AS piid,
@@ -94,17 +90,13 @@ CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
         dap.award_description as award_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date, dap.action_type_sort, dap.mod_num_sort
+    ORDER BY dap.unique_award_key, dap.action_date, dap.action_type_sort, dap.mod_num_sort
     );
-CREATE INDEX ix_base_aw_dap_piid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
-CREATE INDEX ix_base_aw_dap_paid_upp_trans ON base_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
-CREATE INDEX ix_base_aw_dap_sub_upp ON base_aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_base_aw_dap_uak ON base_aw_dap (unique_award_key);
 
 CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
-            UPPER(dap.piid),
-            UPPER(dap.parent_award_id),
-            UPPER(dap.awarding_sub_tier_agency_c)
+            dap.unique_award_key
         )
         dap.unique_award_key AS unique_award_key,
         dap.piid AS piid,
@@ -163,11 +155,9 @@ CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
         dap.naics_description AS naics_description,
         cast_as_date(dap.action_date) AS action_date
     FROM aw_dap AS dap
-    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC
+    ORDER BY dap.unique_award_key, dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC
     );
-CREATE INDEX ix_latest_aw_dap_piid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(piid, '-', '')));
-CREATE INDEX ix_latest_aw_dap_paid_upp_trans ON latest_aw_dap (UPPER(TRANSLATE(parent_award_id, '-', '')));
-CREATE INDEX ix_latest_aw_dap_sub_upp ON latest_aw_dap (UPPER(awarding_sub_tier_agency_c));
+CREATE INDEX ix_latest_aw_dap_uak ON latest_aw_dap (unique_award_key);
 
 -- Getting a list of all the subaward zips we'll encounter to limit any massive joins
 CREATE TEMPORARY TABLE all_sub_zips ON COMMIT DROP AS (
@@ -385,8 +375,8 @@ INSERT INTO subaward (
 )
 SELECT
     ldap.unique_award_key AS "unique_award_key",
-    ladp.piid AS "award_id",
-    lap.parent_award_id AS "parent_award_id",
+    ldap.piid AS "award_id",
+    ldap.parent_award_id AS "parent_award_id",
     ldap.total_obligated_amount AS "award_amount",
     bdap.action_date AS "action_date",
     'FY' || fy(bdap.action_date) AS "fy",
@@ -473,9 +463,9 @@ SELECT
 
     -- File F Subawards
     'sub-contract' AS "subaward_type",
-    -- derive from reportUpdatedDate ?
-    sam_subcontract.reportUpdatedDate AS "subaward_report_year",
-    sam_subcontract.reportUpdatedDate AS "subaward_report_month",
+    -- derive from submitteddate, actiondate ?
+    NULL AS "subaward_report_year",
+    NULL AS "subaward_report_month",
     sam_subcontract.award_number AS "subaward_number",
     sam_subcontract.award_amount AS "subaward_amount",
     sam_subcontract.action_date AS "sub_action_date",
