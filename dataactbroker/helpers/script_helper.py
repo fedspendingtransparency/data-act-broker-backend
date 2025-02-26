@@ -38,8 +38,24 @@ def list_data(data):
     return data
 
 
-def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, expected_format='%m/%d/%Y',
-                        desired_format='%m/%d/%Y'):
+def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_date_format='%m/%d/%Y',
+                        output_date_format='%m/%d/%Y'):
+    """ Validate and transform command line arguments of loader dates as desired.
+
+        Args:
+            arg_start_date: the incoming argument state date
+            arg_end_date: the incoming argument end date
+            arg_auto: the incoming argument auto, boolean indicating whether to autogenerate dates
+            load_type: the external loader data type
+            arg_date_format: the incoming argument dates expected format
+            output_date_format: the outgoing format of dates
+
+        Returns:
+            start and end dates in the output_date_format format
+
+        Raises:
+            ValueError if not in the right format or if arguments are logically inconsistent
+    """
     start_date = None
     end_date = None
 
@@ -50,27 +66,27 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, expec
         last_update = sess.query(ExternalDataLoadDate). \
             filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT[load_type]).one_or_none()
         start_date = last_update.last_load_date_start.date() if last_update else yesterday
-        start_date = start_date.strftime(desired_format)
+        start_date = start_date.strftime(output_date_format)
 
     if arg_start_date:
         arg_date = arg_start_date[0]
         try:
-            start_date = dt.datetime.strptime(arg_date, expected_format)
+            start_date = dt.datetime.strptime(arg_date, arg_date_format)
         except ValueError as e:
-            logger.error(f'Date {arg_date} not in proper format ({expected_format})')
+            logger.error(f'Date {arg_date} not in proper format ({arg_date_format})')
             raise e
-        start_date = start_date.strftime(desired_format)
+        start_date = start_date.strftime(output_date_format)
 
     if arg_end_date:
         arg_date = arg_end_date[0]
         try:
-            end_date = dt.datetime.strptime(arg_date, expected_format)
+            end_date = dt.datetime.strptime(arg_date, arg_date_format)
         except ValueError as e:
-            logger.error(f'Date {arg_date} not in proper format ({expected_format})')
+            logger.error(f'Date {arg_date} not in proper format ({arg_date_format})')
             raise e
         # Adding an extra day to be inclusive
         end_date = end_date + relativedelta(days=1)
-        end_date = end_date.strftime(desired_format)
+        end_date = end_date.strftime(output_date_format)
 
     # Validate that start/end date have been provided in some way and that they are in the right order
     if not (start_date or end_date):
@@ -78,7 +94,7 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, expec
         raise ValueError('start_date, end_date, or auto setting is required.')
 
     if start_date and end_date \
-            and dt.strptime(start_date, desired_format) >= dt.strptime(end_date, desired_format):
+            and dt.strptime(start_date, output_date_format) >= dt.strptime(end_date, output_date_format):
         logger.error('Start date cannot be later than end date.')
         raise ValueError('Start date cannot be later than end date.')
 
