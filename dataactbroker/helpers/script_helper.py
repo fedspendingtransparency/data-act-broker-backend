@@ -1,4 +1,4 @@
-import datetime as dt
+import datetime
 import json
 import logging
 import requests
@@ -62,7 +62,7 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_d
     if arg_auto and not (arg_start_date or arg_end_date):
         sess = GlobalDB.db().session
         # find yesterday and the date of the last successful generation
-        yesterday = dt.now().date() - relativedelta(days=1)
+        yesterday = datetime.now().date() - relativedelta(days=1)
         last_update = sess.query(ExternalDataLoadDate). \
             filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT[load_type]).one_or_none()
         start_date = last_update.last_load_date_start.date() if last_update else yesterday
@@ -71,7 +71,7 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_d
     if arg_start_date:
         arg_date = arg_start_date[0]
         try:
-            start_date = dt.datetime.strptime(arg_date, arg_date_format)
+            start_date = datetime.datetime.strptime(arg_date, arg_date_format)
         except ValueError as e:
             logger.error(f'Date {arg_date} not in proper format ({arg_date_format})')
             raise e
@@ -80,7 +80,7 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_d
     if arg_end_date:
         arg_date = arg_end_date[0]
         try:
-            end_date = dt.datetime.strptime(arg_date, arg_date_format)
+            end_date = datetime.datetime.strptime(arg_date, arg_date_format)
         except ValueError as e:
             logger.error(f'Date {arg_date} not in proper format ({arg_date_format})')
             raise e
@@ -94,7 +94,7 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_d
         raise ValueError('start_date, end_date, or auto setting is required.')
 
     if start_date and end_date \
-            and dt.strptime(start_date, output_date_format) >= dt.strptime(end_date, output_date_format):
+            and datetime.strptime(start_date, output_date_format) >= datetime.strptime(end_date, output_date_format):
         logger.error('Start date cannot be later than end date.')
         raise ValueError('Start date cannot be later than end date.')
 
