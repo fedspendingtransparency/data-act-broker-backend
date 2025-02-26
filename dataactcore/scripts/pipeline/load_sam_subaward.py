@@ -70,7 +70,6 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
 
     # Retrieve the total count of expected records for this pull
     param_string = '&'.join(f'{k}={v}' for k, v in params.items())
-    print(f'{api_url}&{param_string}')
     total_expected_records = get_with_exception_hand(f'{api_url}&{param_string}')['totalRecords']
     metrics[f'{load_type}_{data_type}_records'] = total_expected_records
     logger.info(f'{total_expected_records} {load_type} {data_type} record(s) expected')
