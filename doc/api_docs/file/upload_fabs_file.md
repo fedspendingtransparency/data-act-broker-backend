@@ -27,7 +27,7 @@ This route will upload the file, then kick off the validation jobs. It will retu
     /v1/upload_fabs_file/
 ```
 
-## Request Params
+## Body Description
 - `fabs`: (required, string) local path to file using @ notation
 - `agency_code`: (string) sub tier agency code. Required if existing_submission_id is not included
 - `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
