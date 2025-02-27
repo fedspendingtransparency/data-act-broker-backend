@@ -70,8 +70,7 @@ CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
             SELECT 1
             FROM sam_subgrant
             WHERE {0}
-                -- record_type = 2 ?
-                AND pf.unique_award_key = sam_subgrant.unique_award_key
+                AND UPPER(pf.unique_award_key) = UPPER(sam_subgrant.unique_award_key)
         )
     );
 CREATE INDEX ix_aw_pf_uak ON aw_pf (unique_award_key);
@@ -619,11 +618,11 @@ SELECT
 
 FROM sam_subgrant
     LEFT OUTER JOIN latest_aw_pf AS lap
-        ON UPPER(sam_subgrant.unique_award_key) = UPPER(lap.unique_award_key)
+        ON UPPER(sam_subgrant.unique_award_key) = lap.unique_award_key
     LEFT OUTER JOIN base_aw_pf AS bap
-        ON UPPER(sam_subgrant.unique_award_key) = UPPER(bap.unique_award_key)
+        ON UPPER(sam_subgrant.unique_award_key) = bap.unique_award_key
     LEFT OUTER JOIN grouped_aw_pf AS gap
-        ON UPPER(sam_subgrant.unique_award_key) = UPPER(gap.unique_award_key)
+        ON UPPER(sam_subgrant.unique_award_key) = gap.unique_award_key
     LEFT OUTER JOIN country_code AS sub_le_country
         ON (UPPER(sam_subgrant.legal_entity_country_code) = UPPER(sub_le_country.country_code)
             OR UPPER(sam_subgrant.legal_entity_country_code) = UPPER(sub_le_country.country_code_2_char))
@@ -637,25 +636,25 @@ FROM sam_subgrant
     LEFT OUTER JOIN subgrant_puei
         ON UPPER(sam_subgrant.parent_uei) = UPPER(subgrant_puei.uei)
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip9
-        ON (sam_subgrant.legal_entity_country_code = 'USA'
+        ON (UPPER(sam_subgrant.legal_entity_country_code) = 'USA'
             AND sam_subgrant.legal_entity_zip_code = sub_le_county_code_zip9.sub_zip
             AND sub_le_county_code_zip9.zip_type = 'zip9')
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip5
-        ON (sam_subgrant.legal_entity_country_code = 'USA'
+        ON (UPPER(sam_subgrant.legal_entity_country_code) = 'USA'
             AND LEFT(sam_subgrant.legal_entity_zip_code, 5) = sub_le_county_code_zip5.sub_zip
-            AND sam_subgrant.legal_entity_state_code = sub_le_county_code_zip5.state_abbreviation
+            AND UPPER(sam_subgrant.legal_entity_state_code) = sub_le_county_code_zip5.state_abbreviation
             AND sub_le_county_code_zip5.zip_type = 'zip5+state')
     LEFT OUTER JOIN county_code AS sub_le_county_name
     	ON (COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) = sub_le_county_name.county_number
     		AND COALESCE(sub_le_county_code_zip9.state_abbreviation, sub_le_county_code_zip5.state_abbreviation) = sub_le_county_name.state_code)
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip9
-        ON (LEFT(sam_subgrant.ppop_country_code, 2) = 'US'
+        ON (UPPER(LEFT(sam_subgrant.ppop_country_code, 2)) = 'US'
             AND sam_subgrant.ppop_zip_code = sub_ppop_county_code_zip9.sub_zip
             AND sub_ppop_county_code_zip9.zip_type = 'zip9')
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip5
-        ON (LEFT(sam_subgrant.ppop_country_code, 2) = 'US'
+        ON (UPPER(LEFT(sam_subgrant.ppop_country_code, 2)) = 'US'
             AND LEFT(sam_subgrant.ppop_zip_code, 5) = sub_ppop_county_code_zip5.sub_zip
-            AND sam_subgrant.ppop_state_code = sub_ppop_county_code_zip5.state_abbreviation
+            AND UPPER(sam_subgrant.ppop_state_code) = sub_ppop_county_code_zip5.state_abbreviation
             AND sub_ppop_county_code_zip5.zip_type = 'zip5+state')
     LEFT OUTER JOIN county_code AS sub_ppop_county_name
     	ON (COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) = sub_ppop_county_name.county_number

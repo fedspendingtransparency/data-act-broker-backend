@@ -1,5 +1,5 @@
 CREATE TEMPORARY TABLE aw_dap ON COMMIT DROP AS
-    (SELECT dap.unique_award_key AS unique_award_key,
+    (SELECT UPPER(dap.unique_award_key) AS unique_award_key,
         dap.piid AS piid,
         dap.idv_type AS idv_type,
         dap.parent_award_id AS parent_award_id,
@@ -587,9 +587,9 @@ SELECT
 
 FROM sam_subcontract
     LEFT OUTER JOIN base_aw_dap AS bdap
-        ON UPPER(sam_subcontract.unique_award_key) = UPPER(bdap.unique_award_key)
+        ON UPPER(sam_subcontract.unique_award_key) = bdap.unique_award_key
     LEFT OUTER JOIN latest_aw_dap AS ldap
-        ON UPPER(sam_subcontract.unique_award_key) = UPPER(ldap.unique_award_key)
+        ON UPPER(sam_subcontract.unique_award_key) = ldap.unique_award_key
     LEFT OUTER JOIN prime_recipient AS pr
         ON sam_subcontract.uei = pr.uei
     LEFT OUTER JOIN sub_recipient AS sr
@@ -603,25 +603,25 @@ FROM sam_subcontract
         ON (UPPER(sam_subcontract.ppop_country_code) = UPPER(sub_ppop_country.country_code)
             OR UPPER(sam_subcontract.ppop_country_code) = UPPER(sub_ppop_country.country_code_2_char))
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip9
-        ON (sam_subcontract.legal_entity_country_code = 'USA'
+        ON (UPPER(sam_subcontract.legal_entity_country_code) = 'USA'
             AND sam_subcontract.legal_entity_zip_code = sub_le_county_code_zip9.sub_zip
             AND sub_le_county_code_zip9.type = 'zip9')
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip5
-        ON (sam_subcontract.legal_entity_country_code = 'USA'
+        ON (UPPER(sam_subcontract.legal_entity_country_code) = 'USA'
             AND LEFT(sam_subcontract.legal_entity_zip_code, 5) = sub_le_county_code_zip5.sub_zip
-            AND sam_subcontract.legal_entity_state_code = sub_le_county_code_zip5.state_abbreviation
+            AND UPPER(sam_subcontract.legal_entity_state_code) = sub_le_county_code_zip5.state_abbreviation
             AND sub_le_county_code_zip5.type = 'zip5+state')
     LEFT OUTER JOIN county_code AS sub_le_county_name
     	ON (COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) = sub_le_county_name.county_number
     		AND COALESCE(sub_le_county_code_zip9.state_abbreviation, sub_le_county_code_zip5.state_abbreviation) = sub_le_county_name.state_code)
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip9
-        ON (LEFT(sam_subcontract.ppop_country_code, 2) = 'US'
+        ON (UPPER(LEFT(sam_subcontract.ppop_country_code, 2)) = 'US'
             AND sam_subcontract.ppop_zip_code = sub_ppop_county_code_zip9.sub_zip
             AND sub_ppop_county_code_zip9.type = 'zip9')
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip5
-        ON (LEFT(sam_subcontract.ppop_country_code, 2) = 'US'
+        ON (UPPER(LEFT(sam_subcontract.ppop_country_code, 2)) = 'US'
             AND LEFT(sam_subcontract.ppop_zip_code, 5) = sub_ppop_county_code_zip5.sub_zip
-            AND sam_subcontract.ppop_state_code = sub_ppop_county_code_zip5.state_abbreviation
+            AND UPPER(sam_subcontract.ppop_state_code) = sub_ppop_county_code_zip5.state_abbreviation
             AND sub_ppop_county_code_zip5.type = 'zip5+state')
     LEFT OUTER JOIN county_code AS sub_ppop_county_name
     	ON (COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) = sub_ppop_county_name.county_number
