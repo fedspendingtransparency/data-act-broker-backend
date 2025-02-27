@@ -118,6 +118,11 @@ broker:
         federal_hierarchy:
             api_url: https://api.sam.gov/prod/federalorganizations/v1/orgs?api_key={}
 
+        # used in load_sam_subaward.py
+        subaward:
+            assistance_api_url: https://api.sam.gov/assistance/v1/subawards/search?api_key={}
+            contract_api_url: https://api.sam.gov/contract/v1/subcontracts/search?api_key={}
+
         # used in load_duns_exec_comp and update_historical_duns
         duns:
             csv_api_url: https://api.sam.gov/data-services/v1/extracts
