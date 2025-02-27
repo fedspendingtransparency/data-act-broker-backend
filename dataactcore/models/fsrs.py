@@ -211,6 +211,19 @@ class SAMSubcontract(Base):
     high_comp_officer5_amount = Column(Text)
 
 
+Index("ix_sam_subcontract_updated_at", SAMSubcontract.updated_at)
+Index("ix_sam_subcontract_uak_upper", func.upper(SAMSubcontract.unique_award_key))
+Index("ix_sam_subcontract_le_country_upper", func.upper(SAMSubcontract.legal_entity_country_code))
+Index("ix_sam_subcontract_ppop_country_upper", func.upper(SAMSubcontract.ppop_country_code))
+Index("ix_sam_subcontract_uak_upper", func.upper(SAMSubcontract.ppop_country_code))
+Index("ix_sam_subcontract_le_country", SAMSubcontract.legal_entity_country_code)
+Index("ix_sam_subcontract_le_zip", SAMSubcontract.legal_entity_zip_code)
+Index("ix_sam_subcontract_le_state", SAMSubcontract.legal_entity_state_code)
+Index("ix_sam_subcontract_ppop_country", SAMSubcontract.ppop_country_code)
+Index("ix_sam_subcontract_ppop_zip", SAMSubcontract.ppop_zip_code)
+Index("ix_sam_subcontract_ppop_state", SAMSubcontract.ppop_state_code)
+
+
 class SAMSubgrant(Base):
     """ Model for SAM subgrant data """
     __tablename__ = 'sam_subgrant'
@@ -257,6 +270,18 @@ class SAMSubgrant(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+
+
+Index("ix_sam_subgrant_updated_at", SAMSubgrant.updated_at)
+Index("ix_sam_subgrant_le_country_upper", func.upper(SAMSubgrant.legal_entity_country_code))
+Index("ix_sam_subgrant_ppop_country_upper", func.upper(SAMSubgrant.ppop_country_code))
+Index("ix_sam_subgrant_uak_upper", func.upper(SAMSubgrant.ppop_country_code))
+Index("ix_sam_subgrant_le_country", SAMSubgrant.legal_entity_country_code)
+Index("ix_sam_subgrant_le_zip", SAMSubgrant.legal_entity_zip_code)
+Index("ix_sam_subgrant_le_state", SAMSubgrant.legal_entity_state_code)
+Index("ix_sam_subgrant_ppop_country", SAMSubgrant.ppop_country_code)
+Index("ix_sam_subgrant_ppop_zip", SAMSubgrant.ppop_zip_code)
+Index("ix_sam_subgrant_ppop_state", SAMSubgrant.ppop_state_code)
 
 
 class Subaward(Base):
