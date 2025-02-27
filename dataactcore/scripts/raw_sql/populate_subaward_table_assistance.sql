@@ -27,11 +27,14 @@ CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
         pf.legal_entity_state_code AS legal_entity_state_code,
         pf.legal_entity_state_name AS legal_entity_state_name,
         UPPER(pf.legal_entity_country_code) AS legal_entity_country_code,
+        pf.legal_entity_country_name AS legal_entity_country_name,
         COALESCE(pf.legal_entity_zip5, '') || COALESCE(pf.legal_entity_zip_last4, '') AS legal_entity_zip,
         pf.legal_entity_county_code AS legal_entity_county_code,
         pf.legal_entity_county_name AS legal_entity_county_name,
         pf.legal_entity_congressional AS legal_entity_congressional,
         pf.legal_entity_foreign_posta AS legal_entity_foreign_posta,
+        UPPER(pf.place_of_perform_country_c) AS place_of_perform_country_c,
+        pf.place_of_perform_country_n AS place_of_perform_country_n,
         pf.place_of_performance_city AS place_of_performance_city,
         pf.place_of_perfor_state_code AS place_of_perfor_state_code,
         pf.place_of_perform_state_nam AS place_of_perform_state_nam,
@@ -122,11 +125,14 @@ CREATE TEMPORARY TABLE latest_aw_pf ON COMMIT DROP AS
         pf.legal_entity_state_code AS legal_entity_state_code,
         pf.legal_entity_state_name AS legal_entity_state_name,
         pf.legal_entity_country_code AS legal_entity_country_code,
+        pf.legal_entity_country_name AS legal_entity_country_name,
         pf.legal_entity_zip AS legal_entity_zip,
         pf.legal_entity_county_code AS legal_entity_county_code,
         pf.legal_entity_county_name AS legal_entity_county_name,
         pf.legal_entity_congressional AS legal_entity_congressional,
         pf.legal_entity_foreign_posta AS legal_entity_foreign_posta,
+        pf.place_of_perform_country_c AS place_of_perform_country_c,
+        pf.place_of_perform_country_n AS place_of_perform_country_n,
         pf.place_of_performance_city AS place_of_performance_city,
         pf.place_of_perfor_state_code AS place_of_perfor_state_code,
         pf.place_of_perform_state_nam AS place_of_perform_state_nam,
@@ -468,8 +474,8 @@ SELECT
     lap.ultimate_parent_unique_ide AS "ultimate_parent_unique_ide",
     lap.ultimate_parent_uei AS "ultimate_parent_uei",
     lap.ultimate_parent_legal_enti AS "ultimate_parent_legal_enti",
-    le_country.country_code AS "legal_entity_country_code",
-    le_country.country_name AS "legal_entity_country_name",
+    lap.legal_entity_country_code AS "legal_entity_country_code",
+    lap.legal_entity_country_name AS "legal_entity_country_name",
     lap.legal_entity_address_line1 AS "legal_entity_address_line1",
     lap.legal_entity_city_name AS "legal_entity_city_name",
     lap.legal_entity_state_code AS "legal_entity_state_code",
@@ -494,8 +500,8 @@ SELECT
     lap.place_of_perform_county_co AS "place_of_performance_county_code",
     lap.place_of_perform_county_na AS "place_of_performance_county_name",
     lap.place_of_performance_congr AS "place_of_perform_congressio",
-    ppop_country.country_code AS "place_of_perform_country_co",
-    ppop_country.country_name AS "place_of_perform_country_na",
+    lap.place_of_perform_country_c AS "place_of_perform_country_co",
+    lap.place_of_perform_country_n AS "place_of_perform_country_na",
     bap.award_description AS "award_description",
     NULL AS "naics",
     NULL AS "naics_description",
@@ -618,19 +624,12 @@ FROM sam_subgrant
         ON UPPER(sam_subgrant.unique_award_key) = UPPER(bap.unique_award_key)
     LEFT OUTER JOIN grouped_aw_pf AS gap
         ON UPPER(sam_subgrant.unique_award_key) = UPPER(gap.unique_award_key)
-    LEFT OUTER JOIN country_code AS le_country
-        ON (UPPER(sam_subgrant.legal_entity_country_code) = UPPER(le_country.country_code)
-            OR UPPER(sam_subgrant.legal_entity_country_code) = UPPER(le_country.country_code_2_char))
-    LEFT OUTER JOIN country_code AS ppop_country
-        ON (UPPER(sam_subgrant.ppop_country_code) = UPPER(ppop_country.country_code)
-            OR UPPER(sam_subgrant.ppop_country_code) = UPPER(ppop_country.country_code_2_char))
-    -- they're only providing one recipient location and place of performance location. use the same for now
     LEFT OUTER JOIN country_code AS sub_le_country
-        ON (UPPER(sam_subgrant.legal_entity_country_code) = UPPER(le_country.country_code)
-            OR UPPER(sam_subgrant.legal_entity_country_code) = UPPER(le_country.country_code_2_char))
+        ON (UPPER(sam_subgrant.legal_entity_country_code) = UPPER(sub_le_country.country_code)
+            OR UPPER(sam_subgrant.legal_entity_country_code) = UPPER(sub_le_country.country_code_2_char))
     LEFT OUTER JOIN country_code AS sub_ppop_country
-        ON (UPPER(sam_subgrant.ppop_country_code) = UPPER(ppop_country.country_code)
-            OR UPPER(sam_subgrant.ppop_country_code) = UPPER(ppop_country.country_code_2_char))
+        ON (UPPER(sam_subgrant.ppop_country_code) = UPPER(sub_ppop_country.country_code)
+            OR UPPER(sam_subgrant.ppop_country_code) = UPPER(sub_ppop_country.country_code_2_char))
     LEFT OUTER JOIN grant_uei
         -- use FABS uei?
         ON UPPER(sam_subgrant.uei) = UPPER(grant_uei.uei)
