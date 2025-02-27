@@ -100,7 +100,7 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
                     if new_subaward:
                         new_subawards = pd.concat([pd.DataFrame.from_dict([new_subaward]), new_subawards])
         new_subawards.reset_index(drop=True, inplace=True)
-        report_numbers_pulled.extend(new_subawards[['subawardReportNumber']].toList())
+        report_numbers_pulled.extend(new_subawards['subaward_report_number'].tolist())
 
         if update_db and not new_subawards.empty:
             if load_type == 'published':
