@@ -631,8 +631,7 @@ FROM sam_subgrant
         ON (UPPER(sam_subgrant.ppop_country_code) = UPPER(sub_ppop_country.country_code)
             OR UPPER(sam_subgrant.ppop_country_code) = UPPER(sub_ppop_country.country_code_2_char))
     LEFT OUTER JOIN grant_uei
-        -- use FABS uei?
-        ON UPPER(sam_subgrant.uei) = UPPER(grant_uei.uei)
+        ON UPPER(latest_aw_pf.uei) = UPPER(grant_uei.uei)
     LEFT OUTER JOIN subgrant_uei
         ON UPPER(sam_subgrant.uei) = UPPER(subgrant_uei.uei)
     LEFT OUTER JOIN subgrant_puei
