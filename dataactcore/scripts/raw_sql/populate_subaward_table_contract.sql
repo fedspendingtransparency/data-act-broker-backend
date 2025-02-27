@@ -228,6 +228,51 @@ CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
 CREATE INDEX ix_zmu_sz ON zips_modified_union (sub_zip);
 CREATE INDEX ix_zmu_type ON zips_modified_union (type);
 
+-- Get sampled award recipient data
+CREATE TEMPORARY TABLE prime_recipient ON COMMIT DROP AS (
+	SELECT
+	    uei,
+	    business_types
+	FROM sam_recipient AS sr
+	WHERE EXISTS (
+	    SELECT 1
+	    FROM aw_dap
+	    WHERE aw_dap.awardee_or_recipient_uei = sr.uei
+	)
+);
+CREATE INDEX ix_pr_uei ON prime_recipient (uei);
+
+-- Get sampled subaward recipient data
+CREATE TEMPORARY TABLE sub_recipient ON COMMIT DROP AS (
+	SELECT
+	    uei,
+	    awardee_or_recipient_uniqu AS duns
+	FROM sam_recipient AS sr
+	WHERE EXISTS (
+	    SELECT 1
+	    FROM sam_subcontract
+	    WHERE {0}
+	        AND sam_subcontract.uei = sr.uei
+	)
+);
+CREATE INDEX ix_sr_uei ON sub_recipient (uei);
+
+-- Get sampled subaward parent recipient data
+-- This *should* match sub_recipient.ultimate_parent_unique_ide but no guarantees
+CREATE TEMPORARY TABLE sub_parent_recipient ON COMMIT DROP AS (
+	SELECT
+	    uei,
+	    awardee_or_recipient_uniqu AS duns
+	FROM sam_recipient AS sr
+	WHERE EXISTS (
+	    SELECT 1
+	    FROM sam_subcontract
+	    WHERE {0}
+	        AND sam_subcontract.parent_uei = sr.uei
+	)
+);
+CREATE INDEX ix_spr_uei ON sub_parent_recipient (uei);
+
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",
@@ -281,8 +326,6 @@ INSERT INTO subaward (
     "assistance_listing_numbers",
     "assistance_listing_titles",
     "prime_id",
-    "internal_id",
-    "date_submitted",
     "report_type",
     "transaction_type",
     "program_title",
@@ -309,6 +352,8 @@ INSERT INTO subaward (
     "high_comp_officer5_amount",
     "place_of_perform_street",
     "subaward_type",
+    "internal_id",
+    "date_submitted",
     "subaward_report_year",
     "subaward_report_month",
     "subaward_number",
@@ -416,7 +461,10 @@ SELECT
          THEN ldap.legal_entity_zip4
          ELSE NULL
     END AS "legal_entity_foreign_posta",
-    sam_subcontract.business_types_codes AS "business_types",
+    CASE WHEN cardinality(pr.business_types) > 0
+     THEN array_to_string(pr.business_types, ',')
+     ELSE NULL
+    END AS "business_types",
     ldap.place_of_perform_city_name AS "place_of_perform_city_name",
     ldap.place_of_performance_state AS "place_of_perform_state_code",
     ldap.place_of_perfor_state_desc AS "place_of_perform_state_name",
@@ -431,10 +479,7 @@ SELECT
     ldap.naics_description AS "naics_description",
     NULL AS "assistance_listing_numbers",
     NULL AS "assistance_listing_titles",
-    -- N/A with SAM
     NULL AS "prime_id",
-    sam_subcontract.subaward_report_number AS "internal_id",
-    sam_subcontract.date_submitted AS "date_submitted",
     NULL AS "report_type",
     NULL AS "transaction_type",
     NULL AS "program_title",
@@ -463,19 +508,19 @@ SELECT
 
     -- File F Subawards
     'sub-contract' AS "subaward_type",
+    sam_subcontract.subaward_report_number AS "internal_id",
+    sam_subcontract.date_submitted AS "date_submitted",
     -- derive from submitteddate, actiondate ?
     NULL AS "subaward_report_year",
     NULL AS "subaward_report_month",
     sam_subcontract.award_number AS "subaward_number",
     sam_subcontract.award_amount AS "subaward_amount",
     sam_subcontract.action_date AS "sub_action_date",
-    -- derive from sam_recipient?
-    NULL AS "sub_awardee_or_recipient_uniqu",
+    sr.duns AS "sub_awardee_or_recipient_uniqu",
     sam_subcontract.uei AS "sub_awardee_or_recipient_uei",
     sam_subcontract.legal_business_name AS "sub_awardee_or_recipient_legal",
     sam_subcontract.dba_name AS "sub_dba_name",
-    -- derive from sam_recipient?
-    NULL AS "sub_ultimate_parent_unique_ide",
+    spr.duns AS "sub_ultimate_parent_unique_ide",
     sam_subcontract.parent_uei AS "sub_ultimate_parent_uei",
     sam_subcontract.parent_legal_business_name AS "sub_ultimate_parent_legal_enti",
     sub_le_country.country_code AS "sub_legal_entity_country_code",
@@ -495,7 +540,10 @@ SELECT
          THEN sam_subcontract.legal_entity_zip_code
          ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
-    sam_subcontract.business_types_codes AS "sub_business_types",
+    CASE WHEN cardinality(sam_subcontract.business_types_names) > 0
+     THEN array_to_string(sam_subcontract.business_types_names, ',')
+     ELSE NULL
+    END AS "sub_business_types",
     sam_subcontract.ppop_city_name AS "sub_place_of_perform_city_name",
     sam_subcontract.ppop_state_code AS "sub_place_of_perform_state_code",
     sam_subcontract.ppop_state_name AS "sub_place_of_perform_state_name",
@@ -517,7 +565,6 @@ SELECT
     sam_subcontract.high_comp_officer5_full_na AS "sub_high_comp_officer5_full_na",
     sam_subcontract.high_comp_officer5_amount AS "sub_high_comp_officer5_amount",
     sam_subcontract.subaward_report_id AS "sub_id",
-    -- N/A for SAM
     NULL AS "sub_parent_id",
     NULL AS "sub_federal_agency_id",
     NULL AS "sub_federal_agency_name",
@@ -543,6 +590,12 @@ FROM sam_subcontract
         ON UPPER(sam_subcontract.unique_award_key) = UPPER(bdap.unique_award_key)
     LEFT OUTER JOIN latest_aw_dap AS ldap
         ON UPPER(sam_subcontract.unique_award_key) = UPPER(ldap.unique_award_key)
+    LEFT OUTER JOIN prime_recipient AS pr
+        ON sam_subcontract.uei = pr.uei
+    LEFT OUTER JOIN sub_recipient AS sr
+        ON sam_subcontract.uei = sr.uei
+    LEFT OUTER JOIN sub_parent_recipient AS spr
+        ON sam_subcontract.uei = spr.uei
     LEFT OUTER JOIN country_code AS sub_le_country
         ON (UPPER(sam_subcontract.legal_entity_country_code) = UPPER(sub_le_country.country_code)
             OR UPPER(sam_subcontract.legal_entity_country_code) = UPPER(sub_le_country.country_code_2_char))

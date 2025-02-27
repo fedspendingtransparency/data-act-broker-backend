@@ -164,10 +164,12 @@ CREATE INDEX ix_grouped_aw_pf_uak ON grouped_aw_pf (unique_award_key);
 
 CREATE TEMPORARY TABLE grant_uei ON COMMIT DROP AS
     (SELECT grant_uei_from.uei AS uei,
+        grant_uei_from.duns AS duns,
         grant_uei_from.legal_business_name AS legal_business_name,
         grant_uei_from.dba_name AS dba_name
     FROM (
         SELECT sam_recipient.uei AS uei,
+            sam_recipient.awardee_or_recipient_uniqu AS duns,
             sam_recipient.legal_business_name AS legal_business_name,
             sam_recipient.dba_name AS dba_name,
             row_number() OVER (PARTITION BY
@@ -184,9 +186,11 @@ CREATE INDEX ix_grant_uei_upp ON grant_uei (UPPER(uei));
 
 CREATE TEMPORARY TABLE subgrant_puei ON COMMIT DROP AS (
     SELECT sub_puei_from.uei AS uei,
+        sub_puei_from.duns AS duns,
         sub_puei_from.legal_business_name AS legal_business_name
     FROM (
         SELECT sam_recipient.uei AS uei,
+            sam_recipient.awardee_or_recipient_uniqu AS duns,
             sam_recipient.legal_business_name AS legal_business_name,
             row_number() OVER (PARTITION BY
                 UPPER(sam_recipient.uei)
@@ -203,10 +207,12 @@ CREATE INDEX ix_subgrant_puei_upp ON subgrant_puei (UPPER(uei));
 
 CREATE TEMPORARY TABLE subgrant_uei ON COMMIT DROP AS (
     SELECT sub_uei_from.uei AS uei,
+        sub_uei_from.duns AS duns,
         sub_uei_from.business_types AS business_types
     FROM (
         SELECT
             sam_recipient.uei AS uei,
+            sam_recipient.awardee_or_recipient_uniqu AS duns,
             sam_recipient.business_types AS business_types,
             row_number() OVER (PARTITION BY
                 UPPER(sam_recipient.uei)
@@ -281,14 +287,14 @@ CREATE TEMPORARY TABLE zips_grouped_modified ON COMMIT DROP AS (
 );
 -- Combine the two matching groups together and join later. make sure keep them separated with type to prevent dups
 CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
-	SELECT sub_zip, state_abbreviation, county_number, 'zip9' AS "type"
+	SELECT sub_zip, state_abbreviation, county_number, 'zip9' AS "zip_type"
 	FROM modified_zips
 	UNION
-	SELECT zip5 AS "sub_zip", state_abbreviation, county_number, 'zip5+state' AS "type"
+	SELECT zip5 AS "sub_zip", state_abbreviation, county_number, 'zip5+state' AS "zip_type"
 	FROM zips_grouped_modified
 );
 CREATE INDEX ix_zmu_sz ON zips_modified_union (sub_zip);
-CREATE INDEX ix_zmu_type ON zips_modified_union (type);
+CREATE INDEX ix_zmu_type ON zips_modified_union (zip_type);
 
 INSERT INTO subaward (
     "unique_award_key",
@@ -343,8 +349,6 @@ INSERT INTO subaward (
     "assistance_listing_numbers",
     "assistance_listing_titles",
     "prime_id",
-    "internal_id",
-    "date_submitted",
     "report_type",
     "transaction_type",
     "program_title",
@@ -371,6 +375,8 @@ INSERT INTO subaward (
     "high_comp_officer5_amount",
     "place_of_perform_street",
     "subaward_type",
+    "internal_id",
+    "date_submitted",
     "subaward_report_year",
     "subaward_report_month",
     "subaward_number",
@@ -479,6 +485,7 @@ SELECT
         THEN lap.legal_entity_foreign_posta
         ELSE NULL
     END AS "legal_entity_foreign_posta",
+    -- note: these have a semicolon separator, not a comma separator
     lap.business_types_desc AS "business_types",
     lap.place_of_performance_city AS "place_of_perform_city_name",
     lap.place_of_perfor_state_code AS "place_of_perform_state_code",
@@ -494,16 +501,12 @@ SELECT
     NULL AS "naics_description",
     ARRAY_TO_STRING(gap.assistance_listing_nums, ', ') AS "assistance_listing_numbers",
     ARRAY_TO_STRING(gap.assistance_listing_names, ', ') AS "assistance_listing_titles",
-    -- N/A with SAM
     NULL AS "prime_id",
-    sam_subgrant.subaward_report_number AS "internal_id",
-    sam_subgrant.date_submitted AS "date_submitted",
     NULL AS "report_type",
     NULL AS "transaction_type",
     NULL AS "program_title",
     NULL AS "contract_agency_code",
     NULL AS "contract_idv_agency_code",
-    -- derive from fabs ?
     lap.funding_sub_tier_agency_co AS "grant_funding_agency_id",
     lap.funding_sub_tier_agency_na AS "grant_funding_agency_name",
     lap.awarding_sub_tier_agency_c AS "federal_agency_name",
@@ -528,19 +531,19 @@ SELECT
 
     -- File F Subawards
     'sub-grant' AS "subaward_type",
+    sam_subgrant.subaward_report_number AS "internal_id",
+    sam_subgrant.date_submitted AS "date_submitted",
     -- derive from reportUpdatedDate ?
     NULL AS "subaward_report_year",
     NULL AS "subaward_report_month",
     sam_subgrant.award_number AS "subaward_number",
     sam_subgrant.award_amount AS "subaward_amount",
     sam_subgrant.action_date AS "sub_action_date",
-    -- derive from sam_recipient?
-    NULL AS "sub_awardee_or_recipient_uniqu",
+    subgrant_uei.duns AS "sub_awardee_or_recipient_uniqu",
     sam_subgrant.uei AS "sub_awardee_or_recipient_uei",
     sam_subgrant.legal_business_name AS "sub_awardee_or_recipient_legal",
     sam_subgrant.dba_name AS "sub_dba_name",
-    -- derive from sam_recipient?
-    NULL AS "sub_ultimate_parent_unique_ide",
+    subgrant_puei.duns AS "sub_ultimate_parent_unique_ide",
     sam_subgrant.parent_uei AS "sub_ultimate_parent_uei",
     subgrant_puei.legal_business_name AS "sub_ultimate_parent_legal_enti",
     sub_le_country.country_code AS "sub_legal_entity_country_code",
@@ -560,9 +563,9 @@ SELECT
          THEN sam_subgrant.legal_entity_zip_code
          ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
-    CASE WHEN cardinality(subgrant_uei.business_types) > 0
-         THEN array_to_string(subgrant_uei.business_types, ',')
-         ELSE NULL
+    CASE WHEN cardinality(sam_subgrant.business_types_names) > 0
+     THEN array_to_string(sam_subgrant.business_types_names, ',')
+     ELSE NULL
     END AS "sub_business_types",
     sam_subgrant.ppop_city_name AS "sub_place_of_perform_city_name",
     sam_subgrant.ppop_state_code AS "sub_place_of_perform_state_code",
@@ -585,9 +588,7 @@ SELECT
     sam_subgrant.high_comp_officer5_full_na AS "sub_high_comp_officer5_full_na",
     sam_subgrant.high_comp_officer5_amount AS "sub_high_comp_officer5_amount",
     sam_subgrant.subaward_report_id AS "sub_id",
-    -- N/A with SAM
     NULL AS "sub_parent_id",
-    -- derive from fabs?
     lap.awarding_sub_tier_agency_c AS "sub_federal_agency_id",
     lap.awarding_sub_tier_agency_n AS "sub_federal_agency_name",
     lap.funding_sub_tier_agency_co AS "sub_funding_agency_id",
@@ -596,8 +597,9 @@ SELECT
     NULL AS "sub_funding_office_id",
     NULL AS "sub_funding_office_name",
     NULL AS "sub_naics",
-    -- Pull in from the API and add to table - assistanceListingNumber.number
-    NULL AS "sub_assistance_listing_numbers",
+    -- are the assistance listing numbers in their API (assistanceListingNumber.number) exactly what we give them? the prime?
+    -- if so, reuse. otherwise, add the column to the migration
+    ARRAY_TO_STRING(gap.assistance_listing_nums, ', ') AS "sub_assistance_listing_numbers",
     NULL AS "sub_dunsplus4",
     NULL AS "sub_recovery_subcontract_amt",
     NULL AS "sub_recovery_model_q1",
@@ -639,24 +641,24 @@ FROM sam_subgrant
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip9
         ON (sam_subgrant.legal_entity_country_code = 'USA'
             AND sam_subgrant.legal_entity_zip_code = sub_le_county_code_zip9.sub_zip
-            AND sub_le_county_code_zip9.type = 'zip9')
+            AND sub_le_county_code_zip9.zip_type = 'zip9')
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip5
         ON (sam_subgrant.legal_entity_country_code = 'USA'
             AND LEFT(sam_subgrant.legal_entity_zip_code, 5) = sub_le_county_code_zip5.sub_zip
             AND sam_subgrant.legal_entity_state_code = sub_le_county_code_zip5.state_abbreviation
-            AND sub_le_county_code_zip5.type = 'zip5+state')
+            AND sub_le_county_code_zip5.zip_type = 'zip5+state')
     LEFT OUTER JOIN county_code AS sub_le_county_name
     	ON (COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) = sub_le_county_name.county_number
     		AND COALESCE(sub_le_county_code_zip9.state_abbreviation, sub_le_county_code_zip5.state_abbreviation) = sub_le_county_name.state_code)
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip9
         ON (LEFT(sam_subgrant.ppop_country_code, 2) = 'US'
             AND sam_subgrant.ppop_zip_code = sub_ppop_county_code_zip9.sub_zip
-            AND sub_ppop_county_code_zip9.type = 'zip9')
+            AND sub_ppop_county_code_zip9.zip_type = 'zip9')
     LEFT OUTER JOIN zips_modified_union AS sub_ppop_county_code_zip5
         ON (LEFT(sam_subgrant.ppop_country_code, 2) = 'US'
             AND LEFT(sam_subgrant.ppop_zip_code, 5) = sub_ppop_county_code_zip5.sub_zip
             AND sam_subgrant.ppop_state_code = sub_ppop_county_code_zip5.state_abbreviation
-            AND sub_ppop_county_code_zip5.type = 'zip5+state')
+            AND sub_ppop_county_code_zip5.zip_type = 'zip5+state')
     LEFT OUTER JOIN county_code AS sub_ppop_county_name
     	ON (COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) = sub_ppop_county_name.county_number
     		AND COALESCE(sub_ppop_county_code_zip9.state_abbreviation, sub_ppop_county_code_zip5.state_abbreviation) = sub_ppop_county_name.state_code)
