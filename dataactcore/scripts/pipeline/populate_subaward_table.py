@@ -76,13 +76,12 @@ def populate_subaward_table(sess, data_type, min_date=None, report_nums=None):
 
 
 # TODO
-def fix_broken_links(sess, data_type, min_date=None):
+def fix_broken_links(sess, data_type):
     """ Attempts to resolve any unlinked subawards given the current data
 
         Args:
             sess: connection to the database
             data_type: type of data to work with (usually 'contract' or 'assistance')
-            min_date: the earliest updated_at to use from the sam subaward tables
 
         Raises:
             Exception: data type is invalid
@@ -90,8 +89,6 @@ def fix_broken_links(sess, data_type, min_date=None):
     logger.info(f'Attempting to fix broken sub-{data_type} links in the subaward table')
 
     sql = extract_subaward_sql(data_type, 'link')
-    min_date_sql = '' if min_date is None else 'AND updated_at >= \'{}\''.format(min_date)
-    sql = sql.format(min_date_sql)
 
     # run the SQL. splitting and stripping the calls for pg_stat_activity visibility while it's running
     for sql_statement in sql.split(';'):
