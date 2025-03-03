@@ -240,5 +240,5 @@ FROM related_raw
     JOIN base_aw_dap AS bdap
         ON related_raw.unique_award_key = bdap.unique_award_key
     JOIN latest_aw_dap AS ldap
-        ON related_raw.unique_award_key = bdap.unique_award_key
+        ON related_raw.unique_award_key = ldap.unique_award_key
 WHERE subaward.id = related_raw.id;
