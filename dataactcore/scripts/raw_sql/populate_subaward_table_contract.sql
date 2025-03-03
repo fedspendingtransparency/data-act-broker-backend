@@ -28,7 +28,7 @@ CREATE TEMPORARY TABLE aw_dap ON COMMIT DROP AS
         dap.legal_entity_city_name AS legal_entity_city_name,
         dap.legal_entity_state_code AS legal_entity_state_code,
         dap.legal_entity_state_descrip AS legal_entity_state_descrip,
-        dap.legal_entity_country_code AS legal_entity_country_code,
+        UPPER(dap.legal_entity_country_code) AS legal_entity_country_code,
         dap.legal_entity_country_name AS legal_entity_country_name,
         dap.legal_entity_zip4 AS legal_entity_zip4,
         dap.legal_entity_county_code AS legal_entity_county_code,
@@ -41,7 +41,7 @@ CREATE TEMPORARY TABLE aw_dap ON COMMIT DROP AS
         dap.place_of_perform_county_co AS place_of_perform_county_co,
         dap.place_of_perform_county_na AS place_of_perform_county_na,
         dap.place_of_performance_congr AS place_of_performance_congr,
-        dap.place_of_perform_country_c AS place_of_perform_country_c,
+        UPPER(dap.place_of_perform_country_c) AS place_of_perform_country_c,
         dap.place_of_perf_country_desc AS place_of_perf_country_desc,
         dap.high_comp_officer1_full_na AS high_comp_officer1_full_na,
         dap.high_comp_officer1_amount AS high_comp_officer1_amount,
@@ -527,16 +527,22 @@ SELECT
     sub_le_country.country_name AS "sub_legal_entity_country_name",
     sam_subcontract.legal_entity_address_line1 AS "sub_legal_entity_address_line1",
     sam_subcontract.legal_entity_city_name AS "sub_legal_entity_city_name",
-    sam_subcontract.legal_entity_state_code AS "sub_legal_entity_state_code",
-    sam_subcontract.legal_entity_state_name AS "sub_legal_entity_state_name",
-    CASE WHEN sam_subcontract.legal_entity_country_code = 'USA'
+    CASE WHEN UPPER(sam_subcontract.legal_entity_state_code) <> 'ZZ'
+        THEN  sam_subcontract.legal_entity_state_code
+        ELSE NULL
+    END AS "sub_legal_entity_state_code",
+    CASE WHEN UPPER(sam_subcontract.legal_entity_state_code) <> 'ZZ'
+        THEN  sam_subcontract.legal_entity_state_name
+        ELSE NULL
+    END AS "sub_legal_entity_state_name",
+    CASE WHEN UPPER(sam_subcontract.legal_entity_country_code) = 'USA'
          THEN sam_subcontract.legal_entity_zip_code
          ELSE NULL
     END AS "sub_legal_entity_zip",
     COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) AS "sub_legal_entity_county_code",
     sub_le_county_name.county_name AS "sub_legal_entity_county_name",
     sam_subcontract.legal_entity_congressional AS "sub_legal_entity_congressional",
-    CASE WHEN sam_subcontract.legal_entity_country_code <> 'USA'
+    CASE WHEN UPPER(sam_subcontract.legal_entity_country_code) <> 'USA'
          THEN sam_subcontract.legal_entity_zip_code
          ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
@@ -545,8 +551,14 @@ SELECT
      ELSE NULL
     END AS "sub_business_types",
     sam_subcontract.ppop_city_name AS "sub_place_of_perform_city_name",
-    sam_subcontract.ppop_state_code AS "sub_place_of_perform_state_code",
-    sam_subcontract.ppop_state_name AS "sub_place_of_perform_state_name",
+    CASE WHEN UPPER(sam_subcontract.ppop_state_code) <> 'ZZ'
+        THEN  sam_subcontract.ppop_state_code
+        ELSE NULL
+    END AS "sub_place_of_perform_state_code",
+    CASE WHEN UPPER(sam_subcontract.ppop_state_code) <> 'ZZ'
+        THEN  sam_subcontract.ppop_state_name
+        ELSE NULL
+    END AS "sub_place_of_perform_state_name",
     sam_subcontract.ppop_zip_code AS "sub_place_of_performance_zip",
     COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) AS "sub_place_of_performance_county_code",
     sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name",
