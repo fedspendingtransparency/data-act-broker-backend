@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
+from dataactcore.scripts.pipeline.populate_subaward_table_fsrs import populate_subaward_table_fsrs, fix_broken_links_fsrs
 from dataactbroker.helpers.generic_helper import fy
 from dataactcore.models.fsrs import Subaward
 from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
@@ -293,7 +293,7 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     sess.commit()
 
     # Gather the sql
-    populate_subaward_table(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
+    populate_subaward_table_fsrs(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
 
     # Get the records
     contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).all()
@@ -651,7 +651,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
             fabs_grouped[fabs.fain]['assistance_listing_title'] += ', ' + assistance_listing_2.program_title
 
     # Gather the sql
-    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id, grant_non_null_sub.id])
+    populate_subaward_table_fsrs(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id, grant_non_null_sub.id])
 
     # Get the records
     grants_results = sess.query(Subaward).order_by(Subaward.prime_id).all()
@@ -675,8 +675,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
                                  dom_county_zip5, int_country, created_at, updated_at) is True
 
 
-def test_fix_broken_links(database, monkeypatch):
-    """ Ensure that fix_broken_links works as intended """
+def test_fix_broken_links_fsrs(database, monkeypatch):
+    """ Ensure that fix_broken_links_fsrs works as intended """
 
     # Setup - create awards, procurements/grants, subawards
     sess = database.session
@@ -1002,8 +1002,8 @@ def test_fix_broken_links(database, monkeypatch):
             fabs_grouped[fabs.fain]['assistance_listing_num'] += ', ' + fabs.assistance_listing_number
             fabs_grouped[fabs.fain]['assistance_listing_title'] += ', ' + assistance_listing_2.program_title
 
-    populate_subaward_table(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
-    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id,
+    populate_subaward_table_fsrs(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
+    populate_subaward_table_fsrs(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id,
                                                         grant_non_null_subtier.id, grant_non_other.id])
 
     contracts_results = sess.query(Subaward).order_by(Subaward.id).\
@@ -1044,8 +1044,8 @@ def test_fix_broken_links(database, monkeypatch):
                   fabs_non_other_dup_2, fabs_agg, fabs_agg_2])
     sess.commit()
 
-    updated_proc_count = fix_broken_links(sess, 'procurement_service', min_date=min_date)
-    updated_grant_count = fix_broken_links(sess, 'grant_service', min_date=min_date)
+    updated_proc_count = fix_broken_links_fsrs(sess, 'procurement_service', min_date=min_date)
+    updated_grant_count = fix_broken_links_fsrs(sess, 'grant_service', min_date=min_date)
 
     assert updated_proc_count == 2
     # Note: Aggregates and blank federal_agency_ids should still not be linked, so 1 and not 3

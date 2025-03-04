@@ -12,8 +12,8 @@ from dataactvalidator.health_check import create_app
 from dataactbroker.fsrs import GRANT, PROCUREMENT
 
 RAW_SQL_DIR = os.path.join(CONFIG_BROKER['path'], 'dataactcore', 'scripts', 'raw_sql')
-POPULATE_PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_fsrs_contracts_fsrs.sql')
-POPULATE_GRANT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_fsrs_grants_fsrs.sql')
+POPULATE_PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_contracts_fsrs.sql')
+POPULATE_GRANT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_grants_fsrs.sql')
 LINK_PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'link_broken_subaward_contracts_fsrs.sql')
 LINK_GRANT_SQL = os.path.join(RAW_SQL_DIR, 'link_broken_subaward_grants_fsrs.sql')
 
