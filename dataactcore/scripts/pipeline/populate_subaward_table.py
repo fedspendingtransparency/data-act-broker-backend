@@ -74,7 +74,6 @@ def populate_subaward_table(sess, data_type, min_date=None, report_nums=None):
     return inserted_count
 
 
-# TODO
 def fix_broken_links(sess, data_type):
     """ Attempts to resolve any unlinked subawards given the current data
 
