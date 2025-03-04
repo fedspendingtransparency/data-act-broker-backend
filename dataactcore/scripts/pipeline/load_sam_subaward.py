@@ -4,7 +4,7 @@ import datetime
 import json
 import logging
 import pandas as pd
-from sqlalchemy import func
+from sqlalchemy import column, func
 from sqlalchemy.orm import Session
 import sys
 
@@ -56,9 +56,10 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
     """
     if data_type not in ('assistance', 'contract'):
         raise ValueError('data_type must be \'assistance\' or \'contract\'')
-
     if load_type not in ('published', 'deleted'):
         raise ValueError('data_type must be \'published\' or \'deleted\'')
+    if metrics is None:
+        metrics = dict()
 
     api_url = SUBAWARD_CONFIG[data_type]['api_url']
     logger.info('Starting subaward feed: %s', api_url.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
@@ -110,7 +111,10 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
             if load_type == 'published':
                 store_subawards(sess, new_subawards, sam_subaward_model)
             if load_type == 'deleted':
-                delete_subawards(sess, new_subawards, sam_subaward_model)
+                not_matched = delete_subawards(sess, new_subawards, sam_subaward_model)
+                if not_matched:
+                    logger.info(f'{len(not_matched)} deleted {data_type} records not found in data: {not_matched}')
+                    metrics[f'{load_type}_{data_type}_records_not_matched'] = not_matched
 
         logger.info('Processed rows %s-%s', start, entries_processed)
         if entries_processed == total_expected_records:
@@ -305,12 +309,15 @@ def store_subawards(sess: Session, new_subawards: pd.DataFrame, model: SAMSubgra
     sess.commit()
 
 
-def delete_subawards(sess: Session, new_subawards: pd.DataFrame, model: SAMSubgrant | SAMSubcontract) -> None:
+def delete_subawards(sess: Session, new_subawards: pd.DataFrame, model: SAMSubgrant | SAMSubcontract) -> list[str]:
     """ Delete the new subawards from the database"""
     to_delete_report_nums = new_subawards['subaward_report_number'].unique()
     to_delete = sess.query(model).filter(model.subaward_report_number.in_(to_delete_report_nums))
+    matched_report_nums = set(row[0] for row in to_delete.with_entities(column('subaward_report_number')).all())
+    not_matched_report_nums = set(to_delete_report_nums).difference(matched_report_nums)
     to_delete.delete(synchronize_session=False)
     sess.commit()
+    return list(not_matched_report_nums)
 
 
 if __name__ == '__main__':
