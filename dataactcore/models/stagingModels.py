@@ -1600,6 +1600,7 @@ class DetachedAwardProcurement(Base):
         super(DetachedAwardProcurement, self).__init__(**clean_kwargs)
 
 
+Index("ix_dap_uak_upper", func.upper(DetachedAwardProcurement.unique_award_key))
 Index("ix_dap_piid_upper", func.upper(DetachedAwardProcurement.piid))
 Index("ix_dap_parent_award_id_upper", func.upper(DetachedAwardProcurement.parent_award_id))
 Index("ix_dap_awarding_sub_tier_agency_c_upper", func.upper(DetachedAwardProcurement.awarding_sub_tier_agency_c))
@@ -1819,6 +1820,7 @@ Index("ix_published_fabs_uri_awarding_subtier_upper",
       func.upper(PublishedFABS.awarding_sub_tier_agency_c),
       unique=False)
 
+Index("ix_published_fabs_uak_upper", func.upper(PublishedFABS.unique_award_key))
 Index("ix_published_fabs_fain_upper", func.upper(PublishedFABS.fain))
 Index("ix_published_fabs_uri_upper", func.upper(PublishedFABS.uri))
 Index("ix_published_fabs_awarding_subtier_c_upper", func.upper(PublishedFABS.awarding_sub_tier_agency_c))
