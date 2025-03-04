@@ -3,7 +3,6 @@ import argparse
 import datetime
 import logging
 import json
-import sys
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
