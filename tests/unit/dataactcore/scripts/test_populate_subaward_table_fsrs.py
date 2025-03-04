@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from dataactcore.scripts.pipeline.populate_subaward_table_fsrs import populate_subaward_table_fsrs, fix_broken_links_fsrs
+from dataactcore.scripts.pipeline.populate_subaward_table_fsrs import (populate_subaward_table_fsrs,
+                                                                       fix_broken_links_fsrs)
 from dataactbroker.helpers.generic_helper import fy
 from dataactcore.models.fsrs import Subaward
 from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
@@ -651,7 +652,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
             fabs_grouped[fabs.fain]['assistance_listing_title'] += ', ' + assistance_listing_2.program_title
 
     # Gather the sql
-    populate_subaward_table_fsrs(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id, grant_non_null_sub.id])
+    populate_subaward_table_fsrs(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id,
+                                                             grant_non_null_sub.id])
 
     # Get the records
     grants_results = sess.query(Subaward).order_by(Subaward.prime_id).all()
@@ -1004,7 +1006,7 @@ def test_fix_broken_links_fsrs(database, monkeypatch):
 
     populate_subaward_table_fsrs(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
     populate_subaward_table_fsrs(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id,
-                                                        grant_non_null_subtier.id, grant_non_other.id])
+                                                             grant_non_null_subtier.id, grant_non_other.id])
 
     contracts_results = sess.query(Subaward).order_by(Subaward.id).\
         filter(Subaward.subaward_type == 'sub-contract').all()
