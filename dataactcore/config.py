@@ -10,7 +10,7 @@ CONFIG_SERVICES = {}
 CONFIG_DB = {}
 CONFIG_LOGGING = {}
 CONFIG_CATEGORIES = {"broker": CONFIG_BROKER, "services": CONFIG_SERVICES, "db": CONFIG_DB,
-                     "logging": CONFIG_LOGGING, "sam": CONFIG_BROKER}
+                     "logging": CONFIG_LOGGING}
 
 # set the location of the Data Broker config files
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), 'config.yml')

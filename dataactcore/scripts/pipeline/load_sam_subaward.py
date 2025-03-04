@@ -5,7 +5,6 @@ import json
 import logging
 import pandas as pd
 from sqlalchemy import column, func
-from sqlalchemy.orm import Session
 import sys
 
 from dataactcore.broker_logging import configure_logging
@@ -295,8 +294,14 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
     return subaward_dict
 
 
-def store_subawards(sess: Session, new_subawards: pd.DataFrame, model: SAMSubgrant | SAMSubcontract) -> None:
-    """ Load the new subawards into the database"""
+def store_subawards(sess, new_subawards, model):
+    """ Load the new subawards into the database
+
+        Args:
+            sess: database connection
+            new_subawards: dataframe of the new subaward data to be stored
+            model: either SAMSubcontract or SAMSubgrant
+    """
     new_subawards['created_at'] = get_utc_now()
     new_subawards['updated_at'] = get_utc_now()
 
@@ -309,8 +314,17 @@ def store_subawards(sess: Session, new_subawards: pd.DataFrame, model: SAMSubgra
     sess.commit()
 
 
-def delete_subawards(sess: Session, new_subawards: pd.DataFrame, model: SAMSubgrant | SAMSubcontract) -> list[str]:
-    """ Delete the new subawards from the database"""
+def delete_subawards(sess, new_subawards, model):
+    """ Delete the new subawards from the database
+
+        Args:
+            sess: database connection
+            new_subawards: dataframe of the new subaward data to be stored
+            model: either SAMSubcontract or SAMSubgrant
+
+        Returns:
+            list of unmatched subaward report numbers
+    """
     to_delete_report_nums = new_subawards['subaward_report_number'].unique()
     to_delete = sess.query(model).filter(model.subaward_report_number.in_(to_delete_report_nums))
     matched_report_nums = set(row[0] for row in to_delete.with_entities(column('subaward_report_number')).all())
