@@ -3,70 +3,66 @@ import argparse
 import datetime
 import logging
 import json
-import sys
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.broker_logging import configure_logging
 from dataactvalidator.health_check import create_app
-from dataactbroker.fsrs import GRANT, PROCUREMENT
 
 RAW_SQL_DIR = os.path.join(CONFIG_BROKER['path'], 'dataactcore', 'scripts', 'raw_sql')
-POPULATE_PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_contracts.sql')
-POPULATE_GRANT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_grants.sql')
-LINK_PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'link_broken_subaward_contracts.sql')
-LINK_GRANT_SQL = os.path.join(RAW_SQL_DIR, 'link_broken_subaward_grants.sql')
+
+POPULATE_CONTRACT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_contract.sql')
+POPULATE_ASSISTANCE_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_assistance.sql')
+LINK_CONTRACT_SQL = os.path.join(RAW_SQL_DIR, 'link_broken_subaward_contract.sql')
+LINK_ASSISTANCE_SQL = os.path.join(RAW_SQL_DIR, 'link_broken_subaward_assistance.sql')
 
 logger = logging.getLogger(__name__)
 
 
-def extract_subaward_sql(service_type, data_change_type):
-    """ Gather the subaward SQL requested
+def extract_subaward_sql(data_type, data_change_type):
+    """ Gather the SAM subaward SQL requested
 
         Args:
-            service_type: type of service to ping ('procurement_service' or 'grant_service')
+            data_type: type of service to ping ('contract' or 'assistance')
             data_change_type: type of data change involving subawards ('populate' or 'link')
-
+        Returns:
+            sql to run based on the request
         Raises:
             Exception: service type is invalid
             Exception: data change type is invalid
     """
-    pop_sql_map = {PROCUREMENT: POPULATE_PROCUREMENT_SQL, GRANT: POPULATE_GRANT_SQL}
-    link_sql_map = {PROCUREMENT: LINK_PROCUREMENT_SQL, GRANT: LINK_GRANT_SQL}
-    if service_type not in pop_sql_map:
-        raise Exception('Invalid service type provided: {}'.format(service_type))
+    pop_sql_map = {'contract': POPULATE_CONTRACT_SQL, 'assistance': POPULATE_ASSISTANCE_SQL}
+    link_sql_map = {'contract': LINK_CONTRACT_SQL, 'assistance': LINK_ASSISTANCE_SQL}
+    if data_type not in pop_sql_map:
+        raise Exception('Invalid data type provided: {}'.format(data_type))
     type_map = {'populate': pop_sql_map, 'link': link_sql_map}
     if data_change_type not in type_map:
         raise Exception('Invalid data change type provided: {}'.format(data_change_type))
-    with open(type_map[data_change_type][service_type], 'r') as sql_file:
+    with open(type_map[data_change_type][data_type], 'r') as sql_file:
         sql = sql_file.read()
     return sql
 
 
-def populate_subaward_table(sess, service_type, ids=None, min_id=None):
+def populate_subaward_table(sess, data_type, min_date=None, report_nums=None):
     """ Populates the subaward table based on the IDS (or min id) provided
 
         Args:
             sess: connection to the database
-            service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
-            ids: if provided, only update these ids
-            min_id: if provided, update all ids past this one
+            data_type: type of data to work with (usually 'contract' or 'assistance')
+            min_date: the earliest updated_at to use from the sam subaward tables
+            report_nums: if provided, only update these ids
 
         Raises:
-            Exception: ids and min_id both provided or both not provided
-            Exception: service type is invalid
+            Exception: data type is invalid
     """
-    if (ids is not None and min_id is not None) or (ids is None and min_id is None):
-        raise Exception('ids or min_id, but not both, must be provided')
-
-    sql = extract_subaward_sql(service_type, 'populate')
-    if min_id is not None:
-        operator = '>'
-        values = min_id - 1
+    sql = extract_subaward_sql(data_type, 'populate')
+    table_name = 'sam_subgrant' if data_type == 'assistance' else 'sam_subcontract'
+    if min_date is not None:
+        condition = f'{table_name}.updated_at > \'{min_date.strftime("%Y-%m-%d")}\''
     else:
-        operator = 'IN'
-        values = '({})'.format(','.join([str(id) for id in ids]))
-    sql = sql.format(operator, values)
+        report_nums = ','.join([str(report_num) for report_num in report_nums])
+        condition = f'{table_name}.subaward_report_id IN ({report_nums})'
+    sql = sql.format(condition)
 
     # run the SQL. splitting and stripping the calls for pg_stat_activity visibility while it's running
     for sql_statement in sql.split(';'):
@@ -74,30 +70,23 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
             inserted = sess.execute(sql_statement.strip())
     sess.commit()
     inserted_count = inserted.rowcount
-    award_type = service_type[:service_type.index('_')]
-    logger.info('Inserted {} sub-{}s to the subaward table'.format(inserted_count, award_type))
+    logger.info(f'Inserted {inserted_count} sub-{data_type} to the subaward table')
     return inserted_count
 
 
-def fix_broken_links(sess, service_type, min_date=None):
+def fix_broken_links(sess, data_type):
     """ Attempts to resolve any unlinked subawards given the current data
 
         Args:
             sess: connection to the database
-            service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
+            data_type: type of data to work with (usually 'contract' or 'assistance')
 
         Raises:
-            Exception: service type is invalid
+            Exception: data type is invalid
     """
-    award_type = service_type[:service_type.index('_')]
-    logger.info('Attempting to fix broken sub-{} links in the subaward table'.format(award_type))
-    subaward_type_map = {PROCUREMENT: 'sub-contract', GRANT: 'sub-grant'}
-    if service_type not in subaward_type_map:
-        raise Exception('Invalid service type provided: {}'.format(service_type))
+    logger.info(f'Attempting to fix broken sub-{data_type} links in the subaward table')
 
-    sql = extract_subaward_sql(service_type, 'link')
-    min_date_sql = '' if min_date is None else 'AND updated_at >= \'{}\''.format(min_date)
-    sql = sql.format(min_date_sql)
+    sql = extract_subaward_sql(data_type, 'link')
 
     # run the SQL. splitting and stripping the calls for pg_stat_activity visibility while it's running
     for sql_statement in sql.split(';'):
@@ -106,21 +95,22 @@ def fix_broken_links(sess, service_type, min_date=None):
     sess.commit()
 
     updated_count = updated.rowcount
-    logger.info('Updated {} sub-{}s in the subaward table'.format(updated_count, award_type))
+    logger.info(f'Updated {updated_count} sub-{data_type} in the subaward table')
     return updated_count
 
 
 if __name__ == '__main__':
     now = datetime.datetime.now()
     configure_logging()
-    parser = argparse.ArgumentParser(description='Pull data from FSRS Feed')
+    parser = argparse.ArgumentParser(description='Populate the subaward table using the raw SAM Subaward tables')
     method = parser.add_mutually_exclusive_group(required=True)
-    parser.add_argument('-p', '--procurements', action='store_true', help="Load just procurement awards")
-    parser.add_argument('-g', '--grants', action='store_true', help="Load just grant awards")
-    method.add_argument('-m', '--min_id', type=int, nargs=1, help="Load all data from a minimum id (0 for complete"
-                                                                  " backfill)")
+    parser.add_argument('-d', '--data_type', help='Which data (assistance, contract, or both) to populate.'
+                                                  ' Defaults to both.',
+                        required=False, default='both', choices=['assistance', 'contract', 'both'])
+    method.add_argument('-m', '--min_date', type=str, nargs=1, help="Load all data from a minimum date"
+                                                                    " (mm/dd/yyyy) using 'updated_at'")
     method.add_argument('-i', '--ids', type=int, nargs='+',
-                        help="Single or list of FSRS ids to populate the subaward table")
+                        help="Single or list of SAM Subaward Report Numbers to populate the subaward table")
 
     with create_app().app_context():
         logger.info("Begin backfilling Subaward table")
@@ -133,21 +123,17 @@ if __name__ == '__main__':
             'start_time': str(now)
         }
 
-        service_types = []
-        if not (args.procurements or args.grants):
-            logger.error('FSRS types not provided. Please specify procurements, grants, or both.')
-            sys.exit(1)
-        if args.procurements:
-            service_types.append(PROCUREMENT)
-        if args.grants:
-            service_types.append(GRANT)
+        min_date = None
+        if args.min_date:
+            min_date = datetime.datetime.strptime(args.min_date[0], '%m/%d/%Y')
 
         records_inserted = 0
-        for service_type in service_types:
-            if args.min_id:
-                records_inserted += populate_subaward_table(sess, service_type, min_id=args.min_id[0])
+        data_types = ['contract', 'assistance'] if args.data_type == 'both' else [args.data_type]
+        for data_type in data_types:
+            if args.min_date:
+                records_inserted += populate_subaward_table(sess, data_type, min_date=min_date)
             elif args.ids:
-                records_inserted += populate_subaward_table(sess, service_type, ids=args.ids)
+                records_inserted += populate_subaward_table(sess, data_type, report_nums=args.ids)
 
         metrics_json['records_inserted'] = records_inserted
         metrics_json['duration'] = str(datetime.datetime.now() - now)

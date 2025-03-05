@@ -250,6 +250,7 @@ def parse_raw_office(org):
     return new_office
 
 
+# TODO: reuse dataactbroker.helpers.script_helper.trim_nested_obj
 def trim_nested_obj(obj):
     """ A recursive version to trim all the values in a nested object
 
@@ -268,6 +269,7 @@ def trim_nested_obj(obj):
     return obj
 
 
+# TODO: reuse dataactbroker.helpers.script_helper.flatten_json
 def flatten_json(json_obj):
     """ Flatten a JSON object into a single row.
 
