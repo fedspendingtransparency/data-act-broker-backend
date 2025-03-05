@@ -11,7 +11,8 @@ from dataactcore.broker_logging import configure_logging
 from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL, \
     config_state_mappings
 from dataactcore.models.fsrs import Subaward
-from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
+from dataactcore.scripts.pipeline.populate_subaward_table_fsrs import (populate_subaward_table_fsrs,
+                                                                       fix_broken_links_fsrs)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -81,8 +82,8 @@ if __name__ == '__main__':
             if len(sys.argv) <= 1:
                 # there may be more transaction data since we've last run, let's fix any links before importing new data
                 if last_updated_at:
-                    fix_broken_links(sess, PROCUREMENT, min_date=last_updated_at)
-                    fix_broken_links(sess, GRANT, min_date=last_updated_at)
+                    fix_broken_links_fsrs(sess, PROCUREMENT, min_date=last_updated_at)
+                    fix_broken_links_fsrs(sess, GRANT, min_date=last_updated_at)
 
                 awards = ['Starting']
                 logger.info('Loading latest FSRS reports')
@@ -99,7 +100,7 @@ if __name__ == '__main__':
 
             elif args.procurement and args.ids:
                 if last_updated_at:
-                    fix_broken_links(sess, PROCUREMENT, min_date=last_updated_at)
+                    fix_broken_links_fsrs(sess, PROCUREMENT, min_date=last_updated_at)
 
                 for procurement_id in args.ids:
                     logger.info('Loading FSRS reports for procurement id {}'.format(procurement_id))
@@ -110,7 +111,7 @@ if __name__ == '__main__':
 
             elif args.grants and args.ids:
                 if last_updated_at:
-                    fix_broken_links(sess, GRANT, min_date=last_updated_at)
+                    fix_broken_links_fsrs(sess, GRANT, min_date=last_updated_at)
 
                 for grant_id in args.ids:
                     logger.info('Loading FSRS reports for grant id {}'.format(grant_id))
@@ -134,16 +135,16 @@ if __name__ == '__main__':
             if len(sys.argv) <= 1:
                 if new_procurements:
                     sess.query(Subaward).filter(Subaward.internal_id.in_(proc_ids)).delete(synchronize_session=False)
-                    populate_subaward_table(sess, PROCUREMENT, min_id=original_min_procurement_id)
+                    populate_subaward_table_fsrs(sess, PROCUREMENT, min_id=original_min_procurement_id)
                 if new_grants:
                     sess.query(Subaward).filter(Subaward.internal_id.in_(grant_ids)).delete(synchronize_session=False)
-                    populate_subaward_table(sess, GRANT, min_id=original_min_grant_id)
+                    populate_subaward_table_fsrs(sess, GRANT, min_id=original_min_grant_id)
             elif args.procurement and new_procurements and args.ids:
                 sess.query(Subaward).filter(Subaward.internal_id.in_(proc_ids)).delete(synchronize_session=False)
-                populate_subaward_table(sess, PROCUREMENT, ids=args.ids)
+                populate_subaward_table_fsrs(sess, PROCUREMENT, ids=args.ids)
             elif args.grants and new_grants and args.ids:
                 sess.query(Subaward).filter(Subaward.internal_id.in_(grant_ids)).delete(synchronize_session=False)
-                populate_subaward_table(sess, GRANT, ids=args.ids)
+                populate_subaward_table_fsrs(sess, GRANT, ids=args.ids)
 
         # Deletes state mapping variable
         config_state_mappings()
