@@ -216,16 +216,16 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "ppop_country_name": "placeOfPerformance_country_name",
             "ppop_zip_code": "placeOfPerformance_zip",  # zip5 or zip9
 
-            "high_comp_officer1_full_na": "subTopPayEmployee_salary_0",
-            "high_comp_officer1_amount": "subTopPayEmployee_fullname_0",
-            "high_comp_officer2_full_na": "subTopPayEmployee_salary_1",
-            "high_comp_officer2_amount": "subTopPayEmployee_fullname_1",
-            "high_comp_officer3_full_na": "subTopPayEmployee_salary_2",
-            "high_comp_officer3_amount": "subTopPayEmployee_fullname_2",
-            "high_comp_officer4_full_na": "subTopPayEmployee_salary_3",
-            "high_comp_officer4_amount": "subTopPayEmployee_fullname_3",
-            "high_comp_officer5_full_na": "subTopPayEmployee_salary_4",
-            "high_comp_officer5_amount": "subTopPayEmployee_fullname_4",
+            "high_comp_officer1_full_na": "subTopPayEmployee_0_salary",
+            "high_comp_officer1_amount": "subTopPayEmployee_0_fullname",
+            "high_comp_officer2_full_na": "subTopPayEmployee_1_salary",
+            "high_comp_officer2_amount": "subTopPayEmployee_1_fullname",
+            "high_comp_officer3_full_na": "subTopPayEmployee_2_salary",
+            "high_comp_officer3_amount": "subTopPayEmployee_2_fullname",
+            "high_comp_officer4_full_na": "subTopPayEmployee_3_salary",
+            "high_comp_officer4_amount": "subTopPayEmployee_3_fullname",
+            "high_comp_officer5_full_na": "subTopPayEmployee_4_salary",
+            "high_comp_officer5_amount": "subTopPayEmployee_4_fullname",
         }
     elif data_type == 'contract':
         mapping = {
@@ -268,16 +268,16 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "ppop_zip_code": "",  # zip5 or zip9
             "ppop_congressional_district": "",
 
-            "high_comp_officer1_full_na": "subTopPayEmployee_salary_0",
-            "high_comp_officer1_amount": "subTopPayEmployee_fullname_0",
-            "high_comp_officer2_full_na": "subTopPayEmployee_salary_1",
-            "high_comp_officer2_amount": "subTopPayEmployee_fullname_1",
-            "high_comp_officer3_full_na": "subTopPayEmployee_salary_2",
-            "high_comp_officer3_amount": "subTopPayEmployee_fullname_2",
-            "high_comp_officer4_full_na": "subTopPayEmployee_salary_3",
-            "high_comp_officer4_amount": "subTopPayEmployee_fullname_3",
-            "high_comp_officer5_full_na": "subTopPayEmployee_salary_4",
-            "high_comp_officer5_amount": "subTopPayEmployee_fullname_4",
+            "high_comp_officer1_full_na": "subTopPayEmployee_0_salary",
+            "high_comp_officer1_amount": "subTopPayEmployee_0_fullname",
+            "high_comp_officer2_full_na": "subTopPayEmployee_1_salary",
+            "high_comp_officer2_amount": "subTopPayEmployee_1_fullname",
+            "high_comp_officer3_full_na": "subTopPayEmployee_2_salary",
+            "high_comp_officer3_amount": "subTopPayEmployee_2_fullname",
+            "high_comp_officer4_full_na": "subTopPayEmployee_3_salary",
+            "high_comp_officer4_amount": "subTopPayEmployee_3_fullname",
+            "high_comp_officer5_full_na": "subTopPayEmployee_4_salary",
+            "high_comp_officer5_amount": "subTopPayEmployee_4_fullname",
         }
     else:
         raise ValueError('data_type must be \'assistance\' or \'contract\'')

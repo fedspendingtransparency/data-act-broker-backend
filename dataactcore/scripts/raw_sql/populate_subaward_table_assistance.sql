@@ -555,16 +555,22 @@ SELECT
     sub_le_country.country_name AS "sub_legal_entity_country_name",
     sam_subgrant.legal_entity_address_line1 AS "sub_legal_entity_address_line1",
     sam_subgrant.legal_entity_city_name AS "sub_legal_entity_city_name",
-    sam_subgrant.legal_entity_state_code AS "sub_legal_entity_state_code",
-    sam_subgrant.legal_entity_state_name AS "sub_legal_entity_state_name",
-    CASE WHEN sam_subgrant.legal_entity_country_code = 'USA'
+    CASE WHEN UPPER(sam_subgrant.legal_entity_state_code) <> 'ZZ'
+        THEN  sam_subgrant.legal_entity_state_code
+        ELSE NULL
+    END AS "sub_legal_entity_state_code",
+    CASE WHEN UPPER(sam_subgrant.legal_entity_state_code) <> 'ZZ'
+        THEN  sam_subgrant.legal_entity_state_name
+        ELSE NULL
+    END AS "sub_legal_entity_state_name",
+    CASE WHEN UPPER(sam_subgrant.legal_entity_country_code) = 'USA'
          THEN sam_subgrant.legal_entity_zip_code
          ELSE NULL
     END AS "sub_legal_entity_zip",
     COALESCE(sub_le_county_code_zip9.county_number, sub_le_county_code_zip5.county_number) AS "sub_legal_entity_county_code",
     sub_le_county_name.county_name AS "sub_legal_entity_county_name",
     sam_subgrant.legal_entity_congressional AS "sub_legal_entity_congressional",
-    CASE WHEN sam_subgrant.legal_entity_country_code <> 'USA'
+    CASE WHEN UPPER(sam_subgrant.legal_entity_country_code) <> 'USA'
          THEN sam_subgrant.legal_entity_zip_code
          ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
@@ -573,8 +579,14 @@ SELECT
      ELSE NULL
     END AS "sub_business_types",
     sam_subgrant.ppop_city_name AS "sub_place_of_perform_city_name",
-    sam_subgrant.ppop_state_code AS "sub_place_of_perform_state_code",
-    sam_subgrant.ppop_state_name AS "sub_place_of_perform_state_name",
+    CASE WHEN UPPER(sam_subgrant.ppop_state_code) <> 'ZZ'
+        THEN  sam_subgrant.ppop_state_code
+        ELSE NULL
+    END AS "sub_place_of_perform_state_code",
+    CASE WHEN UPPER(sam_subgrant.ppop_state_code) <> 'ZZ'
+        THEN  sam_subgrant.ppop_state_name
+        ELSE NULL
+    END AS "sub_place_of_perform_state_name",
     sam_subgrant.ppop_zip_code AS "sub_place_of_performance_zip",
     COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) AS "sub_place_of_performance_county_code",
     sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name",
