@@ -4,7 +4,7 @@ import datetime
 import json
 import logging
 import pandas as pd
-from sqlalchemy import func
+from sqlalchemy import column, func
 import sys
 
 from dataactcore.broker_logging import configure_logging
@@ -30,6 +30,11 @@ CONTRACT_API_URL = CONFIG_BROKER['sam']['subaward']['contract_api_url'].format(C
 REQUESTS_AT_ONCE = 5
 LIMIT = 1000
 
+SUBAWARD_CONFIG = {
+    'assistance': {'api_url': ASSISTANCE_API_URL, 'model': SAMSubgrant},
+    'contract': {'api_url': CONTRACT_API_URL, 'model': SAMSubcontract},
+}
+
 
 def load_subawards(sess, data_type, load_type='published', start_load_date=None, end_load_date=None, update_db=True,
                    metrics=None):
@@ -48,16 +53,14 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
         Raises:
             ValueError if load_type not specified
     """
-    if data_type == 'assistance':
-        api_url = ASSISTANCE_API_URL
-    elif data_type == 'contract':
-        api_url = CONTRACT_API_URL
-    else:
+    if data_type not in ('assistance', 'contract'):
         raise ValueError('data_type must be \'assistance\' or \'contract\'')
-
     if load_type not in ('published', 'deleted'):
         raise ValueError('data_type must be \'published\' or \'deleted\'')
+    if metrics is None:
+        metrics = dict()
 
+    api_url = SUBAWARD_CONFIG[data_type]['api_url']
     logger.info('Starting subaward feed: %s', api_url.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
 
     params = {
@@ -103,11 +106,14 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
         report_numbers_pulled.extend(new_subawards['subaward_report_number'].tolist())
 
         if update_db and not new_subawards.empty:
+            sam_subaward_model = SUBAWARD_CONFIG[data_type]['model']
             if load_type == 'published':
-                store_subawards(sess, new_subawards, data_type)
+                store_subawards(sess, new_subawards, sam_subaward_model)
             if load_type == 'deleted':
-                # TODO: delete_subawards
-                delete_subawards(sess, new_subawards, data_type)
+                not_matched = delete_subawards(sess, new_subawards, sam_subaward_model)
+                if not_matched:
+                    logger.info(f'{len(not_matched)} deleted {data_type} records not found in data: {not_matched}')
+                    metrics[f'{load_type}_{data_type}_records_not_matched'] = not_matched
 
         logger.info('Processed rows %s-%s', start, entries_processed)
         if entries_processed == total_expected_records:
@@ -288,36 +294,44 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
     return subaward_dict
 
 
-def store_subawards(sess, new_subawards, data_type):
+def store_subawards(sess, new_subawards, model):
     """ Load the new subawards into the database
 
         Args:
             sess: database connection
             new_subawards: dataframe of the new subaward data to be stored
-            data_type: either "contract" or "assistance"
+            model: either SAMSubcontract or SAMSubgrant
     """
     new_subawards['created_at'] = get_utc_now()
     new_subawards['updated_at'] = get_utc_now()
 
-    if data_type == 'assistance':
-        sam_subaward_model = SAMSubgrant
-    elif data_type == 'contract':
-        sam_subaward_model = SAMSubcontract
-    else:
-        raise ValueError('data_type must be \'assistance\' or \'contract\'')
-
-    # TODO: Confirm subaward uniquness and update accordingly
-    new_sub_report_nums = new_subawards['subaward_report_number'].tolist()
-    old_subs = sess.query(sam_subaward_model).filter(sam_subaward_model.subaward_report_number.in_(new_sub_report_nums))
+    # TODO: Confirm subaward uniqueness and update accordingly
+    new_sub_report_nums = new_subawards['subaward_report_number'].unique()
+    old_subs = sess.query(model).filter(model.subaward_report_number.in_(new_sub_report_nums))
     old_subs.delete(synchronize_session=False)
 
-    insert_dataframe(new_subawards, sam_subaward_model.__table__.name, sess.connection())
+    insert_dataframe(new_subawards, model.__table__.name, sess.connection())
     sess.commit()
 
 
-def delete_subawards(sess, new_subawards, data_type):
-    # TODO: delete_subawards
-    pass
+def delete_subawards(sess, new_subawards, model):
+    """ Delete the new subawards from the database
+
+        Args:
+            sess: database connection
+            new_subawards: dataframe of the new subaward data to be stored
+            model: either SAMSubcontract or SAMSubgrant
+
+        Returns:
+            list of unmatched subaward report numbers
+    """
+    to_delete_report_nums = new_subawards['subaward_report_number'].unique()
+    to_delete = sess.query(model).filter(model.subaward_report_number.in_(to_delete_report_nums))
+    matched_report_nums = set(row[0] for row in to_delete.with_entities(column('subaward_report_number')).all())
+    not_matched_report_nums = set(to_delete_report_nums).difference(matched_report_nums)
+    to_delete.delete(synchronize_session=False)
+    sess.commit()
+    return list(not_matched_report_nums)
 
 
 if __name__ == '__main__':
@@ -362,6 +376,7 @@ if __name__ == '__main__':
         last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
         if last_updated_at:
             for data_type in data_types:
+                # TODO: Fix broken links
                 fix_broken_links(sess, data_type)
 
         start_ingestion_datetime = get_utc_now()
