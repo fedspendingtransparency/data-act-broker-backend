@@ -264,7 +264,14 @@ SET
     high_comp_officer4_full_na = lap.high_comp_officer4_full_na,
     high_comp_officer4_amount = lap.high_comp_officer4_amount,
     high_comp_officer5_full_na = lap.high_comp_officer5_full_na,
-    high_comp_officer5_amount = lap.high_comp_officer5_amount
+    high_comp_officer5_amount = lap.high_comp_officer5_amount,
+
+    -- Subaward values derived from prime award
+    sub_assistance_listing_numbers = ARRAY_TO_STRING(gap.assistance_listing_nums, ', '),
+    sub_federal_agency_id = lap.awarding_sub_tier_agency_c,
+    sub_federal_agency_name = lap.awarding_sub_tier_agency_n,
+    sub_funding_agency_id = lap.funding_sub_tier_agency_co,
+    sub_funding_agency_name = lap.funding_sub_tier_agency_na
 FROM related_raw
      JOIN latest_aw_pf AS lap
         ON related_raw.unique_award_key = lap.unique_award_key

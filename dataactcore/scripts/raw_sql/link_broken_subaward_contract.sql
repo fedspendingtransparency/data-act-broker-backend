@@ -235,7 +235,14 @@ SET
     high_comp_officer4_full_na = ldap.high_comp_officer4_full_na,
     high_comp_officer4_amount = ldap.high_comp_officer4_amount,
     high_comp_officer5_full_na = ldap.high_comp_officer5_full_na,
-    high_comp_officer5_amount = ldap.high_comp_officer5_amount
+    high_comp_officer5_amount = ldap.high_comp_officer5_amount,
+
+    -- Subaward values derived from prime award
+    sub_federal_agency_id = ldap.awarding_sub_tier_agency_c,
+    sub_federal_agency_name = ldap.awarding_sub_tier_agency_n,
+    sub_funding_agency_id = ldap.funding_sub_tier_agency_co,
+    sub_funding_agency_name = ldap.funding_sub_tier_agency_na,
+    sub_naics = ldap.naics
 FROM related_raw
     JOIN base_aw_dap AS bdap
         ON related_raw.unique_award_key = bdap.unique_award_key
