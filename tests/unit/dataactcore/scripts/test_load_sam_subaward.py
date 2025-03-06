@@ -109,7 +109,7 @@ class MockApi:
 
     @staticmethod
     def contract_record(report_number, load_type=None):
-        return  {
+        return {
             "primeContractKey": None,
             "piid": uuid.uuid4().hex,
             "agencyId": uuid.uuid4().hex,
@@ -199,7 +199,8 @@ def test_load_subawards(mock_get_with_exception_hand, data_type, load_type, data
         db_report_nums_post_delete = set(record[0] for record in session.query(model.subaward_report_number).all())
         assert delete_result.isdisjoint(db_report_nums_post_delete)
 
-        # Check that the report numbers in the delete result match
+        # Check that the report numbers in the delete result match the difference of the original records from the db
+        # and the records remaining in the db post delete
         assert db_report_nums_post_load.difference(db_report_nums_post_delete) == delete_result
 
 
