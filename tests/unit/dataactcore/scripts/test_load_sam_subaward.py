@@ -1,18 +1,28 @@
 import itertools
+import math
 import random
 import uuid
 from datetime import date
 from unittest.mock import patch
 
+import pandas as pd
 import pytest
 
 from dataactcore.models.fsrs import SAMSubgrant, SAMSubcontract
-from dataactcore.scripts.pipeline.load_sam_subaward import ASSISTANCE_API_URL, LIMIT, load_subawards
+from dataactcore.scripts.pipeline.load_sam_subaward import (
+    ASSISTANCE_API_URL,
+    delete_subawards,
+    LIMIT,
+    load_subawards,
+    parse_raw_subaward,
+    pull_subawards,
+    store_subawards,
+)
 
 
 class MockApi:
 
-    def __init__(self, total_publish_records, total_delete_records):
+    def __init__(self, total_publish_records, total_delete_records=0):
         self.total_publish_records = total_publish_records
         self.total_delete_records = total_delete_records
 
@@ -31,13 +41,14 @@ class MockApi:
         page_number = int(params.get('pageNumber', 0))
         load_type = params.get('status')
         total_records = self.total_publish_records if load_type == 'Published' else self.total_delete_records
+        total_pages = math.ceil(total_records / page_size)
         return {
-            'totalPages': max(1, total_records // page_size),
+            'totalPages': total_pages,
             'totalRecords': total_records,
             'pageNumber': page_number,
             'data': [
                 record_type(str(i), load_type)
-                for i in range(max(0, total_records - (page_size * page_number)))
+                for i in range(max(0, min(page_size, total_records - (page_number * page_size))))
             ]
         }
 
@@ -161,15 +172,219 @@ def test_load_subawards(mock_get_with_exception_hand, data_type, load_type, data
     total_delete_records = 50
     mock_get_with_exception_hand.side_effect = MockApi(total_publish_records, total_delete_records).get_records
     session = database.session
+
+    # Load subawards
     result = load_subawards(session, data_type=data_type, load_type="published")
-    assert len(result) == total_publish_records
-    assert len(result) == session.query(model).count()
+
+    # Check that the length of the result matches the total published records from the api
+    # and the number of records in the database.
+    assert len(result) == total_publish_records == session.query(model).count()
+
+    # Check that the subaward report numbers in the result match the database
     db_report_nums_post_load = set(record[0] for record in session.query(model.subaward_report_number).all())
     assert set(result) == db_report_nums_post_load
+
     if load_type == "deleted":
+
+        # Delete subawards if load_type is "deleted"
         delete_result = set(load_subawards(session, data_type=data_type, load_type="deleted"))
-        db_report_nums_post_delete = set(record[0] for record in session.query(model.subaward_report_number).all())
+
+        # Check that the length of the delete result match the total delete records in the api response
         assert len(delete_result) == total_delete_records
+
+        # Check that the database has the expected number of records after delete
         assert total_publish_records - total_delete_records == session.query(model).count()
+
+        # Check that none of the deleted report numbers are in the database
+        db_report_nums_post_delete = set(record[0] for record in session.query(model.subaward_report_number).all())
         assert delete_result.isdisjoint(db_report_nums_post_delete)
+
+        # Check that the report numbers in the delete result match
         assert db_report_nums_post_load.difference(db_report_nums_post_delete) == delete_result
+
+
+@pytest.mark.parametrize("data_type", ("assistance", "contract"))
+def test_store_subawards(data_type, database):
+    model = SAMSubgrant if data_type == 'assistance' else SAMSubcontract
+    new_subawards = pd.DataFrame({'subaward_report_number': [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]})
+    session = database.session
+
+    # Load subawards.
+    store_subawards(session, new_subawards, model)
+    db_report_nums_post_load = set(record[0] for record in session.query(model.subaward_report_number).all())
+
+    # Check that all of the subawards are present in the database
+    assert session.query(model).count() == len(new_subawards)
+    assert set(new_subawards.subaward_report_number) == db_report_nums_post_load
+
+    # Load additional subawards.
+    more_subawards = pd.concat([
+        new_subawards,
+        pd.DataFrame({'subaward_report_number': [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]}),
+    ])
+    store_subawards(session, more_subawards, model)
+    db_report_nums_post_load = set(record[0] for record in session.query(model.subaward_report_number).all())
+
+    # The original subawards should be deleted and then reinserted (e.g. no duplicates)
+    assert session.query(model).count() == len(more_subawards)
+    assert set(more_subawards.subaward_report_number) == db_report_nums_post_load
+
+
+@pytest.mark.parametrize("data_type", ("assistance", "contract"))
+def test_delete_subawards(data_type, database):
+    model = SAMSubgrant if data_type == 'assistance' else SAMSubcontract
+    new_subawards = pd.DataFrame({'subaward_report_number': [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]})
+    session = database.session
+
+    # Load subawards
+    store_subawards(session, new_subawards, model)
+    assert session.query(model).count() == len(new_subawards)
+
+    # Delete subawards that were just loaded
+    not_matched_report_nums = delete_subawards(session, new_subawards, model)
+    assert session.query(model).count() == 0
+    assert not_matched_report_nums == []
+
+    # Attempt to delete subawards with no matches.  Expect to get all ids back in the list of not_matched_report_nums
+    not_matched_report_nums = delete_subawards(session, new_subawards, model)
+    assert set(not_matched_report_nums) == set(new_subawards.subaward_report_number)
+
+
+@pytest.fixture()
+def parsed_assistance_keys():
+    return [
+        'description',
+        'subaward_report_id',
+        'subaward_report_number',
+        'unique_award_key',
+        'date_submitted',
+        'award_number',
+        'award_amount',
+        'action_date',
+        'uei',
+        'legal_business_name',
+        'parent_uei',
+        'parent_legal_business_name',
+        'dba_name',
+        'legal_entity_address_line1',
+        'legal_entity_address_line2',
+        'legal_entity_city_name',
+        'legal_entity_congressional',
+        'legal_entity_state_code',
+        'legal_entity_state_name',
+        'legal_entity_country_code',
+        'legal_entity_country_name',
+        'legal_entity_zip_code',
+        'ppop_address_line1',
+        'ppop_city_name',
+        'ppop_congressional_district',
+        'ppop_state_code',
+        'ppop_state_name',
+        'ppop_country_code',
+        'ppop_country_name',
+        'ppop_zip_code',
+        'high_comp_officer1_full_na',
+        'high_comp_officer1_amount',
+        'high_comp_officer2_full_na',
+        'high_comp_officer2_amount',
+        'high_comp_officer3_full_na',
+        'high_comp_officer3_amount',
+        'high_comp_officer4_full_na',
+        'high_comp_officer4_amount',
+        'high_comp_officer5_full_na',
+        'high_comp_officer5_amount',
+        'business_types_codes',
+        'business_types_names',
+    ]
+
+
+@pytest.fixture()
+def parsed_contract_keys():
+    return [
+        'description',
+        'subaward_report_id',
+        'subaward_report_number',
+        'unique_award_key',
+        'date_submitted',
+        'contract_agency_code',
+        'contract_idv_agency_code',
+        'award_number',
+        'award_amount',
+        'action_date',
+        'uei',
+        'legal_business_name',
+        'parent_uei',
+        'parent_legal_business_name',
+        'dba_name',
+        'legal_entity_address_line1',
+        'legal_entity_address_line2',
+        'legal_entity_city_name',
+        'legal_entity_congressional',
+        'legal_entity_state_code',
+        'legal_entity_state_name',
+        'legal_entity_country_code',
+        'legal_entity_country_name',
+        'legal_entity_zip_code',
+        'ppop_country_code',
+        'ppop_country_name',
+        'ppop_state_code',
+        'ppop_state_name',
+        'ppop_address_line1',
+        'ppop_city_name',
+        'ppop_zip_code',
+        'ppop_congressional_district',
+        'high_comp_officer1_full_na',
+        'high_comp_officer1_amount',
+        'high_comp_officer2_full_na',
+        'high_comp_officer2_amount',
+        'high_comp_officer3_full_na',
+        'high_comp_officer3_amount',
+        'high_comp_officer4_full_na',
+        'high_comp_officer4_amount',
+        'high_comp_officer5_full_na',
+        'high_comp_officer5_amount',
+        'business_types_codes',
+        'business_types_names',
+    ]
+
+
+def test_parse_raw_subaward_assistance(parsed_assistance_keys):
+    report_number = uuid.uuid4().hex
+    raw_subaward_dict = MockApi.assistance_record(report_number)
+    result = parse_raw_subaward(raw_subaward_dict, 'assistance')
+    assert list(result.keys()) == parsed_assistance_keys
+
+
+def test_parse_raw_subaward_contract(parsed_contract_keys):
+    report_number = uuid.uuid4().hex
+    raw_subaward_dict = MockApi.contract_record(report_number)
+    result = parse_raw_subaward(raw_subaward_dict, 'contract')
+    assert list(result.keys()) == parsed_contract_keys
+
+
+@patch("dataactcore.scripts.pipeline.load_sam_subaward.get_with_exception_hand")
+def test_pull_subawards(mock_get_with_exception_hand):
+    api = MockApi(499)
+    mock_get_with_exception_hand.side_effect = api.get_records
+    subawards = [
+        subaward
+        for response in pull_subawards(ASSISTANCE_API_URL, {"pageSize": LIMIT, "status": "Published"})
+        for subaward in response.get("data", [])
+    ]
+    assert len(subawards) == 499
+    subawards = [
+        subaward
+        for response in pull_subawards(ASSISTANCE_API_URL, {"pageSize": 200, "status": "Published"})
+        for subaward in response.get("data", [])
+    ]
+    assert len(subawards) == 499
+    subawards = [
+        subaward
+        for response in pull_subawards(
+            ASSISTANCE_API_URL,
+            {"pageSize": 150, "status": "Published"},
+            entries_processed=300,
+        )
+        for subaward in response.get("data", [])
+    ]
+    assert len(subawards) == 199
