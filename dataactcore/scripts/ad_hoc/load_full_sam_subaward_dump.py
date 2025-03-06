@@ -3,8 +3,6 @@ import datetime
 import json
 import logging
 import boto3
-from sqlalchemy import column, func
-import sys
 import os
 import ast
 import re
@@ -14,7 +12,8 @@ import numpy as np
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant
+from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
+from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
 from dataactvalidator.health_check import create_app
@@ -182,10 +181,20 @@ if __name__ == '__main__':
 
         file_types = ['contract', 'assistance'] if args.file_type == 'both' else [args.file_type]
 
+        # Load full dump files for the specified subaward types
         for file_type in file_types:
             logger.info(f'Loading full dump of SAM Subaward reports for {file_type}')
             load_full_dump_file(sess, file_type, metrics=metrics_json)
             logger.info(f'Loaded full dump of SAM Subaward reports for {file_type}')
+
+        # If reload argument is present, reload the subaward table
+        if args.reload:
+            logger.info('Reloading all subawards')
+            sess.query(Subaward).delete(synchronize_session=False)
+            # Picking a date from long ago to ensure all the update_ats are always way after it
+            min_date = datetime.datetime.strptime('01/01/2020', '%m/%d/%Y')
+            populate_subaward_table(sess, 'contract', min_date=min_date)
+            populate_subaward_table(sess, 'assistance', min_date=min_date)
 
         metrics_json['duration'] = str(datetime.datetime.now() - now)
 
