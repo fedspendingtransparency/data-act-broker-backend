@@ -81,6 +81,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
                 'subparentname': 'parent_legal_business_name',
                 'subdbaname': 'dba_name',
                 'subbusinesstype': 'business_types_codes',
+                #'subbusinessname': 'business_types_names',
                 'subawardtoppayemployeefullname1': 'high_comp_officer1_full_na',
                 'subawardtoppayemployeesalary1': 'high_comp_officer1_amount',
                 'subawardtoppayemployeefullname2': 'high_comp_officer2_full_na',
@@ -105,6 +106,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
                 'sub_parent_name': 'parent_legal_business_name',
                 'sub_dba_name': 'dba_name',
                 'subcontractorbusinesstype': 'business_types_codes',
+                #'subcontractorbusinessname': 'business_types_names',
                 'subcontractortoppayemployeefullname1': 'high_comp_officer1_full_na',
                 'subcontractortoppayemployeesalary1': 'high_comp_officer1_amount',
                 'subcontractortoppayemployeefullname2': 'high_comp_officer2_full_na',
@@ -167,6 +169,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
     )
 
     data['business_types_codes'] = data.apply(lambda row: string_to_array(row, 'business_types_codes'), axis=1)
+    #data['business_types_names'] = data.apply(lambda row: string_to_array(row, 'business_types_names'), axis=1)
     # Clear any lingering np.nan's
     data = data.replace({np.nan: None})
 
