@@ -13,12 +13,37 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
+from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
 from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
+
+
+def derive_business_types_names(row):
+    """ Derives the business types names based on the codes provided
+
+        Args:
+            row: the dataframe row to derive business types names from
+
+        Returns:
+            An array of business types names based on the codes provided or None
+    """
+    if row['business_types_codes'] is None:
+        return None
+
+    business_types_names = []
+    for code in row['business_types_codes']:
+        if SAM_BUSINESS_TYPE_DICT.get(code) is not None:
+            business_types_names.append(SAM_BUSINESS_TYPE_DICT[code])
+
+    # Sometimes business_types_names can be empty if all business types listed were ones we don't have
+    if len(business_types_names) == 0:
+        return None
+
+    return business_types_names
 
 
 def string_to_array(row, col_name):
@@ -144,6 +169,10 @@ def load_full_dump_file(sess, file_type, metrics=None):
     data['business_types_codes'] = data.apply(lambda row: string_to_array(row, 'business_types_codes'), axis=1)
     # Clear any lingering np.nan's
     data = data.replace({np.nan: None})
+
+    # TODO: Remove this once we receive these from the file and run the string_to_array function on it instead
+    # Derive business_types_names column
+    data['business_types_names'] = data.apply(lambda row: derive_business_types_names(row), axis=1)
 
     # Clear out the entire old table
     sess.query(file_filters[file_type]['model']).delete(synchronize_session=False)
