@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import requests
@@ -7,12 +8,15 @@ import xmltodict
 import os
 import boto3
 import glob
-
+from dateutil.relativedelta import relativedelta
 from collections import namedtuple
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.domainModels import ExternalDataLoadDate
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +36,69 @@ def list_data(data):
         # make a list so it's consistent
         data = [data, ]
     return data
+
+
+def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_date_format='%m/%d/%Y',
+                        output_date_format='%m/%d/%Y'):
+    """ Validate and transform command line arguments of loader dates as desired.
+
+        Args:
+            arg_start_date: the incoming argument state date
+            arg_end_date: the incoming argument end date
+            arg_auto: the incoming argument auto, boolean indicating whether to autogenerate dates
+            load_type: the external loader data type
+            arg_date_format: the incoming argument dates expected format
+            output_date_format: the outgoing format of dates
+
+        Returns:
+            start and end dates in the output_date_format format
+
+        Raises:
+            ValueError if not in the right format or if arguments are logically inconsistent
+    """
+    start_date = None
+    end_date = None
+
+    if arg_auto and not (arg_start_date or arg_end_date):
+        sess = GlobalDB.db().session
+        # find yesterday and the date of the last successful generation
+        yesterday = datetime.now().date() - relativedelta(days=1)
+        last_update = sess.query(ExternalDataLoadDate). \
+            filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT[load_type]).one_or_none()
+        start_date = last_update.last_load_date_start.date() if last_update else yesterday
+        start_date = start_date.strftime(output_date_format)
+
+    if arg_start_date:
+        arg_date = arg_start_date[0]
+        try:
+            start_date = datetime.datetime.strptime(arg_date, arg_date_format)
+        except ValueError as e:
+            logger.error(f'Date {arg_date} not in proper format ({arg_date_format})')
+            raise e
+        start_date = start_date.strftime(output_date_format)
+
+    if arg_end_date:
+        arg_date = arg_end_date[0]
+        try:
+            end_date = datetime.datetime.strptime(arg_date, arg_date_format)
+        except ValueError as e:
+            logger.error(f'Date {arg_date} not in proper format ({arg_date_format})')
+            raise e
+        # Adding an extra day to be inclusive
+        end_date = end_date + relativedelta(days=1)
+        end_date = end_date.strftime(output_date_format)
+
+    # Validate that start/end date have been provided in some way and that they are in the right order
+    if not (start_date or end_date):
+        logger.error('start_date, end_date, or auto setting is required.')
+        raise ValueError('start_date, end_date, or auto setting is required.')
+
+    if start_date and end_date and (datetime.datetime.strptime(start_date, output_date_format)
+                                    >= datetime.datetime.strptime(end_date, output_date_format)):
+        logger.error('Start date cannot be later than end date.')
+        raise ValueError('Start date cannot be later than end date.')
+
+    return start_date, end_date
 
 
 def get_xml_with_exception_hand(url_string, namespaces, expect_entries=True):
@@ -121,6 +188,52 @@ def get_with_exception_hand(url_string):
             exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)
 
     return response_dict
+
+
+def trim_nested_obj(obj):
+    """ A recursive version to trim all the values in a nested object
+
+        Args:
+            obj: object to recursively trim
+
+        Returns:
+            dict if object, list of values if list, trimmed if string, else obj
+    """
+    if isinstance(obj, dict):
+        return {k: trim_nested_obj(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [trim_nested_obj(v) for v in obj]
+    elif isinstance(obj, str):
+        return obj.strip()
+    return obj
+
+
+def flatten_json(json_obj):
+    """ Flatten a JSON object into a single row.
+            {'a': {'b': '1', 'c': ['d', 'e']}} => {'a_b': '1', 'a_c_1': 'd', 'a_c_2': 'e'}
+
+        Args:
+            json_obj: JSON object to flatten
+
+        Returns:
+            Single row of values from the json_obj JSON
+    """
+    out = {}
+
+    def _flatten(list_item, name=''):
+        if type(list_item) is dict:
+            for item in list_item:
+                _flatten(list_item[item], name + item + '_')
+        elif type(list_item) is list:
+            count = 0
+            for item in list_item:
+                _flatten(item, name + str(count) + '_')
+                count += 1
+        else:
+            out[name[:-1]] = list_item
+
+    _flatten(json_obj)
+    return out
 
 
 def get_prefixed_file_list(file_path, aws_prefix, bucket_name='sf_133_bucket', file_extension='csv'):

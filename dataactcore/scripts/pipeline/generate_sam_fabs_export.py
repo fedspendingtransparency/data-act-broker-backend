@@ -236,6 +236,7 @@ def main():
         'start_date': ''
     }
 
+    # TODO: Refactor to reuse dataactbroker.helpers.script_helper.validate_load_dates
     start_date = None
     end_date = None
     start_log = 'project start'
