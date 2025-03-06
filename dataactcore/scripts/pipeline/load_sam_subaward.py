@@ -148,7 +148,7 @@ def pull_subawards(api_url, params, entries_processed=0):
         futures = []
         for start_offset in range(REQUESTS_AT_ONCE):
             # pageNumber is 0-indexed
-            params['pageNumber'] = (entries_already_processed // LIMIT) + start_offset
+            params['pageNumber'] = (entries_already_processed // params.get('pageSize', LIMIT)) + start_offset
             param_string = '&'.join(f'{k}={v}' for k, v in params.items())
             futures.append(
                 loop.run_in_executor(
