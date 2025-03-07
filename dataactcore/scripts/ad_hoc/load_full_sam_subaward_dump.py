@@ -4,7 +4,6 @@ import json
 import logging
 import boto3
 import os
-import re
 import pandas as pd
 import numpy as np
 
