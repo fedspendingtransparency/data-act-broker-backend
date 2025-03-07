@@ -167,7 +167,7 @@ class SAMSubcontract(Base):
     sam_subcontract_id = Column(Integer, primary_key=True)
     subaward_report_id = Column(Integer, index=True)
     subaward_report_number = Column(Text, index=True)
-    unique_award_key = Column(Text, index=True)
+    unique_award_key = Column(Text)
     date_submitted = Column(Date)
     contract_agency_code = Column(Text)
     contract_idv_agency_code = Column(Text)
@@ -186,7 +186,7 @@ class SAMSubcontract(Base):
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
     legal_entity_city_name = Column(Text)
-    legal_entity_zip_code = Column(Text)
+    legal_entity_zip_code = Column(Text, index=True)
     legal_entity_congressional = Column(Text)
     ppop_country_code = Column(Text)
     ppop_country_name = Column(Text)
@@ -194,10 +194,10 @@ class SAMSubcontract(Base):
     ppop_state_name = Column(Text)
     ppop_address_line1 = Column(Text)
     ppop_city_name = Column(Text)
-    ppop_zip_code = Column(Text)
+    ppop_zip_code = Column(Text, index=True)
     ppop_congressional_district = Column(Text)
-    business_type_codes = Column(ARRAY(Text))
-    business_type_names = Column(ARRAY(Text))
+    business_types_codes = Column(ARRAY(Text))
+    business_types_names = Column(ARRAY(Text))
     description = Column(Text)
     high_comp_officer1_full_na = Column(Text)
     high_comp_officer1_amount = Column(Text)
@@ -211,13 +211,21 @@ class SAMSubcontract(Base):
     high_comp_officer5_amount = Column(Text)
 
 
+Index("ix_sam_subcontract_updated_at", SAMSubcontract.updated_at)
+Index("ix_sam_subcontract_uak_upper", func.upper(SAMSubcontract.unique_award_key))
+Index("ix_sam_subcontract_le_country_upper", func.upper(SAMSubcontract.legal_entity_country_code))
+Index("ix_sam_subcontract_le_state_upper", func.upper(SAMSubcontract.legal_entity_state_code))
+Index("ix_sam_subcontract_ppop_country_upper", func.upper(SAMSubcontract.ppop_country_code))
+Index("ix_sam_subcontract_ppop_state_upper", func.upper(SAMSubcontract.ppop_state_code))
+
+
 class SAMSubgrant(Base):
     """ Model for SAM subgrant data """
     __tablename__ = 'sam_subgrant'
     sam_subgrant_id = Column(Integer, primary_key=True)
     subaward_report_id = Column(Integer, index=True)
     subaward_report_number = Column(Text, index=True)
-    unique_award_key = Column(Text, index=True)
+    unique_award_key = Column(Text)
     date_submitted = Column(Date)
     award_number = Column(Text)
     award_amount = Column(Text)
@@ -234,7 +242,7 @@ class SAMSubgrant(Base):
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
     legal_entity_city_name = Column(Text)
-    legal_entity_zip_code = Column(Text)
+    legal_entity_zip_code = Column(Text, index=True)
     legal_entity_congressional = Column(Text)
     ppop_country_code = Column(Text)
     ppop_country_name = Column(Text)
@@ -242,10 +250,10 @@ class SAMSubgrant(Base):
     ppop_state_name = Column(Text)
     ppop_address_line1 = Column(Text)
     ppop_city_name = Column(Text)
-    ppop_zip_code = Column(Text)
+    ppop_zip_code = Column(Text, index=True)
     ppop_congressional_district = Column(Text)
-    business_type_codes = Column(ARRAY(Text))
-    business_type_names = Column(ARRAY(Text))
+    business_types_codes = Column(ARRAY(Text))
+    business_types_names = Column(ARRAY(Text))
     description = Column(Text)
     high_comp_officer1_full_na = Column(Text)
     high_comp_officer1_amount = Column(Text)
@@ -257,6 +265,14 @@ class SAMSubgrant(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+
+
+Index("ix_sam_subgrant_updated_at", SAMSubgrant.updated_at)
+Index("ix_sam_subgrant_uak_upper", func.upper(SAMSubgrant.ppop_country_code))
+Index("ix_sam_subgrant_le_country_upper", func.upper(SAMSubgrant.legal_entity_country_code))
+Index("ix_sam_subgrant_le_state_upper", func.upper(SAMSubgrant.legal_entity_state_code))
+Index("ix_sam_subgrant_ppop_country_upper", func.upper(SAMSubgrant.ppop_country_code))
+Index("ix_sam_subgrant_ppop_state_upper", func.upper(SAMSubgrant.ppop_state_code))
 
 
 class Subaward(Base):
