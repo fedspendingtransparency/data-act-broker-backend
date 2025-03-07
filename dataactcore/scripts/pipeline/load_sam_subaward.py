@@ -406,7 +406,7 @@ if __name__ == '__main__':
 
         if args.data_type == 'both' and args.load_type == 'both':
             update_external_data_load_date(now, datetime.datetime.now(), 'subaward')
-            metrics_json['duration'] = str(datetime.datetime.now() - now)
 
-            with open('load_sam_subaward_metrics.json', 'w+') as metrics_file:
-                json.dump(metrics_json, metrics_file)
+        metrics_json['duration'] = str(datetime.datetime.now() - now)
+        with open('load_sam_subaward_metrics.json', 'w+') as metrics_file:
+            json.dump(metrics_json, metrics_file)
