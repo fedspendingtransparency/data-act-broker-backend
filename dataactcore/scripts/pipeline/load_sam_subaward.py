@@ -48,8 +48,10 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
             end_load_date: latest reportUpdatedDate to pull from, None for the present
             update_db: Boolean; update the DB tables with the new data from the API.
             metrics: an object containing information for the metrics file
+
         Returns:
             list of report_numbers pulled
+
         Raises:
             ValueError if load_type not specified
     """
