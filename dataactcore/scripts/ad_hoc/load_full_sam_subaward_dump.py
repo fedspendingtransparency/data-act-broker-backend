@@ -4,7 +4,6 @@ import json
 import logging
 import boto3
 import os
-import ast
 import re
 import pandas as pd
 import numpy as np
@@ -13,53 +12,12 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
-from dataactcore.models.lookups import SAM_BUSINESS_TYPE_DICT
 from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
-
-
-def derive_business_types_names(row):
-    """ Derives the business types names based on the codes provided
-
-        Args:
-            row: the dataframe row to derive business types names from
-
-        Returns:
-            An array of business types names based on the codes provided or None
-    """
-    if row['business_types_codes'] is None:
-        return None
-
-    business_types_names = []
-    for code in row['business_types_codes']:
-        if SAM_BUSINESS_TYPE_DICT.get(code) is not None:
-            business_types_names.append(SAM_BUSINESS_TYPE_DICT[code])
-
-    # Sometimes business_types_names can be empty if all business types listed were ones we don't have
-    if len(business_types_names) == 0:
-        return None
-
-    return business_types_names
-
-
-def string_to_array(row, col_name):
-    """ Takes a row from a df and if it's an array saved as a string sends it back out as an array instead of a string
-
-        Args:
-            row: the dataframe row to parse for an array
-            col_name: the name of the column to check for an array
-
-        Returns:
-            The array if it's an array in string format, whatever was in the column to start otherwise
-
-    """
-    if isinstance(row[col_name], str) and re.match(r'^\[.+\]$', row[col_name]):
-        return ast.literal_eval(row[col_name])
-    return row[col_name]
 
 
 def load_full_dump_file(sess, file_type, metrics=None):
@@ -81,7 +39,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
                 'subparentname': 'parent_legal_business_name',
                 'subdbaname': 'dba_name',
                 'subbusinesstype': 'business_types_codes',
-                #'subbusinessname': 'business_types_names',
+                'subbusinessname': 'business_types_names',
                 'subawardtoppayemployeefullname1': 'high_comp_officer1_full_na',
                 'subawardtoppayemployeesalary1': 'high_comp_officer1_amount',
                 'subawardtoppayemployeefullname2': 'high_comp_officer2_full_na',
@@ -106,7 +64,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
                 'sub_parent_name': 'parent_legal_business_name',
                 'sub_dba_name': 'dba_name',
                 'subcontractorbusinesstype': 'business_types_codes',
-                #'subcontractorbusinessname': 'business_types_names',
+                'subcontractorbusinessname': 'business_types_names',
                 'subcontractortoppayemployeefullname1': 'high_comp_officer1_full_na',
                 'subcontractortoppayemployeesalary1': 'high_comp_officer1_amount',
                 'subcontractortoppayemployeefullname2': 'high_comp_officer2_full_na',
@@ -168,14 +126,10 @@ def load_full_dump_file(sess, file_type, metrics=None):
         {}
     )
 
-    data['business_types_codes'] = data.apply(lambda row: string_to_array(row, 'business_types_codes'), axis=1)
-    #data['business_types_names'] = data.apply(lambda row: string_to_array(row, 'business_types_names'), axis=1)
+    data['business_types_codes'] = data['business_types_codes'].dropna().apply(json.loads)
+    data['business_types_names'] = data['business_types_names'].dropna().apply(json.loads)
     # Clear any lingering np.nan's
     data = data.replace({np.nan: None})
-
-    # TODO: Remove this once we receive these from the file and run the string_to_array function on it instead
-    # Derive business_types_names column
-    data['business_types_names'] = data.apply(lambda row: derive_business_types_names(row), axis=1)
 
     # Clear out the entire old table
     sess.query(file_filters[file_type]['model']).delete(synchronize_session=False)
