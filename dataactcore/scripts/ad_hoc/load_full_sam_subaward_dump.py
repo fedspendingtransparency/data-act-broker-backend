@@ -89,7 +89,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
     else:
         subaward_file = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', filename)
 
-    data = pd.read_csv(subaward_file)
+    data = pd.read_csv(subaward_file, encoding='cp1252')
     data = clean_data(
         data,
         file_filters[file_type]['model'],
