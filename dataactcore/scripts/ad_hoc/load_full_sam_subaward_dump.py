@@ -30,7 +30,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
     file_filters = {
         'assistance': {
             'model': SAMSubgrant,
-            'filename': 'assistance',
+            'filename': 'Assistance',
             'mapping': {
                 'primeawardkey': 'unique_award_key',
                 'subvendoruei': 'uei',
@@ -53,7 +53,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
         },
         'contract': {
             'model': SAMSubcontract,
-            'filename': 'acquisition',
+            'filename': 'Contracts',
             'mapping': {
                 'agencyid': 'contract_agency_code',
                 'referenceagencyid': 'contract_idv_agency_code',
@@ -78,7 +78,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
         }
     }
 
-    filename = f'{file_filters[file_type]['filename']}_subaward_data_index.csv'
+    filename = f'SAM_Subaward_Bulk_Import_{file_filters[file_type]['filename']}.csv'
 
     if CONFIG_BROKER['use_aws']:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
