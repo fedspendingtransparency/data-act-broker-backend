@@ -30,14 +30,15 @@ def load_full_dump_file(sess, file_type, metrics=None):
     file_filters = {
         'assistance': {
             'model': SAMSubgrant,
-            'filename': 'assistance',
+            'filename': 'Assistance',
             'mapping': {
                 'primeawardkey': 'unique_award_key',
                 'subvendoruei': 'uei',
                 'subvendorname': 'legal_business_name',
                 'subparentname': 'parent_legal_business_name',
                 'subdbaname': 'dba_name',
-                'subbusinesstype': 'business_types_codes',
+                'vendorphysicaladdress_streetaddress': 'legal_entity_address_line1',
+                'vendorphysicaladdress_streetaddress2': 'legal_entity_address_line2',
                 'subawardtoppayemployeefullname1': 'high_comp_officer1_full_na',
                 'subawardtoppayemployeesalary1': 'high_comp_officer1_amount',
                 'subawardtoppayemployeefullname2': 'high_comp_officer2_full_na',
@@ -52,7 +53,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
         },
         'contract': {
             'model': SAMSubcontract,
-            'filename': 'acquisition',
+            'filename': 'Contracts',
             'mapping': {
                 'agencyid': 'contract_agency_code',
                 'referenceagencyid': 'contract_idv_agency_code',
@@ -61,7 +62,8 @@ def load_full_dump_file(sess, file_type, metrics=None):
                 'subentitylegalbusinessname': 'legal_business_name',
                 'sub_parent_name': 'parent_legal_business_name',
                 'sub_dba_name': 'dba_name',
-                'subcontractorbusinesstype': 'business_types_codes',
+                'vendor_physicaladdress_streetaddress': 'legal_entity_address_line1',
+                'vendor_physicaladdress_streetaddress2': 'legal_entity_address_line2',
                 'subcontractortoppayemployeefullname1': 'high_comp_officer1_full_na',
                 'subcontractortoppayemployeesalary1': 'high_comp_officer1_amount',
                 'subcontractortoppayemployeefullname2': 'high_comp_officer2_full_na',
@@ -76,7 +78,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
         }
     }
 
-    filename = f'{file_filters[file_type]['filename']}_subaward_data_index.csv'
+    filename = f'SAM_Subaward_Bulk_Import_{file_filters[file_type]['filename']}.csv'
 
     if CONFIG_BROKER['use_aws']:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
@@ -100,10 +102,9 @@ def load_full_dump_file(sess, file_type, metrics=None):
             'subawardamount': 'award_amount',
             'subawarddate': 'action_date',
             'subparentuei': 'parent_uei',
-            'Business Type Name': 'business_types_names',
+            'subbusinesstype_code': 'business_types_codes',
+            'subbusinesstype_name': 'business_types_names',
 
-            'vendorphysicaladdress_streetaddress': 'legal_entity_address_line1',
-            'vendorphysicaladdress_streetaddress2': 'legal_entity_address_line2',
             'vendor_physicaladdress_city': 'legal_entity_city_name',
             'vendor_physicaladdress_congressionaldistrict': 'legal_entity_congressional',
             'vendor_physicaladdress_state_code': 'legal_entity_state_code',
