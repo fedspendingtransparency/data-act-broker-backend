@@ -79,6 +79,8 @@ def load_full_dump_file(sess, file_type, metrics=None):
     }
 
     filename = f'SAM_Subaward_Bulk_Import_{file_filters[file_type]['filename']}.csv'
+    logger.info(CONFIG_BROKER['data_extracts_bucket'])
+    logger.info(f'sam_subaward_bulk_dump/{filename}')
 
     if CONFIG_BROKER['use_aws']:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
