@@ -89,56 +89,58 @@ def load_full_dump_file(sess, file_type, metrics=None):
     else:
         subaward_file = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', filename)
 
-    data = pd.read_csv(subaward_file, encoding='cp1252')
-    data = clean_data(
-        data,
-        file_filters[file_type]['model'],
-        {
-            'subawarddescription': 'description',
-            'subawardreportid': 'subaward_report_id',
-            'subawardreportnumber': 'subaward_report_number',
-            'submitteddate': 'date_submitted',
-            'subawardnumber': 'award_number',
-            'subawardamount': 'award_amount',
-            'subawarddate': 'action_date',
-            'subparentuei': 'parent_uei',
-            'subbusinesstype_code': 'business_types_codes',
-            'subbusinesstype_name': 'business_types_names',
+    chunk_size = 100000
+    reader_obj = pd.read_csv(subaward_file, encoding='cp1252', chunksize=chunk_size)
+    for data in reader_obj:
+        data = clean_data(
+            data,
+            file_filters[file_type]['model'],
+            {
+                'subawarddescription': 'description',
+                'subawardreportid': 'subaward_report_id',
+                'subawardreportnumber': 'subaward_report_number',
+                'submitteddate': 'date_submitted',
+                'subawardnumber': 'award_number',
+                'subawardamount': 'award_amount',
+                'subawarddate': 'action_date',
+                'subparentuei': 'parent_uei',
+                'subbusinesstype_code': 'business_types_codes',
+                'subbusinesstype_name': 'business_types_names',
 
-            'vendor_physicaladdress_city': 'legal_entity_city_name',
-            'vendor_physicaladdress_congressionaldistrict': 'legal_entity_congressional',
-            'vendor_physicaladdress_state_code': 'legal_entity_state_code',
-            'vendor_physicaladdress_state_name': 'legal_entity_state_name',
-            'vendor_physicaladdress_country_code': 'legal_entity_country_code',
-            'vendor_physicaladdress_country_name': 'legal_entity_country_name',
-            'vendor_physicaladdress_zip': 'legal_entity_zip_code',
+                'vendor_physicaladdress_city': 'legal_entity_city_name',
+                'vendor_physicaladdress_congressionaldistrict': 'legal_entity_congressional',
+                'vendor_physicaladdress_state_code': 'legal_entity_state_code',
+                'vendor_physicaladdress_state_name': 'legal_entity_state_name',
+                'vendor_physicaladdress_country_code': 'legal_entity_country_code',
+                'vendor_physicaladdress_country_name': 'legal_entity_country_name',
+                'vendor_physicaladdress_zip': 'legal_entity_zip_code',
 
-            'sub_place_of_performance_streetaddress': 'ppop_address_line1',
-            'sub_place_of_performance_city': 'ppop_city_name',
-            'sub_place_of_performance_congressional_district': 'ppop_congressional_district',
-            'sub_place_of_performance_state_code': 'ppop_state_code',
-            'sub_place_of_performance_state_name': 'ppop_state_name',
-            'sub_place_of_performance_country_code': 'ppop_country_code',
-            'sub_place_of_performance_country_name': 'ppop_country_name',
-            'sub_place_of_performance_zip': 'ppop_zip_code'
-        } | file_filters[file_type]['mapping'],
-        {}
-    )
+                'sub_place_of_performance_streetaddress': 'ppop_address_line1',
+                'sub_place_of_performance_city': 'ppop_city_name',
+                'sub_place_of_performance_congressional_district': 'ppop_congressional_district',
+                'sub_place_of_performance_state_code': 'ppop_state_code',
+                'sub_place_of_performance_state_name': 'ppop_state_name',
+                'sub_place_of_performance_country_code': 'ppop_country_code',
+                'sub_place_of_performance_country_name': 'ppop_country_name',
+                'sub_place_of_performance_zip': 'ppop_zip_code'
+            } | file_filters[file_type]['mapping'],
+            {}
+        )
 
-    data['business_types_codes'] = data['business_types_codes'].dropna().apply(json.loads)
-    data['business_types_names'] = data['business_types_names'].dropna().apply(json.loads)
-    # Clear any lingering np.nan's
-    data = data.replace({np.nan: None})
+        data['business_types_codes'] = data['business_types_codes'].dropna().apply(json.loads)
+        data['business_types_names'] = data['business_types_names'].dropna().apply(json.loads)
+        # Clear any lingering np.nan's
+        data = data.replace({np.nan: None})
 
-    # Clear out the entire old table
-    sess.query(file_filters[file_type]['model']).delete(synchronize_session=False)
+        # Clear out the entire old table
+        sess.query(file_filters[file_type]['model']).delete(synchronize_session=False)
 
-    # Load new data in to the listed table
-    num_inserted = insert_dataframe(data, file_filters[file_type]['model'].__table__.name, sess.connection())
-    metrics[f'{file_type}_subawards'] = num_inserted
-    sess.commit()
-
-    logger.info(f'Inserted {num_inserted} {file_type} subawards')
+        # Load new data in to the listed table
+        logger.info(f'Begin inserting {data.size} subawards')
+        num_inserted = insert_dataframe(data, file_filters[file_type]['model'].__table__.name, sess.connection())
+        metrics[f'{file_type}_subawards'] = num_inserted
+        sess.commit()
+        logger.info(f'Inserted {num_inserted} {file_type} subawards')
 
 
 if __name__ == '__main__':
