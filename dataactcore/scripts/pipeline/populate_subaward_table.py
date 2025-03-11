@@ -140,5 +140,5 @@ if __name__ == '__main__':
         metrics_json['records_inserted'] = records_inserted
         metrics_json['duration'] = str(datetime.datetime.now() - now)
 
-        with open('populate_subaward_table  .json', 'w+') as metrics_file:
+        with open('populate_subaward_table_metrics.json', 'w+') as metrics_file:
             json.dump(metrics_json, metrics_file)
