@@ -96,9 +96,10 @@ def load_full_dump_file(sess, file_type, metrics=None):
 
     chunk_size = 10000
     with pd.read_csv(subaward_file, encoding='cp1252', chunksize=chunk_size, dtype=dtypes, usecols=list(dtypes.keys())) as reader_obj:
-        for chunk_df in reader_obj:
+        for data in reader_obj:
+            logger.info('Cleaning the data chunk')
             data = clean_data(
-                chunk_df,
+                data,
                 file_filters[file_type]['model'],
                 {
                     'subawarddescription': 'description',
