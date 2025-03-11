@@ -99,8 +99,7 @@ def trim_item(item):
     return item
 
 
-def clean_data(data, model, field_map, field_options, required_values=[], return_dropped_count=False):
-
+def clean_data(data, model, field_map, field_options, required_values=None, return_dropped_count=False):
     """ Cleans up a dataframe that contains domain values.
 
     Args:
@@ -125,64 +124,54 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
            Also fail if the file is blank.
 
     """
-    # incoming .csvs often have extraneous blank rows at the end,
-    # so get rid of those
-    clean_df = data.copy(deep=True)
-    clean_df.dropna(inplace=True, how='all')
+    df = (
+        data
+        .dropna(how='all')
+        .rename(columns=clean_col_names)
+        [field_map.keys()]
+    )
+    if not all(field in df for field in field_map):
+        raise ValueError("{} is required for loading table{}".format(
+            ', '.join([field for field in field_map if field not in df]), model)
+        )
+    df = (
+        df
+        .rename(columns=field_map)
+        .apply(lambda col: col.dropna().astype(str).str.strip().astype(col.dtype))
+    )
 
-    # clean the dataframe column names
-    clean_df.rename(columns=clean_col_names, inplace=True)
-    # make sure all values in fieldMap parameter are in the dataframe/csv file
-    for field in field_map:
-        if field not in list(clean_df.columns):
-            raise ValueError("{} is required for loading table{}".format(field, model))
-    # toss out any columns from the csv that aren't in the fieldMap parameter
-    clean_df = clean_df[list(field_map.keys())]
-    # rename columns as specified in fieldMap
-    clean_df = clean_df.rename(columns=field_map)
-
-    # trim all columns
-    clean_df = clean_df.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
-
-    if len(required_values) > 0:
-        # if file is blank, immediately fail
-        if clean_df.empty or len(clean_df.shape) < 2:
+    if required_values:
+        if df.empty or len(df.shape) < 2:
             raise FailureThresholdExceededError(0)
-        # check the columns that must have a valid value, and if they have white space,
-        # replace with NaN so that dropna finds them.
-        for value in required_values:
-            clean_df[value].replace('', np.nan, inplace=True)
-        # drop any rows that are missing required data
-        cleaned = clean_df.dropna(subset=required_values)
-        dropped = clean_df[np.invert(clean_df.index.isin(cleaned.index))]
-        # log every dropped row
+        for col in required_values:
+            df[col] = df[col].replace('', np.nan)
+        cleaned = df.dropna(subset=required_values)
+        dropped = df.loc[df.index.notin(cleaned.index)]
         for index, row in dropped.iterrows():
-            logger.info(
+            if all(col in row for col in ['fiscal_year_period', 'agency_id', 'allocation_transfer_id', 'account_number',
+                                          'program_activity_code', 'program_activity_name']):
+                logger.info(
                 'Dropped row due to faulty data: fyq:{}--agency:{}--alloc:{}--account:{}--pa_code:{}--pa_name:{}'.
                 format(row['fiscal_year_period'], row['agency_id'], row['allocation_transfer_id'],
                        row['account_number'], row['program_activity_code'], row['program_activity_name']))
-
-        if (len(dropped.index) / len(clean_df.index)) > FAILURE_THRESHOLD_PERCENTAGE:
+        if (len(dropped.index) / len(df.index)) > FAILURE_THRESHOLD_PERCENTAGE:
             raise FailureThresholdExceededError(len(dropped.index))
         logger.info("{} total rows dropped due to faulty data".format(len(dropped.index)))
-        clean_df = cleaned
+        df = cleaned
 
-    # apply column options as specified in fieldOptions param
     for col, options in field_options.items():
         if 'pad_to_length' in options:
-            # pad to specified length
-            clean_df[col] = clean_df[col].apply(pad_function, args=(options['pad_to_length'], options.get('keep_null')))
-        if options.get('strip_commas'):
-            # remove commas for specified column
-            # get rid of commas in dollar amounts
-            clean_df[col] = clean_df[col].str.replace(",", "")
+            df[col] = df[col].dropna().astype(str).str.strip().str.zfill(options['pad_to_length'])
+            if not options.get("keep_null"):
+                df[col] = df[col].fillna("").str.zfill(options['pad_to_length'])
+        if options.get("strip_commas"):
+            df[col] = df[col].str.replace(",", "")
 
-    # add created_at and updated_at columns
     now = get_utc_now()
-    clean_df = clean_df.assign(created_at=now, updated_at=now)
+    df = df.assign(created_at=now, updated_at=now)
     if return_dropped_count:
-        return len(dropped.index), clean_df
-    return clean_df
+        return len(dropped), df
+    return df
 
 
 def format_date(value):
