@@ -78,6 +78,8 @@ def load_full_dump_file(sess, file_type, metrics=None):
         }
     }
 
+    dtypes = {field: 'string' for field in list(file_filters[file_type]['mapping'].keys())}
+
     filename = f'SAM_Subaward_Bulk_Import_{file_filters[file_type]['filename']}.csv'
 
     if CONFIG_BROKER['use_aws']:
@@ -93,7 +95,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
     sess.query(file_filters[file_type]['model']).delete(synchronize_session=False)
 
     chunk_size = 10000
-    with pd.read_csv(subaward_file, encoding='cp1252', chunksize=chunk_size) as reader_obj:
+    with pd.read_csv(subaward_file, encoding='cp1252', chunksize=chunk_size, dtype=dtypes, usecols=list(dtypes.keys())) as reader_obj:
         for chunk_df in reader_obj:
             data = clean_data(
                 chunk_df,
