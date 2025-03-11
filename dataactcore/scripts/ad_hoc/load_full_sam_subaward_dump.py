@@ -89,11 +89,14 @@ def load_full_dump_file(sess, file_type, metrics=None):
     else:
         subaward_file = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', filename)
 
+    # Clear out the entire old table
+    sess.query(file_filters[file_type]['model']).delete(synchronize_session=False)
+
     chunk_size = 100000
     reader_obj = pd.read_csv(subaward_file, encoding='cp1252', chunksize=chunk_size)
-    for data in reader_obj:
+    for chunk_df in reader_obj:
         data = clean_data(
-            data,
+            chunk_df,
             file_filters[file_type]['model'],
             {
                 'subawarddescription': 'description',
@@ -132,11 +135,8 @@ def load_full_dump_file(sess, file_type, metrics=None):
         # Clear any lingering np.nan's
         data = data.replace({np.nan: None})
 
-        # Clear out the entire old table
-        sess.query(file_filters[file_type]['model']).delete(synchronize_session=False)
-
         # Load new data in to the listed table
-        logger.info(f'Begin inserting {data.size} subawards')
+        logger.info(f'Begin inserting {chunk_df.size} subawards')
         num_inserted = insert_dataframe(data, file_filters[file_type]['model'].__table__.name, sess.connection())
         metrics[f'{file_type}_subawards'] = num_inserted
         sess.commit()
