@@ -97,7 +97,6 @@ def load_full_dump_file(sess, file_type, metrics=None):
     chunk_size = 100000
     with pd.read_csv(subaward_file, encoding='cp1252', chunksize=chunk_size, dtype=dtypes) as reader_obj:
         for data in reader_obj:
-            logger.info('Cleaning the data chunk')
             data = clean_data(
                 data,
                 file_filters[file_type]['model'],
@@ -141,9 +140,9 @@ def load_full_dump_file(sess, file_type, metrics=None):
             # Load new data in to the listed table
             logger.info(f'Begin inserting {len(data)} subawards')
             num_inserted = insert_dataframe(data, file_filters[file_type]['model'].__table__.name, sess.connection())
-            metrics[f'{file_type}_subawards'] = num_inserted
-            sess.commit()
+            metrics[f'{file_type}_subawards'] += num_inserted
             logger.info(f'Inserted {num_inserted} {file_type} subawards')
+    sess.commit()
 
 
 if __name__ == '__main__':
