@@ -405,7 +405,7 @@ if __name__ == '__main__':
                 logger.info(f'Populating {load_type}-{data_type} records to the subaward table')
                 populate_subaward_table(sess, data_type, min_date=start_ingestion_datetime, report_nums=report_nums)
 
-        if args.data_type == 'both' and args.load_type == 'both':
+        if args.auto:
             update_external_data_load_date(now, datetime.datetime.now(), 'subaward')
 
         metrics_json['duration'] = str(datetime.datetime.now() - now)
