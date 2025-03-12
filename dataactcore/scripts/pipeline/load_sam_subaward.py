@@ -66,7 +66,7 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
     logger.info('Starting subaward feed: %s', api_url.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
 
     params = {
-        'pageSize': LIMIT,
+        'Size': LIMIT,
         'status': load_type.capitalize()
     }
 
