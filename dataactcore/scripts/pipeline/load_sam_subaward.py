@@ -78,6 +78,8 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
 
     # Retrieve the total count of expected records for this pull
     param_string = '&'.join(f'{k}={v}' for k, v in params.items())
+    logger.info('Getting the expected count: %s',
+                f'{api_url}&{param_string}'.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
     total_expected_records = get_with_exception_hand(f'{api_url}&{param_string}')['totalRecords']
     metrics[f'{load_type}_{data_type}_records'] = total_expected_records
     logger.info(f'{total_expected_records} {load_type} {data_type} record(s) expected')
@@ -378,7 +380,6 @@ if __name__ == '__main__':
         last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
         if last_updated_at:
             for data_type in data_types:
-                # TODO: Fix broken links
                 fix_broken_links(sess, data_type)
 
         start_ingestion_datetime = get_utc_now()

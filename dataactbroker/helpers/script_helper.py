@@ -172,6 +172,8 @@ def get_with_exception_hand(url_string):
             sys.exit(2)
 
     while exception_retries < len(retry_sleep_times):
+        # Adding this to log the response if we're unable to decode it
+        resp = None
         try:
             resp = requests.get(url_string, timeout=request_timeout)
             response_dict = json.loads(resp.text)
@@ -185,6 +187,8 @@ def get_with_exception_hand(url_string):
             break
         except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout, json.decoder.JSONDecodeError) as e:
+            if resp:
+                logger.exception(resp.text)
             logger.exception(e)
             exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)
 
