@@ -538,9 +538,8 @@ SELECT
     'sub-grant' AS "subaward_type",
     sam_subgrant.subaward_report_number AS "internal_id",
     sam_subgrant.date_submitted AS "date_submitted",
-    -- derive from reportUpdatedDate ?
-    NULL AS "subaward_report_year",
-    NULL AS "subaward_report_month",
+    EXTRACT(YEAR FROM CAST(sam_subgrant.date_submitted AS DATE)) AS "subaward_report_year",
+    LPAD(CAST(EXTRACT(MONTH FROM CAST(sam_subgrant.date_submitted AS DATE)) AS CHAR(2)), 2, '0') AS "subaward_report_month",
     sam_subgrant.award_number AS "subaward_number",
     sam_subgrant.award_amount AS "subaward_amount",
     sam_subgrant.action_date AS "sub_action_date",
