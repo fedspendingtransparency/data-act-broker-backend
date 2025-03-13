@@ -20,7 +20,7 @@ from dataactcore.scripts.pipeline.load_sam_subaward import (
 )
 
 
-class MockApi:
+class MockSAMSubawardApi:
 
     def __init__(self, total_publish_records, total_delete_records=0):
         self.total_publish_records = total_publish_records
@@ -170,7 +170,7 @@ def test_load_subawards(mock_get_with_exception_hand, data_type, load_type, data
     model = SAMSubgrant if data_type == 'assistance' else SAMSubcontract
     total_publish_records = 100
     total_delete_records = 50
-    mock_get_with_exception_hand.side_effect = MockApi(total_publish_records, total_delete_records).get_records
+    mock_get_with_exception_hand.side_effect = MockSAMSubawardApi(total_publish_records, total_delete_records).get_records
     session = database.session
 
     # Load subawards
@@ -253,119 +253,39 @@ def test_delete_subawards(data_type, database):
 
 @pytest.fixture()
 def parsed_assistance_keys():
-    return [
-        'description',
-        'subaward_report_id',
-        'subaward_report_number',
-        'unique_award_key',
-        'date_submitted',
-        'award_number',
-        'award_amount',
-        'action_date',
-        'uei',
-        'legal_business_name',
-        'parent_uei',
-        'parent_legal_business_name',
-        'dba_name',
-        'legal_entity_address_line1',
-        'legal_entity_address_line2',
-        'legal_entity_city_name',
-        'legal_entity_congressional',
-        'legal_entity_state_code',
-        'legal_entity_state_name',
-        'legal_entity_country_code',
-        'legal_entity_country_name',
-        'legal_entity_zip_code',
-        'ppop_address_line1',
-        'ppop_city_name',
-        'ppop_congressional_district',
-        'ppop_state_code',
-        'ppop_state_name',
-        'ppop_country_code',
-        'ppop_country_name',
-        'ppop_zip_code',
-        'high_comp_officer1_full_na',
-        'high_comp_officer1_amount',
-        'high_comp_officer2_full_na',
-        'high_comp_officer2_amount',
-        'high_comp_officer3_full_na',
-        'high_comp_officer3_amount',
-        'high_comp_officer4_full_na',
-        'high_comp_officer4_amount',
-        'high_comp_officer5_full_na',
-        'high_comp_officer5_amount',
-        'business_types_codes',
-        'business_types_names',
-    ]
+    return set(
+        col.name
+        for col in SAMSubgrant.__table__.columns
+        if col.name not in ['created_at', 'updated_at', 'sam_subgrant_id']
+    )
 
 
 @pytest.fixture()
 def parsed_contract_keys():
-    return [
-        'description',
-        'subaward_report_id',
-        'subaward_report_number',
-        'unique_award_key',
-        'date_submitted',
-        'contract_agency_code',
-        'contract_idv_agency_code',
-        'award_number',
-        'award_amount',
-        'action_date',
-        'uei',
-        'legal_business_name',
-        'parent_uei',
-        'parent_legal_business_name',
-        'dba_name',
-        'legal_entity_address_line1',
-        'legal_entity_address_line2',
-        'legal_entity_city_name',
-        'legal_entity_congressional',
-        'legal_entity_state_code',
-        'legal_entity_state_name',
-        'legal_entity_country_code',
-        'legal_entity_country_name',
-        'legal_entity_zip_code',
-        'ppop_country_code',
-        'ppop_country_name',
-        'ppop_state_code',
-        'ppop_state_name',
-        'ppop_address_line1',
-        'ppop_city_name',
-        'ppop_zip_code',
-        'ppop_congressional_district',
-        'high_comp_officer1_full_na',
-        'high_comp_officer1_amount',
-        'high_comp_officer2_full_na',
-        'high_comp_officer2_amount',
-        'high_comp_officer3_full_na',
-        'high_comp_officer3_amount',
-        'high_comp_officer4_full_na',
-        'high_comp_officer4_amount',
-        'high_comp_officer5_full_na',
-        'high_comp_officer5_amount',
-        'business_types_codes',
-        'business_types_names',
-    ]
+    return set(
+        col.name
+        for col in SAMSubcontract.__table__.columns
+        if col.name not in ['created_at', 'updated_at', 'sam_subcontract_id']
+    )
 
 
 def test_parse_raw_subaward_assistance(parsed_assistance_keys):
     report_number = uuid.uuid4().hex
-    raw_subaward_dict = MockApi.assistance_record(report_number)
+    raw_subaward_dict = MockSAMSubawardApi.assistance_record(report_number)
     result = parse_raw_subaward(raw_subaward_dict, 'assistance')
-    assert list(result.keys()) == parsed_assistance_keys
+    assert set(result.keys()) == parsed_assistance_keys
 
 
 def test_parse_raw_subaward_contract(parsed_contract_keys):
     report_number = uuid.uuid4().hex
-    raw_subaward_dict = MockApi.contract_record(report_number)
+    raw_subaward_dict = MockSAMSubawardApi.contract_record(report_number)
     result = parse_raw_subaward(raw_subaward_dict, 'contract')
-    assert list(result.keys()) == parsed_contract_keys
+    assert set(result.keys()) == parsed_contract_keys
 
 
 @patch("dataactcore.scripts.pipeline.load_sam_subaward.get_with_exception_hand")
 def test_pull_subawards(mock_get_with_exception_hand):
-    api = MockApi(499)
+    api = MockSAMSubawardApi(499)
     mock_get_with_exception_hand.side_effect = api.get_records
     subawards = [
         subaward
