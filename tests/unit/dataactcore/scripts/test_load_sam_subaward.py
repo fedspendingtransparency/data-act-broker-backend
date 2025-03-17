@@ -170,7 +170,9 @@ def test_load_subawards(mock_get_with_exception_hand, data_type, load_type, data
     model = SAMSubgrant if data_type == 'assistance' else SAMSubcontract
     total_publish_records = 100
     total_delete_records = 50
-    mock_get_with_exception_hand.side_effect = MockSAMSubawardApi(total_publish_records, total_delete_records).get_records
+    mock_get_with_exception_hand.side_effect = MockSAMSubawardApi(
+        total_publish_records, total_delete_records
+    ).get_records
     session = database.session
 
     # Load subawards
