@@ -510,9 +510,8 @@ SELECT
     'sub-contract' AS "subaward_type",
     sam_subcontract.subaward_report_number AS "internal_id",
     sam_subcontract.date_submitted AS "date_submitted",
-    -- derive from submitteddate, actiondate ?
-    NULL AS "subaward_report_year",
-    NULL AS "subaward_report_month",
+    EXTRACT(YEAR FROM CAST(sam_subcontract.date_submitted AS DATE)) AS "subaward_report_year",
+    LPAD(CAST(EXTRACT(MONTH FROM CAST(sam_subcontract.date_submitted AS DATE)) AS CHAR(2)), 2, '0') AS "subaward_report_month",
     sam_subcontract.award_number AS "subaward_number",
     sam_subcontract.award_amount AS "subaward_amount",
     sam_subcontract.action_date AS "sub_action_date",

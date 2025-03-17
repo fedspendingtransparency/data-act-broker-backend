@@ -25,8 +25,10 @@ def extract_subaward_sql(data_type, data_change_type):
         Args:
             data_type: type of service to ping ('contract' or 'assistance')
             data_change_type: type of data change involving subawards ('populate' or 'link')
+
         Returns:
             sql to run based on the request
+
         Raises:
             Exception: service type is invalid
             Exception: data change type is invalid
@@ -138,5 +140,5 @@ if __name__ == '__main__':
         metrics_json['records_inserted'] = records_inserted
         metrics_json['duration'] = str(datetime.datetime.now() - now)
 
-        with open('populate_subaward_table  .json', 'w+') as metrics_file:
+        with open('populate_subaward_table_metrics.json', 'w+') as metrics_file:
             json.dump(metrics_json, metrics_file)

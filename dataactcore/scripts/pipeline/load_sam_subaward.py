@@ -48,8 +48,10 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
             end_load_date: latest reportUpdatedDate to pull from, None for the present
             update_db: Boolean; update the DB tables with the new data from the API.
             metrics: an object containing information for the metrics file
+
         Returns:
             list of report_numbers pulled
+
         Raises:
             ValueError if load_type not specified
     """
@@ -76,6 +78,8 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
 
     # Retrieve the total count of expected records for this pull
     param_string = '&'.join(f'{k}={v}' for k, v in params.items())
+    logger.info('Getting the expected count: %s',
+                f'{api_url}&{param_string}'.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
     total_expected_records = get_with_exception_hand(f'{api_url}&{param_string}')['totalRecords']
     metrics[f'{load_type}_{data_type}_records'] = total_expected_records
     logger.info(f'{total_expected_records} {load_type} {data_type} record(s) expected')
@@ -216,16 +220,16 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "ppop_country_name": "placeOfPerformance_country_name",
             "ppop_zip_code": "placeOfPerformance_zip",  # zip5 or zip9
 
-            "high_comp_officer1_full_na": "subTopPayEmployee_0_salary",
-            "high_comp_officer1_amount": "subTopPayEmployee_0_fullname",
-            "high_comp_officer2_full_na": "subTopPayEmployee_1_salary",
-            "high_comp_officer2_amount": "subTopPayEmployee_1_fullname",
-            "high_comp_officer3_full_na": "subTopPayEmployee_2_salary",
-            "high_comp_officer3_amount": "subTopPayEmployee_2_fullname",
-            "high_comp_officer4_full_na": "subTopPayEmployee_3_salary",
-            "high_comp_officer4_amount": "subTopPayEmployee_3_fullname",
-            "high_comp_officer5_full_na": "subTopPayEmployee_4_salary",
-            "high_comp_officer5_amount": "subTopPayEmployee_4_fullname",
+            "high_comp_officer1_full_na": "subTopPayEmployee_0_fullname",
+            "high_comp_officer1_amount": "subTopPayEmployee_0_salary",
+            "high_comp_officer2_full_na": "subTopPayEmployee_1_fullname",
+            "high_comp_officer2_amount": "subTopPayEmployee_1_salary",
+            "high_comp_officer3_full_na": "subTopPayEmployee_2_fullname",
+            "high_comp_officer3_amount": "subTopPayEmployee_2_salary",
+            "high_comp_officer4_full_na": "subTopPayEmployee_3_fullname",
+            "high_comp_officer4_amount": "subTopPayEmployee_3_salary",
+            "high_comp_officer5_full_na": "subTopPayEmployee_4_fullname",
+            "high_comp_officer5_amount": "subTopPayEmployee_4_salary",
         }
     elif data_type == 'contract':
         mapping = {
@@ -268,16 +272,16 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "ppop_zip_code": "",  # zip5 or zip9
             "ppop_congressional_district": "",
 
-            "high_comp_officer1_full_na": "subTopPayEmployee_0_salary",
-            "high_comp_officer1_amount": "subTopPayEmployee_0_fullname",
-            "high_comp_officer2_full_na": "subTopPayEmployee_1_salary",
-            "high_comp_officer2_amount": "subTopPayEmployee_1_fullname",
-            "high_comp_officer3_full_na": "subTopPayEmployee_2_salary",
-            "high_comp_officer3_amount": "subTopPayEmployee_2_fullname",
-            "high_comp_officer4_full_na": "subTopPayEmployee_3_salary",
-            "high_comp_officer4_amount": "subTopPayEmployee_3_fullname",
-            "high_comp_officer5_full_na": "subTopPayEmployee_4_salary",
-            "high_comp_officer5_amount": "subTopPayEmployee_4_fullname",
+            "high_comp_officer1_full_na": "subTopPayEmployee_0_fullname",
+            "high_comp_officer1_amount": "subTopPayEmployee_0_salary",
+            "high_comp_officer2_full_na": "subTopPayEmployee_1_fullname",
+            "high_comp_officer2_amount": "subTopPayEmployee_1_salary",
+            "high_comp_officer3_full_na": "subTopPayEmployee_2_fullname",
+            "high_comp_officer3_amount": "subTopPayEmployee_2_salary",
+            "high_comp_officer4_full_na": "subTopPayEmployee_3_fullname",
+            "high_comp_officer4_amount": "subTopPayEmployee_3_salary",
+            "high_comp_officer5_full_na": "subTopPayEmployee_4_fullname",
+            "high_comp_officer5_amount": "subTopPayEmployee_4_salary",
         }
     else:
         raise ValueError('data_type must be \'assistance\' or \'contract\'')
@@ -376,7 +380,6 @@ if __name__ == '__main__':
         last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
         if last_updated_at:
             for data_type in data_types:
-                # TODO: Fix broken links
                 fix_broken_links(sess, data_type)
 
         start_ingestion_datetime = get_utc_now()
@@ -402,9 +405,9 @@ if __name__ == '__main__':
                 logger.info(f'Populating {load_type}-{data_type} records to the subaward table')
                 populate_subaward_table(sess, data_type, min_date=start_ingestion_datetime, report_nums=report_nums)
 
-        if args.data_type == 'both' and args.load_type == 'both':
+        if args.auto:
             update_external_data_load_date(now, datetime.datetime.now(), 'subaward')
-            metrics_json['duration'] = str(datetime.datetime.now() - now)
 
-            with open('load_sam_subaward_metrics.json', 'w+') as metrics_file:
-                json.dump(metrics_json, metrics_file)
+        metrics_json['duration'] = str(datetime.datetime.now() - now)
+        with open('load_sam_subaward_metrics.json', 'w+') as metrics_file:
+            json.dump(metrics_json, metrics_file)
