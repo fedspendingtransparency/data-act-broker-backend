@@ -15,7 +15,7 @@ CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
         pf.awarding_sub_tier_agency_n AS awarding_sub_tier_agency_n,
         pf.funding_sub_tier_agency_co AS funding_sub_tier_agency_co,
         pf.funding_sub_tier_agency_na AS funding_sub_tier_agency_na,
-        pf.unique_award_key AS unique_award_key,
+        UPPER(pf.unique_award_key) AS unique_award_key,
         pf.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         pf.ultimate_parent_unique_ide AS ultimate_parent_unique_ide,
         pf.uei AS uei,
@@ -506,6 +506,7 @@ SELECT
     NULL AS "naics_description",
     ARRAY_TO_STRING(gap.assistance_listing_nums, ', ') AS "assistance_listing_numbers",
     ARRAY_TO_STRING(gap.assistance_listing_names, ', ') AS "assistance_listing_titles",
+
     NULL AS "prime_id",
     NULL AS "report_type",
     NULL AS "transaction_type",
@@ -531,7 +532,6 @@ SELECT
     lap.high_comp_officer4_amount AS "high_comp_officer4_amount",
     lap.high_comp_officer5_full_na AS "high_comp_officer5_full_na",
     lap.high_comp_officer5_amount AS "high_comp_officer5_amount",
-    -- derive from fabs?
     NULL AS "place_of_perform_street",
 
     -- File F Subawards
@@ -609,12 +609,9 @@ SELECT
     lap.awarding_sub_tier_agency_n AS "sub_federal_agency_name",
     lap.funding_sub_tier_agency_co AS "sub_funding_agency_id",
     lap.funding_sub_tier_agency_na AS "sub_funding_agency_name",
-
     NULL AS "sub_funding_office_id",
     NULL AS "sub_funding_office_name",
     NULL AS "sub_naics",
-    -- are the assistance listing numbers in their API (assistanceListingNumber.number) exactly what we give them? the prime?
-    -- if so, reuse. otherwise, add the column to the migration
     ARRAY_TO_STRING(gap.assistance_listing_nums, ', ') AS "sub_assistance_listing_numbers",
     NULL AS "sub_dunsplus4",
     NULL AS "sub_recovery_subcontract_amt",

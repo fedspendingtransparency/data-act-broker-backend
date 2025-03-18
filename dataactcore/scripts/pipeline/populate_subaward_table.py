@@ -62,8 +62,8 @@ def populate_subaward_table(sess, data_type, min_date=None, report_nums=None):
     if min_date is not None:
         condition = f'{table_name}.updated_at > \'{min_date.strftime("%Y-%m-%d")}\''
     else:
-        report_nums = ','.join([str(report_num) for report_num in report_nums])
-        condition = f'{table_name}.subaward_report_id IN ({report_nums})'
+        report_nums = ','.join([f"\'{report_num}\'" for report_num in report_nums])
+        condition = f'{table_name}.subaward_report_number IN ({report_nums})'
     sql = sql.format(condition)
 
     # run the SQL. splitting and stripping the calls for pg_stat_activity visibility while it's running
