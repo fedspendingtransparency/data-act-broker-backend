@@ -131,6 +131,106 @@ class FSRSSubgrantFactory(_GrantAttributes):
     subaward_num = fuzzy.FuzzyText()
 
 
+class SAMSubcontractFactory(factory.Factory):
+    class Meta:
+        model = fsrs.SAMSubcontract
+
+    sam_subcontract_id = fuzzy.FuzzyInteger(999999)
+    subaward_report_id = fuzzy.FuzzyInteger(999999)
+    subaward_report_number = fuzzy.FuzzyText()
+    unique_award_key = fuzzy.FuzzyText()
+    date_submitted = fuzzy.FuzzyDate(date(2010, 1, 1))
+    contract_agency_code = fuzzy.FuzzyText()
+    contract_idv_agency_code = fuzzy.FuzzyText()
+    award_number = fuzzy.FuzzyText()
+    award_amount = fuzzy.FuzzyText()
+    action_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    uei = fuzzy.FuzzyText()
+    legal_business_name = fuzzy.FuzzyText()
+    parent_uei = fuzzy.FuzzyText()
+    parent_legal_business_name = fuzzy.FuzzyText()
+    dba_name = fuzzy.FuzzyText()
+    legal_entity_country_code = fuzzy.FuzzyText()
+    legal_entity_country_name = fuzzy.FuzzyText()
+    legal_entity_state_code = fuzzy.FuzzyText()
+    legal_entity_state_name = fuzzy.FuzzyText()
+    legal_entity_address_line1 = fuzzy.FuzzyText()
+    legal_entity_address_line2 = fuzzy.FuzzyText()
+    legal_entity_city_name = fuzzy.FuzzyText()
+    legal_entity_zip_code = fuzzy.FuzzyText()
+    legal_entity_congressional = fuzzy.FuzzyText()
+    ppop_country_code = fuzzy.FuzzyText()
+    ppop_country_name = fuzzy.FuzzyText()
+    ppop_state_code = fuzzy.FuzzyText()
+    ppop_state_name = fuzzy.FuzzyText()
+    ppop_address_line1 = fuzzy.FuzzyText()
+    ppop_city_name = fuzzy.FuzzyText()
+    ppop_zip_code = fuzzy.FuzzyText()
+    ppop_congressional_district = fuzzy.FuzzyText()
+    business_types_codes = ['A', 'B', 'C']
+    business_types_names = ['Full Name A', 'Full Name B', 'Full Name C']
+    description = fuzzy.FuzzyText()
+    high_comp_officer1_full_na = fuzzy.FuzzyText()
+    high_comp_officer1_amount = fuzzy.FuzzyText()
+    high_comp_officer2_full_na = fuzzy.FuzzyText()
+    high_comp_officer2_amount = fuzzy.FuzzyText()
+    high_comp_officer3_full_na = fuzzy.FuzzyText()
+    high_comp_officer3_amount = fuzzy.FuzzyText()
+    high_comp_officer4_full_na = fuzzy.FuzzyText()
+    high_comp_officer4_amount = fuzzy.FuzzyText()
+    high_comp_officer5_full_na = fuzzy.FuzzyText()
+    high_comp_officer5_amount = fuzzy.FuzzyText()
+
+
+class SAMSubgrantFactory(factory.Factory):
+    class Meta:
+        model = fsrs.SAMSubgrant
+
+    sam_subgrant_id = fuzzy.FuzzyInteger(999999)
+    subaward_report_id = fuzzy.FuzzyInteger(999999)
+    subaward_report_number = fuzzy.FuzzyText()
+    unique_award_key = fuzzy.FuzzyText()
+    date_submitted = fuzzy.FuzzyDate(date(2010, 1, 1))
+    award_number = fuzzy.FuzzyText()
+    award_amount = fuzzy.FuzzyText()
+    action_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    uei = fuzzy.FuzzyText()
+    legal_business_name = fuzzy.FuzzyText()
+    parent_uei = fuzzy.FuzzyText()
+    parent_legal_business_name = fuzzy.FuzzyText()
+    dba_name = fuzzy.FuzzyText()
+    legal_entity_country_code = fuzzy.FuzzyText()
+    legal_entity_country_name = fuzzy.FuzzyText()
+    legal_entity_state_code = fuzzy.FuzzyText()
+    legal_entity_state_name = fuzzy.FuzzyText()
+    legal_entity_address_line1 = fuzzy.FuzzyText()
+    legal_entity_address_line2 = fuzzy.FuzzyText()
+    legal_entity_city_name = fuzzy.FuzzyText()
+    legal_entity_zip_code = fuzzy.FuzzyText()
+    legal_entity_congressional = fuzzy.FuzzyText()
+    ppop_country_code = fuzzy.FuzzyText()
+    ppop_country_name = fuzzy.FuzzyText()
+    ppop_state_code = fuzzy.FuzzyText()
+    ppop_state_name = fuzzy.FuzzyText()
+    ppop_address_line1 = fuzzy.FuzzyText()
+    ppop_city_name = fuzzy.FuzzyText()
+    ppop_zip_code = fuzzy.FuzzyText()
+    ppop_congressional_district = fuzzy.FuzzyText()
+    business_types_codes = ['A', 'B', 'C']
+    business_types_names = ['Full Name A', 'Full Name B', 'Full Name C']
+    description = fuzzy.FuzzyText()
+    high_comp_officer1_full_na = fuzzy.FuzzyText()
+    high_comp_officer1_amount = fuzzy.FuzzyText()
+    high_comp_officer2_full_na = fuzzy.FuzzyText()
+    high_comp_officer2_amount = fuzzy.FuzzyText()
+    high_comp_officer3_full_na = fuzzy.FuzzyText()
+    high_comp_officer3_amount = fuzzy.FuzzyText()
+    high_comp_officer4_full_na = fuzzy.FuzzyText()
+    high_comp_officer4_amount = fuzzy.FuzzyText()
+    high_comp_officer5_full_na = fuzzy.FuzzyText()
+    high_comp_officer5_amount = fuzzy.FuzzyText()
+
+
 class SubawardFactory(factory.Factory):
     class Meta:
         model = fsrs.Subaward
