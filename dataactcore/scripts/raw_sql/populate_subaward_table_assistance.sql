@@ -549,9 +549,9 @@ SELECT
     sam_subgrant.dba_name AS "sub_dba_name",
     subgrant_puei.duns AS "sub_ultimate_parent_unique_ide",
     sam_subgrant.parent_uei AS "sub_ultimate_parent_uei",
-    subgrant_puei.legal_business_name AS "sub_ultimate_parent_legal_enti",
-    sub_le_country.country_code AS "sub_legal_entity_country_code",
-    sub_le_country.country_name AS "sub_legal_entity_country_name",
+    sam_subgrant.parent_legal_business_name AS "sub_ultimate_parent_legal_enti",
+    sam_subgrant.legal_entity_country_code AS "sub_legal_entity_country_code",
+    sam_subgrant.legal_entity_country_name AS "sub_legal_entity_country_name",
     sam_subgrant.legal_entity_address_line1 AS "sub_legal_entity_address_line1",
     sam_subgrant.legal_entity_city_name AS "sub_legal_entity_city_name",
     CASE WHEN UPPER(sam_subgrant.legal_entity_state_code) <> 'ZZ'
@@ -590,8 +590,8 @@ SELECT
     COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) AS "sub_place_of_performance_county_code",
     sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name",
     sam_subgrant.ppop_congressional_district AS "sub_place_of_perform_congressio",
-    sub_ppop_country.country_code AS "sub_place_of_perform_country_co",
-    sub_ppop_country.country_name AS "sub_place_of_perform_country_na",
+    sam_subgrant.ppop_country_code AS "sub_place_of_perform_country_co",
+    sam_subgrant.ppop_country_name AS "sub_place_of_perform_country_na",
     sam_subgrant.description AS "subaward_description",
     sam_subgrant.high_comp_officer1_full_na AS "sub_high_comp_officer1_full_na",
     sam_subgrant.high_comp_officer1_amount AS "sub_high_comp_officer1_amount",
@@ -634,12 +634,6 @@ FROM sam_subgrant
         ON UPPER(sam_subgrant.unique_award_key) = bap.unique_award_key
     LEFT OUTER JOIN grouped_aw_pf AS gap
         ON UPPER(sam_subgrant.unique_award_key) = gap.unique_award_key
-    LEFT OUTER JOIN country_code AS sub_le_country
-        ON (UPPER(sam_subgrant.legal_entity_country_code) = UPPER(sub_le_country.country_code)
-            OR UPPER(sam_subgrant.legal_entity_country_code) = UPPER(sub_le_country.country_code_2_char))
-    LEFT OUTER JOIN country_code AS sub_ppop_country
-        ON (UPPER(sam_subgrant.ppop_country_code) = UPPER(sub_ppop_country.country_code)
-            OR UPPER(sam_subgrant.ppop_country_code) = UPPER(sub_ppop_country.country_code_2_char))
     LEFT OUTER JOIN grant_uei
         ON UPPER(lap.uei) = UPPER(grant_uei.uei)
     LEFT OUTER JOIN subgrant_uei
