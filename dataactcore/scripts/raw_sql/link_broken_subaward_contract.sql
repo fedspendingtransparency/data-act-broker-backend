@@ -173,14 +173,31 @@ CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     );
 CREATE INDEX ix_latest_aw_dap_uak ON latest_aw_dap (unique_award_key);
 
+-- Get sampled award recipient data
+CREATE TEMPORARY TABLE prime_recipient ON COMMIT DROP AS (
+	SELECT
+	    uei,
+	    business_types
+	FROM sam_recipient AS sr
+	WHERE EXISTS (
+	    SELECT 1
+	    FROM aw_dap
+	    WHERE aw_dap.awardee_or_recipient_uei = sr.uei
+	)
+);
+CREATE INDEX ix_pr_uei ON prime_recipient (uei);
+
 UPDATE subaward
 SET
     unique_award_key = ldap.unique_award_key,
+    award_id = ldap.piid,
+    parent_award_id = ldap.parent_award_id,
     award_amount = ldap.total_obligated_amount,
     action_date = bdap.action_date,
     fy = 'FY' || fy(bdap.action_date),
     awarding_agency_code = ldap.awarding_agency_code,
     awarding_agency_name = ldap.awarding_agency_name,
+    awarding_sub_tier_agency_c = ldap.awarding_sub_tier_agency_c,
     awarding_sub_tier_agency_n = ldap.awarding_sub_tier_agency_n,
     awarding_office_code = ldap.awarding_office_code,
     awarding_office_name = ldap.awarding_office_name,
@@ -214,6 +231,10 @@ SET
                                       THEN ldap.legal_entity_zip4
                                       ELSE NULL
                                  END,
+    business_types = CASE WHEN cardinality(pr.business_types) > 0
+     THEN array_to_string(pr.business_types, ',')
+     ELSE NULL
+    END,
     place_of_perform_city_name = ldap.place_of_perform_city_name,
     place_of_perform_state_code = ldap.place_of_performance_state,
     place_of_perform_state_name = ldap.place_of_perfor_state_desc,
@@ -248,4 +269,6 @@ FROM related_raw
         ON related_raw.unique_award_key = bdap.unique_award_key
     JOIN latest_aw_dap AS ldap
         ON related_raw.unique_award_key = ldap.unique_award_key
+    LEFT OUTER JOIN prime_recipient AS pr
+        ON ldap.awardee_or_recipient_uei = pr.uei
 WHERE subaward.id = related_raw.id;

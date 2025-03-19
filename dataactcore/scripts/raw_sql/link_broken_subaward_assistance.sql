@@ -204,11 +204,13 @@ CREATE INDEX ix_grant_uei_upp ON grant_uei (UPPER(uei));
 UPDATE subaward
 SET
     unique_award_key = lap.unique_award_key,
+    award_id = lap.fain,
     award_amount = gap.award_amount,
     action_date = bap.action_date,
     fy = 'FY' || fy(bap.action_date),
     awarding_agency_code = lap.awarding_agency_code,
     awarding_agency_name = lap.awarding_agency_name,
+    awarding_sub_tier_agency_c = lap.awarding_sub_tier_agency_c,
     awarding_sub_tier_agency_n = lap.awarding_sub_tier_agency_n,
     awarding_office_code = lap.awarding_office_code,
     awarding_office_name = lap.awarding_office_name,
@@ -255,6 +257,9 @@ SET
     award_description = bap.award_description,
     assistance_listing_numbers = ARRAY_TO_STRING(gap.assistance_listing_nums, ', '),
     assistance_listing_titles = ARRAY_TO_STRING(gap.assistance_listing_names, ', '),
+    grant_funding_agency_id = lap.funding_sub_tier_agency_co,
+    grant_funding_agency_name = lap.funding_sub_tier_agency_na,
+    federal_agency_name = lap.awarding_sub_tier_agency_c,
     high_comp_officer1_full_na = lap.high_comp_officer1_full_na,
     high_comp_officer1_amount = lap.high_comp_officer1_amount,
     high_comp_officer2_full_na = lap.high_comp_officer2_full_na,
