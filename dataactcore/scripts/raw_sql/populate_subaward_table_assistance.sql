@@ -15,7 +15,7 @@ CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
         pf.awarding_sub_tier_agency_n AS awarding_sub_tier_agency_n,
         pf.funding_sub_tier_agency_co AS funding_sub_tier_agency_co,
         pf.funding_sub_tier_agency_na AS funding_sub_tier_agency_na,
-        pf.unique_award_key AS unique_award_key,
+        UPPER(pf.unique_award_key) AS unique_award_key,
         pf.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         pf.ultimate_parent_unique_ide AS ultimate_parent_unique_ide,
         pf.uei AS uei,
