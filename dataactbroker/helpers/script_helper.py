@@ -15,6 +15,7 @@ from urllib3.exceptions import ReadTimeoutError
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_utc_now
 from dataactcore.models.domainModels import ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 
@@ -62,7 +63,7 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_d
     if arg_auto and not (arg_start_date or arg_end_date):
         sess = GlobalDB.db().session
         # find yesterday and the date of the last successful generation
-        yesterday = datetime.now().date() - relativedelta(days=1)
+        yesterday = get_utc_now().date() - relativedelta(days=1)
         last_update = sess.query(ExternalDataLoadDate). \
             filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT[load_type]).one_or_none()
         start_date = last_update.last_load_date_start.date() if last_update else yesterday
@@ -171,6 +172,8 @@ def get_with_exception_hand(url_string):
             sys.exit(2)
 
     while exception_retries < len(retry_sleep_times):
+        # Adding this to log the response if we're unable to decode it
+        resp = None
         try:
             resp = requests.get(url_string, timeout=request_timeout)
             response_dict = json.loads(resp.text)
@@ -184,6 +187,8 @@ def get_with_exception_hand(url_string):
             break
         except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout, json.decoder.JSONDecodeError) as e:
+            if resp:
+                logger.exception(resp.text)
             logger.exception(e)
             exception_retries, request_timeout = handle_resp(exception_retries, request_timeout)
 

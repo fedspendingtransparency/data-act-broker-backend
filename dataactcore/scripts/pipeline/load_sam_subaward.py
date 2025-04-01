@@ -78,6 +78,8 @@ def load_subawards(sess, data_type, load_type='published', start_load_date=None,
 
     # Retrieve the total count of expected records for this pull
     param_string = '&'.join(f'{k}={v}' for k, v in params.items())
+    logger.info('Getting the expected count: %s',
+                f'{api_url}&{param_string}'.replace(CONFIG_BROKER['sam']['api_key'], '[API_KEY]'))
     total_expected_records = get_with_exception_hand(f'{api_url}&{param_string}')['totalRecords']
     metrics[f'{load_type}_{data_type}_records'] = total_expected_records
     logger.info(f'{total_expected_records} {load_type} {data_type} record(s) expected')
@@ -150,7 +152,7 @@ def pull_subawards(api_url, params, entries_processed=0):
         futures = []
         for start_offset in range(REQUESTS_AT_ONCE):
             # pageNumber is 0-indexed
-            params['pageNumber'] = (entries_already_processed // LIMIT) + start_offset
+            params['pageNumber'] = (entries_already_processed // params.get('pageSize', LIMIT)) + start_offset
             param_string = '&'.join(f'{k}={v}' for k, v in params.items())
             futures.append(
                 loop.run_in_executor(
@@ -378,7 +380,6 @@ if __name__ == '__main__':
         last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
         if last_updated_at:
             for data_type in data_types:
-                # TODO: Fix broken links
                 fix_broken_links(sess, data_type)
 
         start_ingestion_datetime = get_utc_now()
@@ -404,7 +405,7 @@ if __name__ == '__main__':
                 logger.info(f'Populating {load_type}-{data_type} records to the subaward table')
                 populate_subaward_table(sess, data_type, min_date=start_ingestion_datetime, report_nums=report_nums)
 
-        if args.data_type == 'both' and args.load_type == 'both':
+        if args.auto:
             update_external_data_load_date(now, datetime.datetime.now(), 'subaward')
 
         metrics_json['duration'] = str(datetime.datetime.now() - now)

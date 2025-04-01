@@ -479,6 +479,7 @@ SELECT
     ldap.naics_description AS "naics_description",
     NULL AS "assistance_listing_numbers",
     NULL AS "assistance_listing_titles",
+
     NULL AS "prime_id",
     NULL AS "report_type",
     NULL AS "transaction_type",
@@ -522,8 +523,8 @@ SELECT
     spr.duns AS "sub_ultimate_parent_unique_ide",
     sam_subcontract.parent_uei AS "sub_ultimate_parent_uei",
     sam_subcontract.parent_legal_business_name AS "sub_ultimate_parent_legal_enti",
-    sub_le_country.country_code AS "sub_legal_entity_country_code",
-    sub_le_country.country_name AS "sub_legal_entity_country_name",
+    sam_subcontract.legal_entity_country_code AS "sub_legal_entity_country_code",
+    sam_subcontract.legal_entity_country_name AS "sub_legal_entity_country_name",
     sam_subcontract.legal_entity_address_line1 AS "sub_legal_entity_address_line1",
     sam_subcontract.legal_entity_city_name AS "sub_legal_entity_city_name",
     CASE WHEN UPPER(sam_subcontract.legal_entity_state_code) <> 'ZZ'
@@ -562,8 +563,8 @@ SELECT
     COALESCE(sub_ppop_county_code_zip9.county_number, sub_ppop_county_code_zip5.county_number) AS "sub_place_of_performance_county_code",
     sub_ppop_county_name.county_name AS "sub_place_of_performance_county_name",
     sam_subcontract.ppop_congressional_district AS "sub_place_of_perform_congressio",
-    sub_ppop_country.country_code AS "sub_place_of_perform_country_co",
-    sub_ppop_country.country_name AS "sub_place_of_perform_country_na",
+    sam_subcontract.ppop_country_code AS "sub_place_of_perform_country_co",
+    sam_subcontract.ppop_country_name AS "sub_place_of_perform_country_na",
     sam_subcontract.description AS "subaward_description",
     sam_subcontract.high_comp_officer1_full_na AS "sub_high_comp_officer1_full_na",
     sam_subcontract.high_comp_officer1_amount AS "sub_high_comp_officer1_amount",
@@ -575,14 +576,15 @@ SELECT
     sam_subcontract.high_comp_officer4_amount AS "sub_high_comp_officer4_amount",
     sam_subcontract.high_comp_officer5_full_na AS "sub_high_comp_officer5_full_na",
     sam_subcontract.high_comp_officer5_amount AS "sub_high_comp_officer5_amount",
+
     sam_subcontract.subaward_report_id AS "sub_id",
     NULL AS "sub_parent_id",
-    NULL AS "sub_federal_agency_id",
-    NULL AS "sub_federal_agency_name",
     ldap.awarding_sub_tier_agency_c AS "sub_federal_agency_id",
     ldap.awarding_sub_tier_agency_n AS "sub_federal_agency_name",
     ldap.funding_sub_tier_agency_co AS "sub_funding_agency_id",
     ldap.funding_sub_tier_agency_na AS "sub_funding_agency_name",
+    NULL AS "sub_funding_office_id",
+    NULL AS "sub_funding_office_name",
     ldap.naics AS "sub_naics",
     NULL AS "sub_assistance_listing_numbers",
     NULL AS "sub_dunsplus4",
@@ -602,17 +604,11 @@ FROM sam_subcontract
     LEFT OUTER JOIN latest_aw_dap AS ldap
         ON UPPER(sam_subcontract.unique_award_key) = ldap.unique_award_key
     LEFT OUTER JOIN prime_recipient AS pr
-        ON sam_subcontract.uei = pr.uei
+        ON ldap.awardee_or_recipient_uei = pr.uei
     LEFT OUTER JOIN sub_recipient AS sr
         ON sam_subcontract.uei = sr.uei
     LEFT OUTER JOIN sub_parent_recipient AS spr
-        ON sam_subcontract.uei = spr.uei
-    LEFT OUTER JOIN country_code AS sub_le_country
-        ON (UPPER(sam_subcontract.legal_entity_country_code) = UPPER(sub_le_country.country_code)
-            OR UPPER(sam_subcontract.legal_entity_country_code) = UPPER(sub_le_country.country_code_2_char))
-    LEFT OUTER JOIN country_code AS sub_ppop_country
-        ON (UPPER(sam_subcontract.ppop_country_code) = UPPER(sub_ppop_country.country_code)
-            OR UPPER(sam_subcontract.ppop_country_code) = UPPER(sub_ppop_country.country_code_2_char))
+        ON sam_subcontract.parent_uei = spr.uei
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip9
         ON (UPPER(sam_subcontract.legal_entity_country_code) = 'USA'
             AND sam_subcontract.legal_entity_zip_code = sub_le_county_code_zip9.sub_zip
