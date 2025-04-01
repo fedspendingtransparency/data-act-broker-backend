@@ -1,17 +1,14 @@
 import argparse
-import re
 import logging
 import os
 import json
 
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 
+from dataactbroker.helpers.script_helper import validate_load_dates
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
-from dataactcore.models.domainModels import ExternalDataLoadDate
-from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
 from dataactvalidator.health_check import create_app
 
@@ -236,52 +233,10 @@ def main():
         'start_date': ''
     }
 
-    # TODO: Refactor to reuse dataactbroker.helpers.script_helper.validate_load_dates
-    start_date = None
-    end_date = None
-    start_log = 'project start'
-    end_log = 'present'
-
-    if args.auto and not (start_date or end_date):
-        sess = GlobalDB.db().session
-        # find yesterday and the date of the last successful generation
-        yesterday = datetime.now().date() - relativedelta(days=1)
-        last_update = sess.query(ExternalDataLoadDate). \
-            filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['fabs_extract']).one_or_none()
-        start_date = last_update.last_load_date_start.date() if last_update else yesterday
-        start_date = start_date.strftime('%m/%d/%Y')
-        start_log = start_date
-
-    if args.start_date:
-        arg_date = args.start_date[0]
-        given_date = arg_date.split('/')
-        if not re.match(r'^\d{2}$', given_date[0]) or not re.match(r'^\d{2}$', given_date[1])\
-                or not re.match(r'^\d{4}$', given_date[2]):
-            logger.error(f'Date {arg_date} not in proper mm/dd/yyyy format')
-            return
-        start_date = arg_date
-        start_log = start_date
-
-    if args.end_date:
-        arg_date = args.end_date[0]
-        given_date = arg_date.split('/')
-        if not re.match(r'^\d{2}$', given_date[0]) or not re.match(r'^\d{2}$', given_date[1])\
-                or not re.match(r'^\d{4}$', given_date[2]):
-            logger.error(f'Date {arg_date} not in proper mm/dd/yyyy format')
-            return
-        end_date = datetime.strptime(arg_date, '%m/%d/%Y') + relativedelta(days=1)
-        end_date = end_date.strftime('%m/%d/%Y')
-        end_log = end_date
-
-    # Validate that start/end date have been provided in some way and that they are in the right order
-    if not (start_date or end_date):
-        logger.error('start_date, end_date, or auto setting is required.')
-        raise ValueError('start_date, end_date, or auto setting is required.')
-
-    if start_date and end_date \
-            and datetime.strptime(start_date, '%m/%d/%Y') >= datetime.strptime(end_date, '%m/%d/%Y'):
-        logger.error('Start date cannot be later than end date.')
-        raise ValueError('Start date cannot be later than end date.')
+    start_date, end_date = validate_load_dates(args.start_date[0], args.end_date[0], args.auto,
+                                               load_type='fabs_extract')
+    start_log = start_date or 'project start'
+    end_log = end_date or 'present'
 
     metrics_json['start_date'] = start_date
 
