@@ -160,7 +160,7 @@ CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     ORDER BY dap.unique_award_key, dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC
     );
 CREATE INDEX ix_latest_aw_dap_uak ON latest_aw_dap (unique_award_key);
-CREATE INDEX ix_latest_aw_dap_uei ON latest_aw_dap (UPPER(uei));
+CREATE INDEX ix_latest_aw_dap_uei ON latest_aw_dap (UPPER(awardee_or_recipient_uei));
 ANALYZE latest_aw_dap;
 
 -- Getting a list of all the subaward zips we'll encounter to limit any massive joins
