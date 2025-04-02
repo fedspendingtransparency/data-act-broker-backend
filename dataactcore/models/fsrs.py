@@ -213,6 +213,8 @@ class SAMSubcontract(Base):
 
 Index("ix_sam_subcontract_updated_at", SAMSubcontract.updated_at)
 Index("ix_sam_subcontract_uak_upper", func.upper(SAMSubcontract.unique_award_key))
+Index("ix_sam_subcontract_uei_upper", func.upper(SAMSubcontract.uei))
+Index("ix_sam_subcontract_puei_upper", func.upper(SAMSubcontract.parent_uei))
 Index("ix_sam_subcontract_le_country_upper", func.upper(SAMSubcontract.legal_entity_country_code))
 Index("ix_sam_subcontract_le_state_upper", func.upper(SAMSubcontract.legal_entity_state_code))
 Index("ix_sam_subcontract_ppop_country_upper", func.upper(SAMSubcontract.ppop_country_code))
@@ -269,6 +271,8 @@ class SAMSubgrant(Base):
 
 Index("ix_sam_subgrant_updated_at", SAMSubgrant.updated_at)
 Index("ix_sam_subgrant_uak_upper", func.upper(SAMSubgrant.ppop_country_code))
+Index("ix_sam_subgrant_uei_upper", func.upper(SAMSubgrant.uei))
+Index("ix_sam_subgrant_puei_upper", func.upper(SAMSubgrant.parent_uei))
 Index("ix_sam_subgrant_le_country_upper", func.upper(SAMSubgrant.legal_entity_country_code))
 Index("ix_sam_subgrant_le_state_upper", func.upper(SAMSubgrant.legal_entity_state_code))
 Index("ix_sam_subgrant_ppop_country_upper", func.upper(SAMSubgrant.ppop_country_code))
