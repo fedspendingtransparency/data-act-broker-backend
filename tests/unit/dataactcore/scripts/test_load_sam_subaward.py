@@ -47,13 +47,13 @@ class MockSAMSubawardApi:
             'totalRecords': total_records,
             'pageNumber': page_number,
             'data': [
-                record_type(str(i), load_type)
+                record_type(str(i), i, load_type)
                 for i in range(max(0, min(page_size, total_records - (page_number * page_size))))
             ]
         }
 
     @staticmethod
-    def assistance_record(report_number, load_type='Published'):
+    def assistance_record(report_number, report_id, load_type='Published'):
         return {
             'status': load_type,
             'submittedDate': date.today().strftime("%Y-%m-%d"),
@@ -63,7 +63,7 @@ class MockSAMSubawardApi:
             'subAwardAmount': uuid.uuid4().hex,
             'subAwardDate': date.today().strftime("%Y-%m-%d"),
             'reportUpdatedDate': date.today().strftime("%Y-%m-%d"),
-            'subawardReportId': random.randint(1, 1000),
+            'subawardReportId': report_id,
             'subawardReportNumber': report_number,
             'placeOfPerformance': {
                 'streetAddress': None,
@@ -108,14 +108,14 @@ class MockSAMSubawardApi:
         }
 
     @staticmethod
-    def contract_record(report_number, load_type=None):
+    def contract_record(report_number, report_id, load_type=None):
         return {
             "primeContractKey": None,
             "piid": uuid.uuid4().hex,
             "agencyId": uuid.uuid4().hex,
             "referencedIDVPIID": uuid.uuid4().hex,
             "referencedIDVAgencyId": uuid.uuid4().hex,
-            "subAwardReportId": random.randint(1, 1000),
+            "subAwardReportId": report_id,
             "subAwardReportNumber": report_number,
             "submittedDate": date.today().strftime("%Y-%m-%d"),
             "subAwardNumber": uuid.uuid4().hex,
@@ -273,14 +273,16 @@ def parsed_contract_keys():
 
 def test_parse_raw_subaward_assistance(parsed_assistance_keys):
     report_number = uuid.uuid4().hex
-    raw_subaward_dict = MockSAMSubawardApi.assistance_record(report_number)
+    report_id = random.randint(1, 1000)
+    raw_subaward_dict = MockSAMSubawardApi.assistance_record(report_number, report_id)
     result = parse_raw_subaward(raw_subaward_dict, 'assistance')
     assert set(result.keys()) == parsed_assistance_keys
 
 
 def test_parse_raw_subaward_contract(parsed_contract_keys):
     report_number = uuid.uuid4().hex
-    raw_subaward_dict = MockSAMSubawardApi.contract_record(report_number)
+    report_id = random.randint(1, 1000)
+    raw_subaward_dict = MockSAMSubawardApi.contract_record(report_number, report_id)
     result = parse_raw_subaward(raw_subaward_dict, 'contract')
     assert set(result.keys()) == parsed_contract_keys
 
