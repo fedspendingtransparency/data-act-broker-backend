@@ -127,8 +127,10 @@ def sum_published_file_b(session, submission_id):
         func.sum(fileb_model.ussgl498100_upward_adjustm_cpe).label('sum_ussgl498100_upward_adjustm_cpe'),
         func.sum(fileb_model.ussgl498200_upward_adjustm_cpe).label('sum_ussgl498200_upward_adjustm_cpe'),
         func.array_agg(fileb_model.row_number).label('row_numbers')
-    ).filter(fileb_model.submission_id == submission_id,
-             func.rpad(fileb_model.object_class, 4, '0') != '0000').\
+    ).join(TASLookup, func.upper(TASLookup.display_tas) == func.upper(fileb_model.display_tas)).\
+        filter(fileb_model.submission_id == submission_id,
+               func.rpad(fileb_model.object_class, 4, '0') != '0000',
+               func.coalesce(func.upper(TASLookup.financial_indicator2), '') != 'F').\
         group_by(fileb_model.display_tas, fileb_model.allocation_transfer_agency, fileb_model.agency_identifier,
                  fileb_model.beginning_period_of_availa, fileb_model.ending_period_of_availabil,
                  fileb_model.availability_type_code, fileb_model.main_account_code, fileb_model.sub_account_code,
@@ -250,6 +252,7 @@ def sum_gtas_boc(session, period, year, agency_code):
     """
     agency_filters = tas_agency_filter(session, agency_code, TASLookup)
     exists_query = session.query(TASLookup).filter(TASLookup.display_tas == boc_model.display_tas,
+                                                   func.coalesce(func.upper(TASLookup.financial_indicator2), '') != 'F',
                                                    or_(*agency_filters))
     exists_query = tas_exception_filter(exists_query, agency_code, TASLookup, 'ignore').exists()
     ussgl_list = list(set([re.findall(r'ussgl(\d+)_.*', col.name)[0] for col in fileb_model.__table__.columns if
