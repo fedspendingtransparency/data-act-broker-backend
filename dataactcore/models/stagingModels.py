@@ -1609,6 +1609,9 @@ Index("ix_dap_awardee_or_recipient_uei_upper", func.upper(DetachedAwardProcureme
 Index("ix_dap_piid_upp_trans", func.upper(func.translate(DetachedAwardProcurement.piid, '-', '')))
 Index("ix_dap_pai_upp_trans", func.upper(func.translate(DetachedAwardProcurement.parent_award_id, '-', '')))
 
+Index("ix_dap_uei_upper", func.upper(DetachedAwardProcurement.awardee_or_recipient_uei))
+Index("ix_dap_puei_upper", func.upper(DetachedAwardProcurement.ultimate_parent_uei))
+
 
 class FABS(Base):
     """Model for FABS submission."""

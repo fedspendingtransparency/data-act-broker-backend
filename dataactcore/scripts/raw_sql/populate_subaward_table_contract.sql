@@ -77,6 +77,7 @@ CREATE INDEX ix_aw_dap_act_type ON aw_dap (action_type_sort);
 CREATE INDEX ix_aw_dap_act_type_desc ON aw_dap (action_type_sort DESC);
 CREATE INDEX ix_aw_dap_mod_num_sort ON aw_dap (mod_num_sort);
 CREATE INDEX ix_aw_dap_mod_num_sort_desc ON aw_dap (mod_num_sort DESC);
+ANALYZE aw_dap;
 
 CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
@@ -93,6 +94,7 @@ CREATE TEMPORARY TABLE base_aw_dap ON COMMIT DROP AS
     ORDER BY dap.unique_award_key, dap.action_date, dap.action_type_sort, dap.mod_num_sort
     );
 CREATE INDEX ix_base_aw_dap_uak ON base_aw_dap (unique_award_key);
+ANALYZE base_aw_dap;
 
 CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     (SELECT DISTINCT ON (
@@ -158,6 +160,8 @@ CREATE TEMPORARY TABLE latest_aw_dap ON COMMIT DROP AS
     ORDER BY dap.unique_award_key, dap.action_date DESC, dap.action_type_sort DESC, dap.mod_num_sort DESC
     );
 CREATE INDEX ix_latest_aw_dap_uak ON latest_aw_dap (unique_award_key);
+CREATE INDEX ix_latest_aw_dap_uei ON latest_aw_dap (UPPER(awardee_or_recipient_uei));
+ANALYZE latest_aw_dap;
 
 -- Getting a list of all the subaward zips we'll encounter to limit any massive joins
 CREATE TEMPORARY TABLE all_sub_zips ON COMMIT DROP AS (
@@ -167,12 +171,14 @@ CREATE TEMPORARY TABLE all_sub_zips ON COMMIT DROP AS (
 	SELECT DISTINCT ppop_zip_code AS "sub_zip"
 	FROM sam_subcontract
 );
+ANALYZE all_sub_zips;
 -- Matching on all the available zip9s
 CREATE TEMPORARY TABLE all_sub_zip9s ON COMMIT DROP AS (
 	SELECT sub_zip
 	FROM all_sub_zips
 	WHERE LENGTH(sub_zip) = 9
 );
+ANALYZE all_sub_zip9s;
 CREATE TEMPORARY TABLE modified_zips ON COMMIT DROP AS (
 	SELECT (zip5 || zip_last4) AS "sub_zip", county_number, state_abbreviation
 	FROM zips
@@ -182,6 +188,7 @@ CREATE TEMPORARY TABLE modified_zips ON COMMIT DROP AS (
 		WHERE (zip5 || zip_last4) = asz.sub_zip
 	)
 );
+ANALYZE modified_zips;
 -- Matching on all the available zip5 + states in zips_grouped (and any remaining zip9s not currently matched)
 CREATE TEMPORARY TABLE all_sub_zip5s ON COMMIT DROP AS (
 	SELECT sub_zip
@@ -195,6 +202,7 @@ CREATE TEMPORARY TABLE all_sub_zip5s ON COMMIT DROP AS (
 	FROM modified_zips AS mz)
 );
 CREATE INDEX ix_asz5s_l5 ON all_sub_zip5s (LEFT(sub_zip, 5));
+ANALYZE all_sub_zip5s;
 
 -- Since counties can vary between a zip5 + state, we want to only match on when there's only one county and not guess
 CREATE TEMPORARY TABLE single_zips_grouped ON COMMIT DROP AS (
@@ -203,6 +211,7 @@ CREATE TEMPORARY TABLE single_zips_grouped ON COMMIT DROP AS (
 	GROUP BY zip5, state_abbreviation
 	HAVING COUNT(*) = 1
 );
+ANALYZE single_zips_grouped;
 CREATE TEMPORARY TABLE zips_grouped_modified ON COMMIT DROP AS (
 	SELECT zip5, state_abbreviation, county_number
 	FROM zips_grouped AS zg
@@ -217,6 +226,7 @@ CREATE TEMPORARY TABLE zips_grouped_modified ON COMMIT DROP AS (
 			AND zg.state_abbreviation = szg.state_abbreviation
 	)
 );
+ANALYZE zips_grouped_modified;
 -- Combine the two matching groups together and join later. make sure keep them separated with type to prevent dups
 CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
 	SELECT sub_zip, state_abbreviation, county_number, 'zip9' AS "type"
@@ -227,6 +237,7 @@ CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
 );
 CREATE INDEX ix_zmu_sz ON zips_modified_union (sub_zip);
 CREATE INDEX ix_zmu_type ON zips_modified_union (type);
+ANALYZE zips_modified_union;
 
 -- Get sampled award recipient data
 CREATE TEMPORARY TABLE prime_recipient ON COMMIT DROP AS (
@@ -240,7 +251,8 @@ CREATE TEMPORARY TABLE prime_recipient ON COMMIT DROP AS (
 	    WHERE aw_dap.awardee_or_recipient_uei = sr.uei
 	)
 );
-CREATE INDEX ix_pr_uei ON prime_recipient (uei);
+CREATE INDEX ix_pr_uei ON prime_recipient (UPPER(uei));
+ANALYZE prime_recipient;
 
 -- Get sampled subaward recipient data
 CREATE TEMPORARY TABLE sub_recipient ON COMMIT DROP AS (
@@ -255,7 +267,8 @@ CREATE TEMPORARY TABLE sub_recipient ON COMMIT DROP AS (
 	        AND sam_subcontract.uei = sr.uei
 	)
 );
-CREATE INDEX ix_sr_uei ON sub_recipient (uei);
+CREATE INDEX ix_sr_uei ON sub_recipient (UPPER(uei));
+ANALYZE sub_recipient;
 
 -- Get sampled subaward parent recipient data
 -- This *should* match sub_recipient.ultimate_parent_unique_ide but no guarantees
@@ -271,7 +284,8 @@ CREATE TEMPORARY TABLE sub_parent_recipient ON COMMIT DROP AS (
 	        AND sam_subcontract.parent_uei = sr.uei
 	)
 );
-CREATE INDEX ix_spr_uei ON sub_parent_recipient (uei);
+CREATE INDEX ix_spr_uei ON sub_parent_recipient (UPPER(uei));
+ANALYZE sub_parent_recipient;
 
 INSERT INTO subaward (
     "unique_award_key",
@@ -604,11 +618,11 @@ FROM sam_subcontract
     LEFT OUTER JOIN latest_aw_dap AS ldap
         ON UPPER(sam_subcontract.unique_award_key) = ldap.unique_award_key
     LEFT OUTER JOIN prime_recipient AS pr
-        ON ldap.awardee_or_recipient_uei = pr.uei
+        ON UPPER(ldap.awardee_or_recipient_uei) = UPPER(pr.uei)
     LEFT OUTER JOIN sub_recipient AS sr
-        ON sam_subcontract.uei = sr.uei
+        ON UPPER(sam_subcontract.uei) = UPPER(sr.uei)
     LEFT OUTER JOIN sub_parent_recipient AS spr
-        ON sam_subcontract.parent_uei = spr.uei
+        ON UPPER(sam_subcontract.parent_uei) = UPPER(spr.uei)
     LEFT OUTER JOIN zips_modified_union AS sub_le_county_code_zip9
         ON (UPPER(sam_subcontract.legal_entity_country_code) = 'USA'
             AND sam_subcontract.legal_entity_zip_code = sub_le_county_code_zip9.sub_zip
