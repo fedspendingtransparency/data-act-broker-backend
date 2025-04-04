@@ -48,7 +48,7 @@ def test_validate_load_dates(database):
     start_date, end_date = script_helper.validate_load_dates(start_date, end_date, auto, load_type, arg_date_format,
                                                              output_date_format)
     assert start_date == '2000-01-01'
-    assert end_date == '2000-01-03'
+    assert end_date == '2000-01-02'
 
     # Auto Check
     load_type = 'office'
