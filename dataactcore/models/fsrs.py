@@ -165,8 +165,8 @@ class SAMSubcontract(Base):
     """ Model for SAM subcontract data """
     __tablename__ = 'sam_subcontract'
     sam_subcontract_id = Column(Integer, primary_key=True)
-    subaward_report_id = Column(Integer, index=True)
-    subaward_report_number = Column(Text, index=True)
+    subaward_report_id = Column(Integer, index=True, unique=True)
+    subaward_report_number = Column(Text, index=True, unique=True)
     unique_award_key = Column(Text)
     date_submitted = Column(Date)
     contract_agency_code = Column(Text)
@@ -225,8 +225,8 @@ class SAMSubgrant(Base):
     """ Model for SAM subgrant data """
     __tablename__ = 'sam_subgrant'
     sam_subgrant_id = Column(Integer, primary_key=True)
-    subaward_report_id = Column(Integer, index=True)
-    subaward_report_number = Column(Text, index=True)
+    subaward_report_id = Column(Integer, index=True, unique=True)
+    subaward_report_number = Column(Text, index=True, unique=True)
     unique_award_key = Column(Text)
     date_submitted = Column(Date)
     award_number = Column(Text)
@@ -384,7 +384,7 @@ class Subaward(Base):
     sub_high_comp_officer5_amount = Column(Text, nullable=True)
     # Additional FSRS - Prime Award Data
     prime_id = Column(Integer, index=True)
-    internal_id = Column(Text, index=True)
+    internal_id = Column(Text, index=True, unique=True)
     date_submitted = Column(Text)
     report_type = Column(Text)
     transaction_type = Column(Text)
@@ -413,7 +413,7 @@ class Subaward(Base):
     place_of_perform_street = Column(Text)
 
     # Additional FSRS - Subaward Data
-    sub_id = Column(Integer, index=True)
+    sub_id = Column(Integer, index=True, unique=True)
     sub_parent_id = Column(Integer, index=True)
     sub_federal_agency_id = Column(Text)
     sub_federal_agency_name = Column(Text)
