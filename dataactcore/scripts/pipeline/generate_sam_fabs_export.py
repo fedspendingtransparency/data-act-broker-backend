@@ -4,6 +4,7 @@ import os
 import json
 
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from dataactbroker.helpers.script_helper import validate_load_dates
 from dataactcore.broker_logging import configure_logging
@@ -233,8 +234,11 @@ def main():
         'start_date': ''
     }
 
-    start_date, end_date = validate_load_dates(args.start_date[0], args.end_date[0], args.auto,
-                                               load_type='fabs_extract')
+    start_date, end_date = validate_load_dates(args.start_date, args.end_date, args.auto, load_type='fabs_extract')
+    if end_date:
+        # Adding an extra day to be inclusive
+        end_date = datetime.strptime(end_date, '%m/%d/%Y') + relativedelta(days=1)
+        end_date = end_date.strftime('%m/%d/%Y')
     start_log = start_date or 'project start'
     end_log = end_date or 'present'
 
