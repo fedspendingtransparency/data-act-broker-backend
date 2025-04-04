@@ -80,6 +80,7 @@ CREATE INDEX ix_aw_pf_act_type ON aw_pf (action_type_sort);
 CREATE INDEX ix_aw_pf_act_type_desc ON aw_pf (action_type_sort DESC);
 CREATE INDEX ix_aw_pf_mod_num_sort ON aw_pf (mod_num_sort);
 CREATE INDEX ix_aw_pf_mod_num_sort_desc ON aw_pf (mod_num_sort DESC);
+ANALYZE aw_pf;
 
 CREATE TEMPORARY TABLE base_aw_pf ON COMMIT DROP AS
     (SELECT DISTINCT ON (
@@ -92,6 +93,7 @@ CREATE TEMPORARY TABLE base_aw_pf ON COMMIT DROP AS
     ORDER BY pf.unique_award_key, pf.action_date, pf.action_type_sort, pf.mod_num_sort
     );
 CREATE INDEX ix_base_aw_pf_uak ON base_aw_pf (unique_award_key);
+ANALYZE base_aw_pf;
 
 CREATE TEMPORARY TABLE latest_aw_pf ON COMMIT DROP AS
     (SELECT DISTINCT ON (
@@ -154,6 +156,7 @@ CREATE TEMPORARY TABLE latest_aw_pf ON COMMIT DROP AS
     );
 CREATE INDEX ix_latest_aw_pf_uei_upp ON latest_aw_pf (UPPER(uei));
 CREATE INDEX ix_latest_aw_pf_uak ON latest_aw_pf (unique_award_key);
+ANALYZE latest_aw_pf;
 
 CREATE TEMPORARY TABLE grouped_aw_pf ON COMMIT DROP AS
     (SELECT pf.unique_award_key,
@@ -166,6 +169,7 @@ CREATE TEMPORARY TABLE grouped_aw_pf ON COMMIT DROP AS
      GROUP BY unique_award_key
      );
 CREATE INDEX ix_grouped_aw_pf_uak ON grouped_aw_pf (unique_award_key);
+ANALYZE grouped_aw_pf;
 
 CREATE TEMPORARY TABLE grant_uei ON COMMIT DROP AS
     (SELECT grant_uei_from.uei AS uei,
@@ -188,6 +192,7 @@ CREATE TEMPORARY TABLE grant_uei ON COMMIT DROP AS
     WHERE grant_uei_from.row = 1
     );
 CREATE INDEX ix_grant_uei_upp ON grant_uei (UPPER(uei));
+ANALYZE grant_uei;
 
 CREATE TEMPORARY TABLE subgrant_puei ON COMMIT DROP AS (
     SELECT sub_puei_from.uei AS uei,
@@ -209,6 +214,7 @@ CREATE TEMPORARY TABLE subgrant_puei ON COMMIT DROP AS (
     WHERE sub_puei_from.row = 1
     );
 CREATE INDEX ix_subgrant_puei_upp ON subgrant_puei (UPPER(uei));
+ANALYZE subgrant_puei;
 
 CREATE TEMPORARY TABLE subgrant_uei ON COMMIT DROP AS (
     SELECT sub_uei_from.uei AS uei,
@@ -231,6 +237,7 @@ CREATE TEMPORARY TABLE subgrant_uei ON COMMIT DROP AS (
     WHERE sub_uei_from.row = 1
     );
 CREATE INDEX ix_subgrant_uei_upp ON subgrant_uei (UPPER(uei));
+ANALYZE subgrant_uei;
 
 -- Getting a list of all the subaward zips we'll encounter to limit any massive joins
 CREATE TEMPORARY TABLE all_sub_zips ON COMMIT DROP AS (
@@ -240,12 +247,14 @@ CREATE TEMPORARY TABLE all_sub_zips ON COMMIT DROP AS (
 	SELECT DISTINCT ppop_zip_code AS "sub_zip"
 	FROM sam_subgrant
 );
+ANALYZE all_sub_zips;
 -- Matching on all the available zip9s
 CREATE TEMPORARY TABLE all_sub_zip9s ON COMMIT DROP AS (
 	SELECT sub_zip
 	FROM all_sub_zips
 	WHERE LENGTH(sub_zip) = 9
 );
+ANALYZE all_sub_zip9s;
 CREATE TEMPORARY TABLE modified_zips ON COMMIT DROP AS (
 	SELECT (zip5 || zip_last4) AS "sub_zip", county_number, state_abbreviation
 	FROM zips
@@ -255,6 +264,7 @@ CREATE TEMPORARY TABLE modified_zips ON COMMIT DROP AS (
 		WHERE (zip5 || zip_last4) = asz.sub_zip
 	)
 );
+ANALYZE modified_zips;
 -- Matching on all the available zip5 + states in zips_grouped (and any remaining zip9s not currently matched)
 CREATE TEMPORARY TABLE all_sub_zip5s ON COMMIT DROP AS (
 	SELECT sub_zip
@@ -268,6 +278,7 @@ CREATE TEMPORARY TABLE all_sub_zip5s ON COMMIT DROP AS (
 	FROM modified_zips AS mz)
 );
 CREATE INDEX ix_asz5s_l5 ON all_sub_zip5s (LEFT(sub_zip, 5));
+ANALYZE all_sub_zip5s;
 
 -- Since counties can vary between a zip5 + state, we want to only match on when there's only one county and not guess
 CREATE TEMPORARY TABLE single_zips_grouped ON COMMIT DROP AS (
@@ -276,6 +287,7 @@ CREATE TEMPORARY TABLE single_zips_grouped ON COMMIT DROP AS (
 	GROUP BY zip5, state_abbreviation
 	HAVING COUNT(*) = 1
 );
+ANALYZE single_zips_grouped;
 CREATE TEMPORARY TABLE zips_grouped_modified ON COMMIT DROP AS (
 	SELECT zip5, state_abbreviation, county_number
 	FROM zips_grouped AS zg
@@ -290,6 +302,7 @@ CREATE TEMPORARY TABLE zips_grouped_modified ON COMMIT DROP AS (
 			AND zg.state_abbreviation = szg.state_abbreviation
 	)
 );
+ANALYZE zips_grouped_modified;
 -- Combine the two matching groups together and join later. make sure keep them separated with type to prevent dups
 CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
 	SELECT sub_zip, state_abbreviation, county_number, 'zip9' AS "zip_type"
@@ -300,6 +313,7 @@ CREATE TEMPORARY TABLE zips_modified_union ON COMMIT DROP AS (
 );
 CREATE INDEX ix_zmu_sz ON zips_modified_union (sub_zip);
 CREATE INDEX ix_zmu_type ON zips_modified_union (zip_type);
+ANALYZE zips_modified_union;
 
 INSERT INTO subaward (
     "unique_award_key",

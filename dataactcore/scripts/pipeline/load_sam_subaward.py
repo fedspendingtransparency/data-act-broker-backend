@@ -4,8 +4,9 @@ import datetime
 import json
 import logging
 import pandas as pd
-from sqlalchemy import column, func
 import sys
+from sqlalchemy import column, func
+from dateutil.relativedelta import relativedelta
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -369,6 +370,9 @@ if __name__ == '__main__':
 
         start_date, end_date = validate_load_dates(args.start_date, args.end_date, args.auto, 'subaward', '%m/%d/%Y',
                                                    '%Y-%m-%d')
+        if args.auto:
+            yesterday = get_utc_now().date() - relativedelta(days=1)
+            end_date = yesterday.strftime('%Y-%m-%d')
         data_types = ['contract', 'assistance'] if args.data_type == 'both' else [args.data_type]
         load_types = ['published', 'deleted'] if args.load_type == 'both' else [args.load_type]
 
@@ -395,6 +399,7 @@ if __name__ == '__main__':
             # For all scenarios, we're deleting the existing records. Only for additions, we're repopulating them.
             logger.info(f'Deleting existing {load_type}-{data_type} records from the subaward table')
             sess.query(Subaward).filter(Subaward.internal_id.in_(report_nums)).delete(synchronize_session=False)
+            sess.commit()
 
             if load_type != 'deleted':
                 logger.info(f'Populating {load_type}-{data_type} records to the subaward table')

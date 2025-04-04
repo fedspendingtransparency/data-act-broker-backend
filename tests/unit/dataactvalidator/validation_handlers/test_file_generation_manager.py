@@ -848,10 +848,23 @@ def test_generate_boc(database, monkeypatch):
     }
     tas4_str = concat_display_tas_dict(tas4_dict)
 
+    # A financing account TAS
+    tas5_dict = {
+        'allocation_transfer_agency': agency_cgac,
+        'agency_identifier': '000',
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': ' ',
+        'main_account_code': '0002',
+        'sub_account_code': '001'
+    }
+    tas5_str = concat_display_tas_dict(tas5_dict)
+
     tas1 = TASFactory(**tas1_dict)
     tas2 = TASFactory(**tas2_dict)
     tas3 = TASFactory(**tas3_dict)
     tas4 = TASFactory(**tas4_dict)
+    tas5 = TASFactory(**tas5_dict, financial_indicator2='f')
 
     # The first two will be combined into a single row, one credit and one debit. The third is a different begin_end
     # indicator, so it will be a separate row. The fourth is a different USSGL number entirely. The fifth is a different
@@ -896,6 +909,11 @@ def test_generate_boc(database, monkeypatch):
                            begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q',
                            budget_object_class='1110', reimbursable_flag='D', prior_year_adjustment_code='X',
                            **tas1_dict)
+    # Financing account, should be ignored
+    boc12 = GTASBOCFactory(period=6, fiscal_year=year, display_tas=tas5_str, dollar_amount=1.5, ussgl_number='480100',
+                           begin_end='B', debit_credit='D', disaster_emergency_fund_code='Q',
+                           budget_object_class='1110', reimbursable_flag='D', prior_year_adjustment_code='X',
+                           **tas5_dict)
 
     # The first two will end up in the same place, there is an implied "different PAC/PAN"
     pub_b1 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas1_str,
@@ -928,14 +946,22 @@ def test_generate_boc(database, monkeypatch):
                                                         by_direct_reimbursable_fun='D', row_number=1,
                                                         prior_year_adjustment='X', begin_end_indicator='B',
                                                         **tas1_dict)
+    # Financing account, should be ignored
+    pub_b5 = PublishedObjectClassProgramActivityFactory(submission_id=sub_id, display_tas=tas5_str,
+                                                        disaster_emergency_fund_code='Q', object_class='111',
+                                                        ussgl480100_undelivered_or_fyb=-0.5,
+                                                        ussgl480100_undelivered_or_cpe=1.5,
+                                                        ussgl487100_downward_adjus_cpe=8,
+                                                        by_direct_reimbursable_fun='D', row_number=1,
+                                                        prior_year_adjustment='X', **tas5_dict)
 
     sub = SubmissionFactory(submission_id=sub_id, reporting_fiscal_year=year, reporting_fiscal_period=6,
                             publish_status_id=PUBLISH_STATUS_DICT['published'], cgac_code=agency_cgac)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['boc_comparison'], filename=None, start_date='03/01/2017',
                      end_date='03/31/2017', submission=None)
-    sess.add_all([tas1, tas2, tas3, tas4, boc1, boc2, boc3, boc4, boc5, boc6, boc7, boc8, boc9, boc10, boc11, sub, job,
-                  pub_b1, pub_b2, pub_b3, pub_b4])
+    sess.add_all([tas1, tas2, tas3, tas4, tas5, boc1, boc2, boc3, boc4, boc5, boc6, boc7, boc8, boc9, boc10, boc11,
+                  boc12, sub, job, pub_b1, pub_b2, pub_b3, pub_b4, pub_b5])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
@@ -990,6 +1016,11 @@ def test_generate_boc(database, monkeypatch):
                 [boc11.budget_object_class, 'D', 'Q', 'X', boc11.begin_end, str(year), '6', boc11.ussgl_number, '1.5',
                  '0', '1.5']
 
+    # Financing account
+    expected9 = [tas5_str] + list(tas5_dict.values()) + \
+                [boc12.budget_object_class, 'D', 'Q', 'X', boc12.begin_end, str(year), '6', boc12.ussgl_number, '1.5',
+                 '-0.5', '2.0']
+
     assert expected1 in file_rows
     assert expected2 in file_rows
     assert expected3 in file_rows
@@ -998,6 +1029,7 @@ def test_generate_boc(database, monkeypatch):
     assert expected6 not in file_rows
     assert expected7 not in file_rows
     assert expected8 not in file_rows
+    assert expected9 not in file_rows
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")

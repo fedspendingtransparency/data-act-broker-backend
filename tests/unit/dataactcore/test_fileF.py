@@ -112,13 +112,17 @@ def test_generate_file_f_sql(database, monkeypatch):
     d1_hide = AwardProcurementFactory(submission_id=sub2.submission_id, unique_award_key='UAK2_D1')
     d2_hide = AwardFinancialAssistanceFactory(submission_id=sub2.submission_id, unique_award_key='UAK2_D2')
 
-    sub_contracts_show = [SubawardFactory(id=i, subaward_type='sub-contract', unique_award_key=d1_show.unique_award_key)
+    sub_contracts_show = [SubawardFactory(id=i, subaward_type='sub-contract', unique_award_key=d1_show.unique_award_key,
+                                          internal_id=str(i), sub_id=i)
                           for i in range(0, 5)]
-    sub_grants_show = [SubawardFactory(id=i, subaward_type='sub-grant', unique_award_key=d2_show.unique_award_key)
+    sub_grants_show = [SubawardFactory(id=i, subaward_type='sub-grant', unique_award_key=d2_show.unique_award_key,
+                                       internal_id=str(i), sub_id=i)
                        for i in range(5, 10)]
-    sub_contracts_hide = [SubawardFactory(id=i, subaward_type='sub-contract', unique_award_key=d1_hide.unique_award_key)
+    sub_contracts_hide = [SubawardFactory(id=i, subaward_type='sub-contract', unique_award_key=d1_hide.unique_award_key,
+                                          internal_id=str(i), sub_id=i)
                           for i in range(10, 15)]
-    sub_grants_hide = [SubawardFactory(id=i, subaward_type='sub-grant', unique_award_key=d2_hide.unique_award_key)
+    sub_grants_hide = [SubawardFactory(id=i, subaward_type='sub-grant', unique_award_key=d2_hide.unique_award_key,
+                                       internal_id=str(i), sub_id=i)
                        for i in range(15, 20)]
     subawards = sub_contracts_show + sub_grants_show + sub_contracts_hide + sub_grants_hide
 
