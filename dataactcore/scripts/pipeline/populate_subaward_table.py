@@ -60,7 +60,7 @@ def populate_subaward_table(sess, data_type, min_date=None, report_nums=None):
     sql = extract_subaward_sql(data_type, 'populate')
     table_name = 'sam_subgrant' if data_type == 'assistance' else 'sam_subcontract'
     if min_date is not None:
-        condition = f'{table_name}.updated_at > \'{min_date.strftime("%Y-%m-%d")}\''
+        condition = f'{table_name}.updated_at > \'{min_date.strftime("%Y-%m-%d %H:%M:%S")}\''
     else:
         report_nums = ','.join([f"\'{report_num}\'" for report_num in report_nums])
         condition = f'{table_name}.subaward_report_number IN ({report_nums})'

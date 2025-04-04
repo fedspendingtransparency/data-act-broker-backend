@@ -165,8 +165,8 @@ class SAMSubcontract(Base):
     """ Model for SAM subcontract data """
     __tablename__ = 'sam_subcontract'
     sam_subcontract_id = Column(Integer, primary_key=True)
-    subaward_report_id = Column(Integer, index=True)
-    subaward_report_number = Column(Text, index=True)
+    subaward_report_id = Column(Integer, index=True, unique=True)
+    subaward_report_number = Column(Text, index=True, unique=True)
     unique_award_key = Column(Text)
     date_submitted = Column(Date)
     contract_agency_code = Column(Text)
@@ -213,6 +213,8 @@ class SAMSubcontract(Base):
 
 Index("ix_sam_subcontract_updated_at", SAMSubcontract.updated_at)
 Index("ix_sam_subcontract_uak_upper", func.upper(SAMSubcontract.unique_award_key))
+Index("ix_sam_subcontract_uei_upper", func.upper(SAMSubcontract.uei))
+Index("ix_sam_subcontract_puei_upper", func.upper(SAMSubcontract.parent_uei))
 Index("ix_sam_subcontract_le_country_upper", func.upper(SAMSubcontract.legal_entity_country_code))
 Index("ix_sam_subcontract_le_state_upper", func.upper(SAMSubcontract.legal_entity_state_code))
 Index("ix_sam_subcontract_ppop_country_upper", func.upper(SAMSubcontract.ppop_country_code))
@@ -223,8 +225,8 @@ class SAMSubgrant(Base):
     """ Model for SAM subgrant data """
     __tablename__ = 'sam_subgrant'
     sam_subgrant_id = Column(Integer, primary_key=True)
-    subaward_report_id = Column(Integer, index=True)
-    subaward_report_number = Column(Text, index=True)
+    subaward_report_id = Column(Integer, index=True, unique=True)
+    subaward_report_number = Column(Text, index=True, unique=True)
     unique_award_key = Column(Text)
     date_submitted = Column(Date)
     award_number = Column(Text)
@@ -269,6 +271,8 @@ class SAMSubgrant(Base):
 
 Index("ix_sam_subgrant_updated_at", SAMSubgrant.updated_at)
 Index("ix_sam_subgrant_uak_upper", func.upper(SAMSubgrant.ppop_country_code))
+Index("ix_sam_subgrant_uei_upper", func.upper(SAMSubgrant.uei))
+Index("ix_sam_subgrant_puei_upper", func.upper(SAMSubgrant.parent_uei))
 Index("ix_sam_subgrant_le_country_upper", func.upper(SAMSubgrant.legal_entity_country_code))
 Index("ix_sam_subgrant_le_state_upper", func.upper(SAMSubgrant.legal_entity_state_code))
 Index("ix_sam_subgrant_ppop_country_upper", func.upper(SAMSubgrant.ppop_country_code))
@@ -380,7 +384,7 @@ class Subaward(Base):
     sub_high_comp_officer5_amount = Column(Text, nullable=True)
     # Additional FSRS - Prime Award Data
     prime_id = Column(Integer, index=True)
-    internal_id = Column(Text, index=True)
+    internal_id = Column(Text, index=True, unique=True)
     date_submitted = Column(Text)
     report_type = Column(Text)
     transaction_type = Column(Text)
@@ -409,7 +413,7 @@ class Subaward(Base):
     place_of_perform_street = Column(Text)
 
     # Additional FSRS - Subaward Data
-    sub_id = Column(Integer, index=True)
+    sub_id = Column(Integer, index=True, unique=True)
     sub_parent_id = Column(Integer, index=True)
     sub_federal_agency_id = Column(Text)
     sub_federal_agency_name = Column(Text)
