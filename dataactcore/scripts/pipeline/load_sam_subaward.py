@@ -404,6 +404,7 @@ if __name__ == '__main__':
             # TODO: Update subaward to store new SAM Subaward fields (or reuse internal_id?)
             logger.info(f'Deleting existing {load_type}-{data_type} records from the subaward table')
             sess.query(Subaward).filter(Subaward.internal_id.in_(report_nums)).delete(synchronize_session=False)
+            sess.commit()
 
             if load_type != 'deleted':
                 logger.info(f'Populating {load_type}-{data_type} records to the subaward table')
