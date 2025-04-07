@@ -85,8 +85,6 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_d
         except ValueError as e:
             logger.error(f'Date {arg_date} not in proper format ({arg_date_format})')
             raise e
-        # Adding an extra day to be inclusive
-        end_date = end_date + relativedelta(days=1)
         end_date = end_date.strftime(output_date_format)
 
     # Validate that start/end date have been provided in some way and that they are in the right order
@@ -95,7 +93,7 @@ def validate_load_dates(arg_start_date, arg_end_date, arg_auto, load_type, arg_d
         raise ValueError('start_date, end_date, or auto setting is required.')
 
     if start_date and end_date and (datetime.datetime.strptime(start_date, output_date_format)
-                                    >= datetime.datetime.strptime(end_date, output_date_format)):
+                                    > datetime.datetime.strptime(end_date, output_date_format)):
         logger.error('Start date cannot be later than end date.')
         raise ValueError('Start date cannot be later than end date.')
 
