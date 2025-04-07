@@ -5,11 +5,11 @@ from dateutil.relativedelta import relativedelta
 from dataactbroker.helpers import script_helper
 
 from dataactcore.interfaces.function_bag import get_utc_now
-from dataactcore.models.domainModels import ExternalDataLoadDate
+from dataactcore.models.domainModels import ExternalDataLoadDate, ExternalDataType
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 
 
-def test_validate_load_dates(database):
+def test_validate_load_dates(database, monkeypatch):
     """ Test validate_load_dates """
     sess = database.session
 
@@ -51,15 +51,19 @@ def test_validate_load_dates(database):
     assert end_date == '2000-01-02'
 
     # Auto Check
-    load_type = 'office'
     today = get_utc_now()
     yesterday = today.date() - relativedelta(days=1)
     auto, start_date, end_date = True, None, None
 
-    # One without a previous load date
-    sess.query(ExternalDataLoadDate). \
-        filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT[load_type]).delete()
+    # Making a separate load type to not interfere with other tests
+    load_type = 'test'
+    load_type_id = 9999
+    EXTERNAL_DATA_TYPE_DICT[load_type] = load_type_id
+    monkeypatch.setattr(script_helper, 'EXTERNAL_DATA_TYPE_DICT', EXTERNAL_DATA_TYPE_DICT)
+    sess.add(ExternalDataType(external_data_type_id=EXTERNAL_DATA_TYPE_DICT[load_type]))
     sess.commit()
+
+    # One without a previous load date
     start_date, end_date = script_helper.validate_load_dates(start_date, end_date, auto, load_type, arg_date_format,
                                                              output_date_format)
     assert start_date == yesterday.strftime(output_date_format)
