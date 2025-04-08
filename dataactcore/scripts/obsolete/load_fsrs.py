@@ -8,10 +8,10 @@ from sqlalchemy import func
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
-from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL, \
-    config_state_mappings
+from dataactcore.scripts.obsolete.fsrs import (config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL,
+                                               config_state_mappings)
 from dataactcore.models.fsrs import Subaward
-from dataactcore.scripts.pipeline.populate_subaward_table_fsrs import (populate_subaward_table_fsrs,
+from dataactcore.scripts.obsolete.populate_subaward_table_fsrs import (populate_subaward_table_fsrs,
                                                                        fix_broken_links_fsrs)
 from dataactvalidator.health_check import create_app
 

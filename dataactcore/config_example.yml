@@ -97,17 +97,6 @@ broker:
     # Session timeout, in seconds
     session_timeout: 1800
 
-    # We import award/subaward records from FSRS
-    fsrs:
-        procurement_service:
-            wsdl: ''  # e.g. https://example.com/?wsdl'
-            username: ''
-            password: ''
-        grant_service:
-            wsdl: ''  # e.g. https://example.com/?wsdl'
-            username: ''
-            password: ''
-
     # We import DUNS and FH records from SAM
     sam:
         api_key: example
