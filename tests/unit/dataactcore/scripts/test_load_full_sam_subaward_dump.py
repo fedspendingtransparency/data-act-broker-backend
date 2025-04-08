@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.scripts.ad_hoc import load_full_sam_subaward_dump
-from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant
+from dataactcore.models.subaward import SAMSubcontract, SAMSubgrant
 
 
 def test_load_full_sam_subaward_dump_assistance(database, monkeypatch):

@@ -10,7 +10,7 @@ from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
 from dataactcore.scripts.obsolete.fsrs import (config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL,
                                                config_state_mappings)
-from dataactcore.models.fsrs import Subaward
+from dataactcore.models.subaward import Subaward
 from dataactcore.scripts.obsolete.populate_subaward_table_fsrs import (populate_subaward_table_fsrs,
                                                                        fix_broken_links_fsrs)
 from dataactvalidator.health_check import create_app
