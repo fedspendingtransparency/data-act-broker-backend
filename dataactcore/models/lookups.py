@@ -379,7 +379,7 @@ EXTERNAL_DATA_TYPE = [
     LookupType(15, 'office', 'GSA office data loaded'),
     LookupType(16, 'program_activity', 'OMB program activity data loaded'),
     LookupType(17, 'state_code', 'state code data loaded'),
-    LookupType(18, 'subaward', 'FSRS subaward data loaded'),
+    LookupType(18, 'subaward', 'SAM subaward data loaded'),
     LookupType(19, 'zip_code', 'USPS zip code data loaded'),
     LookupType(20, 'defc', 'disaster emergency fund code data loaded'),
     LookupType(21, 'failed_tas', 'TAS failing edits data loaded'),

@@ -12,7 +12,7 @@ from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
-from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
+from dataactcore.models.subaward import SAMSubcontract, SAMSubgrant, Subaward
 from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactcore.utils.loader_utils import insert_dataframe
 

@@ -8,7 +8,7 @@ from suds.plugin import MessagePlugin
 from suds.xsd import doctor
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.fsrs import FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant
+from dataactcore.models.subaward import FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant
 from dataactcore.models.domainModels import States
 from dataactbroker.helpers.generic_helper import WellBehavedHttpsTransport
 

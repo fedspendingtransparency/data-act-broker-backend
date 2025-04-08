@@ -10,7 +10,7 @@ import numpy as np
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
+from dataactcore.models.subaward import SAMSubcontract, SAMSubgrant, Subaward
 from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
