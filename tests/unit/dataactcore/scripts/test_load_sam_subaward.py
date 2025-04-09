@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from dataactcore.models.fsrs import SAMSubgrant, SAMSubcontract
+from dataactcore.models.subaward import SAMSubgrant, SAMSubcontract
 from dataactcore.scripts.pipeline.load_sam_subaward import (
     ASSISTANCE_API_URL,
     delete_subawards,

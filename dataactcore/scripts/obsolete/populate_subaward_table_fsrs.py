@@ -9,7 +9,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.broker_logging import configure_logging
 from dataactvalidator.health_check import create_app
-from dataactbroker.fsrs import GRANT, PROCUREMENT
+from dataactcore.scripts.obsolete.fsrs import GRANT, PROCUREMENT
 
 RAW_SQL_DIR = os.path.join(CONFIG_BROKER['path'], 'dataactcore', 'scripts', 'raw_sql')
 POPULATE_PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_contracts_fsrs.sql')

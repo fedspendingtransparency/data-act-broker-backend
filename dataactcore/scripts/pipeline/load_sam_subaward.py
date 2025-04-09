@@ -12,7 +12,7 @@ from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
-from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
+from dataactcore.models.subaward import SAMSubcontract, SAMSubgrant, Subaward
 from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactcore.utils.loader_utils import insert_dataframe
 
@@ -192,7 +192,7 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "unique_award_key": "primeAwardKey",
             "date_submitted": "submittedDate",
             "award_number": "subAwardNumber",
-            "award_amount": "subAwardAmount",  # TODO: scientific notation, rounding to cents?
+            "award_amount": "subAwardAmount",
             "action_date": "subAwardDate",
             "uei": "subVendorUei",
             "legal_business_name": "subVendorName",
@@ -200,7 +200,6 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "parent_legal_business_name": "subParentName",
             "dba_name": "subDbaName",
 
-            # TODO: "vendorPhysicalAddress" - is this the prime or sub?
             "legal_entity_address_line1": "vendorPhysicalAddress_streetAddress",
             "legal_entity_address_line2": "vendorPhysicalAddress_streetAddress2",
             "legal_entity_city_name": "vendorPhysicalAddress_city",
@@ -211,7 +210,6 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "legal_entity_country_name": "vendorPhysicalAddress_country_name",
             "legal_entity_zip_code": "vendorPhysicalAddress_zip",  # zip9 format
 
-            # TODO: "placeOfPerformance" - is this the prime or sub?
             "ppop_address_line1": "placeOfPerformance_streetAddress",
             "ppop_city_name": "placeOfPerformance_city",
             "ppop_congressional_district": "placeOfPerformance_congressionalDistrict",
@@ -244,7 +242,7 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "contract_idv_agency_code": "referencedIDVAgencyId",
 
             "award_number": "subAwardNumber",
-            "award_amount": "subAwardAmount",  # TODO: scientific notation, rounding to cents?
+            "award_amount": "subAwardAmount",
             "action_date": "subAwardDate",
             "uei": "subEntityUei",
             "legal_business_name": "subEntityLegalBusinessName",
@@ -252,7 +250,6 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "parent_legal_business_name": "subEntityParentLegalBusinessName",
             "dba_name": "subEntityDoingBusinessAsName",
 
-            # TODO: "entityPhysicalAddress" - is this the prime or sub?
             "legal_entity_address_line1": "entityPhysicalAddress_streetAddress",
             "legal_entity_address_line2": "entityPhysicalAddress_streetAddress2",
             "legal_entity_city_name": "entityPhysicalAddress_city",
@@ -263,7 +260,7 @@ def parse_raw_subaward(raw_subaward_dict, data_type):
             "legal_entity_country_name": "entityPhysicalAddress_country_name",
             "legal_entity_zip_code": "entityPhysicalAddress_zip",  # zip9
 
-            # TODO: requesting place of performance for contracts
+            # requesting place of performance for contracts
             "ppop_country_code": "",
             "ppop_country_name": "",
             "ppop_state_code": "",
@@ -310,7 +307,6 @@ def store_subawards(sess, new_subawards, model):
     new_subawards['created_at'] = get_utc_now()
     new_subawards['updated_at'] = get_utc_now()
 
-    # TODO: Confirm subaward uniqueness and update accordingly
     new_sub_report_nums = new_subawards['subaward_report_number'].unique()
     old_subs = sess.query(model).filter(model.subaward_report_number.in_(new_sub_report_nums))
     old_subs.delete(synchronize_session=False)
@@ -401,7 +397,6 @@ if __name__ == '__main__':
             load_type, data_type = tuple(loader_portion.split('-'))
 
             # For all scenarios, we're deleting the existing records. Only for additions, we're repopulating them.
-            # TODO: Update subaward to store new SAM Subaward fields (or reuse internal_id?)
             logger.info(f'Deleting existing {load_type}-{data_type} records from the subaward table')
             sess.query(Subaward).filter(Subaward.internal_id.in_(report_nums)).delete(synchronize_session=False)
             sess.commit()

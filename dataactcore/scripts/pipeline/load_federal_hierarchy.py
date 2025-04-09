@@ -19,7 +19,7 @@ from dataactcore.utils.loader_utils import insert_dataframe
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
-from dataactbroker.helpers.script_helper import get_with_exception_hand
+from dataactbroker.helpers.script_helper import flatten_json, get_with_exception_hand, trim_nested_obj
 
 logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.WARNING)
@@ -248,53 +248,6 @@ def parse_raw_office(org):
             new_office[f'{office_type}_office'] = True
 
     return new_office
-
-
-# TODO: reuse dataactbroker.helpers.script_helper.trim_nested_obj
-def trim_nested_obj(obj):
-    """ A recursive version to trim all the values in a nested object
-
-        Args:
-            obj: object to recursively trim
-
-        Returns:
-            dict if object, list of values if list, trimmed if string, else obj
-    """
-    if isinstance(obj, dict):
-        return {k: trim_nested_obj(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [trim_nested_obj(v) for v in obj]
-    elif isinstance(obj, str):
-        return obj.strip()
-    return obj
-
-
-# TODO: reuse dataactbroker.helpers.script_helper.flatten_json
-def flatten_json(json_obj):
-    """ Flatten a JSON object into a single row.
-
-        Args:
-            json_obj: JSON object to flatten
-
-        Returns:
-            Single row of values from the json_obj JSON
-    """
-    out = {}
-
-    def _flatten(list_item, name=''):
-        if type(list_item) is dict:
-            for item in list_item:
-                _flatten(list_item[item], name + item + '_')
-        elif type(list_item) is list:
-            count = 0
-            for item in list_item:
-                _flatten(item, name + str(count) + '_')
-                count += 1
-        else:
-            out[name[:-1]] = list_item
-
-    _flatten(json_obj)
-    return out
 
 
 def get_normalized_agency_code(agency_code, subtier_code):
