@@ -108,7 +108,7 @@ def upload_file_to_s3(upload_name, local_file, is_certified=False, bucket=None, 
             set_region: Whether to set the region or not, usually required but needs no region for some scripts
                 (default True)
     """
-    path, file_name = upload_name.rsplit('/', 1)
+    path, file_name = upload_name.rsplit('/', 1) if '/' in upload_name else (None, upload_name)
     logger.debug({
         'message': 'Uploading file to S3',
         'message_type': 'ValidatorDebug',
