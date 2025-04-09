@@ -27,7 +27,7 @@ def main():
     for fsrs_table in [FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant]:
         local_file = os.path.join(os.getcwd(), f'{fsrs_table.__table__.name}_archive.csv')
         fsrs_query = sess.query(fsrs_table)
-        write_stream_query(sess, fsrs_query, local_file, local_file, True, generate_headers=True,
+        write_stream_query(sess, fsrs_query, local_file, local_file, CONFIG_BROKER['local'], generate_headers=True,
                            generate_string=True, bucket='dti-da-data-archive-prod')
 
     subaward_fsrs_old_query = """
@@ -35,7 +35,7 @@ def main():
         FROM subaward_fsrs_old
     """
     local_file = os.path.join(os.getcwd(), 'subaward_fsrs_old_archive.csv')
-    write_stream_query(sess, subaward_fsrs_old_query, local_file, local_file, True, generate_headers=True,
+    write_stream_query(sess, subaward_fsrs_old_query, local_file, local_file, CONFIG_BROKER['local'], generate_headers=True,
                        generate_string=False, bucket='dti-da-data-archive-prod')
     logger.info('Completed SQL query, file written')
 
