@@ -25,7 +25,7 @@ def main():
     logger.info('Starting FSRS archive')
 
     for fsrs_table in [FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant]:
-        local_file = os.path.join(os.getcwd(), f'{fsrs_table.__name__}_archive.csv')
+        local_file = os.path.join(os.getcwd(), f'{fsrs_table.__table__.name}_archive.csv')
         fsrs_query = sess.query(fsrs_table)
         write_stream_query(sess, fsrs_query, local_file, local_file, True, generate_headers=True,
                            generate_string=True, bucket='dti-da-data-archive-prod')
