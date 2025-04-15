@@ -3,8 +3,8 @@ from collections import namedtuple
 
 from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactbroker.helpers.generic_helper import fy
-from dataactcore.models.fsrs import Subaward
-from tests.unit.dataactcore.factories.fsrs import (SAMSubcontractFactory, SAMSubgrantFactory)
+from dataactcore.models.subaward import Subaward
+from tests.unit.dataactcore.factories.subaward import (SAMSubcontractFactory, SAMSubgrantFactory)
 from tests.unit.dataactcore.factories.staging import PublishedFABSFactory, DetachedAwardProcurementFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.domain import (SAMRecipientFactory, AssistanceListingFactory, CountryCodeFactory,

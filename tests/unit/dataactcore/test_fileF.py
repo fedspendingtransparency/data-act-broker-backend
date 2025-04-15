@@ -3,7 +3,7 @@ from collections import OrderedDict
 from dataactcore.utils import fileE_F
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.staging import AwardProcurementFactory, AwardFinancialAssistanceFactory
-from tests.unit.dataactcore.factories.fsrs import SubawardFactory
+from tests.unit.dataactcore.factories.subaward import SubawardFactory
 
 
 def replicate_file_f_results(subaward):

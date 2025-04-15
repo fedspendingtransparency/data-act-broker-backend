@@ -10,13 +10,37 @@ import numpy as np
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.fsrs import SAMSubcontract, SAMSubgrant, Subaward
+from dataactcore.models.subaward import SAMSubcontract, SAMSubgrant, Subaward
 from dataactcore.scripts.pipeline.populate_subaward_table import populate_subaward_table
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
+
+
+def get_full_dump_filepath(file_filters, file_type):
+    """ Get the file path or URL to the file for a full SAM subaward export file
+
+        Args:
+            file_filters: An object containing the file filters depending on the file type
+            file_type: The file type
+
+        Returns:
+            The name of a file
+    """
+    filename = f'SAM_Subaward_Bulk_Import_{file_filters[file_type]['filename']}.csv'
+
+    if CONFIG_BROKER['use_aws']:
+        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        subaward_file = s3_client.generate_presigned_url(ClientMethod='get_object',
+                                                         Params={'Bucket': CONFIG_BROKER['data_extracts_bucket'],
+                                                                 'Key': f'sam_subaward_bulk_dump/{filename}'},
+                                                         ExpiresIn=600)
+    else:
+        subaward_file = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', filename)
+
+    return subaward_file
 
 
 def load_full_dump_file(sess, file_type, metrics=None):
@@ -80,16 +104,7 @@ def load_full_dump_file(sess, file_type, metrics=None):
 
     dtypes = {field: 'string' for field in list(file_filters[file_type]['mapping'].keys())}
 
-    filename = f'SAM_Subaward_Bulk_Import_{file_filters[file_type]['filename']}.csv'
-
-    if CONFIG_BROKER['use_aws']:
-        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        subaward_file = s3_client.generate_presigned_url(ClientMethod='get_object',
-                                                         Params={'Bucket': CONFIG_BROKER['data_extracts_bucket'],
-                                                                 'Key': f'sam_subaward_bulk_dump/{filename}'},
-                                                         ExpiresIn=600)
-    else:
-        subaward_file = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', filename)
+    subaward_file = get_full_dump_filepath(file_filters, file_type)
 
     # Clear out the entire old table
     sess.query(file_filters[file_type]['model']).delete(synchronize_session=False)

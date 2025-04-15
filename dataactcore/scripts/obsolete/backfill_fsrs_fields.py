@@ -5,7 +5,8 @@ import datetime
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.broker_logging import configure_logging
-from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, config_state_mappings
+from dataactcore.scripts.obsolete.fsrs import (config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT,
+                                               config_state_mappings)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
