@@ -5,7 +5,9 @@ import csv
 from decimal import Decimal, DecimalException
 from datetime import datetime
 from pandas import isnull
+from sqlalchemy import case
 
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT, FILE_TYPE_DICT_ID
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -260,11 +262,12 @@ def derive_fabs_afa_generated_unique(row):
            (row['award_modification_amendme'] or '-none-')
 
 
-def derive_fabs_unique_award_key(row):
+def derive_fabs_unique_award_key(row, sess):
     """ Derives the unique award key for a row.
 
         Args:
             row: the dataframe row to derive the unique award key for
+            sess: database connection
 
         Returns:
             A unique award key for the row, generated based on record type and uppercased
@@ -274,7 +277,17 @@ def derive_fabs_unique_award_key(row):
     else:
         unique_award_key_list = ['ASST_NON', row['fain'] or '-none-']
 
-    unique_award_key_list.append(row['awarding_sub_tier_agency_c'] or '-none-')
+    sub_tier_agency = (
+        sess.query(
+            SubTierAgency.sub_tier_agency_code.label('sub_tier_code'),
+            case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label('agency_code')
+        )
+        .join(CGAC)
+        .join(FREC)
+        .filter(SubTierAgency.sub_tier_agency_code == row['awarding_sub_tier_agency_c'])
+        .first()
+    )
+    unique_award_key_list.append(sub_tier_agency.agency_code if sub_tier_agency else '-none-')
 
     return '_'.join(unique_award_key_list).upper()
 

@@ -1632,6 +1632,8 @@ class FABS(Base):
     award_description = Column(Text)
     awardee_or_recipient_legal = Column(Text)
     awardee_or_recipient_uniqu = Column(Text, index=True)
+    awarding_agency_code = Column(Text, index=True)
+    awarding_agency_name = Column(Text)
     awarding_office_code = Column(Text)
     awarding_sub_tier_agency_c = Column(Text, index=True)
     award_modification_amendme = Column(Text)

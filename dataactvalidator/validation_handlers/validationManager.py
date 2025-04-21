@@ -765,7 +765,7 @@ class ValidationManager:
                 chunk_df['afa_generated_unique'] = chunk_df.apply(
                     lambda x: derive_fabs_afa_generated_unique(x), axis=1)
                 chunk_df['unique_award_key'] = chunk_df.apply(
-                    lambda x: derive_fabs_unique_award_key(x), axis=1)
+                    lambda x: derive_fabs_unique_award_key(x, sess), axis=1)
             else:
                 # Updating DEFC QQQ specifically to be a single Q. Only check B and C because they're the only files
                 # with DEFC columns
