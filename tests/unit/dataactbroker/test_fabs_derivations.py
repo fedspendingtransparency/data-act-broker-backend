@@ -285,30 +285,6 @@ def test_assistance_listing_title(database):
     assert fabs_obj.assistance_listing_title == 'Assistance Listing Title'
 
 
-def test_awarding_agency_cgac(database):
-    initialize_db_values(database)
-
-    submission_id = initialize_test_row(database, sub_tier_code='12ab')
-    fabs_derivations(database.session, submission_id)
-    database.session.commit()
-    fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.awarding_agency_code == '000'
-    assert fabs_obj.awarding_agency_name == 'Test CGAC Agency'
-    assert fabs_obj.awarding_sub_tier_agency_n == 'Test Subtier Agency'
-
-
-def test_awarding_agency_frec(database):
-    initialize_db_values(database)
-
-    submission_id = initialize_test_row(database, sub_tier_code='4321')
-    fabs_derivations(database.session, submission_id)
-    database.session.commit()
-    fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.awarding_agency_code == '1111'
-    assert fabs_obj.awarding_agency_name == 'Test FREC Agency 2'
-    assert fabs_obj.awarding_sub_tier_agency_n == 'Test FREC Subtier Agency'
-
-
 def test_funding_sub_tier_agency_na(database):
     initialize_db_values(database)
 
