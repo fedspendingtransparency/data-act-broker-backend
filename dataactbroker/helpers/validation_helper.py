@@ -287,7 +287,7 @@ def derive_fabs_unique_award_key(df, sub_tier_agency_df):
         .mask(merged_df['record_type'] != '1', merged_df['fain'])
     )
     third = merged_df['agency_code']
-    result =  pd.DataFrame([first, second, third]).fillna('-NONE-').astype(str).agg('_'.join).str.upper()
+    result = pd.DataFrame([first, second, third]).fillna('-NONE-').astype(str).agg('_'.join).str.upper()
     return result
 
 
