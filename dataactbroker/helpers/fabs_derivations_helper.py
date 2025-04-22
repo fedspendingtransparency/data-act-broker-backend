@@ -1252,8 +1252,6 @@ def fabs_derivations(sess, submission_id):
 
     derive_assistance_listing(sess, submission_id)
 
-    derive_awarding_agency_data(sess, submission_id)
-
     derive_funding_agency_data(sess, submission_id)
 
     derive_ppop_state(sess, submission_id)
