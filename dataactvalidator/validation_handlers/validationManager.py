@@ -900,7 +900,8 @@ class ValidationManager:
                 'status': 'end'
             })
 
-    def retrieve_sub_tier_agencies(self, chunk_df, sess):
+    @staticmethod
+    def retrieve_sub_tier_agencies(chunk_df, sess):
         return pd.read_sql(
             sess.query(
                 SubTierAgency.sub_tier_agency_code,
