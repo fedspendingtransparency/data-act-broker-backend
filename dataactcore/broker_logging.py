@@ -81,7 +81,7 @@ def configure_logging(service_name='broker'):
 
     if CONFIG_BROKER['local']:
         # if local, print the traces to the console
-        trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+        trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
     else:
         # Set up the OTLP exporter
         # Check out https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
