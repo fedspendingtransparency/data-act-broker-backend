@@ -271,11 +271,11 @@ def derive_fabs_unique_award_key(df, sub_tier_agency_df):
             A pandas.Series of unique award keys, generated based on record type and uppercased
     """
     merged_df = df.merge(
-            sub_tier_agency_df,
-            how='left',
-            left_on='awarding_sub_tier_agency_c',
-            right_on='sub_tier_agency_code',
-        )
+        sub_tier_agency_df,
+        how='left',
+        left_on='awarding_sub_tier_agency_c',
+        right_on='sub_tier_agency_code',
+    )
     first = (
         merged_df['record_type']
         .mask(merged_df['record_type'] == '1', 'ASST_AGG')
