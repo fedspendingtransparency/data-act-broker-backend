@@ -256,29 +256,16 @@ def test_derive_fabs_unique_award_key(database):
     ]
     sess.add_all(sub_tiers)
     sess.commit()
-    # Record type 1 - choose URI
-    row = {'awarding_sub_tier_agency_c': '0123',
-           'fain': 'FAIN',
-           'uri': 'URI',
-           'record_type': '1'}
-    assert validation_helper.derive_fabs_unique_award_key(row, sess) == 'ASST_AGG_URI_0001'
-    row = {'awarding_sub_tier_agency_c': None,
-           'fain': 'FAIN',
-           'uri': None,
-           'record_type': '1'}
-    assert validation_helper.derive_fabs_unique_award_key(row, sess) == 'ASST_AGG_-NONE-_-NONE-'
-
-    # Record type 2 - choose FAIN
-    row = {'awarding_sub_tier_agency_c': '0124',
-           'fain': 'FAIN',
-           'uri': 'URI',
-           'record_type': '2'}
-    assert validation_helper.derive_fabs_unique_award_key(row, sess) == 'ASST_NON_FAIN_0000'
-    row = {'awarding_sub_tier_agency_c': None,
-           'fain': None,
-           'uri': 'URI',
-           'record_type': '2'}
-    assert validation_helper.derive_fabs_unique_award_key(row, sess) == 'ASST_NON_-NONE-_-NONE-'
+    df = pd.DataFrame({
+        'awarding_sub_tier_agency_c': ['0123', None, '0124', None],
+        'fain': ['FAIN', 'FAIN', 'FAIN', None],
+        'uri': ['URI', None, 'URI', 'URI'],
+        'record_type': ['1', '1', '2', '2']
+    })
+    sub_tier_agencies = ValidationManager().retrieve_sub_tier_agencies(df, sess)
+    result = validation_helper.derive_fabs_unique_award_key(df, sub_tier_agencies)
+    expected = ['ASST_AGG_URI_0001', 'ASST_AGG_-NONE-_-NONE-', 'ASST_NON_FAIN_0000', 'ASST_NON_-NONE-_-NONE-']
+    assert result.to_list() == expected
 
 
 def test_apply_label():

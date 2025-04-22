@@ -5,9 +5,7 @@ import csv
 from decimal import Decimal, DecimalException
 from datetime import datetime
 from pandas import isnull
-from sqlalchemy import case
 
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT, FILE_TYPE_DICT_ID
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -262,34 +260,35 @@ def derive_fabs_afa_generated_unique(row):
            (row['award_modification_amendme'] or '-none-')
 
 
-def derive_fabs_unique_award_key(row, sess):
+def derive_fabs_unique_award_key(df, sub_tier_agency_df):
     """ Derives the unique award key for a row.
 
         Args:
-            row: the dataframe row to derive the unique award key for
-            sess: database connection
+            df: pandas.DataFrame to derive the unique award key for
+            sub_tier_agency_df: pandas.DataFrame mapping sub tier agency codes to agency codes
 
         Returns:
-            A unique award key for the row, generated based on record type and uppercased
+            A pandas.Series of unique award keys, generated based on record type and uppercased
     """
-    if str(row['record_type']) == '1':
-        unique_award_key_list = ['ASST_AGG', row['uri'] or '-none-']
-    else:
-        unique_award_key_list = ['ASST_NON', row['fain'] or '-none-']
-
-    sub_tier_agency = (
-        sess.query(
-            SubTierAgency.sub_tier_agency_code.label('sub_tier_code'),
-            case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label('agency_code')
+    merged_df = df.merge(
+            sub_tier_agency_df,
+            how='left',
+            left_on='awarding_sub_tier_agency_c',
+            right_on='sub_tier_agency_code',
         )
-        .join(CGAC)
-        .join(FREC)
-        .filter(SubTierAgency.sub_tier_agency_code == row['awarding_sub_tier_agency_c'])
-        .first()
+    first = (
+        merged_df['record_type']
+        .mask(merged_df['record_type'] == '1', 'ASST_AGG')
+        .mask(merged_df['record_type'] != '1', 'ASST_NON')
     )
-    unique_award_key_list.append(sub_tier_agency.agency_code if sub_tier_agency else '-none-')
-
-    return '_'.join(unique_award_key_list).upper()
+    second = (
+        merged_df['record_type']
+        .mask(merged_df['record_type'] == '1', merged_df['uri'])
+        .mask(merged_df['record_type'] != '1', merged_df['fain'])
+    )
+    third = merged_df['agency_code']
+    result =  pd.DataFrame([first, second, third]).fillna('-NONE-').astype(str).agg('_'.join).str.upper()
+    return result
 
 
 def apply_label(row, labels, is_fabs):
