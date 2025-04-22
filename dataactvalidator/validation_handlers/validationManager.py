@@ -771,8 +771,6 @@ class ValidationManager:
                     lambda x: derive_fabs_afa_generated_unique(x), axis=1)
                 sub_tier_agencies = self.retrieve_sub_tier_agencies(chunk_df, sess)
                 chunk_df['unique_award_key'] = derive_fabs_unique_award_key(chunk_df, sub_tier_agencies)
-
-
             else:
                 # Updating DEFC QQQ specifically to be a single Q. Only check B and C because they're the only files
                 # with DEFC columns
