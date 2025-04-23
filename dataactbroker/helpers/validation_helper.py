@@ -279,7 +279,7 @@ def derive_fabs_unique_award_key(df):
         .mask(df['record_type'] == '1', df['uri'])
         .mask(df['record_type'] != '1', df['fain'])
     )
-    third = df['agency_code']
+    third = df['awarding_agency_code']
     result = pd.DataFrame([first, second, third]).fillna('-NONE-').astype(str).agg('_'.join).str.upper()
     return result
 

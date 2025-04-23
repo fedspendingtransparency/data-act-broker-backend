@@ -906,8 +906,8 @@ class ValidationManager:
         return pd.read_sql(
             sess.query(
                 SubTierAgency.sub_tier_agency_code.label('awarding_sub_tier_agency_c'),
-                case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label('agency_code'),
-                case((SubTierAgency.is_frec, FREC.frec_name), else_=CGAC.cgac_name).label('agency_name'),
+                case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label('awarding_agency_code'),
+                case((SubTierAgency.is_frec, FREC.agency_name), else_=CGAC.agency_name).label('awarding_agency_name'),
                 SubTierAgency.sub_tier_agency_name.label('awarding_sub_tier_agency_n'),
             )
             .join(CGAC)
