@@ -72,6 +72,39 @@ def derive_assistance_listing(sess, submission_id):
                    'updated {}'.format(res.rowcount), submission_id, start_time)
 
 
+def derive_awarding_agency_data(sess, submission_id):
+    """ Deriving awarding sub tier agency name, awarding agency name, and awarding agency code
+        Args:
+            sess: the current DB session
+            submission_id: The ID of the submission derivations are being run for
+    """
+    start_time = datetime.now()
+    log_derivation('Beginning awarding agency data derivation', submission_id)
+    # Deriving awarding agency code/name and sub tier name
+    query = """
+        WITH agency_list AS
+            (SELECT (CASE WHEN sta.is_frec
+                    THEN frec.agency_name
+                    ELSE cgac.agency_name
+                    END) AS agency_name,
+                sta.sub_tier_agency_code AS sub_tier_code,
+                sta.sub_tier_agency_name AS sub_tier_name
+            FROM sub_tier_agency AS sta
+                INNER JOIN cgac
+                    ON cgac.cgac_id = sta.cgac_id
+                INNER JOIN frec
+                    ON frec.frec_id = sta.frec_id)
+        UPDATE tmp_fabs_{submission_id}
+        SET awarding_agency_name = agency_name,
+            awarding_sub_tier_agency_n = sub_tier_name
+        FROM agency_list
+        WHERE UPPER(awarding_sub_tier_agency_c) = sub_tier_code;
+    """
+    res = sess.execute(query.format(submission_id=submission_id))
+    log_derivation('Completed awarding agency data derivation, '
+                   'updated {}'.format(res.rowcount), submission_id, start_time)
+
+
 def derive_funding_agency_data(sess, submission_id):
     """ Deriving funding sub tier agency name, funding agency name, and funding agency code
 
@@ -1193,6 +1226,8 @@ def fabs_derivations(sess, submission_id):
     derive_total_funding_amount(sess, submission_id)
 
     derive_assistance_listing(sess, submission_id)
+
+    derive_awarding_agency_data(sess, submission_id)
 
     derive_funding_agency_data(sess, submission_id)
 
