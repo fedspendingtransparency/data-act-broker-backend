@@ -269,6 +269,7 @@ def test_retrieve_sub_tier_agencies(database):
     })
     pd.testing.assert_frame_equal(result, expected_df)
 
+
 def test_derive_fabs_unique_award_key(database):
     df = pd.DataFrame({
         'awarding_sub_tier_agency_c': ['0123', None, '0124', None],
