@@ -1636,6 +1636,7 @@ class FABS(Base):
     awarding_agency_name = Column(Text)
     awarding_office_code = Column(Text)
     awarding_sub_tier_agency_c = Column(Text, index=True)
+    awarding_sub_tier_agency_n = Column(Text)
     award_modification_amendme = Column(Text)
     business_funds_indicator = Column(Text)
     business_types = Column(Text)

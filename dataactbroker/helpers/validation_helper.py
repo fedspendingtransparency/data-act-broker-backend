@@ -260,33 +260,26 @@ def derive_fabs_afa_generated_unique(row):
            (row['award_modification_amendme'] or '-none-')
 
 
-def derive_fabs_unique_award_key(df, sub_tier_agency_df):
+def derive_fabs_unique_award_key(df):
     """ Derives the unique award key for a row.
 
         Args:
             df: pandas.DataFrame to derive the unique award key for
-            sub_tier_agency_df: pandas.DataFrame mapping sub tier agency codes to agency codes
 
         Returns:
             A pandas.Series of unique award keys, generated based on record type and uppercased
     """
-    merged_df = df.merge(
-        sub_tier_agency_df,
-        how='left',
-        left_on='awarding_sub_tier_agency_c',
-        right_on='sub_tier_agency_code',
-    )
     first = (
-        merged_df['record_type']
-        .mask(merged_df['record_type'] == '1', 'ASST_AGG')
-        .mask(merged_df['record_type'] != '1', 'ASST_NON')
+        df['record_type']
+        .mask(df['record_type'] == '1', 'ASST_AGG')
+        .mask(df['record_type'] != '1', 'ASST_NON')
     )
     second = (
-        merged_df['record_type']
-        .mask(merged_df['record_type'] == '1', merged_df['uri'])
-        .mask(merged_df['record_type'] != '1', merged_df['fain'])
+        df['record_type']
+        .mask(df['record_type'] == '1', df['uri'])
+        .mask(df['record_type'] != '1', df['fain'])
     )
-    third = merged_df['agency_code']
+    third = df['agency_code']
     result = pd.DataFrame([first, second, third]).fillna('-NONE-').astype(str).agg('_'.join).str.upper()
     return result
 
