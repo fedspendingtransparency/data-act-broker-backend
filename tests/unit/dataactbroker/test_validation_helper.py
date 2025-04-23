@@ -228,7 +228,7 @@ def test_derive_fabs_afa_generated_unique():
     assert validation_helper.derive_fabs_afa_generated_unique(row) == '-none-_-none-_-none-_-none-_-none-'
 
 
-def test_derive_fabs_unique_award_key(database):
+def test_retrieve_sub_tier_agencies(database):
     sess = database.session
     cgac = CGAC(cgac_code='0000', agency_name='Example Agency')
     sess.add(cgac)
@@ -260,10 +260,24 @@ def test_derive_fabs_unique_award_key(database):
         'awarding_sub_tier_agency_c': ['0123', None, '0124', None],
         'fain': ['FAIN', 'FAIN', 'FAIN', None],
         'uri': ['URI', None, 'URI', 'URI'],
-        'record_type': ['1', '1', '2', '2']
+        'record_type': ['1', '1', '2', '2'],
     })
-    sub_tier_agencies = ValidationManager().retrieve_sub_tier_agencies(df, sess)
-    result = validation_helper.derive_fabs_unique_award_key(df, sub_tier_agencies)
+    result = ValidationManager().retrieve_sub_tier_agencies(df, sess)
+    expected_df = pd.DataFrame({
+        'awarding_sub_tier_agency_c': ['0124', '0123'],
+        'awarding_agency_code': ['0000', '0001'],
+    })
+    pd.testing.assert_frame_equal(result, expected_df)
+
+def test_derive_fabs_unique_award_key(database):
+    df = pd.DataFrame({
+        'awarding_sub_tier_agency_c': ['0123', None, '0124', None],
+        'fain': ['FAIN', 'FAIN', 'FAIN', None],
+        'uri': ['URI', None, 'URI', 'URI'],
+        'record_type': ['1', '1', '2', '2'],
+        'awarding_agency_code': ['0001', None, '0000', None],
+    })
+    result = validation_helper.derive_fabs_unique_award_key(df)
     expected = ['ASST_AGG_URI_0001', 'ASST_AGG_-NONE-_-NONE-', 'ASST_NON_FAIN_0000', 'ASST_NON_-NONE-_-NONE-']
     assert result.to_list() == expected
 
