@@ -769,8 +769,8 @@ class ValidationManager:
                     lambda x: derive_fabs_awarding_sub_tier(x, office_list), axis=1)
                 chunk_df['afa_generated_unique'] = chunk_df.apply(
                     lambda x: derive_fabs_afa_generated_unique(x), axis=1)
-                sub_tier_agencies = self.retrieve_sub_tier_agencies(chunk_df, sess)
-                chunk_df = chunk_df.merge(sub_tier_agencies, how='left', on='awarding_sub_tier_agency_c')
+                agency_codes = self.retrieve_agency_codes(chunk_df, sess)
+                chunk_df = chunk_df.merge(agency_codes, how='left', on='awarding_sub_tier_agency_c')
                 chunk_df['unique_award_key'] = derive_fabs_unique_award_key(chunk_df)
             else:
                 # Updating DEFC QQQ specifically to be a single Q. Only check B and C because they're the only files
@@ -902,7 +902,7 @@ class ValidationManager:
             })
 
     @staticmethod
-    def retrieve_sub_tier_agencies(chunk_df, sess):
+    def retrieve_agency_codes(chunk_df, sess):
         return pd.read_sql(
             sess.query(
                 SubTierAgency.sub_tier_agency_code.label('awarding_sub_tier_agency_c'),
