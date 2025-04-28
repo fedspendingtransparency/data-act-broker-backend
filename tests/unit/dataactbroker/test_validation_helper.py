@@ -228,7 +228,7 @@ def test_derive_fabs_afa_generated_unique():
     assert validation_helper.derive_fabs_afa_generated_unique(row) == '-none-_-none-_-none-_-none-_-none-'
 
 
-def test_retrieve_sub_tier_agencies(database):
+def test_retrieve_agency_codes(database):
     sess = database.session
     cgac = CGAC(cgac_code='0000', agency_name='Example Agency')
     sess.add(cgac)
@@ -262,7 +262,7 @@ def test_retrieve_sub_tier_agencies(database):
         'uri': ['URI', None, 'URI', 'URI'],
         'record_type': ['1', '1', '2', '2'],
     })
-    result = ValidationManager().retrieve_sub_tier_agencies(df, sess)
+    result = ValidationManager().retrieve_agency_codes(df, sess)
     expected_df = pd.DataFrame({
         'awarding_sub_tier_agency_c': ['0124', '0123'],
         'awarding_agency_code': ['0000', '0001'],
