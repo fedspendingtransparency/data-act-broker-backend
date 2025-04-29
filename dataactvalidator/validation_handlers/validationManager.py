@@ -908,8 +908,8 @@ class ValidationManager:
                 SubTierAgency.sub_tier_agency_code.label('awarding_sub_tier_agency_c'),
                 case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label('awarding_agency_code')
             )
-            .join(CGAC, SubTierAgency.cgac_id==CGAC.cgac_id)
-            .join(FREC, SubTierAgency.frec_id==FREC.frec_id)
+            .join(CGAC, SubTierAgency.cgac_id == CGAC.cgac_id)
+            .join(FREC, SubTierAgency.frec_id == FREC.frec_id)
             .filter(SubTierAgency.sub_tier_agency_code.in_(chunk_df['awarding_sub_tier_agency_c']))
             .statement,
             sess.connection()

@@ -264,10 +264,13 @@ def test_retrieve_agency_codes(database):
     })
     result = ValidationManager().retrieve_agency_codes(df, sess)
     expected_df = pd.DataFrame({
-        'awarding_sub_tier_agency_c': ['0124', '0123'],
-        'awarding_agency_code': ['0000', '0001'],
+        'awarding_sub_tier_agency_c': ['0123', '0124'],
+        'awarding_agency_code': ['0001', '0000'],
     })
-    pd.testing.assert_frame_equal(result, expected_df)
+    pd.testing.assert_frame_equal(
+        result.sort_values(by='awarding_sub_tier_agency_c'),
+        expected_df.sort_values(by='awarding_sub_tier_agency_c'),
+    )
 
 
 def test_derive_fabs_unique_award_key(database):
