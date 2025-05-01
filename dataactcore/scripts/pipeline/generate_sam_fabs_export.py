@@ -110,7 +110,7 @@ def get_award_updates_query(start_date=None, end_date=None):
                     high_comp_officer5_amount,
                     ROW_NUMBER() OVER (PARTITION BY
                         UPPER(afa_generated_unique)
-                        ORDER BY updated_at DESC
+                        ORDER BY updated_at, published_fabs_id DESC
                     ) AS row_num
                 FROM published_fabs
                 WHERE {query_filter}) duplicates
