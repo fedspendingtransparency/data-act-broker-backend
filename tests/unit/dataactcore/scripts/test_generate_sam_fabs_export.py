@@ -47,7 +47,8 @@ def test_ignore_duplicates(database):
     pf2 = PublishedFABSFactory(published_fabs_id=2, updated_at=now + timedelta(minutes=1),
                                afa_generated_unique='activerecord', is_active=False, award_description='newer entry')
     pf3 = PublishedFABSFactory(published_fabs_id=3, updated_at=now + timedelta(minutes=1),
-                               afa_generated_unique='activerecord', is_active=True, award_description='even newer entry')
+                               afa_generated_unique='activerecord', is_active=True,
+                               award_description='even newer entry')
     sess.add_all([pf1, pf2, pf3])
     sess.commit()
 
