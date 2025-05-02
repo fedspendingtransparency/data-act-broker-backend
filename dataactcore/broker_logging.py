@@ -4,7 +4,7 @@ import os
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.urllib import URLLibInstrumentor
@@ -81,7 +81,7 @@ def configure_logging(service_name='broker'):
 
     if CONFIG_BROKER['local']:
         # if local, print the traces to the console
-        trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+        trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
     else:
         # Set up the OTLP exporter
         # Check out https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
@@ -89,7 +89,7 @@ def configure_logging(service_name='broker'):
         otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
         if otel_endpoint:
             exporter = OTLPSpanExporter(endpoint=otel_endpoint)
-            trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
+            trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(exporter))
 
     LoggingInstrumentor(logging_format="%(asctime)s %(levelname)s:%(name)s:%(message)s")
     LoggingInstrumentor().instrument(tracer_provider=trace.get_tracer_provider(), set_logging_format=False)
