@@ -41,18 +41,22 @@ def test_status(database):
 
 def test_ignore_duplicates(database):
     sess = database.session
-    pf1 = PublishedFABSFactory(updated_at=datetime.now() - timedelta(hours=1), afa_generated_unique='activerecord',
-                               is_active=False, award_description='older entry')
-    pf2 = PublishedFABSFactory(updated_at=datetime.now() + timedelta(minutes=1), afa_generated_unique='activerecord',
-                               is_active=True, award_description='newer entry')
-    sess.add_all([pf1, pf2])
+    now = datetime.now()
+    pf1 = PublishedFABSFactory(published_fabs_id=1, updated_at=now - timedelta(hours=1),
+                               afa_generated_unique='activerecord', is_active=False, award_description='older entry')
+    pf2 = PublishedFABSFactory(published_fabs_id=2, updated_at=now + timedelta(minutes=1),
+                               afa_generated_unique='activerecord', is_active=False, award_description='newer entry')
+    pf3 = PublishedFABSFactory(published_fabs_id=3, updated_at=now + timedelta(minutes=1),
+                               afa_generated_unique='activerecord', is_active=True,
+                               award_description='even newer entry')
+    sess.add_all([pf1, pf2, pf3])
     sess.commit()
 
     results = sess.execute(get_award_updates_query(datetime.now().strftime('%m/%d/%y')))
     result_list = results.all()
 
     assert len(result_list) == 1
-    assert result_list[0].project_description == 'newer entry'
+    assert result_list[0].project_description == 'even newer entry'
 
 
 def test_grouping(database):
