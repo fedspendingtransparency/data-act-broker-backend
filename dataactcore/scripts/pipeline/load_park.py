@@ -94,6 +94,7 @@ def export_public_park(raw_data):
         'AID': 'AGENCY_IDENTIFIER_CODE',
         'MAIN_ACCT': 'MAIN_ACCOUNT_CODE',
         'SUB_ACCT': 'SUB_ACCOUNT_CODE',
+        'COMPOUND_KEY': 'COMPOUND_KEY',
         'PARK': 'PARK_CODE',
         'PARK_NAME': 'PARK_NAME',
         'RECORD_UPDATE_TS': 'RECORD_UPDATE_TIMESTAMP',
