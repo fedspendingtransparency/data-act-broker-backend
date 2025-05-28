@@ -4,7 +4,8 @@ from sqlalchemy import Column, DateTime, event
 
 
 class TimeStampMixin(object):
-    """ Timestamping mixin """
+    """Timestamping mixin"""
+
     created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
     updated_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
 
@@ -15,7 +16,7 @@ class TimeStampMixin(object):
 
     @classmethod
     def __declare_last__(cls):
-        event.listen(cls, 'before_update', cls._updated_at)
+        event.listen(cls, "before_update", cls._updated_at)
 
 
 class TimeStampBase(TimeStampMixin):

@@ -27,48 +27,49 @@ logger = logging.getLogger(__name__)
 
 
 class AccountHandler:
-    """ This class contains the login / logout  functions
+    """This class contains the login / logout  functions
 
-        Attributes:
-            is_local: A boolean indicating if the application is being run locally or not
-            request: A Flask object containing the data from the request
-            bcrypt: A Bcrypt object associated with the app
+    Attributes:
+        is_local: A boolean indicating if the application is being run locally or not
+        request: A Flask object containing the data from the request
+        bcrypt: A Bcrypt object associated with the app
 
-        Constants:
-            FRONT_END: A string indicating the URL of the front end of the app
+    Constants:
+        FRONT_END: A string indicating the URL of the front end of the app
     """
+
     # Handles login process, compares username and password provided
     FRONT_END = ""
     # Instance fields include request, response, logFlag, and logFile
 
     def __init__(self, request, bcrypt=None, is_local=False):
-        """ Creates the Login Handler
+        """Creates the Login Handler
 
-            Args:
-                request: Flask request object
-                bcrypt: Bcrypt object associated with app
+        Args:
+            request: Flask request object
+            bcrypt: Bcrypt object associated with app
         """
         self.is_local = is_local
         self.request = request
         self.bcrypt = bcrypt
 
     def login(self, session):
-        """ Logs a user in if their password matches using local data
+        """Logs a user in if their password matches using local data
 
-            Args:
-                session: the Session object from flask
+        Args:
+            session: the Session object from flask
 
-            Returns:
-                A JsonResponse containing the user information or details on which error occurred, such as whether a
-                type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
-                different, unexpected error occurred.
+        Returns:
+            A JsonResponse containing the user information or details on which error occurred, such as whether a
+            type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
+            different, unexpected error occurred.
         """
         try:
             sess = GlobalDB.db().session
             safe_dictionary = RequestDictionary(self.request)
 
-            username = safe_dictionary.get_value('username')
-            password = safe_dictionary.get_value('password')
+            username = safe_dictionary.get_value("username")
+            password = safe_dictionary.get_value("password")
 
             try:
                 user = sess.query(User).filter(func.lower(User.email) == func.lower(username)).one()
@@ -100,25 +101,25 @@ class AccountHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def proxy_login(self, session):
-        """ Logs a user via the API proxy
+        """Logs a user via the API proxy
 
-            Args:
-                session: the Session object from flask
+        Args:
+            session: the Session object from flask
 
-            Returns:
-                A JsonResponse containing the user information or details on which error occurred, such as whether a
-                type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
-                different, unexpected error occurred.
+        Returns:
+            A JsonResponse containing the user information or details on which error occurred, such as whether a
+            type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
+            different, unexpected error occurred.
         """
         try:
             sess = GlobalDB.db().session
             safe_dictionary = RequestDictionary(self.request)
 
-            email = safe_dictionary.get_value('email')
-            roles = safe_dictionary.get_value('roles')
-            token = safe_dictionary.get_value('token')
+            email = safe_dictionary.get_value("email")
+            roles = safe_dictionary.get_value("roles")
+            token = safe_dictionary.get_value("token")
 
-            if token != CONFIG_BROKER['api_proxy_token']:
+            if token != CONFIG_BROKER["api_proxy_token"]:
                 raise ValueError("Invalid token")
 
             user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
@@ -128,8 +129,8 @@ class AccountHandler:
             # role string format
             #   - 'role1' or 'role:role1' for a singular role
             #   - '[role1, role2]' or '[role:role1, role:role2]' for multiple roles
-            role_list_str = roles[1:-1] if roles[0] == '[' else roles
-            role_list = [role[5:] if role.startswith('role:') else role for role in role_list_str.split(', ')]
+            role_list_str = roles[1:-1] if roles[0] == "[" else roles
+            role_list = [role[5:] if role.startswith("role:") else role for role in role_list_str.split(", ")]
             set_caia_perms(user, role_list)
 
             try:
@@ -153,15 +154,15 @@ class AccountHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def caia_login(self, session):
-        """ Logs a user in if their CAIA validation succeeds
+        """Logs a user in if their CAIA validation succeeds
 
-            Args:
-                session: Session object from flask
+        Args:
+            session: Session object from flask
 
-            Returns:
-                A JsonResponse containing the user information or details on which error occurred, such as whether a
-                type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
-                different, unexpected error occurred.
+        Returns:
+            A JsonResponse containing the user information or details on which error occurred, such as whether a
+            type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
+            different, unexpected error occurred.
         """
         try:
             safe_dictionary = RequestDictionary(self.request)
@@ -172,16 +173,18 @@ class AccountHandler:
             # Get the access tokens and user data from the code
             caia_tokens = get_caia_tokens(code, redirect_uri)
 
-            if not caia_tokens.get('access_token', ''):
-                raise ValueError("The CAIA endpoint was unable to locate your session "
-                                 "using the code/redirect_uri combination you provided.")
+            if not caia_tokens.get("access_token", ""):
+                raise ValueError(
+                    "The CAIA endpoint was unable to locate your session "
+                    "using the code/redirect_uri combination you provided."
+                )
 
-            user_info = get_caia_user_dict(caia_tokens['access_token'])
+            user_info = get_caia_user_dict(caia_tokens["access_token"])
             # No need to handle the access/refresh tokens and revoke as we've already gotten everything we need.
-            revoke_caia_access(caia_tokens['refresh_token'])
+            revoke_caia_access(caia_tokens["refresh_token"])
 
             # Grab the email and list of groups from CAIA's response
-            email = user_info['email']
+            email = user_info["email"]
 
             try:
                 sess = GlobalDB.db().session
@@ -193,16 +196,16 @@ class AccountHandler:
                     user = User()
                     user.email = email
 
-                first_name = user_info['given_name']
-                middle_name = user_info.get('middle_name')
-                last_name = user_info['family_name']
+                first_name = user_info["given_name"]
+                middle_name = user_info.get("middle_name")
+                last_name = user_info["family_name"]
                 set_user_name(user, first_name, middle_name, last_name)
 
                 # role string format
                 #   - 'role1' or 'role:role1' for a singular role
                 #   - '[role1, role2]' or '[role:role1, role:role2]' for multiple roles
-                role_list_str = user_info['role'][1:-1] if user_info['role'][0] == '[' else user_info['role']
-                role_list = [role[5:] if role.startswith('role:') else role for role in role_list_str.split(', ')]
+                role_list_str = user_info["role"][1:-1] if user_info["role"][0] == "[" else user_info["role"]
+                role_list = [role[5:] if role.startswith("role:") else role for role in role_list_str.split(", ")]
                 set_caia_perms(user, role_list)
 
                 sess.add(user)
@@ -228,53 +231,53 @@ class AccountHandler:
 
     @staticmethod
     def create_session_and_response(session, user, user_details=True):
-        """ Create a session.
+        """Create a session.
 
-            Args:
-                session: Session object from flask
-                user: Users object
-                user_details: whether to include the user details in the response
+        Args:
+            session: Session object from flask
+            user: Users object
+            user_details: whether to include the user details in the response
 
-            Returns:
-                JsonResponse containing the JSON for the user
+        Returns:
+            JsonResponse containing the JSON for the user
         """
         LoginSession.login(session, user.user_id)
-        data = json_for_user(user, session['sid'])
+        data = json_for_user(user, session["sid"])
         if not user_details:
-            data = {k: v for k, v in data.items() if k in ['session_id']}
-        data['message'] = 'Login successful'
+            data = {k: v for k, v in data.items() if k in ["session_id"]}
+        data["message"] = "Login successful"
         return JsonResponse.create(StatusCode.OK, data)
 
     @staticmethod
     def set_skip_guide(skip_guide):
-        """ Set current user's skip guide parameter
+        """Set current user's skip guide parameter
 
-            Args:
-                skip_guide: boolean indicating whether the skip guide should be visible or not for this user
+        Args:
+            skip_guide: boolean indicating whether the skip guide should be visible or not for this user
 
-            Returns:
-                JsonResponse object containing results of setting the skip guide or details of the error that occurred.
-                Possible errors include the request not containing a skip_guide parameter or it not being a boolean
-                value
+        Returns:
+            JsonResponse object containing results of setting the skip guide or details of the error that occurred.
+            Possible errors include the request not containing a skip_guide parameter or it not being a boolean
+            value
         """
         sess = GlobalDB.db().session
         g.user.skip_guide = skip_guide
         sess.commit()
-        return JsonResponse.create(StatusCode.OK, {'message': 'skip_guide set successfully', 'skip_guide': skip_guide})
+        return JsonResponse.create(StatusCode.OK, {"message": "skip_guide set successfully", "skip_guide": skip_guide})
 
     @staticmethod
     def email_users(submission, system_email, template_type, user_ids):
-        """ Send email notification to list of users
+        """Send email notification to list of users
 
-            Args:
-                submission: the submission to send the email about
-                system_email: the address of the system to send the email from
-                template_type: the template type of the email to send
-                user_ids: A list of user IDs denoting who to send the email to
+        Args:
+            submission: the submission to send the email about
+            system_email: the address of the system to send the email from
+            template_type: the template type of the email to send
+            user_ids: A list of user IDs denoting who to send the email to
 
-            Returns:
-                A JsonReponse containing a message that the email sent successfully or the details of the missing
-                or incorrect parameters
+        Returns:
+            A JsonReponse containing a message that the email sent successfully or the details of the missing
+            or incorrect parameters
         """
         sess = GlobalDB.db().session
 
@@ -284,14 +287,16 @@ class AccountHandler:
             agency = sess.query(FREC).filter_by(frec_code=submission.frec_code).first()
 
         if not agency:
-            return JsonResponse.error(ValueError("The requested submission is not aligned to a valid CGAC or FREC "
-                                                 "agency"), StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(
+                ValueError("The requested submission is not aligned to a valid CGAC or FREC " "agency"),
+                StatusCode.CLIENT_ERROR,
+            )
 
         # Check if email template type is valid
         get_email_template(template_type)
 
-        link = "".join([AccountHandler.FRONT_END, '#/submission/', str(submission.submission_id)])
-        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_AGENCY]': agency.agency_name, '[REV_URL]': link}
+        link = "".join([AccountHandler.FRONT_END, "#/submission/", str(submission.submission_id)])
+        email_template = {"[REV_USER_NAME]": g.user.name, "[REV_AGENCY]": agency.agency_name, "[REV_URL]": link}
 
         users = []
         for user_id in user_ids:
@@ -306,24 +311,21 @@ class AccountHandler:
 
 
 def perms_to_affiliations(perms, user_id):
-    """ Convert a list of perms from CAIA to a list of UserAffiliations. Filter out and log any malformed perms
+    """Convert a list of perms from CAIA to a list of UserAffiliations. Filter out and log any malformed perms
 
-        Args:
-            perms: list of permissions (as lists [code, perm]) for the user
-            user_id: the ID of the user
-            service_account_flag: flag to indicate a service account
-        Yields:
-            UserAffiliations based on the permissions provided
+    Args:
+        perms: list of permissions (as lists [code, perm]) for the user
+        user_id: the ID of the user
+        service_account_flag: flag to indicate a service account
+    Yields:
+        UserAffiliations based on the permissions provided
     """
     sess = GlobalDB.db().session
     available_cgacs = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
     available_frecs = {frec.frec_code: frec for frec in sess.query(FREC)}
-    log_data = {
-        'message_type': 'BrokerWarning',
-        'user_id': user_id
-    }
+    log_data = {"message_type": "BrokerWarning", "user_id": user_id}
     for code, perm_level in perms:
-        log_data['message'] = 'User with ID {} has malformed permission: {}-{}'.format(user_id, code, perm_level)
+        log_data["message"] = "User with ID {} has malformed permission: {}-{}".format(user_id, code, perm_level)
 
         cgac_code, frec_code = None, None
         if len(code) == 4:
@@ -342,43 +344,39 @@ def perms_to_affiliations(perms, user_id):
 
         perm_level = perm_level.lower()
 
-        if perm_level not in 'rwsef':
+        if perm_level not in "rwsef":
             logger.warning(log_data)
             continue
 
         for permission in perm_level:
             if frec_code:
                 yield UserAffiliation(
-                    cgac=available_cgacs[cgac_code],
-                    frec=None,
-                    permission_type_id=PERMISSION_SHORT_DICT['r']
+                    cgac=available_cgacs[cgac_code], frec=None, permission_type_id=PERMISSION_SHORT_DICT["r"]
                 )
                 yield UserAffiliation(
-                    cgac=None,
-                    frec=available_frecs[frec_code],
-                    permission_type_id=PERMISSION_SHORT_DICT[permission]
+                    cgac=None, frec=available_frecs[frec_code], permission_type_id=PERMISSION_SHORT_DICT[permission]
                 )
             else:
                 yield UserAffiliation(
                     cgac=available_cgacs[cgac_code] if cgac_code else None,
                     frec=None,
-                    permission_type_id=PERMISSION_SHORT_DICT[permission]
+                    permission_type_id=PERMISSION_SHORT_DICT[permission],
                 )
 
 
 def best_affiliation(affiliations):
-    """ If a user has multiple permissions for a single agency, select the best
+    """If a user has multiple permissions for a single agency, select the best
 
-        Args:
-            affiliations: list of UserAffiliations a user has
+    Args:
+        affiliations: list of UserAffiliations a user has
 
-        Returns:
-            List of all affiliations the user has (with duplicates, highest of each type/agency provided)
+    Returns:
+        List of all affiliations the user has (with duplicates, highest of each type/agency provided)
     """
     dabs_dict, fabs_dict = {}, {}
 
     # Sort all affiliations from lowest to highest permission
-    sorted_affiliations = sorted(list(affiliations), key=attrgetter('permission_type_id'))
+    sorted_affiliations = sorted(list(affiliations), key=attrgetter("permission_type_id"))
 
     for affiliation in sorted_affiliations:
         # Overwrite low permissions with high permissions; keep DABS and FABS separate so FABS doesn't overwrite DABS
@@ -392,48 +390,49 @@ def best_affiliation(affiliations):
 
 
 def set_user_name(user, first_name, middle_name, last_name):
-    """ Update the name for the user based on the CAIA attributes.
+    """Update the name for the user based on the CAIA attributes.
 
-        Args:
-            user: the User object
+    Args:
+        user: the User object
     """
     # Check for None first so the condition can short-circuit without
     # having to worry about calling strip() on a None object
-    if middle_name is None or middle_name.strip() == '':
+    if middle_name is None or middle_name.strip() == "":
         user.name = first_name + " " + last_name
     else:
         user.name = first_name + " " + middle_name[0] + ". " + last_name
 
 
 def set_caia_perms(user, roles):
-    """ Convert the user group list present on CAIA into a list of UserAffiliations and/or website_admin status.
+    """Convert the user group list present on CAIA into a list of UserAffiliations and/or website_admin status.
 
-            Permissions are encoded as a comma-separated list of:
-            CGAC-{cgac-code}-{one-of-R-W-S-E-F}
-            FREC-{frec_code}-{one-of-R-W-S-E-F}
-            AppApprover-Data_Act_Broker, AppOwner-Data_Act_Broker-CGAC-{cgac_code},
-                and/or AppOwner-Data_Act_Broker-FREC-{frec_code} for agency admins
-            or
-            "admin" to indicate website_admin
+    Permissions are encoded as a comma-separated list of:
+    CGAC-{cgac-code}-{one-of-R-W-S-E-F}
+    FREC-{frec_code}-{one-of-R-W-S-E-F}
+    AppApprover-Data_Act_Broker, AppOwner-Data_Act_Broker-CGAC-{cgac_code},
+        and/or AppOwner-Data_Act_Broker-FREC-{frec_code} for agency admins
+    or
+    "admin" to indicate website_admin
 
-            Args:
-                user: the User object
-                roles: list of all CAIA roles the user has
-        """
-    user.website_admin = ("admin" in roles)
-    perms = [tuple(role.split('-')[1:]) for role in roles
-             if re.match(r'^(CGAC|FREC)-[A-Z\d]{3,4}-[RWSEF]$', role.upper())]
+    Args:
+        user: the User object
+        roles: list of all CAIA roles the user has
+    """
+    user.website_admin = "admin" in roles
+    perms = [
+        tuple(role.split("-")[1:]) for role in roles if re.match(r"^(CGAC|FREC)-[A-Z\d]{3,4}-[RWSEF]$", role.upper())
+    ]
     user.affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id)) if perms else []
 
 
 def json_for_user(user, session_id):
-    """ Convert the provided user to a dictionary (for JSON)
+    """Convert the provided user to a dictionary (for JSON)
 
-        Args:
-            user: the User object
+    Args:
+        user: the User object
 
-        Returns:
-            An object containing user details
+    Returns:
+        An object containing user details
     """
     return {
         "user_id": user.user_id,
@@ -441,33 +440,30 @@ def json_for_user(user, session_id):
         "title": user.title,
         "skip_guide": user.skip_guide,
         "website_admin": user.website_admin,
-        "affiliations": [{"agency_name": affil.cgac.agency_name, "permission": affil.permission_type_name}
-                         if affil.cgac else
-                         {"agency_name": affil.frec.agency_name, "permission": affil.permission_type_name}
-                         for affil in user.affiliations],
-        "session_id": session_id
+        "affiliations": [
+            (
+                {"agency_name": affil.cgac.agency_name, "permission": affil.permission_type_name}
+                if affil.cgac
+                else {"agency_name": affil.frec.agency_name, "permission": affil.permission_type_name}
+            )
+            for affil in user.affiliations
+        ],
+        "session_id": session_id,
     }
 
 
 def get_caia_tokens(code, redirect_uri):
-    """ Verify the authorization code to get the logged in user's various tokens
+    """Verify the authorization code to get the logged in user's various tokens
 
-        Args:
-            code: the authorization code to verify with CAIA
-            redirect_uri: the redirect_uri associated with the code for further verification
+    Args:
+        code: the authorization code to verify with CAIA
+        redirect_uri: the redirect_uri associated with the code for further verification
 
-        Returns:
-            A dictionary of the response from CAIA containing tokens
+    Returns:
+        A dictionary of the response from CAIA containing tokens
     """
-    params = {
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': redirect_uri
-    }
-    data = {
-        'client_id': CONFIG_BROKER['caia']['client_id'],
-        'client_secret': CONFIG_BROKER['caia']['client_secret']
-    }
+    params = {"grant_type": "authorization_code", "code": code, "redirect_uri": redirect_uri}
+    data = {"client_id": CONFIG_BROKER["caia"]["client_id"], "client_secret": CONFIG_BROKER["caia"]["client_secret"]}
     caia_resp = requests.post(f"{CONFIG_BROKER['caia']['url_root']}/as/token.oauth2", params=params, data=data)
     caia_resp.raise_for_status()
 
@@ -475,24 +471,17 @@ def get_caia_tokens(code, redirect_uri):
 
 
 def refresh_tokens(refresh_token, redirect_uri):
-    """ Refresh the tokens to keep the CAIA session going. Only use when we need consistent access.
+    """Refresh the tokens to keep the CAIA session going. Only use when we need consistent access.
 
-        Args:
-            refresh_token: the authorization code to verify with CAIA
-            redirect_uri: the redirect_uri associated with the code for further verification
+    Args:
+        refresh_token: the authorization code to verify with CAIA
+        redirect_uri: the redirect_uri associated with the code for further verification
 
-        Returns:
-            A dictionary of the response from CAIA containing tokens
+    Returns:
+        A dictionary of the response from CAIA containing tokens
     """
-    params = {
-        'grant_type': 'refresh_token',
-        'refresh_token': refresh_token,
-        'redirect_uri': redirect_uri
-    }
-    data = {
-        'client_id': CONFIG_BROKER['caia']['client_id'],
-        'client_secret': CONFIG_BROKER['caia']['client_secret']
-    }
+    params = {"grant_type": "refresh_token", "refresh_token": refresh_token, "redirect_uri": redirect_uri}
+    data = {"client_id": CONFIG_BROKER["caia"]["client_id"], "client_secret": CONFIG_BROKER["caia"]["client_secret"]}
     caia_resp = requests.post(f"{CONFIG_BROKER['caia']['url_root']}/as/token.oauth2", params=params, data=data)
     caia_resp.raise_for_status()
 
@@ -500,13 +489,13 @@ def refresh_tokens(refresh_token, redirect_uri):
 
 
 def get_caia_user_dict(accces_token):
-    """ Get the result from CAIA's serviceValidate functionality
+    """Get the result from CAIA's serviceValidate functionality
 
-        Args:
-            accces_token: the access token of the logged in user
+    Args:
+        accces_token: the access token of the logged in user
 
-        Returns:
-            A dictionary of the response from CAIA containing the logged in user info
+    Returns:
+        A dictionary of the response from CAIA containing the logged in user info
     """
     headers = {"Authorization": f"Bearer {accces_token}"}
     caia_resp = requests.get(f"{CONFIG_BROKER['caia']['url_root']}/idp/userinfo.openid", headers=headers)
@@ -516,30 +505,30 @@ def get_caia_user_dict(accces_token):
 
 
 def revoke_caia_access(refresh_token):
-    """ Simply revokes access to the given CAIA refresh token. We are revoking the refresh token (and not the access
-        token) to revoke the entire grant.
+    """Simply revokes access to the given CAIA refresh token. We are revoking the refresh token (and not the access
+    token) to revoke the entire grant.
 
-        Args:
-            refresh_token: the refresh token of the logged in user
+    Args:
+        refresh_token: the refresh token of the logged in user
     """
     data = {
-        'token': refresh_token,
-        'client_id': CONFIG_BROKER['caia']['client_id'],
-        'client_secret': CONFIG_BROKER['caia']['client_secret']
+        "token": refresh_token,
+        "client_id": CONFIG_BROKER["caia"]["client_id"],
+        "client_secret": CONFIG_BROKER["caia"]["client_secret"],
     }
     caia_resp = requests.post(f"{CONFIG_BROKER['caia']['url_root']}/as/revoke_token.oauth2", data=data)
     caia_resp.raise_for_status()
 
 
 def logout(session):
-    """ This function removes the session from the session table if currently logged in, and then returns a success
-        message
+    """This function removes the session from the session table if currently logged in, and then returns a success
+    message
 
-        Args:
-            session: the Session object
+    Args:
+        session: the Session object
 
-        Returns:
-            a JsonResponse that the logout was successful
+    Returns:
+        a JsonResponse that the logout was successful
     """
     # Call session handler
     LoginSession.logout(session)
@@ -547,10 +536,10 @@ def logout(session):
 
 
 def list_user_emails():
-    """ List user names and emails
+    """List user names and emails
 
-        Returns:
-            A JsonResponse that contains a list of user information (ID, name, and email)
+    Returns:
+        A JsonResponse that contains a list of user information (ID, name, and email)
     """
     sess = GlobalDB.db().session
     users = sess.query(User)
@@ -564,19 +553,18 @@ def list_user_emails():
 
 
 def list_submission_users(is_fabs):
-    """ List user IDs and names that have submissions that the requesting user can see.
+    """List user IDs and names that have submissions that the requesting user can see.
 
-        Arguments:
-            is_fabs: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+    Arguments:
+        is_fabs: boolean indicating whether it is a DABS or FABS submission (True if FABS)
 
-        Returns:
-            A JsonResponse containing a list of users that have submissions that the requesting user can see
+    Returns:
+        A JsonResponse containing a list of users that have submissions that the requesting user can see
     """
 
     sess = GlobalDB.db().session
     # subquery to create the EXISTS portion of the query
-    exists_query = sess.query(Submission).filter(Submission.user_id == User.user_id,
-                                                 Submission.is_fabs.is_(is_fabs))
+    exists_query = sess.query(Submission).filter(Submission.user_id == User.user_id, Submission.is_fabs.is_(is_fabs))
 
     # if user is not an admin, we have to adjust the exists query to limit submissions
     if not g.user.website_admin:
@@ -611,6 +599,6 @@ def list_submission_users(is_fabs):
     # Create an array containing relevant users in a readable format
     user_list = []
     for user in user_results:
-        user_list.append({'user_id': user[0], 'name': user[1], 'email': user[2]})
+        user_list.append({"user_id": user[0], "name": user[1], "email": user[2]})
 
     return JsonResponse.create(StatusCode.OK, {"users": user_list})

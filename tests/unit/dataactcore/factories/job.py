@@ -154,11 +154,11 @@ class FileGenerationFactory(factory.Factory):
     start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     agency_code = fuzzy.FuzzyText()
-    agency_type = fuzzy.FuzzyChoice({'awarding', 'funding'})
-    file_type = fuzzy.FuzzyChoice({'D1', 'D2'})
+    agency_type = fuzzy.FuzzyChoice({"awarding", "funding"})
+    file_type = fuzzy.FuzzyChoice({"D1", "D2"})
     file_path = fuzzy.FuzzyText()
     is_cached_file = fuzzy.FuzzyChoice((False, True))
-    file_format = fuzzy.FuzzyChoice({'csv', 'txt'})
+    file_format = fuzzy.FuzzyChoice({"csv", "txt"})
     element_numbers = False
 
 

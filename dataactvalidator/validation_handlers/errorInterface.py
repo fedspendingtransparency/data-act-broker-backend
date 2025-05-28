@@ -6,9 +6,19 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import ERROR_TYPE_DICT
 
 
-def record_row_error(error_list, job_id, filename, field_name, error_type, row, original_label=None, file_type_id=None,
-                     target_file_id=None, severity_id=None):
-    """ Add this error to running sum of error types
+def record_row_error(
+    error_list,
+    job_id,
+    filename,
+    field_name,
+    error_type,
+    row,
+    original_label=None,
+    file_type_id=None,
+    target_file_id=None,
+    severity_id=None,
+):
+    """Add this error to running sum of error types
 
     Args:
         error_list: dict keeping track of error metadata to be updated
@@ -30,16 +40,24 @@ def record_row_error(error_list, job_id, filename, field_name, error_type, row, 
     if key in error_list:
         error_list[key]["numErrors"] += 1
     else:
-        error_dict = {"filename": filename, "fieldName": field_name, "jobId": job_id, "errorType": error_type,
-                      "numErrors": 1,
-                      "firstRow": row, "originalRuleLabel": original_label, "fileTypeId": file_type_id,
-                      "targetFileId": target_file_id, "severity": severity_id}
+        error_dict = {
+            "filename": filename,
+            "fieldName": field_name,
+            "jobId": job_id,
+            "errorType": error_type,
+            "numErrors": 1,
+            "firstRow": row,
+            "originalRuleLabel": original_label,
+            "fileTypeId": file_type_id,
+            "targetFileId": target_file_id,
+            "severity": severity_id,
+        }
         error_list[key] = error_dict
     return error_list
 
 
 def write_all_row_errors(error_list, job_id):
-    """ Writes all recorded errors to database
+    """Writes all recorded errors to database
 
     Args:
         error_list: dict keeping track of error metadata to be updated
@@ -61,29 +79,40 @@ def write_all_row_errors(error_list, job_id):
             # For rule failures, it will hold the error message
             error_msg = error_dict["errorType"]
             if "Field must be no longer than specified limit" in error_msg:
-                rule_failed_id = ERROR_TYPE_DICT['length_error']
+                rule_failed_id = ERROR_TYPE_DICT["length_error"]
             else:
-                rule_failed_id = ERROR_TYPE_DICT['rule_failed']
-            error_row = ErrorMetadata(job_id=this_job, filename=error_dict["filename"], field_name=field_name,
-                                      error_type_id=rule_failed_id, rule_failed=error_msg,
-                                      occurrences=error_dict["numErrors"], first_row=error_dict["firstRow"],
-                                      original_rule_label=error_dict["originalRuleLabel"],
-                                      file_type_id=error_dict["fileTypeId"],
-                                      target_file_type_id=error_dict["targetFileId"],
-                                      severity_id=error_dict["severity"])
+                rule_failed_id = ERROR_TYPE_DICT["rule_failed"]
+            error_row = ErrorMetadata(
+                job_id=this_job,
+                filename=error_dict["filename"],
+                field_name=field_name,
+                error_type_id=rule_failed_id,
+                rule_failed=error_msg,
+                occurrences=error_dict["numErrors"],
+                first_row=error_dict["firstRow"],
+                original_rule_label=error_dict["originalRuleLabel"],
+                file_type_id=error_dict["fileTypeId"],
+                target_file_type_id=error_dict["targetFileId"],
+                severity_id=error_dict["severity"],
+            )
         else:
             # This happens if cast to int was successful
             error_string = ValidationError.get_error_type_string(error_type)
             error_id = ERROR_TYPE_DICT[error_string]
             # Create error metadata
-            error_row = ErrorMetadata(job_id=this_job, filename=error_dict["filename"], field_name=field_name,
-                                      error_type_id=error_id, occurrences=error_dict["numErrors"],
-                                      first_row=error_dict["firstRow"],
-                                      rule_failed=ValidationError.get_error_message(error_type),
-                                      original_rule_label=error_dict["originalRuleLabel"],
-                                      file_type_id=error_dict["fileTypeId"],
-                                      target_file_type_id=error_dict["targetFileId"],
-                                      severity_id=error_dict["severity"])
+            error_row = ErrorMetadata(
+                job_id=this_job,
+                filename=error_dict["filename"],
+                field_name=field_name,
+                error_type_id=error_id,
+                occurrences=error_dict["numErrors"],
+                first_row=error_dict["firstRow"],
+                rule_failed=ValidationError.get_error_message(error_type),
+                original_rule_label=error_dict["originalRuleLabel"],
+                file_type_id=error_dict["fileTypeId"],
+                target_file_type_id=error_dict["targetFileId"],
+                severity_id=error_dict["severity"],
+            )
 
         sess.add(error_row)
     # Commit the session to write all rows

@@ -33,8 +33,8 @@ def insert_codes(sess):
         sess.merge(this_type)
 
     # Delete unused job types if they exist
-    if sess.query(JobType).filter(JobType.name.in_(['db_transfer', 'external_validation'])).count() > 0:
-        logger.info('Deleting unused job types db_transfer and external_validation')
+    if sess.query(JobType).filter(JobType.name.in_(["db_transfer", "external_validation"])).count() > 0:
+        logger.info("Deleting unused job types db_transfer and external_validation")
         delete_unused_job_types(sess)
 
     # insert publish status
@@ -45,11 +45,7 @@ def insert_codes(sess):
     # insert file types
     for ft in lookups.FILE_TYPE:
         file_type = FileType(
-            file_type_id=ft.id,
-            name=ft.name,
-            description=ft.desc,
-            letter_name=ft.letter,
-            file_order=ft.order
+            file_type_id=ft.id, name=ft.name, description=ft.desc, letter_name=ft.letter, file_order=ft.order
         )
         sess.merge(file_type)
 
@@ -81,13 +77,14 @@ def delete_unused_job_types(sess):
     sess.execute(delete_job_statement)
 
     # Delete unused job types from job_type table
-    job_type_query = sess.query(JobType).filter(or_(JobType.name == 'db_transfer',
-                                                    JobType.name == 'external_validation'))
+    job_type_query = sess.query(JobType).filter(
+        or_(JobType.name == "db_transfer", JobType.name == "external_validation")
+    )
 
     for job_type in job_type_query:
         sess.delete(job_type)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     setup_job_tracker_db()
