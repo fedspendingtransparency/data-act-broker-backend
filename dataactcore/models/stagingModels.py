@@ -961,7 +961,9 @@ class PublishedAwardFinancialAssistance(Base):
     submission_id = Column(
         Integer,
         ForeignKey(
-            "submission.submission_id", ondelete="CASCADE", name="fk_published_award_financial_assistance_submission_id"
+            "submission.submission_id",
+            ondelete="CASCADE",
+            name="fk_published_award_financial_assistance_submission_id",
         ),
         nullable=False,
         index=True,

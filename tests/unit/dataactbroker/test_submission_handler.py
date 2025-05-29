@@ -1068,10 +1068,9 @@ def test_publish_checks_revalidation_needed(database):
     with pytest.raises(ValueError) as val_error:
         publish_checks(submission)
 
-    assert str(
-        val_error.value
-    ) == "This submission has not been validated since before the revalidation " "threshold ({}), it must be revalidated before publishing.".format(
-        now.strftime("%Y-%m-%d %H:%M:%S")
+    assert (
+        str(val_error.value) == f"This submission has not been validated since before the revalidation threshold"
+        f" ({now.strftime('%Y-%m-%d %H:%M:%S')}), it must be revalidated before publishing."
     )
 
 
@@ -1105,10 +1104,9 @@ def test_publish_checks_test_submission(database):
     with pytest.raises(ValueError) as val_error:
         publish_checks(submission)
 
-    assert str(
-        val_error.value
-    ) == "This submission has not been validated since before the revalidation " "threshold ({}), it must be revalidated before publishing.".format(
-        now.strftime("%Y-%m-%d %H:%M:%S")
+    assert (
+        str(val_error.value) == f"This submission has not been validated since before the revalidation threshold"
+        f" ({now.strftime('%Y-%m-%d %H:%M:%S')}), it must be revalidated before publishing."
     )
 
 
@@ -1176,10 +1174,10 @@ def test_publish_checks_window_too_early(database):
     with pytest.raises(ValueError) as val_error:
         publish_checks(submission)
 
-    assert str(
-        val_error.value
-    ) == "This submission was last validated or its D files generated before the " "start of the submission window ({}). Please revalidate before publishing.".format(
-        sub_window.period_start.strftime("%m/%d/%Y")
+    assert (
+        str(val_error.value)
+        == f"This submission was last validated or its D files generated before the start of the submission window"
+        f" ({sub_window.period_start.strftime('%m/%d/%Y')}). Please revalidate before publishing."
     )
 
 

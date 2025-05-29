@@ -19,24 +19,24 @@ class SQSMockQueue:
         self.max_receive_count = max_receive_count
 
     @staticmethod
-    def send_message(MessageBody, MessageAttributes=None):  # noqa
+    def send_message(message_body, message_attributes=None):  # noqa
         sess = GlobalDB.db().session  # noqa
-        sess.add(SQS(message=int(MessageBody), attributes=str(MessageAttributes) if MessageAttributes else None))
+        sess.add(SQS(message=int(message_body), attributes=str(message_attributes) if message_attributes else None))
         sess.commit()
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
     def receive_messages(
-        WaitTimeSeconds,
-        AttributeNames=None,
-        MessageAttributeNames=None,  # noqa
-        VisibilityTimeout=30,
-        MaxNumberOfMessages=1,
+        wait_time_seconds,
+        attribute_names=None,
+        message_attribute_names=None,  # noqa
+        visibility_timeout=30,
+        max_number_of_messages=1,
     ):  # noqa
         sess = GlobalDB.db().session
         messages = []
-        # Limit returned messages by MaxNumberOfMessages: start=0, stop=MaxNumberOfMessages
-        for sqs in islice(sess.query(SQS).order_by(SQS.sqs_id), 0, MaxNumberOfMessages):
+        # Limit returned messages by max_number_of_messages: start=0, stop=max_number_of_messages
+        for sqs in islice(sess.query(SQS).order_by(SQS.sqs_id), 0, max_number_of_messages):
             messages.append(SQSMockMessage(sqs))
         return messages
 
@@ -51,7 +51,7 @@ class SQSMockQueue:
         mock_redrive = '{{"deadLetterTargetArn": "FAKE_ARN:{}", ' '"maxReceiveCount": {}}}'.format(
             self.UNITTEST_MOCK_DEAD_LETTER_QUEUE, self.max_receive_count
         )
-        return {"ReceiveMessageWaitTimeSeconds": "10", "RedrivePolicy": mock_redrive}
+        return {"wait_time_seconds": "10", "RedrivePolicy": mock_redrive}
 
     @property
     def url(self):
@@ -62,24 +62,24 @@ class SQSMockDeadLetterQueue:
     logger = logging.getLogger(__name__)
 
     @staticmethod
-    def send_message(MessageBody, MessageAttributes=None):  # noqa
+    def send_message(message_body, message_attributes=None):  # noqa
         SQSMockDeadLetterQueue.logger.debug(
-            "executing SQSMockDeadLetterQueue.send_message({}, {})".format(MessageBody, MessageAttributes)  # noqa
+            "executing SQSMockDeadLetterQueue.send_message({}, {})".format(message_body, message_attributes)  # noqa
         )
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
     def receive_messages(
-        WaitTimeSeconds,
-        AttributeNames=None,
-        MessageAttributeNames=None,  # noqa
-        VisibilityTimeout=30,
-        MaxNumberOfMessages=1,
+        wait_time_seconds,
+        attribute_names=None,
+        message_attribute_names=None,  # noqa
+        visibility_timeout=30,
+        max_number_of_messages=1,
     ):  # noqa
         SQSMockDeadLetterQueue.logger.debug(
             "executing SQSMockDeadLetterQueue.receive_messages("
             "{}, {}, {}, {}, {})".format(
-                WaitTimeSeconds, AttributeNames, MessageAttributeNames, VisibilityTimeout, MaxNumberOfMessages
+                wait_time_seconds, attribute_names, message_attribute_names, visibility_timeout, max_number_of_messages
             )
         )
         return []
@@ -102,7 +102,7 @@ class SQSMockMessage:
     def __str__(self):
         return "SQSMockMessage(body={}, message_attributes={})".format(self.body, self.message_attributes)
 
-    def change_visibility(self, VisibilityTimeout):  # noqa
+    def change_visibility(self, visibility_timeout):  # noqa
         # Do nothing
         pass
 

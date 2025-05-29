@@ -134,7 +134,9 @@ def load_country_codes(force_reload=False):
                 logger.info("Uploading {} to {}".format(cc_filename, CONFIG_BROKER["public_files_bucket"]))
                 s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
                 s3.upload_file(
-                    "country_codes.csv", CONFIG_BROKER["public_files_bucket"], "broker_reference_data/country_codes.csv"
+                    "country_codes.csv",
+                    CONFIG_BROKER["public_files_bucket"],
+                    "broker_reference_data/country_codes.csv",
                 )
                 os.remove(cc_filename)
 

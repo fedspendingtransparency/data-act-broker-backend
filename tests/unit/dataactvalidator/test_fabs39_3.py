@@ -54,7 +54,10 @@ def test_success(database):
         correction_delete_indicatr="c",
     )
     fabs_6 = FABSFactory(
-        place_of_performance_code=None, place_of_performance_zip4a="4312", record_type=2, correction_delete_indicatr="C"
+        place_of_performance_code=None,
+        place_of_performance_zip4a="4312",
+        record_type=2,
+        correction_delete_indicatr="C",
     )
     fabs_7 = FABSFactory(
         place_of_performance_code="ny**987",
@@ -63,7 +66,10 @@ def test_success(database):
         correction_delete_indicatr="",
     )
     fabs_8 = FABSFactory(
-        place_of_performance_code="00*****", place_of_performance_zip4a="", record_type=1, correction_delete_indicatr=""
+        place_of_performance_code="00*****",
+        place_of_performance_zip4a="",
+        record_type=1,
+        correction_delete_indicatr="",
     )
     fabs_9 = FABSFactory(
         place_of_performance_code="00*****",

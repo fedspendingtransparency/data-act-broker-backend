@@ -368,7 +368,8 @@ def update_state_congr_table_current(sess):
     sess.bulk_save_objects(
         [
             StateCongressional(
-                state_code=state_data.state_abbreviation, congressional_district_no=state_data.congressional_district_no
+                state_code=state_data.state_abbreviation,
+                congressional_district_no=state_data.congressional_district_no,
             )
             for state_data in distinct_list
         ]
@@ -454,7 +455,9 @@ def export_state_congr_table(sess):
     logger.info("Uploading {} to {}".format(state_congr_filename, CONFIG_BROKER["public_files_bucket"]))
     s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
     s3.upload_file(
-        "state_congressional.csv", CONFIG_BROKER["public_files_bucket"], "broker_reference_data/state_congressional.csv"
+        "state_congressional.csv",
+        CONFIG_BROKER["public_files_bucket"],
+        "broker_reference_data/state_congressional.csv",
     )
     os.remove(state_congr_filename)
 

@@ -569,7 +569,11 @@ class ValidationManager:
         # Add a warning if the file is blank
         if (
             self.file_type.file_type_id
-            in (FILE_TYPE_DICT["appropriations"], FILE_TYPE_DICT["program_activity"], FILE_TYPE_DICT["award_financial"])
+            in (
+                FILE_TYPE_DICT["appropriations"],
+                FILE_TYPE_DICT["program_activity"],
+                FILE_TYPE_DICT["award_financial"],
+            )
             and not self.has_data
             and len(self.short_pop_rows) == 0
             and len(self.long_pop_rows) == 0

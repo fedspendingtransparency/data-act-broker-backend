@@ -27,7 +27,10 @@ mapping = OrderedDict(
         ("potential_total_value_awar", ["PotentialTotalValueOfAward", "PotentialTotalValueOfAward (3AT)"]),
         ("action_date", ["ActionDate", "ActionDate (2A)"]),
         ("period_of_performance_star", ["PeriodOfPerformanceStartDate", "PeriodOfPerformanceStartDate (2B)"]),
-        ("period_of_performance_curr", ["PeriodOfPerformanceCurrentEndDate", "PeriodOfPerformanceCurrentEndDate (2C)"]),
+        (
+            "period_of_performance_curr",
+            ["PeriodOfPerformanceCurrentEndDate", "PeriodOfPerformanceCurrentEndDate (2C)"],
+        ),
         (
             "period_of_perf_potential_e",
             ["PeriodOfPerformancePotentialEndDate", "PeriodOfPerformancePotentialEndDate (2D)"],
@@ -70,7 +73,10 @@ mapping = OrderedDict(
         ("legal_entity_congressional", ["LegalEntityCongressionalDistrict", "LegalEntityCongressionalDistrict (9F)"]),
         ("vendor_phone_number", ["EntityPhoneNumber", "EntityPhoneNumber (13RR)"]),
         ("vendor_fax_number", ["EntityFaxNumber", "EntityFaxNumber (13SS)"]),
-        ("place_of_perform_city_name", ["PrimaryPlaceOfPerformanceCityName", "PrimaryPlaceOfPerformanceCityName (9D)"]),
+        (
+            "place_of_perform_city_name",
+            ["PrimaryPlaceOfPerformanceCityName", "PrimaryPlaceOfPerformanceCityName (9D)"],
+        ),
         (
             "place_of_perform_county_na",
             ["PrimaryPlaceOfPerformanceCountyName", "PrimaryPlaceOfPerformanceCountyName ()"],
@@ -79,7 +85,10 @@ mapping = OrderedDict(
             "place_of_performance_state",
             ["PrimaryPlaceOfPerformanceStateCode", "PrimaryPlaceOfPerformanceStateCode (9C)"],
         ),
-        ("place_of_perfor_state_desc", ["PrimaryPlaceOfPerformanceStateName", "PrimaryPlaceOfPerformanceStateName ()"]),
+        (
+            "place_of_perfor_state_desc",
+            ["PrimaryPlaceOfPerformanceStateName", "PrimaryPlaceOfPerformanceStateName ()"],
+        ),
         ("place_of_performance_zip4a", ["PrimaryPlaceOfPerformanceZIP+4", "PrimaryPlaceOfPerformanceZIP+4 (9K)"]),
         (
             "place_of_performance_congr",
@@ -137,7 +146,10 @@ mapping = OrderedDict(
         ),
         ("naics", ["NAICS", "NAICS (8G)"]),
         ("naics_description", ["NAICS_Description", "NAICS_Description ()"]),
-        ("recovered_materials_sustai", ["RecoveredMaterials/Sustainability", "RecoveredMaterials/Sustainability (8L)"]),
+        (
+            "recovered_materials_sustai",
+            ["RecoveredMaterials/Sustainability", "RecoveredMaterials/Sustainability (8L)"],
+        ),
         (
             "recovered_materials_s_desc",
             [
@@ -185,7 +197,10 @@ mapping = OrderedDict(
             ["Place of Manufacture Description Tag", "Place of Manufacture Description Tag ()"],
         ),
         ("subcontracting_plan", ["SubcontractingPlan", "SubcontractingPlan (11B)"]),
-        ("subcontracting_plan_desc", ["Subcontracting Plan Description Tag", "Subcontracting Plan Description Tag ()"]),
+        (
+            "subcontracting_plan_desc",
+            ["Subcontracting Plan Description Tag", "Subcontracting Plan Description Tag ()"],
+        ),
         ("extent_competed", ["ExtentCompeted", "ExtentCompeted (10A)"]),
         ("extent_compete_description", ["Extent Competed Description Tag", "Extent Competed Description Tag ()"]),
         ("solicitation_procedures", ["SolicitationProcedures", "SolicitationProcedures (10M)"]),
@@ -205,7 +220,10 @@ mapping = OrderedDict(
         ("fair_opportunity_limited_s", ["FairOpportunityLimitedSources", "FairOpportunityLimitedSources (10R)"]),
         (
             "fair_opportunity_limi_desc",
-            ["Fair Opportunity Limited Sources Description Tag", "Fair Opportunity Limited Sources Description Tag ()"],
+            [
+                "Fair Opportunity Limited Sources Description Tag",
+                "Fair Opportunity Limited Sources Description Tag ()",
+            ],
         ),
         ("other_than_full_and_open_c", ["OtherThanFullAndOpenCompetition", "OtherThanFullAndOpenCompetition (10C)"]),
         (
@@ -275,7 +293,10 @@ mapping = OrderedDict(
                 "Clinger-Cohen Act Planning Compliance Description Tag ()",
             ],
         ),
-        ("materials_supplies_article", ["MaterialsSuppliesArticlesAndEquip", "MaterialsSuppliesArticlesAndEquip (7B)"]),
+        (
+            "materials_supplies_article",
+            ["MaterialsSuppliesArticlesAndEquip", "MaterialsSuppliesArticlesAndEquip (7B)"],
+        ),
         (
             "materials_supplies_descrip",
             [
@@ -305,7 +326,10 @@ mapping = OrderedDict(
         ("additional_reporting", ["AdditionalReporting", "AdditionalReporting (7G)"]),
         ("program_acronym", ["ProgramAcronym", "ProgramAcronym (6P)"]),
         ("referenced_idv_type", ["Referenced IDV Type", "Referenced IDV Type ()"]),
-        ("referenced_idv_type_desc", ["Referenced IDV Type Description Tag", "Referenced IDV Type Description Tag ()"]),
+        (
+            "referenced_idv_type_desc",
+            ["Referenced IDV Type Description Tag", "Referenced IDV Type Description Tag ()"],
+        ),
         ("referenced_mult_or_single", ["Referenced IDV Multiple or Single", "Referenced IDV Multiple or Single ()"]),
         (
             "referenced_mult_or_si_desc",
@@ -328,7 +352,10 @@ mapping = OrderedDict(
         ("cost_accounting_standards", ["CostAccountingStandardsClause", "CostAccountingStandardsClause (6L)"]),
         (
             "cost_accounting_stand_desc",
-            ["Cost Accounting Standards Clause Description Tag", "Cost Accounting Standards Clause Description Tag ()"],
+            [
+                "Cost Accounting Standards Clause Description Tag",
+                "Cost Accounting Standards Clause Description Tag ()",
+            ],
         ),
         ("government_furnished_prope", ["GovernmentFurnishedProperty(GFP)", "GovernmentFurnishedProperty(GFP) (8J)"]),
         (
@@ -362,9 +389,15 @@ mapping = OrderedDict(
             ],
         ),
         ("multi_year_contract", ["MultiYearContract", "MultiYearContract (6C)"]),
-        ("multi_year_contract_desc", ["Multi Year Contract Description Tag", "Multi Year Contract Description Tag ()"]),
+        (
+            "multi_year_contract_desc",
+            ["Multi Year Contract Description Tag", "Multi Year Contract Description Tag ()"],
+        ),
         ("contract_financing", ["ContractFinancing", "ContractFinancing (6K)"]),
-        ("contract_financing_descrip", ["Contract Financing Description Tag", "Contract Financing Description Tag ()"]),
+        (
+            "contract_financing_descrip",
+            ["Contract Financing Description Tag", "Contract Financing Description Tag ()"],
+        ),
         ("purchase_card_as_payment_m", ["PurchaseCardAsPaymentMethod", "PurchaseCardAsPaymentMethod (6N)"]),
         (
             "purchase_card_as_paym_desc",

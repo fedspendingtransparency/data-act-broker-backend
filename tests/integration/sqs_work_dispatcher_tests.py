@@ -54,7 +54,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         - Then the default message_transformer provides it as an argument to the job
         """
         queue = sqs_queue()
-        queue.send_message(MessageBody=1234)
+        queue.send_message(message_body=1234)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -65,13 +65,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting something else on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=9999)
+            queue_in_use.send_message(message_body=9999)
 
         dispatcher.dispatch(do_some_work)
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(9999, messages[0].body)
 
@@ -89,7 +89,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         - Then the dispatcher provides the dict item's value to the job when invoked
         """
         queue = sqs_queue()
-        queue.send_message(MessageBody=1234)
+        queue.send_message(message_body=1234)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -100,13 +100,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting something else on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=9999)
+            queue_in_use.send_message(message_body=9999)
 
         dispatcher.dispatch(do_some_work, message_transformer=lambda x: {"task_id": x.body})
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(9999, messages[0].body)
 
@@ -121,7 +121,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         - Then the given job will run with those unnamed (positional) args
         """
         queue = sqs_queue()
-        queue.send_message(MessageBody=1234)
+        queue.send_message(message_body=1234)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -133,13 +133,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting something else on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=9999)
+            queue_in_use.send_message(message_body=9999)
 
         dispatcher.dispatch(do_some_work, message_transformer=lambda x: (x.body, x.body * 2))
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(9999, messages[0].body)
 
@@ -154,7 +154,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         - Then the given job will run with those unnamed (positional) args
         """
         queue = sqs_queue()
-        queue.send_message(MessageBody=1234)
+        queue.send_message(message_body=1234)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -166,7 +166,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting something else on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=9999)
+            queue_in_use.send_message(message_body=9999)
 
         dispatcher.dispatch(
             do_some_work, message_transformer=lambda x: {"task_id": x.body, "task_id_times_two": x.body * 2}
@@ -174,7 +174,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(9999, messages[0].body)
 
@@ -188,7 +188,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         tuple-based args given as positional args
         """
         queue = sqs_queue()
-        queue.send_message(MessageBody=1234)
+        queue.send_message(message_body=1234)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -200,14 +200,14 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting something else on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=9999)
+            queue_in_use.send_message(message_body=9999)
 
         dispatcher.dispatch(do_some_work, "easy work")
 
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(9999, messages[0].body)
 
@@ -221,7 +221,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dictionary-based args given as keyword arguments
         """
         queue = sqs_queue()
-        queue.send_message(MessageBody=1234)
+        queue.send_message(message_body=1234)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -233,14 +233,14 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting something else on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=9999)
+            queue_in_use.send_message(message_body=9999)
 
         dispatcher.dispatch(do_some_work, category="easy work")
 
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(9999, messages[0].body)
 
@@ -254,7 +254,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dictionary-based args given as keyword arguments
         """
         queue = sqs_queue()
-        queue.send_message(MessageBody=1234)
+        queue.send_message(message_body=1234)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -266,14 +266,14 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting something else on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=9999)
+            queue_in_use.send_message(message_body=9999)
 
         dispatcher.dispatch(do_some_work, message_transformer=lambda x: {"task_id": x.body}, category="easy work")
 
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(9999, messages[0].body)
 
@@ -290,7 +290,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
-        queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
+        queue.send_message(message_body=1234, message_attributes=message_attr)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -301,14 +301,14 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting "a" on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=1)
+            queue_in_use.send_message(message_body=1)
 
         def two_work(task_id):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
 
             # The "work" we're doing is just putting "b" on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=2)
+            queue_in_use.send_message(message_body=2)
 
         def work_one_or_two(message):
             msg_attr = message.message_attributes
@@ -321,7 +321,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "a_work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(1, messages[0].body)
 
@@ -340,7 +340,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
-        queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
+        queue.send_message(message_body=1234, message_attributes=message_attr)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -351,14 +351,14 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting "a" on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=1)
+            queue_in_use.send_message(message_body=1)
 
         def two_work(task_id):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
 
             # The "work" we're doing is just putting "b" on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=2)
+            queue_in_use.send_message(message_body=2)
 
         def work_one_or_two(message):
             msg_attr = message.message_attributes
@@ -371,7 +371,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "a_work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(1, messages[0].body)
 
@@ -390,7 +390,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
-        queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
+        queue.send_message(message_body=1234, message_attributes=message_attr)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -402,7 +402,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting 1 on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=1)
+            queue_in_use.send_message(message_body=1)
 
         def two_work(task_id, category):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
@@ -410,7 +410,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting 2 on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=2)
+            queue_in_use.send_message(message_body=2)
 
         def work_one_or_two(message):
             msg_attr = message.message_attributes
@@ -423,7 +423,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "a_work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(1, messages[0].body)
 
@@ -443,7 +443,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
-        queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
+        queue.send_message(message_body=1234, message_attributes=message_attr)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -461,7 +461,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting 1 on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=1)
+            queue_in_use.send_message(message_body=1)
 
         def two_work(task_id, category, extra1, extra2, kwarg1, xkwarg1, xkwarg2=None, xkwarg3="override_me"):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
@@ -475,7 +475,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             # The "work" we're doing is just putting 2 on the queue
             queue_in_use = sqs_queue()
-            queue_in_use.send_message(MessageBody=2)
+            queue_in_use.send_message(message_body=2)
 
         def work_one_or_two(message):
             msg_attr = message.message_attributes
@@ -495,7 +495,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "a_work" was done
-        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        messages = queue.receive_messages(wait_time_seconds=1, max_number_of_messages=10)
         self.assertEqual(1, len(messages))
         self.assertEqual(1, messages[0].body)
 
@@ -534,7 +534,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         """
         with self.assertRaises(QueueWorkerProcessError):
             queue = sqs_queue()
-            queue.send_message(MessageBody=1234)
+            queue.send_message(message_body=1234)
 
             dispatcher = SQSWorkDispatcher(
                 queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
@@ -600,7 +600,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=0, monitor_sleep_time=0.05
@@ -625,7 +625,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertLess(dispatcher._worker_process.exitcode, 0)
             self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
             # Message should NOT have been deleted from the queue, but available for receive again
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
@@ -646,7 +646,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=0, monitor_sleep_time=0.05
@@ -675,7 +675,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertLess(dispatcher._worker_process.exitcode, 0)
             self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
             # Message SHOULD have been deleted from the queue
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
@@ -696,7 +696,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=0, monitor_sleep_time=0.05
@@ -727,7 +727,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertLess(parent_dispatcher.exitcode, 0)
             self.assertEqual(parent_dispatcher.exitcode, -signal.SIGTERM)
             # Message should NOT have been deleted from the queue, but available for receive again
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
@@ -755,7 +755,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
 
         dispatcher = SQSWorkDispatcher(
             queue, worker_process_name="Test Worker Process", long_poll_seconds=0, monitor_sleep_time=0.05
@@ -797,10 +797,10 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertLess(dispatcher._worker_process.exitcode, 0)
             self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
             # Message SHOULD have been deleted from the queue
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
 
             # Message should NOT have been deleted from the queue, but available for receive again
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
@@ -829,7 +829,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
 
         dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", monitor_sleep_time=0.05)
         dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
@@ -852,7 +852,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertLess(dispatcher._worker_process.exitcode, 0)
             self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
             # Message should NOT have been deleted from the queue, but available for receive again
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
@@ -875,7 +875,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
         worker_sleep_interval = 0.05  # how long to "work"
 
         def hanging_cleanup(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, queue_message):
@@ -929,7 +929,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertLess(dispatcher._worker_process.exitcode, 0)
             self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
             # Message SHOULD have been deleted from the queue (after going to DLQ)
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
@@ -967,7 +967,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
         worker_sleep_interval = 0.05  # how long to "work"
 
         def hanging_cleanup(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, queue_message):
@@ -1037,7 +1037,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertEqual(parent_dispatcher.exitcode, 1)
 
             # Message SHOULD have been deleted from the queue (after going to DLQ)
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
@@ -1085,7 +1085,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
         worker_sleep_interval = 0.05  # how long to "work"
         cleanup_timeout = int(worker_sleep_interval + 3)  # how long to allow cleanup to run, max (integer seconds)
 
@@ -1184,7 +1184,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertEqual(parent_dispatcher.exitcode, -signal.SIGTERM)
 
             # Message SHOULD have been deleted from the queue (after going to DLQ)
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
@@ -1231,7 +1231,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=msg_body)
+        queue.send_message(message_body=msg_body)
         worker_sleep_interval = 0.05  # how long to "work"
         cleanup_timeout = int(worker_sleep_interval + 3)  # how long to allow cleanup to run, max (integer seconds)
 
@@ -1335,7 +1335,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertEqual(parent_dispatcher.exitcode, -signal.SIGTERM)
 
             # Message should NOT have been deleted from the queue, but available for receive again
-            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            msgs = queue.receive_messages(wait_time_seconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")

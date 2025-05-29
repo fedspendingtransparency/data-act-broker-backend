@@ -30,10 +30,16 @@ def test_success(database):
         correction_delete_indicatr="",
     )
     fabs_2 = FABSFactory(
-        place_of_performance_forei=None, place_of_perform_country_c="UK", record_type=3, correction_delete_indicatr=None
+        place_of_performance_forei=None,
+        place_of_perform_country_c="UK",
+        record_type=3,
+        correction_delete_indicatr=None,
     )
     fabs_3 = FABSFactory(
-        place_of_performance_forei=None, place_of_perform_country_c="USA", record_type=2, correction_delete_indicatr="c"
+        place_of_performance_forei=None,
+        place_of_perform_country_c="USA",
+        record_type=2,
+        correction_delete_indicatr="c",
     )
     fabs_4 = FABSFactory(
         place_of_performance_forei="", place_of_perform_country_c="UsA", record_type=1, correction_delete_indicatr="C"

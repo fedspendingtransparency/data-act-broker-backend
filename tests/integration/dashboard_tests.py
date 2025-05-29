@@ -114,7 +114,8 @@ class DashboardTests(BaseTestAPI):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            {"A": [], "B": [], "C": [], "cross-AB": [], "cross-BC": [], "cross-CD1": [], "cross-CD2": []}, response.json
+            {"A": [], "B": [], "C": [], "cross-AB": [], "cross-BC": [], "cross-CD1": [], "cross-CD2": []},
+            response.json,
         )
 
     def test_post_dabs_graphs_fail(self):
@@ -123,17 +124,24 @@ class DashboardTests(BaseTestAPI):
         # Not including any required filters
         dabs_graphs_json = {"filters": {}}
         response = self.app.post_json(
-            "/v1/historic_dabs_graphs/", dabs_graphs_json, expect_errors=True, headers={"x-session-id": self.session_id}
+            "/v1/historic_dabs_graphs/",
+            dabs_graphs_json,
+            expect_errors=True,
+            headers={"x-session-id": self.session_id},
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.json["message"], "The following filters were not provided: periods, fys, agencies," " files, rules"
+            response.json["message"],
+            "The following filters were not provided: periods, fys, agencies," " files, rules",
         )
 
         # Not including some required filters
         dabs_graphs_json = {"filters": {"periods": [], "fys": [], "agencies": []}}
         response = self.app.post_json(
-            "/v1/historic_dabs_graphs/", dabs_graphs_json, expect_errors=True, headers={"x-session-id": self.session_id}
+            "/v1/historic_dabs_graphs/",
+            dabs_graphs_json,
+            expect_errors=True,
+            headers={"x-session-id": self.session_id},
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "The following filters were not provided: files, rules")
@@ -141,7 +149,10 @@ class DashboardTests(BaseTestAPI):
         # Wrong period
         dabs_graphs_json = {"filters": {"periods": [15], "fys": [], "agencies": [], "files": [], "rules": []}}
         response = self.app.post_json(
-            "/v1/historic_dabs_graphs/", dabs_graphs_json, expect_errors=True, headers={"x-session-id": self.session_id}
+            "/v1/historic_dabs_graphs/",
+            dabs_graphs_json,
+            expect_errors=True,
+            headers={"x-session-id": self.session_id},
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
@@ -151,7 +162,10 @@ class DashboardTests(BaseTestAPI):
         # Wrong fys
         dabs_graphs_json = {"filters": {"periods": [], "fys": [2011], "agencies": [], "files": [], "rules": []}}
         response = self.app.post_json(
-            "/v1/historic_dabs_graphs/", dabs_graphs_json, expect_errors=True, headers={"x-session-id": self.session_id}
+            "/v1/historic_dabs_graphs/",
+            dabs_graphs_json,
+            expect_errors=True,
+            headers={"x-session-id": self.session_id},
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
@@ -163,7 +177,10 @@ class DashboardTests(BaseTestAPI):
         # Wrong agencies - integer instead of a string
         dabs_graphs_json = {"filters": {"periods": [], "fys": [], "agencies": [90], "files": [], "rules": []}}
         response = self.app.post_json(
-            "/v1/historic_dabs_graphs/", dabs_graphs_json, expect_errors=True, headers={"x-session-id": self.session_id}
+            "/v1/historic_dabs_graphs/",
+            dabs_graphs_json,
+            expect_errors=True,
+            headers={"x-session-id": self.session_id},
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "Agencies must be a list of strings, or an empty list.")
@@ -171,7 +188,10 @@ class DashboardTests(BaseTestAPI):
         # Wrong agencies - non-existent agency
         dabs_graphs_json = {"filters": {"periods": [], "fys": [], "agencies": ["998"], "files": [], "rules": []}}
         response = self.app.post_json(
-            "/v1/historic_dabs_graphs/", dabs_graphs_json, expect_errors=True, headers={"x-session-id": self.session_id}
+            "/v1/historic_dabs_graphs/",
+            dabs_graphs_json,
+            expect_errors=True,
+            headers={"x-session-id": self.session_id},
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "All codes in the agency_codes filter must be valid agency codes")
@@ -179,7 +199,10 @@ class DashboardTests(BaseTestAPI):
         # Wrong files
         dabs_graphs_json = {"filters": {"periods": [], "fys": [], "agencies": [], "files": ["cross-AC"], "rules": []}}
         response = self.app.post_json(
-            "/v1/historic_dabs_graphs/", dabs_graphs_json, expect_errors=True, headers={"x-session-id": self.session_id}
+            "/v1/historic_dabs_graphs/",
+            dabs_graphs_json,
+            expect_errors=True,
+            headers={"x-session-id": self.session_id},
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
@@ -192,7 +215,10 @@ class DashboardTests(BaseTestAPI):
         # Wrong rules
         dabs_graphs_json = {"filters": {"periods": [], "fys": [], "agencies": [], "files": [], "rules": [9]}}
         response = self.app.post_json(
-            "/v1/historic_dabs_graphs/", dabs_graphs_json, expect_errors=True, headers={"x-session-id": self.session_id}
+            "/v1/historic_dabs_graphs/",
+            dabs_graphs_json,
+            expect_errors=True,
+            headers={"x-session-id": self.session_id},
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "Rules must be a list of strings, or an empty list.")
@@ -230,7 +256,8 @@ class DashboardTests(BaseTestAPI):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.json["message"], "The following filters were not provided: periods, fys, agencies," " files, rules"
+            response.json["message"],
+            "The following filters were not provided: periods, fys, agencies," " files, rules",
         )
 
         # Not including some required filters

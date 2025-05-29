@@ -129,7 +129,11 @@ if __name__ == "__main__":
         sess = GlobalDB.db().session
         args = parser.parse_args()
 
-        metrics_json = {"script_name": "populate_subaward_table_fsrs.py", "records_inserted": 0, "start_time": str(now)}
+        metrics_json = {
+            "script_name": "populate_subaward_table_fsrs.py",
+            "records_inserted": 0,
+            "start_time": str(now),
+        }
 
         service_types = []
         if not (args.procurements or args.grants):

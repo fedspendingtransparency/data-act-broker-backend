@@ -63,7 +63,8 @@ def update_assistance_listing(sess):
             logger.info("%s entries are invalid", invalid_count)
             continue
         assistance_listing_query = assistance_listing_query.update(
-            {"assistance_listing_title": assistance_listing_list[current_assistance_listing]}, synchronize_session=False
+            {"assistance_listing_title": assistance_listing_list[current_assistance_listing]},
+            synchronize_session=False,
         )
 
         count = count - assistance_listing_query

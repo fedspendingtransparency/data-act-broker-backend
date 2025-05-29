@@ -397,7 +397,12 @@ class ErrorWarningTests(BaseTestValidator):
         self.session.commit()
         self.session.query(Job).delete(synchronize_session="fetch")
         self.val_job = insert_job(
-            self.session, None, JOB_STATUS_DICT["ready"], JOB_TYPE_DICT["validation"], self.submission_id, filename=None
+            self.session,
+            None,
+            JOB_STATUS_DICT["ready"],
+            JOB_TYPE_DICT["validation"],
+            self.submission_id,
+            filename=None,
         )
         self.session.commit()
 

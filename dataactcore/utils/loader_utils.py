@@ -149,14 +149,13 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
         # log every dropped row
         for index, row in dropped.iterrows():
             logger.info(
-                "Dropped row due to faulty data: fyq:{}--agency:{}--alloc:{}--account:{}--pa_code:{}--pa_name:{}".format(
-                    row["fiscal_year_period"],
-                    row["agency_id"],
-                    row["allocation_transfer_id"],
-                    row["account_number"],
-                    row["program_activity_code"],
-                    row["program_activity_name"],
-                )
+                f"Dropped row due to faulty data: "
+                f"fyq:{row['fiscal_year_period']}"
+                f"--agency:{row['agency_id']}"
+                f"--alloc:{row['allocation_transfer_id']}"
+                f"--account:{row['account_number']}"
+                f"--pa_code:{row['program_activity_code']}"
+                f"--pa_name:{row['program_activity_name']}"
             )
 
         if (len(dropped.index) / len(clean_df.index)) > FAILURE_THRESHOLD_PERCENTAGE:

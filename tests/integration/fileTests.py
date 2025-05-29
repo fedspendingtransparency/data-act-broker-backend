@@ -79,7 +79,12 @@ class FileTests(BaseTestAPI):
 
             # setup submission/jobs data for test_check_status
             cls.status_check_submission_id = insert_submission(
-                sess, cls.submission_user_id, cgac_code="SYS", start_date="10/2015", end_date="12/2015", is_quarter=True
+                sess,
+                cls.submission_user_id,
+                cgac_code="SYS",
+                start_date="10/2015",
+                end_date="12/2015",
+                is_quarter=True,
             )
 
             cls.jobIdDict = cls.setup_jobs_for_status_check(sess, cls.status_check_submission_id)
@@ -108,7 +113,12 @@ class FileTests(BaseTestAPI):
             cls.setup_submission_with_error(sess, cls.row_error_submission_id)
 
             cls.test_delete_submission_id = insert_submission(
-                sess, cls.submission_user_id, cgac_code="SYS", start_date="07/2015", end_date="09/2015", is_quarter=True
+                sess,
+                cls.submission_user_id,
+                cgac_code="SYS",
+                start_date="07/2015",
+                end_date="09/2015",
+                is_quarter=True,
             )
             cls.setup_file_generation_submission(sess, cls.test_delete_submission_id)
 
@@ -258,7 +268,11 @@ class FileTests(BaseTestAPI):
                         cls.test_other_user_submission_id,
                     )
             insert_job(
-                sess, None, FILE_STATUS_DICT["complete"], JOB_TYPE_DICT["validation"], cls.test_other_user_submission_id
+                sess,
+                None,
+                FILE_STATUS_DICT["complete"],
+                JOB_TYPE_DICT["validation"],
+                cls.test_other_user_submission_id,
             )
 
             cls.test_certify_history_id, cls.test_publish_history_id = cls.setup_publication_history(

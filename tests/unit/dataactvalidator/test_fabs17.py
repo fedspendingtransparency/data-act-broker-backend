@@ -31,7 +31,10 @@ def test_success(database):
         legal_entity_country_code="Peru", legal_entity_foreign_posta="", record_type=1, correction_delete_indicatr=None
     )
     fabs_3 = FABSFactory(
-        legal_entity_country_code="Peru", legal_entity_foreign_posta=None, record_type=3, correction_delete_indicatr="c"
+        legal_entity_country_code="Peru",
+        legal_entity_foreign_posta=None,
+        record_type=3,
+        correction_delete_indicatr="c",
     )
     fabs_4 = FABSFactory(
         legal_entity_country_code="UsA", legal_entity_foreign_posta=None, record_type=2, correction_delete_indicatr="C"

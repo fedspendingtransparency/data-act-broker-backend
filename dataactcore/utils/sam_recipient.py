@@ -191,16 +191,21 @@ def parse_sam_recipient_file(file_path, metrics=None):
     total_data = total_data.map(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
     # add deactivation_date column for delete records
-    lambda_func = lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan])
-    total_data = total_data.assign(deactivation_date=total_data["sam_extract_code"].apply(lambda_func))
+
+    def get_sam_extract_code(sam_extract):
+        return pd.Series([dat_file_date if sam_extract == "1" else np.nan])
+
+    total_data = total_data.assign(deactivation_date=total_data["sam_extract_code"].apply(get_sam_extract_code))
     # convert business types string to array
-    bt_func = lambda bt_raw: pd.Series(
-        [[str(code).strip() for code in str(bt_raw).split("~") if isinstance(bt_raw, str)]]
-    )
+
+    def bt_func(bt_raw):
+        return pd.Series([[str(code).strip() for code in str(bt_raw).split("~") if isinstance(bt_raw, str)]])
+
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
-    bt_str_func = lambda bt_codes: pd.Series(
-        [[SAM_BUSINESS_TYPE_DICT[code] for code in bt_codes if code in SAM_BUSINESS_TYPE_DICT]]
-    )
+
+    def bt_str_func(bt_codes):
+        return pd.Series([[SAM_BUSINESS_TYPE_DICT[code] for code in bt_codes if code in SAM_BUSINESS_TYPE_DICT]])
+
     total_data = total_data.assign(business_types=total_data["business_types_codes"].apply(bt_str_func))
     del total_data["business_types_raw"]
 
@@ -528,8 +533,11 @@ def parse_exec_comp_file(file_path, metrics=None):
 
     # parse out executive compensation from row 90 for populated records
     if not pop_exec.empty:
-        lambda_func = lambda ecs: pd.Series(list(parse_exec_comp(ecs).values()))
-        parsed_data = pop_exec["exec_comp_str"].apply(lambda_func)
+
+        def exec_comper(ecs):
+            return pd.Series(list(parse_exec_comp(ecs).values()))
+
+        parsed_data = pop_exec["exec_comp_str"].apply(exec_comper)
         parsed_data.columns = list(parse_exec_comp().keys())
         pop_exec = pd.concat([pop_exec, parsed_data], axis=1)
     else:

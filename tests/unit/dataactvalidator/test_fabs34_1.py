@@ -47,7 +47,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """When both are provided, PeriodOfPerformanceStartDate must occur on or before PeriodOfPerformanceCurrentEndDate."""
+    """When both are provided, PeriodOfPerformanceStartDate must occur on or before
+    PeriodOfPerformanceCurrentEndDate."""
     fabs_1 = FABSFactory(
         period_of_performance_star="20120725", period_of_performance_curr="20120724", correction_delete_indicatr=""
     )

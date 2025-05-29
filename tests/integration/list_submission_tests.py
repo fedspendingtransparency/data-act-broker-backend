@@ -190,7 +190,8 @@ class ListSubmissionTests(BaseTestAPI):
             {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id, self.certified_dabs_sub_id, self.test_sub_id},
         )
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at),
         )
 
         response = self.app.post_json(
@@ -198,7 +199,8 @@ class ListSubmissionTests(BaseTestAPI):
         )
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id, self.test_sub_id})
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at),
         )
 
         response = self.app.post_json(
@@ -215,7 +217,8 @@ class ListSubmissionTests(BaseTestAPI):
         )
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at),
         )
 
         response = self.app.post_json(
@@ -223,7 +226,8 @@ class ListSubmissionTests(BaseTestAPI):
         )
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at),
         )
 
         response = self.app.post_json(
@@ -241,7 +245,8 @@ class ListSubmissionTests(BaseTestAPI):
             self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id, self.published_fabs_sub_id}
         )
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.published_fabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.published_fabs_sub_id).updated_at),
         )
 
         response = self.app.post_json(
@@ -249,7 +254,8 @@ class ListSubmissionTests(BaseTestAPI):
         )
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id})
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.non_admin_fabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.non_admin_fabs_sub_id).updated_at),
         )
 
         response = self.app.post_json(
@@ -257,7 +263,8 @@ class ListSubmissionTests(BaseTestAPI):
         )
         self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.published_fabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.published_fabs_sub_id).updated_at),
         )
 
     def test_list_submissions_fabs_non_admin(self):
@@ -268,7 +275,8 @@ class ListSubmissionTests(BaseTestAPI):
         )
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id, self.published_fabs_sub_id})
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.published_fabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.published_fabs_sub_id).updated_at),
         )
 
         response = self.app.post_json(
@@ -282,7 +290,8 @@ class ListSubmissionTests(BaseTestAPI):
         )
         self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.published_fabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.published_fabs_sub_id).updated_at),
         )
 
     def test_list_submissions_filter_id(self):
@@ -302,7 +311,8 @@ class ListSubmissionTests(BaseTestAPI):
         self.assertEqual(self.sub_ids(response), set())
         # Proving that filters don't affect min last modified
         self.assertEqual(
-            response.json["min_last_modified"], str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at)
+            response.json["min_last_modified"],
+            str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at),
         )
 
     def test_list_submissions_filter_date(self):

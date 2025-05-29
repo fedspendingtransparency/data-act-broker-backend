@@ -63,7 +63,12 @@ def test_get_park_file_local(monkeypatch):
 @patch("dataactcore.scripts.pipeline.load_park.get_date_of_current_park_upload")
 @patch("dataactcore.scripts.pipeline.load_park.get_park_file")
 def test_export_park(
-    mocked_get_park_file, mocked_get_current_date, mocked_get_stored_date, mocked_set_stored_date, database, monkeypatch
+    mocked_get_park_file,
+    mocked_get_current_date,
+    mocked_get_stored_date,
+    mocked_set_stored_date,
+    database,
+    monkeypatch,
 ):
     """Test exporting the PARK"""
 
@@ -134,7 +139,12 @@ def test_set_get_park_last_upload_existing(monkeypatch, database):
 @patch("dataactcore.scripts.pipeline.load_park.get_date_of_current_park_upload")
 @patch("dataactcore.scripts.pipeline.load_park.get_park_file")
 def test_load_park_data(
-    mocked_get_park_file, mocked_get_current_date, mocked_get_stored_date, mocked_set_stored_date, database, monkeypatch
+    mocked_get_park_file,
+    mocked_get_current_date,
+    mocked_get_stored_date,
+    mocked_set_stored_date,
+    database,
+    monkeypatch,
 ):
     """Test actually loading the PARK data"""
     monkeypatch.setattr(load_park, "CONFIG_BROKER", {"use_aws": False})

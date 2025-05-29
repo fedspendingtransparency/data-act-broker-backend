@@ -39,7 +39,12 @@ def load_all_sf133(
         update_tas_fields: rederive SF133 records if the associated TAS record has been updated
     """
     now = datetime.now()
-    metrics_json = {"script_name": "load_sf133.py", "start_time": str(now), "records_deleted": 0, "records_inserted": 0}
+    metrics_json = {
+        "script_name": "load_sf133.py",
+        "start_time": str(now),
+        "records_deleted": 0,
+        "records_inserted": 0,
+    }
 
     with create_app().app_context():
         sess = GlobalDB.db().session
@@ -411,7 +416,11 @@ if __name__ == "__main__":
         required=False,
     )
     parser.add_argument(
-        "-pre", "--aws_prefix", help="When loading via AWS, this filters which files to run", type=str, default="sf_133"
+        "-pre",
+        "--aws_prefix",
+        help="When loading via AWS, this filters which files to run",
+        type=str,
+        default="sf_133",
     )
     parser.add_argument(
         "-f", "--force", help="Forces actions to occur in certain scripts regardless of checks", action="store_true"

@@ -31,7 +31,12 @@ class GenerationTests(BaseTestAPI):
 
             # setup submission/jobs data for test_check_status
             cls.generation_submission_id = insert_submission(
-                sess, cls.submission_user_id, cgac_code="SYS", start_date="07/2015", end_date="09/2015", is_quarter=True
+                sess,
+                cls.submission_user_id,
+                cgac_code="SYS",
+                start_date="07/2015",
+                end_date="09/2015",
+                is_quarter=True,
             )
             cls.setup_file_generation_submission(sess)
 

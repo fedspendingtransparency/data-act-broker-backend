@@ -222,7 +222,9 @@ def derive_ppop_state(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id))
 
     log_derivation(
-        "Completed place of performance state derivation, " "updated {}".format(res.rowcount), submission_id, start_time
+        "Completed place of performance state derivation, " "updated {}".format(res.rowcount),
+        submission_id,
+        start_time,
     )
 
 
@@ -988,7 +990,9 @@ def derive_office_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed office data record type 1 derivation, " "updated {}".format(res.rowcount), submission_id, query_start
+        "Completed office data record type 1 derivation, " "updated {}".format(res.rowcount),
+        submission_id,
+        query_start,
     )
 
     query_start = datetime.now()

@@ -178,7 +178,11 @@ def initialize_db_values(db):
     frec_1 = FRECFactory(frec_code="0000", agency_name="Test FREC Agency", cgac=cgac_1)
     frec_2 = FRECFactory(frec_code="1111", agency_name="Test FREC Agency 2", cgac=cgac_2)
     cgac_sub_tier = SubTierAgencyFactory(
-        sub_tier_agency_code="12AB", sub_tier_agency_name="Test Subtier Agency", cgac=cgac_1, frec=frec_1, is_frec=False
+        sub_tier_agency_code="12AB",
+        sub_tier_agency_name="Test Subtier Agency",
+        cgac=cgac_1,
+        frec=frec_1,
+        is_frec=False,
     )
     frec_sub_tier = SubTierAgencyFactory(
         sub_tier_agency_code="4321",

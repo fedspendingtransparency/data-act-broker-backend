@@ -57,7 +57,8 @@ def test_get_login_tokens():
 
 
 def test_get_file_info():
-    """Tests the get_file_info() function: returns the fileid for the latest version of the zip4 file to be downloaded"""
+    """Tests the get_file_info() function: returns the fileid for the latest version of the zip4 file to be
+    downloaded"""
 
     # Create test external data load date
     last_load_date = datetime.strptime("1700-01-01", "%Y-%m-%d")

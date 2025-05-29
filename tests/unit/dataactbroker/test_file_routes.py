@@ -101,7 +101,10 @@ def test_list_banners(file_app, database):
         "banner_type": "warning",
         "notice_block": True,
     }
-    sort_key = lambda k: k["message"]
+
+    def sort_key(k):
+        return k["message"]
+
     assert sorted(response_json["data"], key=sort_key) == sorted([second_response, third_response], key=sort_key)
 
     # Double checking the login banner only gets shown when the login param is true

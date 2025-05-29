@@ -437,7 +437,13 @@ class FileHandler:
                 else:
                     t = threading.Thread(
                         target=upload,
-                        args=(file_ref, file_type, current_app._get_current_object(), g.user, submission.submission_id),
+                        args=(
+                            file_ref,
+                            file_type,
+                            current_app._get_current_object(),
+                            g.user,
+                            submission.submission_id,
+                        ),
                     )
                     t.start()
                     t.join()
@@ -2654,7 +2660,12 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 r = requests.head(agency_comments_url)
                 if r.status_code == requests.codes.ok:
                     results.append(
-                        {"id": None, "label": comments_filename, "filetype": "comments", "submission_id": submission_id}
+                        {
+                            "id": None,
+                            "label": comments_filename,
+                            "filetype": "comments",
+                            "submission_id": submission_id,
+                        }
                     )
             except Exception as e:
                 logger.exception(e)

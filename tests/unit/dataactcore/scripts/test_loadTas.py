@@ -213,7 +213,9 @@ def test_only_fill_missing(database, monkeypatch):
     existing_tas_entries = [
         # TAS to be filled in
         TASFactory(
-            account_num=222, **{field: "222" for field in TAS_COMPONENTS}, **{field: None for field in blank_tas_fields}
+            account_num=222,
+            **{field: "222" for field in TAS_COMPONENTS},
+            **{field: None for field in blank_tas_fields},
         ),
         # TAS to be untouched
         TASFactory(

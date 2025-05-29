@@ -41,7 +41,10 @@ def test_success(database):
     )
     # Ignore correction delete indicator of D
     fabs_6 = FABSFactory(
-        legal_entity_country_code="UK", legal_entity_foreign_provi="Test", record_type=1, correction_delete_indicatr="d"
+        legal_entity_country_code="UK",
+        legal_entity_foreign_provi="Test",
+        record_type=1,
+        correction_delete_indicatr="d",
     )
 
     errors = number_of_errors(_FILE, database, models=[fabs, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6])
@@ -54,10 +57,16 @@ def test_failure(database):
     """
 
     fabs = FABSFactory(
-        legal_entity_country_code="UsA", legal_entity_foreign_provi="Test", record_type=2, correction_delete_indicatr=""
+        legal_entity_country_code="UsA",
+        legal_entity_foreign_provi="Test",
+        record_type=2,
+        correction_delete_indicatr="",
     )
     fabs_2 = FABSFactory(
-        legal_entity_country_code="UK", legal_entity_foreign_provi="Test", record_type=1, correction_delete_indicatr="C"
+        legal_entity_country_code="UK",
+        legal_entity_foreign_provi="Test",
+        record_type=1,
+        correction_delete_indicatr="C",
     )
 
     errors = number_of_errors(_FILE, database, models=[fabs, fabs_2])

@@ -134,7 +134,8 @@ def format_fabs_data(data, sess, fips_state_list, state_code_list, sub_tier_list
     )
     logger.info("Starting derive_place_of_perform_county_na")
     data["place_of_perform_county_na"] = data.apply(
-        lambda x: derive_place_of_perform_county_na(x, sess, fips_state_list, state_code_list, county_code_list), axis=1
+        lambda x: derive_place_of_perform_county_na(x, sess, fips_state_list, state_code_list, county_code_list),
+        axis=1,
     )
     logger.info("Starting derive_place_of_performance_city")
     data["place_of_perform_city"] = data.apply(

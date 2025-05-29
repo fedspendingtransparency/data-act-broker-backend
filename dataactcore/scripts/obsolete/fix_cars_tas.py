@@ -21,7 +21,11 @@ def main():
 
     data["End Date"] = data.apply(lambda x: replace_null(x, "End Date"), axis=1)
     data.rename(
-        columns={"FR Entity Type Code": "FR Entity Type", "Date/Time Established": "DT_TM_ESTAB", "End Date": "DT_END"},
+        columns={
+            "FR Entity Type Code": "FR Entity Type",
+            "Date/Time Established": "DT_TM_ESTAB",
+            "End Date": "DT_END",
+        },
         inplace=True,
     )
     data.to_csv("cars_tas.csv")
