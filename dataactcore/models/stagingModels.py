@@ -1,5 +1,17 @@
-from sqlalchemy import (ARRAY, Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, BigInteger, Numeric, Text,
-                        func)
+from sqlalchemy import (
+    ARRAY,
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    BigInteger,
+    Numeric,
+    Text,
+    func,
+)
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -8,13 +20,16 @@ from dataactcore.models.domainModels import concat_tas, concat_display_tas
 
 class FlexField(Base):
     """Model for the flex field table."""
+
     __tablename__ = "flex_field"
 
     flex_field_id = Column(BigInteger, primary_key=True)
-    submission_id = Column(Integer,
-                           ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_flex_field_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_flex_field_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
@@ -25,13 +40,16 @@ class FlexField(Base):
 
 class Appropriation(Base):
     """Model for the appropriation table."""
+
     __tablename__ = "appropriation"
 
     appropriation_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer,
-                           ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_appropriation_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_appropriation_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False, index=True)
@@ -66,21 +84,25 @@ class Appropriation(Base):
         super(Appropriation, self).__init__(**clean_kwargs)
 
 
-Index("ix_appropriation_account_num_submission_id",
-      Appropriation.account_num,
-      Appropriation.submission_id,
-      unique=False)
+Index(
+    "ix_appropriation_account_num_submission_id", Appropriation.account_num, Appropriation.submission_id, unique=False
+)
 
 
 class ObjectClassProgramActivity(Base):
     """Model for the object_class_program_activity table."""
+
     __tablename__ = "object_class_program_activity"
 
     object_class_program_activity_id = Column(BigInteger, primary_key=True)
-    submission_id = Column(Integer,
-                           ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_object_class_program_activity_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey(
+            "submission.submission_id", ondelete="CASCADE", name="fk_object_class_program_activity_submission_id"
+        ),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False, index=True)
@@ -143,16 +165,20 @@ class ObjectClassProgramActivity(Base):
         super(ObjectClassProgramActivity, self).__init__(**clean_kwargs)
 
 
-Index("ix_oc_pa_tas_oc_pa",
-      ObjectClassProgramActivity.tas,
-      ObjectClassProgramActivity.object_class,
-      ObjectClassProgramActivity.program_activity_code,
-      unique=False)
+Index(
+    "ix_oc_pa_tas_oc_pa",
+    ObjectClassProgramActivity.tas,
+    ObjectClassProgramActivity.object_class,
+    ObjectClassProgramActivity.program_activity_code,
+    unique=False,
+)
 
-Index("ix_oc_pa_account_num_submission_id",
-      ObjectClassProgramActivity.account_num,
-      ObjectClassProgramActivity.submission_id,
-      unique=False)
+Index(
+    "ix_oc_pa_account_num_submission_id",
+    ObjectClassProgramActivity.account_num,
+    ObjectClassProgramActivity.submission_id,
+    unique=False,
+)
 
 Index("ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name))
 Index("ix_oc_atc_upper", func.upper(ObjectClassProgramActivity.availability_type_code))
@@ -164,13 +190,16 @@ Index("ix_oc_pya_upper", func.upper(ObjectClassProgramActivity.prior_year_adjust
 
 class AwardFinancial(Base):
     """Corresponds to entries in File C"""
+
     __tablename__ = "award_financial"
 
     award_financial_id = Column(BigInteger, primary_key=True)
-    submission_id = Column(Integer,
-                           ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_award_financial_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_award_financial_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False, index=True)
@@ -239,11 +268,13 @@ class AwardFinancial(Base):
         super(AwardFinancial, self).__init__(**clean_kwargs)
 
 
-Index("ix_award_financial_tas_oc_pa",
-      AwardFinancial.tas,
-      AwardFinancial.object_class,
-      AwardFinancial.program_activity_code,
-      unique=False)
+Index(
+    "ix_award_financial_tas_oc_pa",
+    AwardFinancial.tas,
+    AwardFinancial.object_class,
+    AwardFinancial.program_activity_code,
+    unique=False,
+)
 Index("ix_af_piid_upper", func.upper(AwardFinancial.piid))
 Index("ix_af_parent_award_id_upper", func.upper(AwardFinancial.parent_award_id))
 Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
@@ -257,13 +288,18 @@ Index("ix_af_pya_upper", func.upper(AwardFinancial.prior_year_adjustment))
 
 
 class TotalObligations(Base):
-    """ Model keeping track of the total obligations from the AwardFinancial (C file) table. """
+    """Model keeping track of the total obligations from the AwardFinancial (C file) table."""
+
     __tablename__ = "total_obligations"
 
     total_obligations_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_total_obligations_submission_id"),
-                           nullable=False, unique=True, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_total_obligations_submission_id"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     total_obligations = Column(Numeric)
     total_proc_obligations = Column(Numeric)
@@ -271,13 +307,18 @@ class TotalObligations(Base):
 
 
 class PublishedTotalObligations(Base):
-    """ Model keeping track of the published total obligations from the AwardFinancial (C file) table. """
+    """Model keeping track of the published total obligations from the AwardFinancial (C file) table."""
+
     __tablename__ = "published_total_obligations"
 
     published_total_obligations_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_published_total_obligations_submission_id"),
-                           nullable=False, unique=True, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_total_obligations_submission_id"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     total_obligations = Column(Numeric)
     total_proc_obligations = Column(Numeric)
@@ -285,14 +326,17 @@ class PublishedTotalObligations(Base):
 
 
 class PublishedFlexField(Base):
-    """ Model for the published flex field table. """
+    """Model for the published flex field table."""
+
     __tablename__ = "published_flex_field"
 
     published_flex_field_id = Column(BigInteger, primary_key=True)
-    submission_id = Column(Integer,
-                           ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_published_flex_field_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_flex_field_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
     row_number = Column(Integer)
@@ -303,12 +347,16 @@ class PublishedFlexField(Base):
 
 class PublishedAppropriation(Base):
     """Model for the published data from the Appropriation (A file) table."""
+
     __tablename__ = "published_appropriation"
 
     published_appropriation_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_published_appropriation_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_appropriation_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
     row_number = Column(Integer)
@@ -345,12 +393,20 @@ class PublishedAppropriation(Base):
 
 class PublishedObjectClassProgramActivity(Base):
     """Model for the published data from the ObjectClassProgramActivity (B file) table."""
+
     __tablename__ = "published_object_class_program_activity"
 
     published_object_class_program_activity_id = Column(BigInteger, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_published_object_class_program_activity_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey(
+            "submission.submission_id",
+            ondelete="CASCADE",
+            name="fk_published_object_class_program_activity_submission_id",
+        ),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
     row_number = Column(Integer)
@@ -415,12 +471,16 @@ class PublishedObjectClassProgramActivity(Base):
 
 class PublishedAwardFinancial(Base):
     """Model for the published data from the AwardFinancial (C file) table."""
+
     __tablename__ = "published_award_financial"
 
     published_award_financial_id = Column(BigInteger, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_published_award_financial_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_award_financial_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
     row_number = Column(Integer)
@@ -491,15 +551,18 @@ class PublishedAwardFinancial(Base):
 
 class AwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
+
     __tablename__ = "award_financial_assistance"
 
     award_financial_assistance_id = Column(BigInteger, primary_key=True)
     afa_generated_unique = Column(Text)
     unique_award_key = Column(Text)
-    submission_id = Column(Integer,
-                           ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_award_financial_assistance_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_award_financial_assistance_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False, index=True)
@@ -593,14 +656,17 @@ Index("ix_afa_fain_upper", func.upper(AwardFinancialAssistance.fain))
 
 class AwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
+
     __tablename__ = "award_procurement"
     award_procurement_id = Column(BigInteger, primary_key=True)
     detached_award_proc_unique = Column(Text)
     unique_award_key = Column(Text)
-    submission_id = Column(Integer,
-                           ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_award_procurement_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_award_procurement_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False, index=True)
@@ -885,17 +951,24 @@ Index("ix_ap_awarding_sub_tier_agency_c_upper", func.upper(AwardProcurement.awar
 
 
 class PublishedAwardFinancialAssistance(Base):
-    """ Model for Published D2-Award (Financial Assistance). """
-    __tablename__ = 'published_award_financial_assistance'
+    """Model for Published D2-Award (Financial Assistance)."""
+
+    __tablename__ = "published_award_financial_assistance"
 
     published_award_financial_assistance_id = Column(BigInteger, primary_key=True)
     afa_generated_unique = Column(Text)
     unique_award_key = Column(Text)
-    submission_id = Column(Integer,
-                           ForeignKey('submission.submission_id', ondelete='CASCADE',
-                                      name='fk_published_award_financial_assistance_submission_id'),
-                           nullable=False, index=True)
-    submission = relationship('Submission', uselist=False, cascade='delete')
+    submission_id = Column(
+        Integer,
+        ForeignKey(
+            "submission.submission_id",
+            ondelete="CASCADE",
+            name="fk_published_award_financial_assistance_submission_id",
+        ),
+        nullable=False,
+        index=True,
+    )
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
     row_number = Column(Integer)
     action_date = Column(Text)
@@ -984,17 +1057,20 @@ class PublishedAwardFinancialAssistance(Base):
 
 
 class PublishedAwardProcurement(Base):
-    """ Model for Published D1-Award (Procurement). """
-    __tablename__ = 'published_award_procurement'
+    """Model for Published D1-Award (Procurement)."""
+
+    __tablename__ = "published_award_procurement"
 
     published_award_procurement_id = Column(BigInteger, primary_key=True)
     detached_award_proc_unique = Column(Text)
     unique_award_key = Column(Text)
-    submission_id = Column(Integer,
-                           ForeignKey('submission.submission_id', ondelete='CASCADE',
-                                      name='fk_published_award_procurement_submission_id'),
-                           nullable=False, index=True)
-    submission = relationship('Submission', uselist=False, cascade='delete')
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_award_procurement_submission_id"),
+        nullable=False,
+        index=True,
+    )
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer)
     row_number = Column(Integer)
     piid = Column(Text)
@@ -1274,6 +1350,7 @@ class PublishedAwardProcurement(Base):
 
 class DetachedAwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
+
     __tablename__ = "detached_award_procurement"
     detached_award_procurement_id = Column(BigInteger, primary_key=True)
     detached_award_proc_unique = Column(Text, unique=True, nullable=False)
@@ -1606,8 +1683,8 @@ Index("ix_dap_parent_award_id_upper", func.upper(DetachedAwardProcurement.parent
 Index("ix_dap_awarding_sub_tier_agency_c_upper", func.upper(DetachedAwardProcurement.awarding_sub_tier_agency_c))
 Index("ix_dap_awardee_or_recipient_uei_upper", func.upper(DetachedAwardProcurement.awardee_or_recipient_uei))
 
-Index("ix_dap_piid_upp_trans", func.upper(func.translate(DetachedAwardProcurement.piid, '-', '')))
-Index("ix_dap_pai_upp_trans", func.upper(func.translate(DetachedAwardProcurement.parent_award_id, '-', '')))
+Index("ix_dap_piid_upp_trans", func.upper(func.translate(DetachedAwardProcurement.piid, "-", "")))
+Index("ix_dap_pai_upp_trans", func.upper(func.translate(DetachedAwardProcurement.parent_award_id, "-", "")))
 
 Index("ix_dap_uei_upper", func.upper(DetachedAwardProcurement.awardee_or_recipient_uei))
 Index("ix_dap_puei_upper", func.upper(DetachedAwardProcurement.ultimate_parent_uei))
@@ -1615,14 +1692,17 @@ Index("ix_dap_puei_upper", func.upper(DetachedAwardProcurement.ultimate_parent_u
 
 class FABS(Base):
     """Model for FABS submission."""
+
     __tablename__ = "fabs"
 
     fabs_id = Column(BigInteger, primary_key=True)
     afa_generated_unique = Column(Text, index=True, nullable=False)
-    submission_id = Column(Integer,
-                           ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                      name="fk_fabs_submission_id"),
-                           nullable=False, index=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_fabs_submission_id"),
+        nullable=False,
+        index=True,
+    )
     submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False, index=True)
@@ -1686,6 +1766,7 @@ Index("ix_fabs_uei_upper", func.upper(FABS.uei))
 
 class PublishedFABS(Base):
     """Model for published FABS."""
+
     __tablename__ = "published_fabs"
 
     published_fabs_id = Column(BigInteger, primary_key=True)
@@ -1796,32 +1877,37 @@ class PublishedFABS(Base):
         super(PublishedFABS, self).__init__(**clean_kwargs)
 
 
+Index("ix_published_fabs_is_active", PublishedFABS.is_active, postgresql_where=(PublishedFABS.is_active.is_(True)))
+
 Index(
-    'ix_published_fabs_is_active',
+    "ix_published_fabs_fain_awarding_sub_tier_is_active",
+    PublishedFABS.fain,
+    PublishedFABS.awarding_sub_tier_agency_c,
     PublishedFABS.is_active,
-    postgresql_where=(PublishedFABS.is_active.is_(True)))
+    unique=False,
+)
 
-Index("ix_published_fabs_fain_awarding_sub_tier_is_active",
-      PublishedFABS.fain,
-      PublishedFABS.awarding_sub_tier_agency_c,
-      PublishedFABS.is_active,
-      unique=False)
+Index(
+    "ix_published_fabs_fain_awarding_subtier_upper",
+    func.upper(PublishedFABS.fain),
+    func.upper(PublishedFABS.awarding_sub_tier_agency_c),
+    unique=False,
+)
 
-Index("ix_published_fabs_fain_awarding_subtier_upper",
-      func.upper(PublishedFABS.fain),
-      func.upper(PublishedFABS.awarding_sub_tier_agency_c),
-      unique=False)
+Index(
+    "ix_published_fabs_uri_awarding_sub_tier_is_active",
+    PublishedFABS.uri,
+    PublishedFABS.awarding_sub_tier_agency_c,
+    PublishedFABS.is_active,
+    unique=False,
+)
 
-Index("ix_published_fabs_uri_awarding_sub_tier_is_active",
-      PublishedFABS.uri,
-      PublishedFABS.awarding_sub_tier_agency_c,
-      PublishedFABS.is_active,
-      unique=False)
-
-Index("ix_published_fabs_uri_awarding_subtier_upper",
-      func.upper(PublishedFABS.uri),
-      func.upper(PublishedFABS.awarding_sub_tier_agency_c),
-      unique=False)
+Index(
+    "ix_published_fabs_uri_awarding_subtier_upper",
+    func.upper(PublishedFABS.uri),
+    func.upper(PublishedFABS.awarding_sub_tier_agency_c),
+    unique=False,
+)
 
 Index("ix_published_fabs_uak_upper", func.upper(PublishedFABS.unique_award_key))
 Index("ix_published_fabs_fain_upper", func.upper(PublishedFABS.fain))

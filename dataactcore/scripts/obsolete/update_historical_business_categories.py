@@ -776,29 +776,33 @@ FABS_UPDATE_SQL = """
 
 def update_fpds_business_categories(sess, update_empty=False):
     start = datetime.now()
-    logger.info('Updating business categories for FPDS')
-    empty_sql = ' WHERE business_categories = \'{}\'' if update_empty else ''
+    logger.info("Updating business categories for FPDS")
+    empty_sql = " WHERE business_categories = '{}'" if update_empty else ""
     result = sess.execute(FPDS_UPDATE_SQL.format(empty_sql))
-    logger.info('Finished updating business categories for FDPS in %s seconds (%s rows updated)' %
-                (str(datetime.now() - start), result.rowcount))
+    logger.info(
+        "Finished updating business categories for FDPS in %s seconds (%s rows updated)"
+        % (str(datetime.now() - start), result.rowcount)
+    )
 
 
 def update_fabs_business_categories(sess, update_empty=False):
     start = datetime.now()
-    logger.info('Updating business categories for FABS')
-    empty_sql = ' AND business_categories = \'{}\'' if update_empty else ''
+    logger.info("Updating business categories for FABS")
+    empty_sql = " AND business_categories = '{}'" if update_empty else ""
     result = sess.execute(FABS_UPDATE_SQL.format(empty_sql))
-    logger.info('Finished updating business categories for FABS in %s seconds (%s rows updated)' %
-                (str(datetime.now() - start), result.rowcount))
+    logger.info(
+        "Finished updating business categories for FABS in %s seconds (%s rows updated)"
+        % (str(datetime.now() - start), result.rowcount)
+    )
 
 
 def main():
     sess = GlobalDB.db().session
 
-    parser = argparse.ArgumentParser(description='Update business categories for existing transaction data')
-    parser.add_argument('-fpds', help='Update only FPDS business categories', action='store_true')
-    parser.add_argument('-fabs', help='Update only FABS business categories', action='store_true')
-    parser.add_argument('-update_empty', help='Only update ones without categories', action='store_true')
+    parser = argparse.ArgumentParser(description="Update business categories for existing transaction data")
+    parser.add_argument("-fpds", help="Update only FPDS business categories", action="store_true")
+    parser.add_argument("-fabs", help="Update only FABS business categories", action="store_true")
+    parser.add_argument("-update_empty", help="Only update ones without categories", action="store_true")
     args = parser.parse_args()
 
     overall_start = datetime.now()
@@ -822,7 +826,7 @@ def main():
     logger.info("Completed business categories updates in %s seconds" % str(datetime.now() - overall_start))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with create_app().app_context():
         configure_logging()
         main()

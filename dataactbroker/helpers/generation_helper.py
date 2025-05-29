@@ -22,29 +22,43 @@ from dataactcore.utils.stringCleaner import StringCleaner
 
 logger = logging.getLogger(__name__)
 
-STATUS_MAP = {"waiting": "waiting", "ready": "invalid", "running": "waiting", "finished": "finished",
-              "invalid": "failed", "failed": "failed"}
-VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
-                         "failed": "failed", "invalid": "failed"}
+STATUS_MAP = {
+    "waiting": "waiting",
+    "ready": "invalid",
+    "running": "waiting",
+    "finished": "finished",
+    "invalid": "failed",
+    "failed": "failed",
+}
+VALIDATION_STATUS_MAP = {
+    "waiting": "waiting",
+    "ready": "waiting",
+    "running": "waiting",
+    "finished": "finished",
+    "failed": "failed",
+    "invalid": "failed",
+}
 
 
-def start_d_generation(job, start_date, end_date, agency_type, agency_code=None, file_format='csv',
-                       element_numbers=False):
-    """ Validates the start and end dates of the generation, updates the submission's publish status and progress (if
-        its not detached generation), and sends the job information to SQS.
+def start_d_generation(
+    job, start_date, end_date, agency_type, agency_code=None, file_format="csv", element_numbers=False
+):
+    """Validates the start and end dates of the generation, updates the submission's publish status and progress (if
+    its not detached generation), and sends the job information to SQS.
 
-        Args:
-            job: File generation job to start
-            start_date: String to parse as the start date of the generation
-            end_date: String to parse as the end date of the generation
-            agency_type: Type of Agency to generate files by: "awarding" or "funding"
-            agency_code: Agency code for detached D file generations
-            file_format: determines if the file generated is a txt or a csv
-            element_numbers: determines if the alternate headers with FPDS element numbers should be used
+    Args:
+        job: File generation job to start
+        start_date: String to parse as the start date of the generation
+        end_date: String to parse as the end date of the generation
+        agency_type: Type of Agency to generate files by: "awarding" or "funding"
+        agency_code: Agency code for detached D file generations
+        file_format: determines if the file generated is a txt or a csv
+        element_numbers: determines if the alternate headers with FPDS element numbers should be used
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
-        raise ResponseError("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
-                            StatusCode.CLIENT_ERROR)
+        raise ResponseError(
+            "Start or end date cannot be parsed into a date of format MM/DD/YYYY", StatusCode.CLIENT_ERROR
+        )
 
     # Update the Job's start and end dates
     sess = GlobalDB.db().session
@@ -56,7 +70,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None,
     if job.submission_id:
         agency_code = update_generation_submission(sess, job)
 
-    mark_job_status(job.job_id, 'waiting')
+    mark_job_status(job.job_id, "waiting")
 
     file_generation = retrieve_cached_file_generation(job, agency_type, agency_code, file_format, element_numbers)
     if file_generation:
@@ -65,15 +79,22 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None,
         except Exception as e:
             logger.error(traceback.format_exc())
 
-            mark_job_status(job.job_id, 'failed')
+            mark_job_status(job.job_id, "failed")
             job.error_message = str(e)
             sess.commit()
     else:
         # Create new FileGeneration and reset Jobs
         file_generation = FileGeneration(
-            request_date=datetime.now().date(), start_date=job.start_date, end_date=job.end_date,
-            file_type=job.file_type.letter_name, agency_code=agency_code, agency_type=agency_type,
-            file_format=file_format, is_cached_file=True, element_numbers=element_numbers)
+            request_date=datetime.now().date(),
+            start_date=job.start_date,
+            end_date=job.end_date,
+            file_type=job.file_type.letter_name,
+            agency_code=agency_code,
+            agency_type=agency_type,
+            file_format=file_format,
+            is_cached_file=True,
+            element_numbers=element_numbers,
+        )
         sess.add(file_generation)
         sess.commit()
 
@@ -81,9 +102,16 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None,
             job.file_generation_id = file_generation.file_generation_id
             sess.commit()
             reset_generation_jobs(sess, job)
-            logger.info({'message': 'Sending new FileGeneration {} to SQS'.format(file_generation.file_generation_id),
-                         'message_type': 'BrokerInfo', 'file_type': job.file_type.letter_name, 'job_id': job.job_id,
-                         'submission_id': job.submission_id, 'file_generation_id': file_generation.file_generation_id})
+            logger.info(
+                {
+                    "message": "Sending new FileGeneration {} to SQS".format(file_generation.file_generation_id),
+                    "message_type": "BrokerInfo",
+                    "file_type": job.file_type.letter_name,
+                    "job_id": job.job_id,
+                    "submission_id": job.submission_id,
+                    "file_generation_id": file_generation.file_generation_id,
+                }
+            )
 
             # Add file_generation_id to the SQS job queue
             queue = sqs_queue()
@@ -92,46 +120,51 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None,
         except Exception as e:
             logger.error(traceback.format_exc())
 
-            mark_job_status(job.job_id, 'failed')
+            mark_job_status(job.job_id, "failed")
             job.error_message = str(e)
             file_generation.is_cached_file = False
             sess.commit()
 
 
 def start_e_f_generation(job):
-    """ Passes the Job ID for an E or F generation Job to SQS
+    """Passes the Job ID for an E or F generation Job to SQS
 
-        Args:
-            job: File generation job to start
+    Args:
+        job: File generation job to start
     """
     mark_job_status(job.job_id, "waiting")
 
     file_type = job.file_type.letter_name
-    log_data = {'message': 'Sending {} file generation job {} to Validator in SQS'.format(file_type, job.job_id),
-                'message_type': 'BrokerInfo', 'submission_id': job.submission_id, 'job_id': job.job_id,
-                'file_type': file_type}
+    log_data = {
+        "message": "Sending {} file generation job {} to Validator in SQS".format(file_type, job.job_id),
+        "message_type": "BrokerInfo",
+        "submission_id": job.submission_id,
+        "job_id": job.job_id,
+        "file_type": file_type,
+    }
     logger.info(log_data)
 
     # Add job_id to the SQS job queue
     queue = sqs_queue()
     msg_response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes={})
 
-    log_data['message'] = 'SQS message response: {}'.format(msg_response)
+    log_data["message"] = "SQS message response: {}".format(msg_response)
     logger.debug(log_data)
 
 
 def start_dabs_generation(job, start_date, end_date, agency_code):
-    """ Validates the start and end dates of the generation and sends the job information to SQS.
+    """Validates the start and end dates of the generation and sends the job information to SQS.
 
-        Args:
-            job: File generation job to start
-            start_date: String to parse as the start date of the generation
-            end_date: String to parse as the end date of the generation
-            agency_code: Agency code for DABS-related file generations
+    Args:
+        job: File generation job to start
+        start_date: String to parse as the start date of the generation
+        end_date: String to parse as the end date of the generation
+        agency_code: Agency code for DABS-related file generations
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
-        raise ResponseError("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
-                            StatusCode.CLIENT_ERROR)
+        raise ResponseError(
+            "Start or end date cannot be parsed into a date of format MM/DD/YYYY", StatusCode.CLIENT_ERROR
+        )
 
     # Update the Job's start and end dates
     sess = GlobalDB.db().session
@@ -142,98 +175,129 @@ def start_dabs_generation(job, start_date, end_date, agency_code):
     mark_job_status(job.job_id, "waiting")
 
     file_type = job.file_type.letter_name
-    log_data = {'message': 'Sending {} file generation job {} to Validator in SQS'.format(file_type, job.job_id),
-                'message_type': 'BrokerInfo', 'job_id': job.job_id, 'file_type': file_type}
+    log_data = {
+        "message": "Sending {} file generation job {} to Validator in SQS".format(file_type, job.job_id),
+        "message_type": "BrokerInfo",
+        "job_id": job.job_id,
+        "file_type": file_type,
+    }
     logger.info(log_data)
 
     # Set SQS message attributes
-    message_attr = {'agency_code': {'DataType': 'String', 'StringValue': agency_code}}
+    message_attr = {"agency_code": {"DataType": "String", "StringValue": agency_code}}
 
     # Add job_id to the SQS job queue
     queue = sqs_queue()
     msg_response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
 
-    log_data['message'] = 'SQS message response: {}'.format(msg_response)
+    log_data["message"] = "SQS message response: {}".format(msg_response)
     logger.debug(log_data)
 
 
 def check_file_generation(job_id):
-    """ Check the status of a file generation
+    """Check the status of a file generation
 
-        Args:
-            job_id: upload Job ID
-        Return:
-            Dict with keys: job_id, status, file_type, message, url, start, end
+    Args:
+        job_id: upload Job ID
+    Return:
+        Dict with keys: job_id, status, file_type, message, url, start, end
     """
     sess = GlobalDB.db().session
 
     # We want to use one_or_none() here so we can see if the job is None so we can mark the status as invalid to
     # indicate that a status request is invoked for a job that isn't created yet
     upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
-    response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '#', 'size': None,
-                     'generated_at': None}
+    response_dict = {
+        "job_id": job_id,
+        "status": "",
+        "file_type": "",
+        "message": "",
+        "url": "#",
+        "size": None,
+        "generated_at": None,
+    }
 
     if upload_job is None:
-        response_dict['start'] = ''
-        response_dict['end'] = ''
-        response_dict['status'] = 'invalid'
-        response_dict['message'] = 'No generation job found with the specified ID'
+        response_dict["start"] = ""
+        response_dict["end"] = ""
+        response_dict["status"] = "invalid"
+        response_dict["message"] = "No generation job found with the specified ID"
         return response_dict
 
-    response_dict['file_type'] = lookups.FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
-    response_dict['size'] = upload_job.file_size
-    response_dict['status'] = map_generate_status(sess, upload_job)
-    response_dict['message'] = upload_job.error_message or ''
-    response_dict['generated_at'] = str(upload_job.updated_at)
+    response_dict["file_type"] = lookups.FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
+    response_dict["size"] = upload_job.file_size
+    response_dict["status"] = map_generate_status(sess, upload_job)
+    response_dict["message"] = upload_job.error_message or ""
+    response_dict["generated_at"] = str(upload_job.updated_at)
 
     # Generate the URL (or path) to the file
-    if CONFIG_BROKER['use_aws'] and response_dict['status'] == 'finished' and upload_job.filename:
-        path, file_name = upload_job.filename.split('/')
-        response_dict['url'] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                          url_mapping=CONFIG_BROKER["submission_bucket_mapping"])
-    elif response_dict['status'] == 'finished' and upload_job.filename:
-        response_dict['url'] = upload_job.filename
+    if CONFIG_BROKER["use_aws"] and response_dict["status"] == "finished" and upload_job.filename:
+        path, file_name = upload_job.filename.split("/")
+        response_dict["url"] = S3Handler().get_signed_url(
+            path=path, file_name=file_name, bucket_route=None, url_mapping=CONFIG_BROKER["submission_bucket_mapping"]
+        )
+    elif response_dict["status"] == "finished" and upload_job.filename:
+        response_dict["url"] = upload_job.filename
 
     # Only D file generations have start and end dates
-    if response_dict['file_type'] in ['D1', 'D2']:
-        response_dict['start'] = upload_job.start_date.strftime("%m/%d/%Y") if upload_job.start_date is not None else ""
-        response_dict['end'] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date is not None else ""
+    if response_dict["file_type"] in ["D1", "D2"]:
+        response_dict["start"] = upload_job.start_date.strftime("%m/%d/%Y") if upload_job.start_date is not None else ""
+        response_dict["end"] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date is not None else ""
 
     return response_dict
 
 
 def retrieve_cached_file_generation(job, agency_type, agency_code, file_format, element_numbers=False):
-    """ Retrieves a cached FileGeneration for the D file request, if there is one.
+    """Retrieves a cached FileGeneration for the D file request, if there is one.
 
-        Args:
-            job: Upload Job for the generation file
-            agency_type: Type of Agency to generate files by: 'awarding' or 'funding'
-            agency_code: Agency code to generate file for
-            file_format: File format to generate file in (txt or csv)
-            element_numbers: determines if the alternate headers with FPDS element numbers should be used
+    Args:
+        job: Upload Job for the generation file
+        agency_type: Type of Agency to generate files by: 'awarding' or 'funding'
+        agency_code: Agency code to generate file for
+        file_format: File format to generate file in (txt or csv)
+        element_numbers: determines if the alternate headers with FPDS element numbers should be used
 
-        Returns:
-            FileGeneration object matching the criteria, or None
+    Returns:
+        FileGeneration object matching the criteria, or None
     """
     sess = GlobalDB.db().session
-    logger.info({'message': 'Checking for a cached FileGeneration to pull file from', 'message_type': 'BrokerInfo',
-                 'submission_id': job.submission_id, 'job_id': job.job_id, 'file_type': job.file_type.letter_name})
+    logger.info(
+        {
+            "message": "Checking for a cached FileGeneration to pull file from",
+            "message_type": "BrokerInfo",
+            "submission_id": job.submission_id,
+            "job_id": job.job_id,
+            "file_type": job.file_type.letter_name,
+        }
+    )
 
     # find current date and date of last FPDS pull
     current_date = datetime.now().date()
-    last_update = sess.query(ExternalDataLoadDate).\
-        filter_by(external_data_type_id=lookups.EXTERNAL_DATA_TYPE_DICT['fpds']).one_or_none()
+    last_update = (
+        sess.query(ExternalDataLoadDate)
+        .filter_by(external_data_type_id=lookups.EXTERNAL_DATA_TYPE_DICT["fpds"])
+        .one_or_none()
+    )
     fpds_date = last_update.last_load_date_start.date() if last_update else current_date
 
     # check if a cached FileGeneration already exists using these criteria
     file_generation = None
-    file_gen = sess.query(FileGeneration).filter(
-        FileGeneration.start_date == job.start_date, FileGeneration.end_date == job.end_date,
-        FileGeneration.agency_code == agency_code, FileGeneration.agency_type == agency_type,
-        FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True),
-        FileGeneration.file_format == file_format, FileGeneration.element_numbers.is_(element_numbers)).one_or_none()
+    file_gen = (
+        sess.query(FileGeneration)
+        .filter(
+            FileGeneration.start_date == job.start_date,
+            FileGeneration.end_date == job.end_date,
+            FileGeneration.agency_code == agency_code,
+            FileGeneration.agency_type == agency_type,
+            FileGeneration.file_type == job.file_type.letter_name,
+            FileGeneration.is_cached_file.is_(True),
+            FileGeneration.file_format == file_format,
+            FileGeneration.element_numbers.is_(element_numbers),
+        )
+        .one_or_none()
+    )
 
-    if file_gen and (file_gen.file_type == 'D1' and file_gen.request_date < fpds_date):
+    if file_gen and (file_gen.file_type == "D1" and file_gen.request_date < fpds_date):
         # Uncache expired D1 FileGeneration
         file_gen.is_cached_file = False
         sess.commit()
@@ -244,30 +308,41 @@ def retrieve_cached_file_generation(job, agency_type, agency_code, file_format, 
 
 
 def map_generate_status(sess, upload_job):
-    """ Maps job status to file generation statuses expected by frontend. Updates the error message of the job, if
-        there is one.
+    """Maps job status to file generation statuses expected by frontend. Updates the error message of the job, if
+    there is one.
 
-        Args:
-            upload_job: the upload job for this file
-            validation_job: the validation job for this file if applicable
+    Args:
+        upload_job: the upload job for this file
+        validation_job: the validation job for this file if applicable
 
-        Returns:
-            The status of the submission based on upload job status and validation job status (where applicable)
+    Returns:
+        The status of the submission based on upload job status and validation job status (where applicable)
     """
-    if lookups.FILE_TYPE_DICT_LETTER[upload_job.file_type_id] in ['D1', 'D2'] and upload_job.submission_id:
-        validation_job = sess.query(Job).filter(
-            Job.submission_id == upload_job.submission_id,
-            Job.file_type_id == upload_job.file_type_id,
-            Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one_or_none()
+    if lookups.FILE_TYPE_DICT_LETTER[upload_job.file_type_id] in ["D1", "D2"] and upload_job.submission_id:
+        validation_job = (
+            sess.query(Job)
+            .filter(
+                Job.submission_id == upload_job.submission_id,
+                Job.file_type_id == upload_job.file_type_id,
+                Job.job_type_id == lookups.JOB_TYPE_DICT["csv_record_validation"],
+            )
+            .one_or_none()
+        )
 
         if not validation_job:
             # Handle missing validation Job
-            error_text = 'The upload Job {} with submission_id {} is missing its validation Job'.format(
-                upload_job.job_id, upload_job.submission_id)
-            logger.error({
-                'message': error_text, 'message_type': 'BrokerError', 'job_id': upload_job.job_id,
-                'file_type': upload_job.file_type.name, 'submission_id': upload_job.submission_id
-            })
+            error_text = "The upload Job {} with submission_id {} is missing its validation Job".format(
+                upload_job.job_id, upload_job.submission_id
+            )
+            logger.error(
+                {
+                    "message": error_text,
+                    "message_type": "BrokerError",
+                    "job_id": upload_job.job_id,
+                    "file_type": upload_job.file_type.name,
+                    "submission_id": upload_job.submission_id,
+                }
+            )
             raise Exception(error_text)
 
         validation_status = validation_job.job_status.name
@@ -280,7 +355,7 @@ def map_generate_status(sess, upload_job):
         errors_present = False
 
     response_status = STATUS_MAP[upload_job.job_status.name]
-    if response_status == "failed" and upload_job.error_message in ['', None]:
+    if response_status == "failed" and upload_job.error_message in ["", None]:
         # Provide an error message if none present
         upload_job.error_message = "Upload job failed without error message"
 
@@ -298,13 +373,13 @@ def map_generate_status(sess, upload_job):
             upload_job.error_message = "Validation completed but row-level errors were found"
 
     if response_status == "failed":
-        if upload_job.error_message in ['', None] and validation_job.error_message in ['', None]:
+        if upload_job.error_message in ["", None] and validation_job.error_message in ["", None]:
             if validation_status == "invalid":
                 upload_job.error_message = "Generated file had file-level errors"
             else:
                 upload_job.error_message = "Validation job had an internal error"
 
-        elif upload_job.error_message in ['', None]:
+        elif upload_job.error_message in ["", None]:
             upload_job.error_message = validation_job.error_message
 
     sess.commit()
@@ -312,27 +387,33 @@ def map_generate_status(sess, upload_job):
 
 
 def update_generation_submission(sess, job):
-    """ Updates a submission's publish status, cross-file Job, and the generation's validation Job
+    """Updates a submission's publish status, cross-file Job, and the generation's validation Job
 
-        Args:
-            sess: database session
-            job: the generation job
+    Args:
+        sess: database session
+        job: the generation job
 
-        Returns:
-            CGAC or FREC agency code of the Submission
+    Returns:
+        CGAC or FREC agency code of the Submission
     """
     submission = sess.query(Submission).filter(Submission.submission_id == job.submission_id).one()
 
     # Change the publish status back to updated if certified
-    if submission.publish_status_id == lookups.PUBLISH_STATUS_DICT['published']:
+    if submission.publish_status_id == lookups.PUBLISH_STATUS_DICT["published"]:
         submission.publishable = False
-        submission.publish_status_id = lookups.PUBLISH_STATUS_DICT['updated']
+        submission.publish_status_id = lookups.PUBLISH_STATUS_DICT["updated"]
         submission.updated_at = get_utc_now()
 
     # Retrieve and update the validation Job
-    val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                     Job.file_type_id == job.file_type_id,
-                                     Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+    val_job = (
+        sess.query(Job)
+        .filter(
+            Job.submission_id == job.submission_id,
+            Job.file_type_id == job.file_type_id,
+            Job.job_type_id == lookups.JOB_TYPE_DICT["csv_record_validation"],
+        )
+        .one()
+    )
     val_job.start_date = job.start_date
     val_job.end_date = job.end_date
     val_job.filename = job.filename
@@ -341,11 +422,17 @@ def update_generation_submission(sess, job):
 
     # Set cross-file validation status to waiting if it's not already
     # No need to update it for each type of D file generation job, just do it once
-    cross_file_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                            Job.job_type_id == lookups.JOB_TYPE_DICT['validation'],
-                                            Job.job_status_id != lookups.JOB_STATUS_DICT['waiting']).one_or_none()
+    cross_file_job = (
+        sess.query(Job)
+        .filter(
+            Job.submission_id == job.submission_id,
+            Job.job_type_id == lookups.JOB_TYPE_DICT["validation"],
+            Job.job_status_id != lookups.JOB_STATUS_DICT["waiting"],
+        )
+        .one_or_none()
+    )
     if cross_file_job:
-        cross_file_job.job_status_id = lookups.JOB_STATUS_DICT['waiting']
+        cross_file_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
 
     sess.commit()
 
@@ -353,22 +440,27 @@ def update_generation_submission(sess, job):
 
 
 def create_generation_job(file_type_name, start_date, end_date):
-    """ Add details to jobs for generating files
+    """Add details to jobs for generating files
 
-        Args:
-            file_type_name: the name of the file type being generated
-            job: the generation job, None if it is a detached generation
-            start_date: The start date for the generation job, only used for detached files
-            end_date: The end date for the generation job, only used for detached files
+    Args:
+        file_type_name: the name of the file type being generated
+        job: the generation job, None if it is a detached generation
+        start_date: The start date for the generation job, only used for detached files
+        end_date: The end date for the generation job, only used for detached files
 
-        Returns:
-            the file generation job
+    Returns:
+        the file generation job
     """
     sess = GlobalDB.db().session
 
     # Create a new job for a detached generation
-    job = Job(job_type_id=lookups.JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
-              file_type_id=lookups.FILE_TYPE_DICT[file_type_name], start_date=start_date, end_date=end_date)
+    job = Job(
+        job_type_id=lookups.JOB_TYPE_DICT["file_upload"],
+        user_id=g.user.user_id,
+        file_type_id=lookups.FILE_TYPE_DICT[file_type_name],
+        start_date=start_date,
+        end_date=end_date,
+    )
     sess.add(job)
 
     # Update the job details
@@ -381,53 +473,63 @@ def create_generation_job(file_type_name, start_date, end_date):
 
 
 def check_generation_prereqs(submission_id, file_type):
-    """ Make sure the prerequisite jobs for this file type are complete without errors.
+    """Make sure the prerequisite jobs for this file type are complete without errors.
 
-        Args:
-            submission_id: the submission id for which we're checking file generation prerequisites
-            file_type: the type of file being generated
+    Args:
+        submission_id: the submission id for which we're checking file generation prerequisites
+        file_type: the type of file being generated
 
-        Returns:
-            A boolean indicating if the job has no incomplete prerequisites (True if the job is clear to start)
+    Returns:
+        A boolean indicating if the job has no incomplete prerequisites (True if the job is clear to start)
     """
     sess = GlobalDB.db().session
     unfinished_prereqs = 0
-    prereq_query = sess.query(Job).filter(Job.submission_id == submission_id,
-                                          or_(Job.job_status_id != lookups.JOB_STATUS_DICT['finished'],
-                                              Job.number_of_errors > 0))
+    prereq_query = sess.query(Job).filter(
+        Job.submission_id == submission_id,
+        or_(Job.job_status_id != lookups.JOB_STATUS_DICT["finished"], Job.number_of_errors > 0),
+    )
 
     # Check cross-file validation if generating E or F
-    if file_type in ['E', 'F']:
-        unfinished_prereqs = prereq_query.filter(Job.job_type_id == lookups.JOB_TYPE_DICT['validation']).count()
+    if file_type in ["E", "F"]:
+        unfinished_prereqs = prereq_query.filter(Job.job_type_id == lookups.JOB_TYPE_DICT["validation"]).count()
     # Check A, B, C files if generating a D file
-    elif file_type in ['D1', 'D2']:
-        unfinished_prereqs = prereq_query.filter(Job.file_type_id.in_(
-            [lookups.FILE_TYPE_DICT['appropriations'], lookups.FILE_TYPE_DICT['program_activity'],
-             lookups.FILE_TYPE_DICT['award_financial']])).count()
-    elif file_type != 'A':
-        raise ResponseError('Invalid type for file generation', StatusCode.CLIENT_ERROR)
+    elif file_type in ["D1", "D2"]:
+        unfinished_prereqs = prereq_query.filter(
+            Job.file_type_id.in_(
+                [
+                    lookups.FILE_TYPE_DICT["appropriations"],
+                    lookups.FILE_TYPE_DICT["program_activity"],
+                    lookups.FILE_TYPE_DICT["award_financial"],
+                ]
+            )
+        ).count()
+    elif file_type != "A":
+        raise ResponseError("Invalid type for file generation", StatusCode.CLIENT_ERROR)
 
     return unfinished_prereqs == 0
 
 
 def copy_file_generation_to_job(job, file_generation, is_local):
-    """ Copy cached FileGeneration data to a Job requesting a file.
+    """Copy cached FileGeneration data to a Job requesting a file.
 
-        Args:
-            job: Job object to copy the data to
-            file_generation: Cached FileGeneration object to copy the data from
-            is_local: A boolean flag indicating whether the application is being run locally or not
+    Args:
+        job: Job object to copy the data to
+        file_generation: Cached FileGeneration object to copy the data from
+        is_local: A boolean flag indicating whether the application is being run locally or not
     """
     sess = GlobalDB.db().session
     log_data = {
-        'message': 'Copying FileGeneration {} data to Job {}'.format(file_generation.file_generation_id, job.job_id),
-        'message_type': 'BrokerInfo', 'job_id': job.job_id, 'file_type': job.file_type.name,
-        'file_generation_id': file_generation.file_generation_id}
+        "message": "Copying FileGeneration {} data to Job {}".format(file_generation.file_generation_id, job.job_id),
+        "message_type": "BrokerInfo",
+        "job_id": job.job_id,
+        "file_type": job.file_type.name,
+        "file_generation_id": file_generation.file_generation_id,
+    }
     logger.info(log_data)
 
     # Do not edit submissions that have already successfully completed
     sess.refresh(job)
-    if job.job_status_id == lookups.JOB_STATUS_DICT['finished']:
+    if job.job_status_id == lookups.JOB_STATUS_DICT["finished"]:
         return
 
     job.file_generation_id = file_generation.file_generation_id
@@ -438,51 +540,59 @@ def copy_file_generation_to_job(job, file_generation, is_local):
         sess.commit()
         return
 
-    filepath = CONFIG_BROKER['broker_files'] if g.is_local else "{}/".format(str(job.submission_id))
+    filepath = CONFIG_BROKER["broker_files"] if g.is_local else "{}/".format(str(job.submission_id))
 
     # Change the validation job's file data when within a submission
     if job.submission_id is not None:
         # Regenerate the filename based on the submission
         fillin_vals = {
-            'start': file_generation.start_date.strftime('%Y%m%d'),
-            'end': file_generation.end_date.strftime('%Y%m%d'),
-            'agency_type': file_generation.agency_type,
-            'ext': '.{}'.format(file_generation.file_format),
-            'submission_id': job.submission_id,
-            'FYP': filename_fyp_sub_format(job.submission),
-            'timestamp': get_timestamp()
+            "start": file_generation.start_date.strftime("%Y%m%d"),
+            "end": file_generation.end_date.strftime("%Y%m%d"),
+            "agency_type": file_generation.agency_type,
+            "ext": ".{}".format(file_generation.file_format),
+            "submission_id": job.submission_id,
+            "FYP": filename_fyp_sub_format(job.submission),
+            "timestamp": get_timestamp(),
         }
-        original_filename = lookups.SUBMISSION_FILENAMES[lookups.FILE_TYPE_DICT_LETTER[job.file_type_id]].\
-            format(**fillin_vals)
-        filename = '{}{}'.format(filepath, original_filename)
+        original_filename = lookups.SUBMISSION_FILENAMES[lookups.FILE_TYPE_DICT_LETTER[job.file_type_id]].format(
+            **fillin_vals
+        )
+        filename = "{}{}".format(filepath, original_filename)
 
-        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                         Job.file_type_id == job.file_type_id,
-                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        val_job = (
+            sess.query(Job)
+            .filter(
+                Job.submission_id == job.submission_id,
+                Job.file_type_id == job.file_type_id,
+                Job.job_type_id == lookups.JOB_TYPE_DICT["csv_record_validation"],
+            )
+            .one()
+        )
         val_job.original_filename = original_filename
         val_job.filename = filename
 
         # Copy the data to the Submission's bucket
         if not g.is_local:
             # Check to see if the same file exists in the child bucket
-            s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
-            bucket = CONFIG_BROKER['aws_bucket']
+            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            bucket = CONFIG_BROKER["aws_bucket"]
             response = s3.list_objects_v2(Bucket=bucket, Prefix=filename)
-            for obj in response.get('Contents', []):
-                if obj['Key'] == filename:
+            for obj in response.get("Contents", []):
+                if obj["Key"] == filename:
                     # The file already exists in this location
-                    log_data['message'] = '{} file already exists in this location: {}; not overwriting.'.format(
-                        job.file_type.name, filename)
+                    log_data["message"] = "{} file already exists in this location: {}; not overwriting.".format(
+                        job.file_type.name, filename
+                    )
                     logger.info(log_data)
-                    mark_job_status(job.job_id, 'finished')
+                    mark_job_status(job.job_id, "finished")
                     return
             S3Handler.copy_file(bucket, bucket, file_generation.file_path, filename)
         else:
             shutil.copyfile(file_generation.file_path, filename)
     else:
         # Just copy the detached names to the detached job
-        original_filename = file_generation.file_path.split('/')[-1]
-        filename = '{}{}'.format(filepath, original_filename)
+        original_filename = file_generation.file_path.split("/")[-1]
+        filename = "{}{}".format(filepath, original_filename)
 
     job.filename = filename
     job.original_filename = original_filename
@@ -491,37 +601,42 @@ def copy_file_generation_to_job(job, file_generation, is_local):
     sess.commit()
 
     # Mark Job status last so the validation job doesn't start until everything is done
-    mark_job_status(job.job_id, 'finished')
+    mark_job_status(job.job_id, "finished")
 
 
 def d_file_query(query_utils):
-    """ Retrieve D1 or D2 data.
+    """Retrieve D1 or D2 data.
 
-        Args:
-            query_utils: object containing:
-                file_utils: fileD1 or fileD2 utils
-                sess: database session
-                agency_code: FREC or CGAC code for generation
-                start: beginning of period for D file
-                end: end of period for D file
+    Args:
+        query_utils: object containing:
+            file_utils: fileD1 or fileD2 utils
+            sess: database session
+            agency_code: FREC or CGAC code for generation
+            start: beginning of period for D file
+            end: end of period for D file
 
-        Return:
-            D1 or D2 queryset
+    Return:
+        D1 or D2 queryset
     """
-    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
-                                                query_utils["agency_type"], query_utils["start"], query_utils["end"])
+    rows = query_utils["file_utils"].query_data(
+        query_utils["sess"],
+        query_utils["agency_code"],
+        query_utils["agency_type"],
+        query_utils["start"],
+        query_utils["end"],
+    )
     return rows
 
 
 def reset_generation_jobs(sess, job):
-    """ Resets the Job and (if present) its validation Job to pre-generation
+    """Resets the Job and (if present) its validation Job to pre-generation
 
-        Args:
-            sess: Current database session
-            job: The generation Job
+    Args:
+        sess: Current database session
+        job: The generation Job
 
-        Raises:
-            Exception: If the job_id is not valid
+    Raises:
+        Exception: If the job_id is not valid
     """
     job.filename = None
     job.original_filename = None
@@ -532,9 +647,15 @@ def reset_generation_jobs(sess, job):
     job.number_of_rows_valid = None
 
     if job.submission_id:
-        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                         Job.file_type_id == job.file_type_id,
-                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        val_job = (
+            sess.query(Job)
+            .filter(
+                Job.submission_id == job.submission_id,
+                Job.file_type_id == job.file_type_id,
+                Job.job_type_id == lookups.JOB_TYPE_DICT["csv_record_validation"],
+            )
+            .one()
+        )
         val_job.filename = None
         val_job.original_filename = None
         val_job.number_of_errors = 0
@@ -547,35 +668,36 @@ def reset_generation_jobs(sess, job):
 
 
 def a_file_query(query_utils):
-    """ Retrieve File A data.
+    """Retrieve File A data.
 
-        Args:
-            query_utils: object containing:
-                sess: database session
-                agency_code: FREC or CGAC code for generation
-                start: beginning of period for A file
-                end: end of period for A file
+    Args:
+        query_utils: object containing:
+            sess: database session
+            agency_code: FREC or CGAC code for generation
+            start: beginning of period for A file
+            end: end of period for A file
 
-        Return:
-            A queryset
+    Return:
+        A queryset
     """
     rows = fileA.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"], query_utils["year"])
     return rows
 
 
 def boc_file_query(query_utils):
-    """ Retrieve BOC comparison data.
+    """Retrieve BOC comparison data.
 
-        Args:
-            query_utils: object containing:
-                sess: database session
-                agency_code: FREC or CGAC code for generation
-                start: beginning of period for BOC comparison file
-                end: end of period for BOC comparison file
+    Args:
+        query_utils: object containing:
+            sess: database session
+            agency_code: FREC or CGAC code for generation
+            start: beginning of period for BOC comparison file
+            end: end of period for BOC comparison file
 
-        Return:
-            A queryset
+    Return:
+        A queryset
     """
-    rows = fileBOC.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"],
-                              query_utils["year"])
+    rows = fileBOC.query_data(
+        query_utils["sess"], query_utils["agency_code"], query_utils["period"], query_utils["year"]
+    )
     return rows

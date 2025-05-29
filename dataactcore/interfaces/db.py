@@ -9,8 +9,9 @@ from dataactcore.config import CONFIG_DB
 logger = logging.getLogger(__name__)
 
 
-class _DB(namedtuple('_DB', ['engine', 'connection', 'scoped_session_maker', 'session'])):
+class _DB(namedtuple("_DB", ["engine", "connection", "scoped_session_maker", "session"])):
     """Represents a database connection, from engine to session."""
+
     def close(self):
         logger.debug("Explicitly closing SQLAlchemy database session object {}".format(self.session))
         self.session.close()
@@ -38,7 +39,7 @@ class GlobalDB:
     def db(cls):
         """Build or retrieve the database information"""
         holder = cls._holder()
-        if not getattr(holder, '_db', None):
+        if not getattr(holder, "_db", None):
             holder._db = db_connection()
         return holder._db
 
@@ -46,7 +47,7 @@ class GlobalDB:
     def close(cls):
         """Close the database connection, if present"""
         holder = cls._holder()
-        if hasattr(holder, '_db'):
+        if hasattr(holder, "_db"):
             holder._db.close()
             del holder._db
 
@@ -56,7 +57,7 @@ def db_connection():
     if not CONFIG_DB:
         raise ValueError("Database configuration is not defined")
 
-    db_name = CONFIG_DB['db_name']
+    db_name = CONFIG_DB["db_name"]
     if not db_name:
         raise ValueError("Need dbName defined")
 

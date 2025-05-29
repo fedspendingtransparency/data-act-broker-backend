@@ -3,7 +3,7 @@ from abc import ABCMeta
 
 
 class AbstractQueueError(Exception, metaclass=ABCMeta):
-    """ Abstract base exception representing for error scenarios encountered in the queue dispatcher or worker."""
+    """Abstract base exception representing for error scenarios encountered in the queue dispatcher or worker."""
 
     def __init__(self, *args, worker_process_name=None, queue_message=None, **kwargs):
         if not worker_process_name:
@@ -29,16 +29,16 @@ class AbstractQueueError(Exception, metaclass=ABCMeta):
 
 
 class QueueWorkerProcessError(AbstractQueueError):
-    """ Custom exception representing the scenario where the spawned worker process has failed
-        with a non-zero exit code, indicating some kind of failure.
+    """Custom exception representing the scenario where the spawned worker process has failed
+    with a non-zero exit code, indicating some kind of failure.
     """
 
     pass
 
 
 class QueueWorkDispatcherError(AbstractQueueError):
-    """ Custom exception representing the scenario where the parent process dispatching to and monitoring the worker
-        process has failed with some kind of unexpected exception.
+    """Custom exception representing the scenario where the parent process dispatching to and monitoring the worker
+    process has failed with some kind of unexpected exception.
     """
 
     pass

@@ -18,25 +18,25 @@ from dataactcore.utils.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
-PARK_BUCKET = CONFIG_BROKER['data_sources_bucket']
-PARK_SUB_KEY = 'OMB_Data/'
-PARK_FILE_NAME = 'PARK_PROGRAM_ACTIVITY.csv'
+PARK_BUCKET = CONFIG_BROKER["data_sources_bucket"]
+PARK_SUB_KEY = "OMB_Data/"
+PARK_FILE_NAME = "PARK_PROGRAM_ACTIVITY.csv"
 
 
 def get_park_file(base_path):
-    """ Retrieves the PARK file to load
+    """Retrieves the PARK file to load
 
-        Args:
-            base_path: directory of domain config files
+    Args:
+        base_path: directory of domain config files
 
-        Returns:
-            the file path for the PARK file either on S3 or locally
+    Returns:
+        the file path for the PARK file either on S3 or locally
     """
-    if CONFIG_BROKER['use_aws']:
-        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+    if CONFIG_BROKER["use_aws"]:
+        s3 = boto3.resource("s3", region_name=CONFIG_BROKER["aws_region"])
         s3_object = s3.Object(PARK_BUCKET, PARK_SUB_KEY + PARK_FILE_NAME)
         response = s3_object.get(Key=(PARK_SUB_KEY + PARK_FILE_NAME))
-        pa_file = io.BytesIO(response['Body'].read())
+        pa_file = io.BytesIO(response["Body"].read())
     else:
         pa_file = os.path.join(base_path, PARK_FILE_NAME)
 
@@ -44,17 +44,18 @@ def get_park_file(base_path):
 
 
 def get_date_of_current_park_upload(base_path):
-    """ Gets the last time the file was uploaded to S3, or alternatively the last time the local file was modified.
+    """Gets the last time the file was uploaded to S3, or alternatively the last time the local file was modified.
 
-        Args:
-            base_path: directory of domain config files
+    Args:
+        base_path: directory of domain config files
 
-        Returns:
-            DateTime object
+    Returns:
+        DateTime object
     """
-    if CONFIG_BROKER['use_aws']:
-        last_uploaded = boto3.client('s3', region_name=CONFIG_BROKER['aws_region']). \
-            head_object(Bucket=PARK_BUCKET, Key=PARK_SUB_KEY + PARK_FILE_NAME)['LastModified']
+    if CONFIG_BROKER["use_aws"]:
+        last_uploaded = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"]).head_object(
+            Bucket=PARK_BUCKET, Key=PARK_SUB_KEY + PARK_FILE_NAME
+        )["LastModified"]
         # LastModified is coming back to us in UTC already; just drop the TZ.
         last_uploaded = last_uploaded.replace(tzinfo=None)
     else:
@@ -64,14 +65,17 @@ def get_date_of_current_park_upload(base_path):
 
 
 def get_stored_park_last_upload():
-    """ Gets last recorded timestamp from last time file was processed.
+    """Gets last recorded timestamp from last time file was processed.
 
-        Returns:
-            Upload date of most recent file we have recorded (Datetime object)
+    Returns:
+        Upload date of most recent file we have recorded (Datetime object)
     """
     sess = GlobalDB.db().session
-    last_stored_obj = sess.query(ExternalDataLoadDate).filter_by(
-        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['park_upload']).one_or_none()
+    last_stored_obj = (
+        sess.query(ExternalDataLoadDate)
+        .filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT["park_upload"])
+        .one_or_none()
+    )
     if not last_stored_obj:
         # return epoch ts to make sure we load the data the first time through,
         # and ideally any time the data might have been wiped
@@ -82,41 +86,36 @@ def get_stored_park_last_upload():
 
 
 def export_public_park(raw_data):
-    """ Exports a public copy of the raw file (modified columns)
+    """Exports a public copy of the raw file (modified columns)
 
-        Args:
-            raw_data: the raw csv data analyzed from the latest program activity file
+    Args:
+        raw_data: the raw csv data analyzed from the latest program activity file
     """
-    export_name = 'park.csv'
-    logger.info('Exporting loaded PARK file to {}'.format(export_name))
+    export_name = "park.csv"
+    logger.info("Exporting loaded PARK file to {}".format(export_name))
     raw_data.to_csv(export_name, index=0)
 
 
 def load_park_data(base_path, force_reload=False, export=False):
-    """ Load PARK lookup table.
+    """Load PARK lookup table.
 
-        Args:
-            base_path: directory of domain config files
-            force_reload: whether to force a reload
-            export: whether to export a public copy of the file
+    Args:
+        base_path: directory of domain config files
+        force_reload: whether to force a reload
+        export: whether to export a public copy of the file
     """
     now = datetime.datetime.now()
-    metrics_json = {
-        'script_name': 'load_park.py',
-        'start_time': str(now),
-        'records_deleted': 0,
-        'records_inserted': 0
-    }
+    metrics_json = {"script_name": "load_park.py", "start_time": str(now), "records_deleted": 0, "records_inserted": 0}
 
-    logger.info('Checking PARK upload dates to see if we can skip.')
+    logger.info("Checking PARK upload dates to see if we can skip.")
     last_upload = get_date_of_current_park_upload(base_path)
     if not (last_upload > get_stored_park_last_upload()) and not force_reload:
-        logger.info('Skipping load as it\'s already been done')
+        logger.info("Skipping load as it's already been done")
     else:
-        logger.info('Getting the PARK file')
+        logger.info("Getting the PARK file")
         park_file = get_park_file(base_path)
 
-        logger.info('Loading PARK: {}'.format(PARK_FILE_NAME))
+        logger.info("Loading PARK: {}".format(PARK_FILE_NAME))
 
         with create_app().app_context():
             sess = GlobalDB.db().session
@@ -131,24 +130,24 @@ def load_park_data(base_path, force_reload=False, export=False):
                 raw_data,
                 ProgramActivityPARK,
                 {
-                    'fy': 'fiscal_year',
-                    'pd': 'period',
-                    'alloc_xfer_agency': 'allocation_transfer_id',
-                    'aid': 'agency_id',
-                    'main_acct': 'main_account_number',
-                    'sub_acct': 'sub_account_number',
-                    'park': 'park_code',
-                    'park_name': 'park_name'
+                    "fy": "fiscal_year",
+                    "pd": "period",
+                    "alloc_xfer_agency": "allocation_transfer_id",
+                    "aid": "agency_id",
+                    "main_acct": "main_account_number",
+                    "sub_acct": "sub_account_number",
+                    "park": "park_code",
+                    "park_name": "park_name",
                 },
                 {
-                    'agency_id': {'pad_to_length': 3},
-                    'allocation_transfer_id': {'pad_to_length': 3, 'keep_null': True},
-                    'main_account_number': {'pad_to_length': 4},
-                    'sub_account_number': {'pad_to_length': 3, 'keep_null': True}
-                }
+                    "agency_id": {"pad_to_length": 3},
+                    "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True},
+                    "main_account_number": {"pad_to_length": 4},
+                    "sub_account_number": {"pad_to_length": 3, "keep_null": True},
+                },
             )
 
-            metrics_json['records_deleted'] = sess.query(ProgramActivityPARK).delete()
+            metrics_json["records_deleted"] = sess.query(ProgramActivityPARK).delete()
 
             # insert to db
             table_name = ProgramActivityPARK.__table__.name
@@ -159,23 +158,24 @@ def load_park_data(base_path, force_reload=False, export=False):
                 export_public_park(raw_data)
 
         end_time = datetime.datetime.now()
-        update_external_data_load_date(now, end_time, 'park')
-        update_external_data_load_date(last_upload, end_time, 'park_upload')
-        logger.info('{} records inserted to {}'.format(num, table_name))
-        metrics_json['records_inserted'] = num
+        update_external_data_load_date(now, end_time, "park")
+        update_external_data_load_date(last_upload, end_time, "park_upload")
+        logger.info("{} records inserted to {}".format(num, table_name))
+        metrics_json["records_inserted"] = num
 
-        metrics_json['duration'] = str(end_time - now)
+        metrics_json["duration"] = str(end_time - now)
 
-    with open('load_park_metrics.json', 'w+') as metrics_file:
+    with open("load_park_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
-    parser = argparse.ArgumentParser(description='Loads in Program Activity data')
-    parser.add_argument('-e', '--export', help='If provided, exports a public version of the file locally',
-                        action='store_true')
-    parser.add_argument('-f', '--force', help='If provided, forces a reload', action='store_true')
+    parser = argparse.ArgumentParser(description="Loads in Program Activity data")
+    parser.add_argument(
+        "-e", "--export", help="If provided, exports a public version of the file locally", action="store_true"
+    )
+    parser.add_argument("-f", "--force", help="If provided, forces a reload", action="store_true")
     args = parser.parse_args()
 
     config_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")

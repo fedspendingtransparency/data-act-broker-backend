@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class JsonResponse:
-    """ Used to create an http response object containing JSON """
+    """Used to create an http response object containing JSON"""
+
     debug_mode = True
 
     @staticmethod
@@ -29,7 +30,7 @@ class JsonResponse:
 
     @staticmethod
     def error(exception, error_code, **kwargs):
-        """ Create an http response object for specified error. We assume
+        """Create an http response object for specified error. We assume
         we're in an exception context
 
         Args:
@@ -45,7 +46,7 @@ class JsonResponse:
             response_dict[key] = kwargs[key]
 
         trace = traceback.extract_tb(exception.__traceback__, 10)
-        logger.exception('Route Error')
+        logger.exception("Route Error")
         response_dict["message"] = str(exception)
         if JsonResponse.debug_mode:
             response_dict["errorType"] = str(type(exception))

@@ -49,64 +49,67 @@ FPDS_UNIQUE_KEY_UPDATE_SQL = """
 
 
 def write_idvs_to_file():
-    """ Get a list of all IDVs and write them to a delete file in the fpds_delete_bucket. This is because we need
-        to clean out the website of IDV records so everything is new and not duplicated when we pull it in.
+    """Get a list of all IDVs and write them to a delete file in the fpds_delete_bucket. This is because we need
+    to clean out the website of IDV records so everything is new and not duplicated when we pull it in.
     """
     start = time.time()
     logger.info("Writing IDV delete file for website")
     # Get all IDVs (only the ID and unique key)
-    all_idvs = sess.query(DetachedAwardProcurement.detached_award_procurement_id,
-                          DetachedAwardProcurement.detached_award_proc_unique).filter_by(pulled_from="IDV")
+    all_idvs = sess.query(
+        DetachedAwardProcurement.detached_award_procurement_id, DetachedAwardProcurement.detached_award_proc_unique
+    ).filter_by(pulled_from="IDV")
     now = datetime.datetime.now()
     seconds = int((get_utc_now() - datetime.datetime(1970, 1, 1)).total_seconds())
-    file_name = now.strftime('%m-%d-%Y') + "_delete_records_IDV_" + str(seconds) + ".csv"
+    file_name = now.strftime("%m-%d-%Y") + "_delete_records_IDV_" + str(seconds) + ".csv"
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
     # Writing files
     if CONFIG_BROKER["use_aws"]:
-        s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        s3client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
         # add headers
         contents = bytes((",".join(headers) + "\n").encode())
         for idv in all_idvs:
-            contents += bytes('{},{}\n'.format(idv.detached_award_procurement_id, idv.detached_award_proc_unique).
-                              encode())
-        s3client.put_object(Bucket=CONFIG_BROKER['fpds_delete_bucket'], Key=file_name, Body=contents)
+            contents += bytes(
+                "{},{}\n".format(idv.detached_award_procurement_id, idv.detached_award_proc_unique).encode()
+            )
+        s3client.put_object(Bucket=CONFIG_BROKER["fpds_delete_bucket"], Key=file_name, Body=contents)
     else:
         with CsvLocalWriter(file_name, headers) as writer:
             for idv in all_idvs:
                 writer.write([idv.detached_award_procurement_id, idv.detached_award_proc_unique])
             writer.finish_batch()
 
-    logger.info("Wrote IDV delete file for website, took {} seconds"
-                .format(time.time() - start))
+    logger.info("Wrote IDV delete file for website, took {} seconds".format(time.time() - start))
 
     # Deleting to free up space in case it doesn't auto-delete after this function closes
     del all_idvs
 
 
 def delete_duplicate_idvs():
-    """ Delete all IDV rows that would be duplicates using the new unique key setup for IDVs. Keep only the newest
-        version of each unique key
+    """Delete all IDV rows that would be duplicates using the new unique key setup for IDVs. Keep only the newest
+    version of each unique key
     """
     start = time.time()
     logger.info("Deleting duplicate FPDS IDV records based on new unique key")
     sess.execute(FPDS_DELETE_DUPLICATE_NEW_KEY)
     sess.commit()
-    logger.info("Deleted duplicate FPDS IDV records based on new unique key, took {} seconds"
-                .format(time.time() - start))
+    logger.info(
+        "Deleted duplicate FPDS IDV records based on new unique key, took {} seconds".format(time.time() - start)
+    )
 
 
 def update_unique_keys():
-    """ Update the detached_award_proc_unique key for IDV records """
+    """Update the detached_award_proc_unique key for IDV records"""
     start = time.time()
     now = get_utc_now()
     logger.info("Updating existing FPDS IDV records to have the proper unique key")
-    sess.execute(FPDS_UNIQUE_KEY_UPDATE_SQL.format(now.strftime('%m/%d/%Y %H:%M:%S')))
+    sess.execute(FPDS_UNIQUE_KEY_UPDATE_SQL.format(now.strftime("%m/%d/%Y %H:%M:%S")))
     sess.commit()
-    logger.info("Updated existing FPDS IDV records to have the proper unique key, took {} seconds"
-                .format(time.time() - start))
+    logger.info(
+        "Updated existing FPDS IDV records to have the proper unique key, took {} seconds".format(time.time() - start)
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
 
     with create_app().app_context():

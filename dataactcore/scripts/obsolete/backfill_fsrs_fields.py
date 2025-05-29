@@ -5,23 +5,28 @@ import datetime
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.broker_logging import configure_logging
-from dataactcore.scripts.obsolete.fsrs import (config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT,
-                                               config_state_mappings)
+from dataactcore.scripts.obsolete.fsrs import (
+    config_valid,
+    fetch_and_replace_batch,
+    GRANT,
+    PROCUREMENT,
+    config_state_mappings,
+)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     now = datetime.datetime.now()
     configure_logging()
-    parser = argparse.ArgumentParser(description='Backfill records from FSRS')
-    parser.add_argument('-min_p', '--min_procurement_id', type=int, default=0,
-                        help="Load procurement awards from this id")
-    parser.add_argument('-min_g', '--min_grant_id', type=int, default=0,
-                        help="Load grant awards from this id")
-    parser.add_argument('-max_p', '--max_procurement_id', type=int, help="Load procurement awards up to this id")
-    parser.add_argument('-max_g', '--max_grant_id', type=int, help="Load grant awards up to this id")
+    parser = argparse.ArgumentParser(description="Backfill records from FSRS")
+    parser.add_argument(
+        "-min_p", "--min_procurement_id", type=int, default=0, help="Load procurement awards from this id"
+    )
+    parser.add_argument("-min_g", "--min_grant_id", type=int, default=0, help="Load grant awards from this id")
+    parser.add_argument("-max_p", "--max_procurement_id", type=int, help="Load procurement awards up to this id")
+    parser.add_argument("-max_g", "--max_grant_id", type=int, help="Load grant awards up to this id")
 
     with create_app().app_context():
         logger.info("Begin backilling FSRS data from FSRS API")
@@ -51,11 +56,11 @@ if __name__ == '__main__':
                 sys.exit(1)
 
             if max_proc_id:
-                logger.info('Loading FSRS contracts from {} up to {}'.format(next_proc_id, max_proc_id))
+                logger.info("Loading FSRS contracts from {} up to {}".format(next_proc_id, max_proc_id))
             if max_grant_id:
-                logger.info('Loading FSRS grants from {} up to {}'.format(next_grant_id, max_grant_id))
+                logger.info("Loading FSRS grants from {} up to {}".format(next_grant_id, max_grant_id))
 
-            awards = ['Starting']
+            awards = ["Starting"]
             while len(awards) > 0:
                 procs = []
                 if max_proc_id:
@@ -68,4 +73,4 @@ if __name__ == '__main__':
                     if grants:
                         next_grant_id = grants[-1].id + 1
                 awards = procs + grants
-        logger.info('Finished FSRS backfill.')
+        logger.info("Finished FSRS backfill.")

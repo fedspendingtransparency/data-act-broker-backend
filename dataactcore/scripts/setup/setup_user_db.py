@@ -21,6 +21,6 @@ def insert_codes(sess):
         sess.merge(permission_type)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     setup_user_db()

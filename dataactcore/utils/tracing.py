@@ -3,6 +3,7 @@ Module for Application Performance Monitoring and distributed tracing tools and 
 
 Specifically leveraging the Grafana Open Telemetry tracing client.
 """
+
 import logging
 
 from opentelemetry import trace
@@ -24,7 +25,7 @@ def _activate_trace_filter(filter_class: Callable) -> None:
             tracer._filters.append(filter_class())
         else:
             tracer._filters = [filter_class()]
-        tracer.configure(settings={'FILTERS': tracer._filters})
+        tracer.configure(settings={"FILTERS": tracer._filters})
 
 
 class OpenTelemetryEagerlyDropTraceFilter:
@@ -46,7 +47,7 @@ class OpenTelemetryEagerlyDropTraceFilter:
         span.set_attribute(cls.EAGERLY_DROP_TRACE_KEY, True)
 
     def process_trace(self, trace):
-        """ Drop trace if any span attribute has tag with key 'EAGERLY_DROP_TRACE' """
+        """Drop trace if any span attribute has tag with key 'EAGERLY_DROP_TRACE'"""
         return None if any(span.get_attribute(self.EAGERLY_DROP_TRACE_KEY) for span in trace) else trace
 
 

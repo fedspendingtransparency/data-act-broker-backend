@@ -30,8 +30,7 @@ def run_migrations():
         command.upgrade(alembic_cfg, "head")
     except ProgrammingError as e:
         if "relation" and "already exists" in str(e):
-            raise Exception("Cannot run initial db migration if tables "
-                            "already exist. " + str(e))
+            raise Exception("Cannot run initial db migration if tables " "already exist. " + str(e))
         else:
             raise
     finally:

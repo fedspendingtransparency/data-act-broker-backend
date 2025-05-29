@@ -3,124 +3,146 @@ from datetime import timedelta
 import pandas as pd
 import sqlalchemy as sa
 
-from sqlalchemy import (Column, Date, DateTime, ForeignKey, Index, Integer, BigInteger, Numeric, Text, Float,
-                        UniqueConstraint, Boolean, ARRAY)
+from sqlalchemy import (
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    BigInteger,
+    Numeric,
+    Text,
+    Float,
+    UniqueConstraint,
+    Boolean,
+    ARRAY,
+)
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
 
 def concat_tas(context):
-    """ Given a database context, return a concatenated TAS string.
+    """Given a database context, return a concatenated TAS string.
 
-        Arguments:
-            context: the context for the current model
+    Arguments:
+        context: the context for the current model
 
-        Returns:
-            concatenated TAS string of the current model
+    Returns:
+        concatenated TAS string of the current model
     """
     return concat_tas_dict(context.current_parameters)
 
 
 def concat_display_tas(context):
-    """ Given a database context, return a concatenated display TAS string.
+    """Given a database context, return a concatenated display TAS string.
 
-        Arguments:
-            context: the context for the current model
+    Arguments:
+        context: the context for the current model
 
-        Returns:
-            concatenated display TAS string of the current model
+    Returns:
+        concatenated display TAS string of the current model
     """
     return concat_display_tas_dict(context.current_parameters)
 
 
 def concat_tas_dict(tas_dict):
-    """ Given a dictionary, create a concatenated TAS string.
+    """Given a dictionary, create a concatenated TAS string.
 
-        Arguments:
-            tas_dict: dictionary representing the object with the TAS attributes
+    Arguments:
+        tas_dict: dictionary representing the object with the TAS attributes
 
-        Returns:
-            concatenated TAS string of the current model
+    Returns:
+        concatenated TAS string of the current model
     """
-    tas1 = tas_dict['allocation_transfer_agency']
-    tas1 = tas1 if tas1 else '000'
-    tas2 = tas_dict['agency_identifier']
-    tas2 = tas2 if tas2 else '000'
-    tas3 = tas_dict['beginning_period_of_availa']
-    tas3 = tas3 if tas3 else '0000'
-    tas4 = tas_dict['ending_period_of_availabil']
-    tas4 = tas4 if tas4 else '0000'
-    tas5 = tas_dict['availability_type_code']
-    tas5 = tas5 if tas5 else ' '
-    tas6 = tas_dict['main_account_code']
-    tas6 = tas6 if tas6 else '0000'
-    tas7 = tas_dict['sub_account_code']
-    tas7 = tas7 if tas7 else '000'
-    tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
+    tas1 = tas_dict["allocation_transfer_agency"]
+    tas1 = tas1 if tas1 else "000"
+    tas2 = tas_dict["agency_identifier"]
+    tas2 = tas2 if tas2 else "000"
+    tas3 = tas_dict["beginning_period_of_availa"]
+    tas3 = tas3 if tas3 else "0000"
+    tas4 = tas_dict["ending_period_of_availabil"]
+    tas4 = tas4 if tas4 else "0000"
+    tas5 = tas_dict["availability_type_code"]
+    tas5 = tas5 if tas5 else " "
+    tas6 = tas_dict["main_account_code"]
+    tas6 = tas6 if tas6 else "0000"
+    tas7 = tas_dict["sub_account_code"]
+    tas7 = tas7 if tas7 else "000"
+    tas = "{}{}{}{}{}{}{}".format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
     return tas
 
 
 def concat_tas_dict_vectorized(frame: pd.DataFrame):
-    """ Given a DataFrame containing columns for all TAS components, build a Series of the TAS string.
+    """Given a DataFrame containing columns for all TAS components, build a Series of the TAS string.
 
-        Arguments:
-            frame: the DataFrame from whose columns to build the TAS display string
+    Arguments:
+        frame: the DataFrame from whose columns to build the TAS display string
 
-        Returns:
-            A series containing TAS display strings
+    Returns:
+        A series containing TAS display strings
     """
     tas_frame = frame[list(TAS_COMPONENTS)].copy()
-    tas_frame['allocation_transfer_agency'] = tas_frame['allocation_transfer_agency'].fillna('000')
-    tas_frame['agency_identifier'] = tas_frame['agency_identifier'].fillna('000')
-    tas_frame['beginning_period_of_availa'] = tas_frame['beginning_period_of_availa'].fillna('0000')
-    tas_frame['ending_period_of_availabil'] = tas_frame['ending_period_of_availabil'].fillna('0000')
-    tas_frame['availability_type_code'] = tas_frame['availability_type_code'].fillna(' ')
-    tas_frame['main_account_code'] = tas_frame['main_account_code'].fillna('0000')
-    tas_frame['sub_account_code'] = tas_frame['sub_account_code'].fillna('000')
-    return \
-        tas_frame['allocation_transfer_agency'] + \
-        tas_frame['agency_identifier'] + \
-        tas_frame['beginning_period_of_availa'] + \
-        tas_frame['ending_period_of_availabil'] + \
-        tas_frame['availability_type_code'] + \
-        tas_frame['main_account_code'] + \
-        tas_frame['sub_account_code']
+    tas_frame["allocation_transfer_agency"] = tas_frame["allocation_transfer_agency"].fillna("000")
+    tas_frame["agency_identifier"] = tas_frame["agency_identifier"].fillna("000")
+    tas_frame["beginning_period_of_availa"] = tas_frame["beginning_period_of_availa"].fillna("0000")
+    tas_frame["ending_period_of_availabil"] = tas_frame["ending_period_of_availabil"].fillna("0000")
+    tas_frame["availability_type_code"] = tas_frame["availability_type_code"].fillna(" ")
+    tas_frame["main_account_code"] = tas_frame["main_account_code"].fillna("0000")
+    tas_frame["sub_account_code"] = tas_frame["sub_account_code"].fillna("000")
+    return (
+        tas_frame["allocation_transfer_agency"]
+        + tas_frame["agency_identifier"]
+        + tas_frame["beginning_period_of_availa"]
+        + tas_frame["ending_period_of_availabil"]
+        + tas_frame["availability_type_code"]
+        + tas_frame["main_account_code"]
+        + tas_frame["sub_account_code"]
+    )
 
 
 def concat_display_tas_dict(tas_dict):
-    """ Given a dictionary, create a concatenated display TAS string. Copied directly from USASpending.gov.
+    """Given a dictionary, create a concatenated display TAS string. Copied directly from USASpending.gov.
 
-        Arguments:
-            tas_dict: dictionary representing the object with the TAS attributes
+    Arguments:
+        tas_dict: dictionary representing the object with the TAS attributes
 
-        Returns:
-            concatenated display TAS string of the current model
+    Returns:
+        concatenated display TAS string of the current model
     """
-    tas_rendering_label = "-".join(filter(None, (tas_dict['allocation_transfer_agency'],
-                                                 tas_dict['agency_identifier'])))
+    tas_rendering_label = "-".join(
+        filter(None, (tas_dict["allocation_transfer_agency"], tas_dict["agency_identifier"]))
+    )
 
-    typecode = tas_dict['availability_type_code']
+    typecode = tas_dict["availability_type_code"]
     if typecode:
         tas_rendering_label = "-".join(filter(None, (tas_rendering_label, typecode)))
     else:
-        poa = "/".join(filter(None, (tas_dict['beginning_period_of_availa'], tas_dict['ending_period_of_availabil'])))
+        poa = "/".join(filter(None, (tas_dict["beginning_period_of_availa"], tas_dict["ending_period_of_availabil"])))
         tas_rendering_label = "-".join(filter(None, (tas_rendering_label, poa)))
 
-    tas_rendering_label = "-".join(filter(None, (tas_rendering_label, tas_dict['main_account_code'],
-                                                 tas_dict['sub_account_code'])))
+    tas_rendering_label = "-".join(
+        filter(None, (tas_rendering_label, tas_dict["main_account_code"], tas_dict["sub_account_code"]))
+    )
     return tas_rendering_label
 
 
 TAS_COMPONENTS = (
-    'allocation_transfer_agency', 'agency_identifier', 'beginning_period_of_availa', 'ending_period_of_availabil',
-    'availability_type_code', 'main_account_code', 'sub_account_code'
+    "allocation_transfer_agency",
+    "agency_identifier",
+    "beginning_period_of_availa",
+    "ending_period_of_availabil",
+    "availability_type_code",
+    "main_account_code",
+    "sub_account_code",
 )
 
 
 class TASLookup(Base):
-    """ An entry of CARS history -- this TAS was present in the CARS file between internal_start_date and
-        internal_end_date (potentially null)
+    """An entry of CARS history -- this TAS was present in the CARS file between internal_start_date and
+    internal_end_date (potentially null)
     """
+
     __tablename__ = "tas_lookup"
     tas_id = Column(Integer, primary_key=True)
     account_num = Column(Integer, index=True, nullable=False)
@@ -149,32 +171,34 @@ class TASLookup(Base):
     display_tas = Column(Text, default=concat_display_tas)
 
     def component_dict(self):
-        """ We'll often want to copy TAS component fields; this method returns a dictionary of field_name to value """
+        """We'll often want to copy TAS component fields; this method returns a dictionary of field_name to value"""
         return {field_name: getattr(self, field_name) for field_name in TAS_COMPONENTS}
 
 
-Index("ix_tas",
-      TASLookup.allocation_transfer_agency,
-      TASLookup.agency_identifier,
-      TASLookup.beginning_period_of_availa,
-      TASLookup.ending_period_of_availabil,
-      TASLookup.availability_type_code,
-      TASLookup.main_account_code,
-      TASLookup.sub_account_code,
-      TASLookup.internal_start_date,
-      TASLookup.internal_end_date)
+Index(
+    "ix_tas",
+    TASLookup.allocation_transfer_agency,
+    TASLookup.agency_identifier,
+    TASLookup.beginning_period_of_availa,
+    TASLookup.ending_period_of_availabil,
+    TASLookup.availability_type_code,
+    TASLookup.main_account_code,
+    TASLookup.sub_account_code,
+    TASLookup.internal_start_date,
+    TASLookup.internal_end_date,
+)
 
 
 def is_not_distinct_from(left, right):
-    """ Postgres' IS NOT DISTINCT FROM is an equality check that accounts for NULLs. Unfortunately, it doesn't make
-        use of indexes. Instead, we'll imitate it here
+    """Postgres' IS NOT DISTINCT FROM is an equality check that accounts for NULLs. Unfortunately, it doesn't make
+    use of indexes. Instead, we'll imitate it here
     """
     return sa.or_(left == right, sa.and_(left.is_(None), right.is_(None)))
 
 
 def matching_cars_subquery(sess, model_class, start_date, end_date, submission_id=None):
-    """ We frequently need to mass-update records to look up their CARS history entry. This function creates a subquery
-        to be used in that update call. We pass in the database session to avoid circular dependencies
+    """We frequently need to mass-update records to look up their CARS history entry. This function creates a subquery
+    to be used in that update call. We pass in the database session to avoid circular dependencies
     """
     # Why min()?
     # Our data schema doesn't prevent two TAS history entries with the same
@@ -187,14 +211,14 @@ def matching_cars_subquery(sess, model_class, start_date, end_date, submission_i
     for field_name in TAS_COMPONENTS:
         tas_col = getattr(TASLookup, field_name)
         model_col = getattr(model_class, field_name)
-        subquery = subquery.filter(sa.func.coalesce(tas_col, '') == sa.func.coalesce(model_col, ''))
+        subquery = subquery.filter(sa.func.coalesce(tas_col, "") == sa.func.coalesce(model_col, ""))
 
     day_after_end = end_date + timedelta(days=1)
     model_dates = sa.tuple_(start_date, end_date)
     tas_dates = sa.tuple_(TASLookup.internal_start_date, sa.func.coalesce(TASLookup.internal_end_date, day_after_end))
-    subquery = subquery.filter(model_dates.op('OVERLAPS')(tas_dates))
+    subquery = subquery.filter(model_dates.op("OVERLAPS")(tas_dates))
     if submission_id:
-        model_sub_id = getattr(model_class, 'submission_id')
+        model_sub_id = getattr(model_class, "submission_id")
         subquery = subquery.filter(submission_id == model_sub_id)
     return subquery.scalar_subquery()
 
@@ -212,8 +236,8 @@ class FREC(Base):
     frec_id = Column(Integer, primary_key=True)
     frec_code = Column(Text, nullable=True, index=True, unique=True)
     agency_name = Column(Text)
-    cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_frec_cgac', ondelete="CASCADE"), nullable=False)
-    cgac = relationship('CGAC', foreign_keys='FREC.cgac_id', cascade="delete")
+    cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name="fk_frec_cgac", ondelete="CASCADE"), nullable=False)
+    cgac = relationship("CGAC", foreign_keys="FREC.cgac_id", cascade="delete")
     icon_name = Column(Text)
 
 
@@ -222,13 +246,15 @@ class SubTierAgency(Base):
     sub_tier_agency_id = Column(Integer, primary_key=True)
     sub_tier_agency_code = Column(Text, nullable=False, index=True, unique=True)
     sub_tier_agency_name = Column(Text)
-    cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_sub_tier_agency_cgac', ondelete="CASCADE"),
-                     nullable=False)
-    cgac = relationship('CGAC', foreign_keys='SubTierAgency.cgac_id', cascade="delete")
-    priority = Column(Integer, nullable=False, default='2', server_default='2')
-    frec_id = Column(Integer, ForeignKey("frec.frec_id", name='fk_sub_tier_agency_frec', ondelete="CASCADE"),
-                     nullable=True)
-    frec = relationship('FREC', foreign_keys='SubTierAgency.frec_id', cascade="delete")
+    cgac_id = Column(
+        Integer, ForeignKey("cgac.cgac_id", name="fk_sub_tier_agency_cgac", ondelete="CASCADE"), nullable=False
+    )
+    cgac = relationship("CGAC", foreign_keys="SubTierAgency.cgac_id", cascade="delete")
+    priority = Column(Integer, nullable=False, default="2", server_default="2")
+    frec_id = Column(
+        Integer, ForeignKey("frec.frec_id", name="fk_sub_tier_agency_frec", ondelete="CASCADE"), nullable=True
+    )
+    frec = relationship("FREC", foreign_keys="SubTierAgency.frec_id", cascade="delete")
     is_frec = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
@@ -256,6 +282,7 @@ class ObjectClass(Base):
 
 class SF133(Base):
     """Represents GTAS records"""
+
     __tablename__ = "sf_133"
     sf133_id = Column(BigInteger, primary_key=True)
     agency_identifier = Column(Text, nullable=False, index=True)
@@ -275,13 +302,15 @@ class SF133(Base):
     disaster_emergency_fund_code = Column(Text, index=True)
 
 
-Index("ix_sf_133_tas_group",
-      SF133.tas,
-      SF133.fiscal_year,
-      SF133.period,
-      SF133.line,
-      SF133.disaster_emergency_fund_code,
-      unique=True)
+Index(
+    "ix_sf_133_tas_group",
+    SF133.tas,
+    SF133.fiscal_year,
+    SF133.period,
+    SF133.line,
+    SF133.disaster_emergency_fund_code,
+    unique=True,
+)
 
 
 class TASFailedEdits(Base):
@@ -318,14 +347,16 @@ class ProgramActivity(Base):
     program_activity_name = Column(Text, nullable=False, index=True)
 
 
-Index("ix_pa_tas_pa",
-      ProgramActivity.fiscal_year_period,
-      ProgramActivity.agency_id,
-      ProgramActivity.allocation_transfer_id,
-      ProgramActivity.account_number,
-      ProgramActivity.program_activity_code,
-      ProgramActivity.program_activity_name,
-      unique=True)
+Index(
+    "ix_pa_tas_pa",
+    ProgramActivity.fiscal_year_period,
+    ProgramActivity.agency_id,
+    ProgramActivity.allocation_transfer_id,
+    ProgramActivity.account_number,
+    ProgramActivity.program_activity_code,
+    ProgramActivity.program_activity_name,
+    unique=True,
+)
 
 
 class ProgramActivityPARK(Base):
@@ -341,15 +372,17 @@ class ProgramActivityPARK(Base):
     park_name = Column(Text, nullable=False)
 
 
-Index("ix_pap_tas_park",
-      ProgramActivityPARK.fiscal_year,
-      ProgramActivityPARK.period,
-      ProgramActivityPARK.agency_id,
-      ProgramActivityPARK.allocation_transfer_id,
-      ProgramActivityPARK.main_account_number,
-      ProgramActivityPARK.sub_account_number,
-      ProgramActivityPARK.park_code,
-      unique=True)
+Index(
+    "ix_pap_tas_park",
+    ProgramActivityPARK.fiscal_year,
+    ProgramActivityPARK.period,
+    ProgramActivityPARK.agency_id,
+    ProgramActivityPARK.allocation_transfer_id,
+    ProgramActivityPARK.main_account_number,
+    ProgramActivityPARK.sub_account_number,
+    ProgramActivityPARK.park_code,
+    unique=True,
+)
 
 
 class CountryCode(Base):
@@ -366,7 +399,8 @@ Index("ix_dap_awardee_or_recipient_uei_upper", sa.func.upper(CountryCode.country
 
 
 class SAMRecipient(Base):
-    """ DUNS Records """
+    """DUNS Records"""
+
     __tablename__ = "sam_recipient"
 
     sam_recipient_id = Column(Integer, primary_key=True)
@@ -412,7 +446,8 @@ Index("ix_sam_activation_desc", SAMRecipient.activation_date.desc())
 
 
 class SAMRecipientUnregistered(Base):
-    """ DUNS Records """
+    """DUNS Records"""
+
     __tablename__ = "sam_recipient_unregistered"
 
     sam_recipient_unreg_id = Column(Integer, primary_key=True)
@@ -432,7 +467,8 @@ Index("ix_sam_unreg_uei_upper", sa.func.upper(SAMRecipientUnregistered.uei))
 
 
 class HistoricDUNS(Base):
-    """ Legacy DUNS Records with their latest updates """
+    """Legacy DUNS Records with their latest updates"""
+
     __tablename__ = "historic_duns"
 
     duns_id = Column(Integer, primary_key=True)
@@ -519,7 +555,8 @@ class AssistanceListing(Base):
 
 
 class Zips(Base):
-    """ Zip and other address data for validation """
+    """Zip and other address data for validation"""
+
     __tablename__ = "zips"
 
     zips_id = Column(Integer, primary_key=True)
@@ -529,18 +566,21 @@ class Zips(Base):
     county_number = Column(Text, index=True)
     congressional_district_no = Column(Text, index=True)
 
-    __table_args__ = (UniqueConstraint('zip5', 'zip_last4', name='uniq_zip5_zip_last4'),)
+    __table_args__ = (UniqueConstraint("zip5", "zip_last4", name="uniq_zip5_zip_last4"),)
 
 
-Index("ix_zips_zip5_state_abbreviation_county_number",
-      Zips.zip5,
-      Zips.state_abbreviation,
-      Zips.county_number,
-      unique=False)
+Index(
+    "ix_zips_zip5_state_abbreviation_county_number",
+    Zips.zip5,
+    Zips.state_abbreviation,
+    Zips.county_number,
+    unique=False,
+)
 
 
 class ZipsHistorical(Base):
-    """ Previous census zip and other address data for validation """
+    """Previous census zip and other address data for validation"""
+
     __tablename__ = "zips_historical"
 
     zips_historical_id = Column(Integer, primary_key=True)
@@ -550,18 +590,21 @@ class ZipsHistorical(Base):
     county_number = Column(Text, index=True)
     congressional_district_no = Column(Text, index=True)
 
-    __table_args__ = (UniqueConstraint('zip5', 'zip_last4', name='uniq_hist_zip5_zip_last4'),)
+    __table_args__ = (UniqueConstraint("zip5", "zip_last4", name="uniq_hist_zip5_zip_last4"),)
 
 
-Index("ix_zips_historical_zip5_state_abbreviation_county_number",
-      ZipsHistorical.zip5,
-      ZipsHistorical.state_abbreviation,
-      ZipsHistorical.county_number,
-      unique=False)
+Index(
+    "ix_zips_historical_zip5_state_abbreviation_county_number",
+    ZipsHistorical.zip5,
+    ZipsHistorical.state_abbreviation,
+    ZipsHistorical.county_number,
+    unique=False,
+)
 
 
 class CDStateGrouped(Base):
-    """ Groups state and congressional districts from the zips table for derivation """
+    """Groups state and congressional districts from the zips table for derivation"""
+
     __tablename__ = "cd_state_grouped"
 
     cd_state_grouped_id = Column(Integer, primary_key=True)
@@ -570,7 +613,8 @@ class CDStateGrouped(Base):
 
 
 class ZipsGrouped(Base):
-    """ Zip and other address data without the final 4 digits for derivation """
+    """Zip and other address data without the final 4 digits for derivation"""
+
     __tablename__ = "zips_grouped"
 
     zips_grouped_id = Column(Integer, primary_key=True)
@@ -581,7 +625,8 @@ class ZipsGrouped(Base):
 
 
 class ZipsGroupedHistorical(Base):
-    """ Previous census zip and other address data without the final 4 digits for derivation """
+    """Previous census zip and other address data without the final 4 digits for derivation"""
+
     __tablename__ = "zips_grouped_historical"
 
     zips_grouped_historical_id = Column(Integer, primary_key=True)
@@ -592,7 +637,8 @@ class ZipsGroupedHistorical(Base):
 
 
 class CDZipsGrouped(Base):
-    """ Groups zips and congressional districts from the zips table for derivation (uses threshold logic) """
+    """Groups zips and congressional districts from the zips table for derivation (uses threshold logic)"""
+
     __tablename__ = "cd_zips_grouped"
 
     cd_zips_grouped_id = Column(Integer, primary_key=True)
@@ -602,7 +648,8 @@ class CDZipsGrouped(Base):
 
 
 class CDZipsGroupedHistorical(Base):
-    """ Groups zips and congressional districts from the historic zips table for derivation (uses threshold logic) """
+    """Groups zips and congressional districts from the historic zips table for derivation (uses threshold logic)"""
+
     __tablename__ = "cd_zips_grouped_historical"
 
     cd_zips_grouped_historical_id = Column(Integer, primary_key=True)
@@ -612,7 +659,8 @@ class CDZipsGroupedHistorical(Base):
 
 
 class CityCode(Base):
-    """ City code data and other useful, identifying location data """
+    """City code data and other useful, identifying location data"""
+
     __tablename__ = "city_code"
 
     city_code_id = Column(Integer, primary_key=True)
@@ -627,7 +675,8 @@ class CityCode(Base):
 
 
 class CountyCode(Base):
-    """ County code data per state """
+    """County code data per state"""
+
     __tablename__ = "county_code"
 
     county_code_id = Column(Integer, primary_key=True)
@@ -637,7 +686,8 @@ class CountyCode(Base):
 
 
 class CDCountyGrouped(Base):
-    """ Groups county, state, and congressional districts from the zips table for derivation (uses threshold logic) """
+    """Groups county, state, and congressional districts from the zips table for derivation (uses threshold logic)"""
+
     __tablename__ = "cd_county_grouped"
 
     cd_county_grouped_id = Column(Integer, primary_key=True)
@@ -647,7 +697,8 @@ class CDCountyGrouped(Base):
 
 
 class States(Base):
-    """ State abbreviations and names """
+    """State abbreviations and names"""
+
     __tablename__ = "states"
 
     states_id = Column(Integer, primary_key=True)
@@ -657,7 +708,8 @@ class States(Base):
 
 
 class ZipCity(Base):
-    """ zip-5 to city name mapping """
+    """zip-5 to city name mapping"""
+
     __tablename__ = "zip_city"
 
     zip_city_id = Column(Integer, primary_key=True)
@@ -668,9 +720,10 @@ class ZipCity(Base):
 
 
 class CDCityGrouped(Base):
-    """ Groups city, state, and congressional districts from the zips and zip_city table for derivation
-        (uses threshold logic)
+    """Groups city, state, and congressional districts from the zips and zip_city table for derivation
+    (uses threshold logic)
     """
+
     __tablename__ = "cd_city_grouped"
 
     cd_city_grouped_id = Column(Integer, primary_key=True)
@@ -681,7 +734,8 @@ class CDCityGrouped(Base):
 
 
 class StateCongressional(Base):
-    """ state to congressional district mapping """
+    """state to congressional district mapping"""
+
     __tablename__ = "state_congressional"
 
     state_congressional_id = Column(Integer, primary_key=True)
@@ -690,10 +744,7 @@ class StateCongressional(Base):
     census_year = Column(Integer, index=True)
 
 
-Index("ix_sc_state_cd",
-      StateCongressional.state_code,
-      StateCongressional.congressional_district_no,
-      unique=True)
+Index("ix_sc_state_cd", StateCongressional.state_code, StateCongressional.congressional_district_no, unique=True)
 
 
 class DEFC(Base):
@@ -709,7 +760,8 @@ class DEFC(Base):
 
 
 class ExternalDataType(Base):
-    """ external data type mapping """
+    """external data type mapping"""
+
     __tablename__ = "external_data_type"
 
     external_data_type_id = Column(Integer, primary_key=True)
@@ -718,19 +770,22 @@ class ExternalDataType(Base):
 
 
 class ExternalDataLoadDate(Base):
-    """ data load dates corresponding to external data types """
+    """data load dates corresponding to external data types"""
+
     __tablename__ = "external_data_load_date"
 
     external_data_load_date_id = Column(Integer, primary_key=True)
     last_load_date_start = Column(DateTime)
     last_load_date_end = Column(DateTime)
-    external_data_type_id = Column(Integer, ForeignKey("external_data_type.external_data_type_id",
-                                                       name="fk_external_data_type_id"), unique=True)
+    external_data_type_id = Column(
+        Integer, ForeignKey("external_data_type.external_data_type_id", name="fk_external_data_type_id"), unique=True
+    )
     external_data_type = relationship("ExternalDataType", uselist=False)
 
 
 class FundingOpportunity(Base):
-    """ funding opportunity number lookup """
+    """funding opportunity number lookup"""
+
     __tablename__ = "funding_opportunity"
     funding_opportunity_id = Column(Integer, primary_key=True)
     funding_opportunity_number = Column(Text, nullable=False, index=True)
@@ -745,7 +800,8 @@ class FundingOpportunity(Base):
 
 
 class GTASBOC(Base):
-    """ GTAS BOC data """
+    """GTAS BOC data"""
+
     __tablename__ = "gtas_boc"
     gtas_boc_id = Column(Integer, primary_key=True)
     agency_identifier = Column(Text)

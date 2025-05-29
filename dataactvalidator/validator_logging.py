@@ -1,17 +1,26 @@
 import os
 
 
-def log_job_message(logger, message, job_type="Validator", job_id=None,
-                    is_debug=False, is_warning=False, is_error=False, is_exception=False, other_params=None):
+def log_job_message(
+    logger,
+    message,
+    job_type="Validator",
+    job_id=None,
+    is_debug=False,
+    is_warning=False,
+    is_error=False,
+    is_exception=False,
+    other_params=None,
+):
     """Handles logging a message about a validator job, with additional job metadata"""
     if not other_params:
         other_params = {}
 
     log_dict = {
-        'message': message,
-        'job_id': job_id,
-        'proc_id': os.getpid(),
-        'parent_proc_id': os.getppid(),
+        "message": message,
+        "job_id": job_id,
+        "proc_id": os.getpid(),
+        "parent_proc_id": os.getppid(),
     }
 
     for param in other_params:

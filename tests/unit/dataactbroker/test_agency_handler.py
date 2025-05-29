@@ -3,8 +3,13 @@ import pytest
 from flask import g
 
 from dataactbroker.handlers.agency_handler import (
-    get_sub_tiers_from_perms, get_cgacs_without_sub_tier_agencies, get_accessible_agencies, get_all_agencies,
-    get_user_agency_codes, organize_sub_tier_agencies)
+    get_sub_tiers_from_perms,
+    get_cgacs_without_sub_tier_agencies,
+    get_accessible_agencies,
+    get_all_agencies,
+    get_user_agency_codes,
+    organize_sub_tier_agencies,
+)
 
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from dataactcore.models.userModel import UserAffiliation
@@ -15,14 +20,30 @@ from tests.unit.dataactcore.factories.user import UserFactory
 
 @pytest.mark.usefixtures("user_constants")
 def test_get_sub_tiers_from_perms(database):
-    """ Test getting sub tiers of agencies from the permissions provided """
+    """Test getting sub tiers of agencies from the permissions provided"""
     cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
     frec_cgac = CGACFactory()
     frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(3)]
-    cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
-                                           sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
-    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
-                                           sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
+    cgac_sub_tiers = [
+        SubTierAgencyFactory(
+            sub_tier_agency_code=str(i),
+            cgac=cgacs[i],
+            frec=None,
+            is_frec=False,
+            sub_tier_agency_name="Test Subtier Agency " + str(i),
+        )
+        for i in range(3)
+    ]
+    frec_sub_tiers = [
+        SubTierAgencyFactory(
+            sub_tier_agency_code=str(3 + i),
+            cgac=frec_cgac,
+            frec=frecs[i],
+            is_frec=True,
+            sub_tier_agency_name="Test Subtier Agency " + str(3 + i),
+        )
+        for i in range(3)
+    ]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers)
     database.session.commit()
 
@@ -48,11 +69,16 @@ def test_get_sub_tiers_from_perms(database):
 
 
 def test_get_cgacs_without_sub_tier_agencies(database):
-    """ Test getting all cgacs without any sub tier agencies """
+    """Test getting all cgacs without any sub tier agencies"""
     sub_tier_cgac = CGACFactory()
     no_sub_cgac = CGACFactory()
-    sub_tier = SubTierAgencyFactory(sub_tier_agency_code="0", cgac=sub_tier_cgac, frec=None, is_frec=False,
-                                    sub_tier_agency_name="Test Subtier Agency")
+    sub_tier = SubTierAgencyFactory(
+        sub_tier_agency_code="0",
+        cgac=sub_tier_cgac,
+        frec=None,
+        is_frec=False,
+        sub_tier_agency_name="Test Subtier Agency",
+    )
     database.session.add_all([sub_tier_cgac] + [no_sub_cgac] + [sub_tier])
     database.session.commit()
 
@@ -67,29 +93,50 @@ def test_get_cgacs_without_sub_tier_agencies(database):
     assert results[0].cgac_id == no_sub_cgac.cgac_id
 
 
-@pytest.mark.usefixtures('test_app')
+@pytest.mark.usefixtures("test_app")
 @pytest.mark.usefixtures("user_constants")
 def test_get_accessible_agencies(database):
-    """ Test listing all the agencies (CGAC and FREC) that are accessible based on permissions given """
+    """Test listing all the agencies (CGAC and FREC) that are accessible based on permissions given"""
     # The first cgac/frec don't have sub tiers associated, they should still show up when affiliations are present
     cgacs = [CGACFactory(cgac_code=str(i), agency_name="Test Agency " + str(i)) for i in range(3)]
     frec_cgac = CGACFactory()
     frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(3)]
-    cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
-                                           sub_tier_agency_name="Test Subtier Agency C" + str(i)) for i in range(1, 3)]
-    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
-                                           sub_tier_agency_name="Test Subtier Agency F" + str(i)) for i in range(1, 3)]
+    cgac_sub_tiers = [
+        SubTierAgencyFactory(
+            sub_tier_agency_code=str(i),
+            cgac=cgacs[i],
+            frec=None,
+            is_frec=False,
+            sub_tier_agency_name="Test Subtier Agency C" + str(i),
+        )
+        for i in range(1, 3)
+    ]
+    frec_sub_tiers = [
+        SubTierAgencyFactory(
+            sub_tier_agency_code=str(3 + i),
+            cgac=frec_cgac,
+            frec=frecs[i],
+            is_frec=True,
+            sub_tier_agency_name="Test Subtier Agency F" + str(i),
+        )
+        for i in range(1, 3)
+    ]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers)
     database.session.commit()
 
-    user = UserFactory(affiliations=[
-        UserAffiliation(user_affiliation_id=1, cgac=cgacs[0], frec=None,
-                        permission_type_id=PERMISSION_TYPE_DICT['writer']),
-        UserAffiliation(user_affiliation_id=2, cgac=None, frec=frecs[1],
-                        permission_type_id=PERMISSION_TYPE_DICT['reader']),
-        UserAffiliation(user_affiliation_id=3, cgac=None, frec=frecs[2],
-                        permission_type_id=PERMISSION_TYPE_DICT['reader'])
-    ])
+    user = UserFactory(
+        affiliations=[
+            UserAffiliation(
+                user_affiliation_id=1, cgac=cgacs[0], frec=None, permission_type_id=PERMISSION_TYPE_DICT["writer"]
+            ),
+            UserAffiliation(
+                user_affiliation_id=2, cgac=None, frec=frecs[1], permission_type_id=PERMISSION_TYPE_DICT["reader"]
+            ),
+            UserAffiliation(
+                user_affiliation_id=3, cgac=None, frec=frecs[2], permission_type_id=PERMISSION_TYPE_DICT["reader"]
+            ),
+        ]
+    )
     database.session.add(user)
     database.session.commit()
 
@@ -120,14 +167,30 @@ def test_get_accessible_agencies(database):
 
 
 def test_get_all_agencies(database):
-    """ Test printing out all agencies, FRECs only retrieved if they have a sub tier, CGACs always """
+    """Test printing out all agencies, FRECs only retrieved if they have a sub tier, CGACs always"""
     cgacs = [CGACFactory(cgac_code=str(i), agency_name="Test Agency " + str(i)) for i in range(3)]
     frec_cgac = CGACFactory()
     frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(6, 9)]
-    cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
-                                           sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(2)]
-    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
-                                           sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(2)]
+    cgac_sub_tiers = [
+        SubTierAgencyFactory(
+            sub_tier_agency_code=str(i),
+            cgac=cgacs[i],
+            frec=None,
+            is_frec=False,
+            sub_tier_agency_name="Test Subtier Agency " + str(i),
+        )
+        for i in range(2)
+    ]
+    frec_sub_tiers = [
+        SubTierAgencyFactory(
+            sub_tier_agency_code=str(3 + i),
+            cgac=frec_cgac,
+            frec=frecs[i],
+            is_frec=True,
+            sub_tier_agency_name="Test Subtier Agency " + str(3 + i),
+        )
+        for i in range(2)
+    ]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers)
     database.session.commit()
 
@@ -141,14 +204,22 @@ def test_get_all_agencies(database):
 
 
 def test_organize_sub_tier_agencies(database):
-    """ Test organization of passed sub tier agencies """
+    """Test organization of passed sub tier agencies"""
     cgac = CGACFactory()
     frec_cgac = CGACFactory()
     frec = FRECFactory(cgac=frec_cgac)
-    sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code='0', cgac=cgac, frec=None, is_frec=False,
-                                      sub_tier_agency_name="Test Subtier Agency 0"),
-                 SubTierAgencyFactory(sub_tier_agency_code='1', cgac=frec_cgac, frec=frec, is_frec=True,
-                                      sub_tier_agency_name="Test Subtier Agency 1")]
+    sub_tiers = [
+        SubTierAgencyFactory(
+            sub_tier_agency_code="0", cgac=cgac, frec=None, is_frec=False, sub_tier_agency_name="Test Subtier Agency 0"
+        ),
+        SubTierAgencyFactory(
+            sub_tier_agency_code="1",
+            cgac=frec_cgac,
+            frec=frec,
+            is_frec=True,
+            sub_tier_agency_name="Test Subtier Agency 1",
+        ),
+    ]
     database.session.add_all([cgac] + [frec_cgac] + [frec] + sub_tiers)
     database.session.commit()
 
@@ -160,9 +231,10 @@ def test_organize_sub_tier_agencies(database):
     results = organize_sub_tier_agencies([sub_tiers[0]])
     assert len(results["sub_tier_agency_list"]) == 1
     assert results["sub_tier_agency_list"][0] == {
-        "agency_name": '{}: {}'.format(cgac.agency_name, sub_tiers[0].sub_tier_agency_name),
+        "agency_name": "{}: {}".format(cgac.agency_name, sub_tiers[0].sub_tier_agency_name),
         "agency_code": sub_tiers[0].sub_tier_agency_code,
-        "priority": sub_tiers[0].priority}
+        "priority": sub_tiers[0].priority,
+    }
 
     # Test with both sub tiers passed
     results = organize_sub_tier_agencies([sub_tiers[0], sub_tiers[1]])

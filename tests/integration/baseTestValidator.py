@@ -27,7 +27,7 @@ validator_config_path = os.path.join(base_path, "dataactvalidator", "config")
 
 
 class BaseTestValidator(unittest.TestCase):
-    """ Test login, logout, and session handling """
+    """Test login, logout, and session handling"""
 
     @classmethod
     def setUpClass(cls):
@@ -39,28 +39,28 @@ class BaseTestValidator(unittest.TestCase):
         suite = cls.__name__.lower()
         config = dataactcore.config.CONFIG_DB
         cls.num = randint(1, 9999)
-        config['db_name'] = 'unittest{}_{}_data_broker'.format(cls.num, suite)
+        config["db_name"] = "unittest{}_{}_data_broker".format(cls.num, suite)
         dataactcore.config.CONFIG_DB = config
-        create_database(CONFIG_DB['db_name'])
+        create_database(CONFIG_DB["db_name"])
         run_migrations()
 
         app = create_app()
-        app.config['TESTING'] = True
-        app.config['DEBUG'] = False
+        app.config["TESTING"] = True
+        app.config["DEBUG"] = False
         cls.app = TestApp(app)
         sess = GlobalDB.db().session
 
         # set up default e-mails for tests
         test_users = {
-            'admin_user': 'data.act.tester.1@gmail.com',
-            'agency_user': 'data.act.test.2@gmail.com',
-            'agency_user_2': 'data.act.test.3@gmail.com',
-            'no_permissions_user': 'data.act.tester.4@gmail.com',
-            'editfabs_user': 'data.act.test.5@gmail.com'
+            "admin_user": "data.act.tester.1@gmail.com",
+            "agency_user": "data.act.test.2@gmail.com",
+            "agency_user_2": "data.act.test.3@gmail.com",
+            "no_permissions_user": "data.act.tester.4@gmail.com",
+            "editfabs_user": "data.act.test.5@gmail.com",
         }
-        admin_password = '@pprovedPassw0rdy'
+        admin_password = "@pprovedPassw0rdy"
 
-        cgac = CGAC(cgac_code='000', agency_name='Example Agency')
+        cgac = CGAC(cgac_code="000", agency_name="Example Agency")
         sess.add(cgac)
         sess.commit()
 
@@ -69,9 +69,9 @@ class BaseTestValidator(unittest.TestCase):
         # Upload files to S3 (False = skip re-uploading on subsequent runs)
         cls.uploadFiles = True
         # Run tests for local broker or not
-        cls.local = CONFIG_BROKER['local']
+        cls.local = CONFIG_BROKER["local"]
         # This needs to be set to the local directory for error reports if local is True
-        cls.local_file_directory = CONFIG_SERVICES['error_report_path']
+        cls.local_file_directory = CONFIG_SERVICES["error_report_path"]
 
         # drop and re-create test job db/tables
         setup_job_tracker_db()
@@ -96,7 +96,7 @@ class BaseTestValidator(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         GlobalDB.close()
-        drop_database(CONFIG_DB['db_name'])
+        drop_database(CONFIG_DB["db_name"])
 
     def tearDown(self):
         """Tear down broker unit tests."""
@@ -113,7 +113,8 @@ class BaseTestValidator(unittest.TestCase):
             created_at=get_utc_now(),
             user_id=user_id,
             reporting_start_date=reporting_start_date,
-            reporting_end_date=reporting_end_date)
+            reporting_end_date=reporting_end_date,
+        )
         sess.add(sub)
         sess.commit()
         return sub.submission_id

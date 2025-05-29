@@ -44,6 +44,7 @@ script:
   #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
   #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
   - flake8
+  - black --check --diff .
   - pytest tests/unit --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
   - pytest tests/integration --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
 

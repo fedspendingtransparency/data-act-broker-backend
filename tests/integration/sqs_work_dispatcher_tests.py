@@ -36,8 +36,8 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         return [(i, values[i]) for i in args]
 
     def test_kwfun(self):
-        """ Self-service tests to validate assumptions on how python distributes arguments between arguments:
-            positional-unnamed, positional-keyword, variadic, keyword-only, and variadic-keyword"""
+        """Self-service tests to validate assumptions on how python distributes arguments between arguments:
+        positional-unnamed, positional-keyword, variadic, keyword-only, and variadic-keyword"""
         SQSWorkDispatcherTests.kwfun(1, 2)
         SQSWorkDispatcherTests.kwfun(1, 2, 3)
         SQSWorkDispatcherTests.kwfun(1, 2, 3, 4, 5, 6, 7, 8, 9)
@@ -47,17 +47,18 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         SQSWorkDispatcherTests.kwfun(1, 2, q=17, r=18, s=None)
 
     def test_dispatch_with_default_numeric_message_body_succeeds(self):
-        """ SQSWorkDispatcher can execute work on a numeric message body successfully
+        """SQSWorkDispatcher can execute work on a numeric message body successfully
 
-            - Given a numeric message body
-            - When on a SQSWorkDispatcher.dispatch() is called
-            - Then the default message_transformer provides it as an argument to the job
+        - Given a numeric message body
+        - When on a SQSWorkDispatcher.dispatch() is called
+        - Then the default message_transformer provides it as an argument to the job
         """
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def do_some_work(task_id):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
@@ -78,20 +79,21 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_dispatch_with_single_dict_item_message_transformer_succeeds(self):
-        """ SQSWorkDispatcher can execute work on a numeric message body provided from the message
-            transformer as a dict
+        """SQSWorkDispatcher can execute work on a numeric message body provided from the message
+        transformer as a dict
 
-            - Given a numeric message body
-            - When on a SQSWorkDispatcher.dispatch() is called
-            - And a message_transformer wraps that message body into a dict,
-                keyed by the name of the single param of the job
-            - Then the dispatcher provides the dict item's value to the job when invoked
+        - Given a numeric message body
+        - When on a SQSWorkDispatcher.dispatch() is called
+        - And a message_transformer wraps that message body into a dict,
+            keyed by the name of the single param of the job
+        - Then the dispatcher provides the dict item's value to the job when invoked
         """
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def do_some_work(task_id):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
@@ -112,17 +114,18 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_dispatch_with_multi_arg_message_transformer_succeeds(self):
-        """ SQSWorkDispatcher can execute work when a message_transformer provides tuple-based args to use
+        """SQSWorkDispatcher can execute work when a message_transformer provides tuple-based args to use
 
-            - Given a message_transformer that returns a tuple as the arguments
-            - When on a SQSWorkDispatcher.dispatch() is called
-            - Then the given job will run with those unnamed (positional) args
+        - Given a message_transformer that returns a tuple as the arguments
+        - When on a SQSWorkDispatcher.dispatch() is called
+        - Then the given job will run with those unnamed (positional) args
         """
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def do_some_work(task_id, task_id_times_two):
             self.assertEqual(1234, task_id)
@@ -144,17 +147,18 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_dispatch_with_multi_kwarg_message_transformer_succeeds(self):
-        """ SQSWorkDispatcher can execute work when a message_transformer provides dict-based args to use
+        """SQSWorkDispatcher can execute work when a message_transformer provides dict-based args to use
 
-            - Given a message_transformer that returns a tuple as the arguments
-            - When on a SQSWorkDispatcher.dispatch() is called
-            - Then the given job will run with those unnamed (positional) args
+        - Given a message_transformer that returns a tuple as the arguments
+        - When on a SQSWorkDispatcher.dispatch() is called
+        - Then the given job will run with those unnamed (positional) args
         """
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def do_some_work(task_id, task_id_times_two):
             self.assertEqual(1234, task_id)
@@ -164,8 +168,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             queue_in_use = sqs_queue()
             queue_in_use.send_message(MessageBody=9999)
 
-        dispatcher.dispatch(do_some_work,
-                            message_transformer=lambda x: {"task_id": x.body, "task_id_times_two": x.body * 2})
+        dispatcher.dispatch(
+            do_some_work, message_transformer=lambda x: {"task_id": x.body, "task_id_times_two": x.body * 2}
+        )
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "work" was done
@@ -177,16 +182,17 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_additional_job_args_can_be_passed(self):
-        """ Additional args can be passed to the job to execute
+        """Additional args can be passed to the job to execute
 
-            This should combine the singular element arg from the message transformer with the additional
-            tuple-based args given as positional args
+        This should combine the singular element arg from the message transformer with the additional
+        tuple-based args given as positional args
         """
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def do_some_work(task_id, category):
             self.assertEqual(task_id, 1234)  # assert the message body is passed in as arg by default
@@ -209,16 +215,17 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_additional_job_kwargs_can_be_passed(self):
-        """ Additional args can be passed to the job to execute
+        """Additional args can be passed to the job to execute
 
-            This should combine the singular element arg from the message transformer with the additional
-            dictionary-based args given as keyword arguments
+        This should combine the singular element arg from the message transformer with the additional
+        dictionary-based args given as keyword arguments
         """
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def do_some_work(task_id, category):
             self.assertEqual(task_id, 1234)  # assert the message body is passed in as arg by default
@@ -241,16 +248,17 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_additional_job_kwargs_can_be_passed_alongside_dict_args_from_message_transformer(self):
-        """ Additional args can be passed to the job to execute.
+        """Additional args can be passed to the job to execute.
 
-            This should combine the dictionary-based args from the message transformer with the additional
-            dictionary-based args given as keyword arguments
+        This should combine the dictionary-based args from the message transformer with the additional
+        dictionary-based args given as keyword arguments
         """
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def do_some_work(task_id, category):
             self.assertEqual(task_id, 1234)  # assert the message body is passed in as arg by default
@@ -273,19 +281,20 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_dispatching_by_message_attribute_succeeds_with_job_args(self):
-        """ SQSWorkDispatcher can read a message attribute to determine which function to call
+        """SQSWorkDispatcher can read a message attribute to determine which function to call
 
-            - Given a message with a user-defined message attribute
-            - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
-            - And a message_transformer is given to route execution based on that message attribute
-            - Then the correct function is executed
+        - Given a message with a user-defined message attribute
+        - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
+        - And a message_transformer is given to route execution based on that message attribute
+        - Then the correct function is executed
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
         queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def one_work(task_id):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
@@ -303,7 +312,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         def work_one_or_two(message):
             msg_attr = message.message_attributes
-            if msg_attr and msg_attr.get('work_type', {}).get('StringValue') == 'a':
+            if msg_attr and msg_attr.get("work_type", {}).get("StringValue") == "a":
                 return {"_job": one_work, "_job_args": (message.body,)}
             else:
                 return {"_job": two_work, "_job_args": (message.body,)}
@@ -320,21 +329,22 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_dispatching_by_message_attribute_succeeds_with_job_kwargs(self):
-        """ SQSWorkDispatcher can read a message attribute to determine which function to call
+        """SQSWorkDispatcher can read a message attribute to determine which function to call
 
-            - Given a message with a user-defined message attribute
-            - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
-            - And a message_transformer is given to route execution based on that message attribute
-            - Then the correct function is executed
-            - And it can get its keyword arguments for execution from the job_kwargs item of the
-                message_transformer's returned dictionary
+        - Given a message with a user-defined message attribute
+        - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
+        - And a message_transformer is given to route execution based on that message attribute
+        - Then the correct function is executed
+        - And it can get its keyword arguments for execution from the job_kwargs item of the
+            message_transformer's returned dictionary
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
         queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def one_work(task_id):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
@@ -352,7 +362,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         def work_one_or_two(message):
             msg_attr = message.message_attributes
-            if msg_attr and msg_attr.get('work_type', {}).get('StringValue') == 'a':
+            if msg_attr and msg_attr.get("work_type", {}).get("StringValue") == "a":
                 return {"_job": one_work, "task_id": message.body}
             else:
                 return {"_job": two_work, "task_id": message.body}
@@ -369,21 +379,22 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_dispatching_by_message_attribute_succeeds_with_job_args_and_job_kwargs(self):
-        """ SQSWorkDispatcher can read a message attribute to determine which function to call
+        """SQSWorkDispatcher can read a message attribute to determine which function to call
 
-            - Given a message with a user-defined message attribute
-            - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
-            - And a message_transformer is given to route execution based on that message attribute
-            - Then the correct function is executed
-            - And it can get its args from the job_args item and keyword arguments for execution from the job_kwargs
-                item of the message_transformer's returned dictionary
+        - Given a message with a user-defined message attribute
+        - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
+        - And a message_transformer is given to route execution based on that message attribute
+        - Then the correct function is executed
+        - And it can get its args from the job_args item and keyword arguments for execution from the job_kwargs
+            item of the message_transformer's returned dictionary
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
         queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def one_work(task_id, category):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
@@ -403,7 +414,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         def work_one_or_two(message):
             msg_attr = message.message_attributes
-            if msg_attr and msg_attr.get('work_type', {}).get('StringValue') == 'a':
+            if msg_attr and msg_attr.get("work_type", {}).get("StringValue") == "a":
                 return {"_job": one_work, "_job_args": (message.body,), "category": "one work"}
             else:
                 return {"_job": one_work, "_job_args": (message.body,), "category": "two work"}
@@ -420,22 +431,23 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_dispatching_by_message_attribute_succeeds_with_job_args_and_job_kwargs_and_additional(self):
-        """ SQSWorkDispatcher can read a message attribute to determine which function to call
+        """SQSWorkDispatcher can read a message attribute to determine which function to call
 
-            - Given a message with a user-defined message attribute
-            - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
-            - And a message_transformer is given to route execution based on that message attribute
-            - Then the correct function is executed
-            - And it can get its args from the job_args item and keyword arguments for execution from the job_kwargs
-                item of the message_transformer's returned dictionary
-            - And can append to those additional args and additional kwargs
+        - Given a message with a user-defined message attribute
+        - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
+        - And a message_transformer is given to route execution based on that message attribute
+        - Then the correct function is executed
+        - And it can get its args from the job_args item and keyword arguments for execution from the job_kwargs
+            item of the message_transformer's returned dictionary
+        - And can append to those additional args and additional kwargs
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
         queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=1, monitor_sleep_time=1)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+        )
 
         def one_work(task_id, category, extra1, extra2, kwarg1, xkwarg1, xkwarg2=None, xkwarg3="override_me"):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
@@ -467,18 +479,19 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
         def work_one_or_two(message):
             msg_attr = message.message_attributes
-            if msg_attr and msg_attr.get('work_type', {}).get('StringValue') == 'a':
-                return {"_job": one_work,
-                        "_job_args": (message.body, "one work"),
-                        "kwarg1": "my_kwarg_1"}
+            if msg_attr and msg_attr.get("work_type", {}).get("StringValue") == "a":
+                return {"_job": one_work, "_job_args": (message.body, "one work"), "kwarg1": "my_kwarg_1"}
             else:
-                return {"_job": one_work,
-                        "_job_args": (message.body, "two work"),
-                        "kwarg1": "my_kwarg_1"}
+                return {"_job": one_work, "_job_args": (message.body, "two work"), "kwarg1": "my_kwarg_1"}
 
-        dispatcher.dispatch_by_message_attribute(work_one_or_two, "my_extra_arg_1", "my_extra_arg_2",
-                                                 xkwarg1="my_extra_kwarg_1", xkwarg2="my_extra_kwarg_2",
-                                                 xkwarg3="my_extra_kwarg_3")
+        dispatcher.dispatch_by_message_attribute(
+            work_one_or_two,
+            "my_extra_arg_1",
+            "my_extra_arg_2",
+            xkwarg1="my_extra_kwarg_1",
+            xkwarg2="my_extra_kwarg_2",
+            xkwarg3="my_extra_kwarg_3",
+        )
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
 
         # Make sure the "a_work" was done
@@ -494,34 +507,38 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         try:
             # note: connection max retries config not in botocore v1.5.x
             client_config = Config(region_name="us-gov-west-1", connect_timeout=1, read_timeout=1)
-            sqs = boto3.resource('sqs', config=client_config)
+            sqs = boto3.resource("sqs", config=client_config)
             queue = sqs.Queue("75f4f422-3866-4e4f-9dc9-5364e3de3eaf")
-            dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                           long_poll_seconds=1, monitor_sleep_time=1)
+            dispatcher = SQSWorkDispatcher(
+                queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+            )
             dispatcher.dispatch(lambda x: x * 2)
         except (SystemExit, Exception) as e:
             self.assertIsInstance(e, SystemExit)
             self.assertIsNotNone(e.__cause__)
-            self.assertTrue(isinstance(e.__cause__, EndpointConnectionError)
-                            or isinstance(e.__cause__, ClientError)
-                            or isinstance(e.__cause__, NoRegionError)
-                            or isinstance(e.__cause__, NoCredentialsError))
+            self.assertTrue(
+                isinstance(e.__cause__, EndpointConnectionError)
+                or isinstance(e.__cause__, ClientError)
+                or isinstance(e.__cause__, NoRegionError)
+                or isinstance(e.__cause__, NoCredentialsError)
+            )
 
     def test_failed_job_detected(self):
-        """ SQSWorkDispatcher handles failed work within the child process
+        """SQSWorkDispatcher handles failed work within the child process
 
-            - Given a numeric message body
-            - When on a SQSWorkDispatcher.dispatch() is called
-            - And the function to execute in the child process fails
-            - Then a QueueWorkerProcessError exception is raised
-            - And the exit code of the worker process is > 0
+        - Given a numeric message body
+        - When on a SQSWorkDispatcher.dispatch() is called
+        - And the function to execute in the child process fails
+        - Then a QueueWorkerProcessError exception is raised
+        - And the exit code of the worker process is > 0
         """
         with self.assertRaises(QueueWorkerProcessError):
             queue = sqs_queue()
             queue.send_message(MessageBody=1234)
 
-            dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                           long_poll_seconds=1, monitor_sleep_time=1)
+            dispatcher = SQSWorkDispatcher(
+                queue, worker_process_name="Test Worker Process", long_poll_seconds=1, monitor_sleep_time=1
+            )
 
             def fail_at_work(task_id):
                 raise Exception("failing at this particular job...")
@@ -533,12 +550,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertGreater(dispatcher._worker_process.exitcode, 0)
 
     def test_separate_signal_handlers_for_child_process(self):
-        """ Demonstrate (via log output) that a forked child process will inherit signal-handling of the parent
-            process, but that can be overridden, while maintaining the original signal handling of the parent.
+        """Demonstrate (via log output) that a forked child process will inherit signal-handling of the parent
+        process, but that can be overridden, while maintaining the original signal handling of the parent.
 
-            NOTE: Test is not provable with asserts. Reading STDOUT proves it, but a place to store shared state among
-            processes other than STDOUT was not found to be asserted on.
+        NOTE: Test is not provable with asserts. Reading STDOUT proves it, but a place to store shared state among
+        processes other than STDOUT was not found to be asserted on.
         """
+
         def fire_alarm():
             print("firing alarm from PID {}".format(os.getpid()))
             signal.setitimer(signal.ITIMER_REAL, 0.01)  # fire alarm in .01 sec
@@ -573,9 +591,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         fire_alarm()  # prove that clearing in one child process, left the handler intact in the parent process
 
     def test_terminated_job_triggers_exit_signal_handling_with_retry(self):
-        """ The child worker process is terminated, and exits indicating the exit signal of the termination. The
-            parent monitors this, and initiates exit-handling. Because the dispatcher allows retries, this message
-            should be made receivable again on the queue.
+        """The child worker process is terminated, and exits indicating the exit signal of the termination. The
+        parent monitors this, and initiates exit-handling. Because the dispatcher allows retries, this message
+        should be made receivable again on the queue.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -584,18 +602,16 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=msg_body)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=0, monitor_sleep_time=0.05)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=0, monitor_sleep_time=0.05
+        )
         dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
 
         wq = mp.Queue()  # work tracking queue
         tq = mp.Queue()  # termination queue
 
         terminator = mp.Process(
-            name="worker_terminator",
-            target=self._worker_terminator,
-            args=(tq, 0.05, logger),
-            daemon=True
+            name="worker_terminator", target=self._worker_terminator, args=(tq, 0.05, logger), daemon=True
         )
         terminator.start()  # start terminator
         # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
@@ -621,9 +637,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
     def test_terminated_job_triggers_exit_signal_handling_to_dlq(self):
-        """ The child worker process is terminated, and exits indicating the exit signal of the termination. The
-            parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the
-            message is copied to teh dead letter queue, and deleted from the queue.
+        """The child worker process is terminated, and exits indicating the exit signal of the termination. The
+        parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the
+        message is copied to teh dead letter queue, and deleted from the queue.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -632,17 +648,15 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=msg_body)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=0, monitor_sleep_time=0.05)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=0, monitor_sleep_time=0.05
+        )
 
         wq = mp.Queue()  # work tracking queue
         tq = mp.Queue()  # termination queue
 
         terminator = mp.Process(
-            name="worker_terminator",
-            target=self._worker_terminator,
-            args=(tq, 0.05, logger),
-            daemon=True
+            name="worker_terminator", target=self._worker_terminator, args=(tq, 0.05, logger), daemon=True
         )
         terminator.start()  # start terminator
 
@@ -673,9 +687,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
     def test_terminated_parent_dispatcher_exits_with_negative_signal_code(self):
-        """ After a parent dispatcher process receives an exit signal, and kills its child worker process, it itself
-            exits. Verify that the exit code it exits with is the negative value of the signal received, consistent with
-            how Python handles this.
+        """After a parent dispatcher process receives an exit signal, and kills its child worker process, it itself
+        exits. Verify that the exit code it exits with is the negative value of the signal received, consistent with
+        how Python handles this.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -684,8 +698,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=msg_body)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=0, monitor_sleep_time=0.05)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=0, monitor_sleep_time=0.05
+        )
         dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
 
         wq = mp.Queue()  # work tracking queue
@@ -718,19 +733,22 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item
-            self.assertEqual(msg_body, work_done,
-                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            self.assertEqual(
+                msg_body, work_done, "Was expecting to find worker task_id (msg_body) tracked in the queue"
+            )
         finally:
             if worker and worker.is_running():
-                logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
-                               "Killing it.".format(worker.pid))
+                logger.warning(
+                    "Dispatched worker process with PID {} did not complete in timeout. "
+                    "Killing it.".format(worker.pid)
+                )
                 os.kill(worker.pid, signal.SIGKILL)
                 self.fail("Worker did not complete in timeout as expected. Test fails.")
             self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
 
     def test_exit_handler_can_receive_queue_message_as_arg(self):
-        """ Verify that exit_handlers provided whose signatures allow keyword args can receive the queue message
-            as a keyword arg
+        """Verify that exit_handlers provided whose signatures allow keyword args can receive the queue message
+        as a keyword arg
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -739,14 +757,18 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=msg_body)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=0, monitor_sleep_time=0.05)
+        dispatcher = SQSWorkDispatcher(
+            queue, worker_process_name="Test Worker Process", long_poll_seconds=0, monitor_sleep_time=0.05
+        )
         dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
 
-        def exit_handler_with_msg(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue,  # noqa
-                                  queue_message=None):  # noqa
-            logger.debug("CLEANUP: performing cleanup with "
-                         "exit_handler_with_msg({}, {}, {}".format(task_id, termination_queue, queue_message))
+        def exit_handler_with_msg(
+            task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, queue_message=None  # noqa
+        ):  # noqa
+            logger.debug(
+                "CLEANUP: performing cleanup with "
+                "exit_handler_with_msg({}, {}, {}".format(task_id, termination_queue, queue_message)
+            )
             logger.debug("msg.body = {}".format(queue_message.body))
             work_tracking_queue.put("exit_handling:{}".format(queue_message.body))  # track what we handled
 
@@ -756,14 +778,17 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             name="worker_terminator",
             target=self._worker_terminator,
             args=(termination_queue, 0.05, logger),
-            daemon=True
+            daemon=True,
         )
         terminator.start()  # start terminator
         # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
         # Passing its PID on this Queue will let the terminator know the worker to terminate
-        dispatcher.dispatch(self._work_to_be_terminated, termination_queue=termination_queue,
-                            work_tracking_queue=work_tracking_queue,
-                            exit_handler=exit_handler_with_msg)
+        dispatcher.dispatch(
+            self._work_to_be_terminated,
+            termination_queue=termination_queue,
+            work_tracking_queue=work_tracking_queue,
+            exit_handler=exit_handler_with_msg,
+        )
         dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
         terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
 
@@ -786,15 +811,18 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             # If the exit_handler was called, and if it passed along args from the original worker, then it should
             # have put the message body into the "work_tracker_queue" after work was started and exit occurred
             exit_handling_work = work_tracking_queue.get(True, 1)
-            self.assertEqual("exit_handling:{}".format(msg_body), exit_handling_work,
-                             "Was expecting to find tracking in the work_tracking_queue of the message being handled "
-                             "by the exit_handler")
+            self.assertEqual(
+                "exit_handling:{}".format(msg_body),
+                exit_handling_work,
+                "Was expecting to find tracking in the work_tracking_queue of the message being handled "
+                "by the exit_handler",
+            )
         finally:
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
     def test_default_to_queue_long_poll_works(self):
-        """ Same as testing exit handling when allowing retries, but not setting the long_poll_seoconds value,
-            to leave it to the default setting.
+        """Same as testing exit handling when allowing retries, but not setting the long_poll_seoconds value,
+        to leave it to the default setting.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -810,10 +838,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         tq = mp.Queue()  # termination queue
 
         terminator = mp.Process(
-            name="worker_terminator",
-            target=self._worker_terminator,
-            args=(tq, 0.05, logger),
-            daemon=True
+            name="worker_terminator", target=self._worker_terminator, args=(tq, 0.05, logger), daemon=True
         )
         terminator.start()  # start terminator
         # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
@@ -839,11 +864,11 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
     def test_hanging_cleanup_of_signaled_child_fails_dispatcher_and_sends_to_dlq(self):
-        """ When detecting the child worker process received an exit signal, and the parent dispatcher
-            process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
-            than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. If that also hangs
-            longer than exit_handling_timeout, the message will be put on the dead letter queue, deleted from the
-            origin queue, and :exc:`QueueWorkDispatcherError` will be raised stating unable to do exit handling
+        """When detecting the child worker process received an exit signal, and the parent dispatcher
+        process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
+        than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. If that also hangs
+        longer than exit_handling_timeout, the message will be put on the dead letter queue, deleted from the
+        origin queue, and :exc:`QueueWorkDispatcherError` will be raised stating unable to do exit handling
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -860,9 +885,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             work_tracking_queue.put_nowait("cleanup_end_{}".format(queue_message.body))
 
         cleanup_timeout = int(worker_sleep_interval + 1)
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=0, monitor_sleep_time=0.05,
-                                       exit_handling_timeout=cleanup_timeout)
+        dispatcher = SQSWorkDispatcher(
+            queue,
+            worker_process_name="Test Worker Process",
+            long_poll_seconds=0,
+            monitor_sleep_time=0.05,
+            exit_handling_timeout=cleanup_timeout,
+        )
 
         wq = mp.Queue()  # work tracking queue
         tq = mp.Queue()  # termination queue
@@ -871,25 +900,29 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             name="worker_terminator",
             target=self._worker_terminator,
             args=(tq, worker_sleep_interval, logger),
-            daemon=True
+            daemon=True,
         )
         terminator.start()  # start terminator
 
         with self.assertRaises(QueueWorkDispatcherError) as err_ctx:
             # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
             # Passing its PID on this Queue will let the terminator know the worker to terminate
-            dispatcher.dispatch(self._work_to_be_terminated, termination_queue=tq, work_tracking_queue=wq,
-                                exit_handler=hanging_cleanup)
+            dispatcher.dispatch(
+                self._work_to_be_terminated, termination_queue=tq, work_tracking_queue=wq, exit_handler=hanging_cleanup
+            )
 
         # Ensure to wait on the processes to end with join
         dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
         terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
-        timeout_error_fragment = "Could not perform cleanup during exiting " \
-                                 "of job in allotted _exit_handling_timeout ({}s)".format(cleanup_timeout)
-        self.assertTrue(timeout_error_fragment in str(err_ctx.exception),
-                        "QueueWorkDispatcherError did not mention exit_handling timeouts")
-        self.assertTrue("after 2 tries" in str(err_ctx.exception),
-                        "QueueWorkDispatcherError did not mention '2 tries'")
+        timeout_error_fragment = (
+            "Could not perform cleanup during exiting "
+            "of job in allotted _exit_handling_timeout ({}s)".format(cleanup_timeout)
+        )
+        self.assertTrue(
+            timeout_error_fragment in str(err_ctx.exception),
+            "QueueWorkDispatcherError did not mention exit_handling timeouts",
+        )
+        self.assertTrue("after 2 tries" in str(err_ctx.exception), "QueueWorkDispatcherError did not mention '2 tries'")
 
         try:
             # Worker process should have an exitcode less than zero
@@ -904,26 +937,30 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             work = wq.get_nowait()
             self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
             cleanup_attempt_1 = wq.get(True, 1)
-            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_1,
-                             "Was expecting to find a trace of cleanup attempt 1 "
-                             "tracked in the work queue")
+            self.assertEqual(
+                "cleanup_start_{}".format(msg_body),
+                cleanup_attempt_1,
+                "Was expecting to find a trace of cleanup attempt 1 " "tracked in the work queue",
+            )
             cleanup_attempt_2 = wq.get(True, 1)
-            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_2,
-                             "Was expecting to find a trace of cleanup attempt 2 "
-                             "tracked in the work queue")
+            self.assertEqual(
+                "cleanup_start_{}".format(msg_body),
+                cleanup_attempt_2,
+                "Was expecting to find a trace of cleanup attempt 2 " "tracked in the work queue",
+            )
             self.assertTrue(wq.empty(), "There should be no more work tracked on the work Queue")
             # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
         finally:
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
     def test_hanging_cleanup_of_signaled_parent_fails_dispatcher_and_sends_to_dlq(self):
-        """ When detecting the parent dispatcher process received an exit signal, and the parent dispatcher
-            process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
-            than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. If that also hangs
-            longer than exit_handling_timeout, the message will be put on the dead letter queue, deleted from the
+        """When detecting the parent dispatcher process received an exit signal, and the parent dispatcher
+        process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
+        than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. If that also hangs
+        longer than exit_handling_timeout, the message will be put on the dead letter queue, deleted from the
 
-            Slight differences from :meth:`test_hanging_cleanup_fails_dispatcher_and_sends_to_dlq` is that the child
-            worker process is not "dead" when doing these exit_handling cleanups.
+        Slight differences from :meth:`test_hanging_cleanup_fails_dispatcher_and_sends_to_dlq` is that the child
+        worker process is not "dead" when doing these exit_handling cleanups.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -940,9 +977,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             work_tracking_queue.put_nowait("cleanup_end_{}".format(queue_message.body))
 
         cleanup_timeout = int(worker_sleep_interval + 1)
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=0, monitor_sleep_time=0.05,
-                                       exit_handling_timeout=cleanup_timeout)
+        dispatcher = SQSWorkDispatcher(
+            queue,
+            worker_process_name="Test Worker Process",
+            long_poll_seconds=0,
+            monitor_sleep_time=0.05,
+            exit_handling_timeout=cleanup_timeout,
+        )
 
         wq = mp.Queue()  # work tracking queue
         tq = mp.Queue()  # termination queue
@@ -955,10 +996,12 @@ class SQSWorkDispatcherTests(BaseTestValidator):
                 error_queue.put_nowait(exc)
                 raise exc
 
-        dispatch_kwargs = {"job": self._work_to_be_terminated,
-                           "termination_queue": tq,
-                           "work_tracking_queue": wq,
-                           "exit_handler": hanging_cleanup}
+        dispatch_kwargs = {
+            "job": self._work_to_be_terminated,
+            "termination_queue": tq,
+            "work_tracking_queue": wq,
+            "exit_handler": hanging_cleanup,
+        }
         parent_dispatcher = mp.Process(target=error_handling_dispatcher, args=(dispatcher, eq), kwargs=dispatch_kwargs)
         parent_dispatcher.start()
 
@@ -979,12 +1022,14 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         exc = eq.get_nowait()
         self.assertIsInstance(exc, QueueWorkDispatcherError, "Error was not of type QueueWorkDispatcherError")
 
-        timeout_error_fragment = "Could not perform cleanup during exiting " \
-                                 "of job in allotted _exit_handling_timeout ({}s)".format(cleanup_timeout)
-        self.assertTrue(timeout_error_fragment in str(exc),
-                        "QueueWorkDispatcherError did not mention exit_handling timeouts")
-        self.assertTrue("after 2 tries" in str(exc),
-                        "QueueWorkDispatcherError did not mention '2 tries'")
+        timeout_error_fragment = (
+            "Could not perform cleanup during exiting "
+            "of job in allotted _exit_handling_timeout ({}s)".format(cleanup_timeout)
+        )
+        self.assertTrue(
+            timeout_error_fragment in str(exc), "QueueWorkDispatcherError did not mention exit_handling timeouts"
+        )
+        self.assertTrue("after 2 tries" in str(exc), "QueueWorkDispatcherError did not mention '2 tries'")
 
         try:
             # Parent dispatcher process should have an exit code of 1, since it will have raised an exception and
@@ -997,36 +1042,43 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item
-            self.assertEqual(msg_body, work_done,
-                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            self.assertEqual(
+                msg_body, work_done, "Was expecting to find worker task_id (msg_body) tracked in the queue"
+            )
             cleanup_attempt_1 = wq.get(True, 1)
-            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_1,
-                             "Was expecting to find a trace of cleanup attempt 1 "
-                             "tracked in the work queue")
+            self.assertEqual(
+                "cleanup_start_{}".format(msg_body),
+                cleanup_attempt_1,
+                "Was expecting to find a trace of cleanup attempt 1 " "tracked in the work queue",
+            )
             cleanup_attempt_2 = wq.get(True, 1)
-            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_2,
-                             "Was expecting to find a trace of cleanup attempt 2 "
-                             "tracked in the work queue")
+            self.assertEqual(
+                "cleanup_start_{}".format(msg_body),
+                cleanup_attempt_2,
+                "Was expecting to find a trace of cleanup attempt 2 " "tracked in the work queue",
+            )
             self.assertTrue(wq.empty(), "There should be no more work tracked on the work Queue")
             # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
         finally:
             if worker and worker.is_running():
-                logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
-                               "Killing it.".format(worker.pid))
+                logger.warning(
+                    "Dispatched worker process with PID {} did not complete in timeout. "
+                    "Killing it.".format(worker.pid)
+                )
                 os.kill(worker.pid, signal.SIGKILL)
                 self.fail("Worker did not complete in timeout as expected. Test fails.")
             self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
 
     def test_cleanup_second_try_succeeds_after_killing_worker_with_dlq(self):
-        """ Simulate an exit_handler that interferes with work that was being done by the worker, to see that we can
-            kill it and resume trying the exit handler.
+        """Simulate an exit_handler that interferes with work that was being done by the worker, to see that we can
+        kill it and resume trying the exit handler.
 
-            When detecting the parent dispatcher process received an exit signal, and the parent dispatcher
-            process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
-            than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. Before attempting
-            that second time, it will kill the worker process. This test configured the exit_handler to hang if the
-            worker is detected to still be alive, and proceeds with "cleanup" if it is detected as killed. It
-            therefore simulates successful cleanup on the 2nd try.
+        When detecting the parent dispatcher process received an exit signal, and the parent dispatcher
+        process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
+        than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. Before attempting
+        that second time, it will kill the worker process. This test configured the exit_handler to hang if the
+        worker is detected to still be alive, and proceeds with "cleanup" if it is detected as killed. It
+        therefore simulates successful cleanup on the 2nd try.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -1037,8 +1089,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         worker_sleep_interval = 0.05  # how long to "work"
         cleanup_timeout = int(worker_sleep_interval + 3)  # how long to allow cleanup to run, max (integer seconds)
 
-        def hanging_cleanup_if_worker_alive(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue,
-                                            queue_message):
+        def hanging_cleanup_if_worker_alive(
+            task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, queue_message
+        ):
             cleanup_logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
             cleanup_logger.setLevel(logging.DEBUG)
             cleanup_logger.debug("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
@@ -1046,8 +1099,10 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             work_tracking_queue.put_nowait("cleanup_start_{}".format(queue_message.body))
 
             sleep_before_cleanup = 0.25
-            cleanup_logger.debug("Sleeping for {} seconds to allow worker process state to stabilize before "
-                                 "inspecting it during this cleanup.".format(sleep_before_cleanup))
+            cleanup_logger.debug(
+                "Sleeping for {} seconds to allow worker process state to stabilize before "
+                "inspecting it during this cleanup.".format(sleep_before_cleanup)
+            )
             sleep(sleep_before_cleanup)
 
             # Get the PID of the worker off the termination_queue, then put it back on, as if it wasn't removed
@@ -1057,12 +1112,19 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             worker_during_cleanup = ps.Process(worker_pid_during_cleanup)
 
             # Log what psutil sees of this worker. 'zombie' is what we're looking for if it was killed
-            cleanup_logger.debug("psutil.pid_exists({}) = {}".format(
-                worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup)))
-            cleanup_logger.debug("worker_during_cleanup.is_running() = {} [PID={}]".format(
-                worker_during_cleanup.is_running(), worker_pid_during_cleanup))
-            cleanup_logger.debug("worker_during_cleanup.status() = {} [PID={}]".format(
-                worker_during_cleanup.status(), worker_pid_during_cleanup))
+            cleanup_logger.debug(
+                "psutil.pid_exists({}) = {}".format(worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup))
+            )
+            cleanup_logger.debug(
+                "worker_during_cleanup.is_running() = {} [PID={}]".format(
+                    worker_during_cleanup.is_running(), worker_pid_during_cleanup
+                )
+            )
+            cleanup_logger.debug(
+                "worker_during_cleanup.status() = {} [PID={}]".format(
+                    worker_during_cleanup.status(), worker_pid_during_cleanup
+                )
+            )
             if worker_during_cleanup.status() != ps.STATUS_ZOMBIE:  # hang cleanup if worker is running
                 sleep(cleanup_timeout + 0.5)  # sleep for longer than the allowed time for exit handling
                 # Should not get to this point, since the timeout wrapper should interrupt during the above sleep
@@ -1071,9 +1133,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
                 # Should only get to this point if the worker was dead/killed when this cleanup ran
                 work_tracking_queue.put("cleanup_end_with_dead_worker_{}".format(queue_message.body))
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=0, monitor_sleep_time=0.05,
-                                       exit_handling_timeout=cleanup_timeout)
+        dispatcher = SQSWorkDispatcher(
+            queue,
+            worker_process_name="Test Worker Process",
+            long_poll_seconds=0,
+            monitor_sleep_time=0.05,
+            exit_handling_timeout=cleanup_timeout,
+        )
 
         wq = mp.Queue()  # work tracking queue
         tq = mp.Queue()  # termination queue
@@ -1086,10 +1152,12 @@ class SQSWorkDispatcherTests(BaseTestValidator):
                 error_queue.put_nowait(exc)
                 raise exc
 
-        dispatch_kwargs = {"job": self._work_to_be_terminated,
-                           "termination_queue": tq,
-                           "work_tracking_queue": wq,
-                           "exit_handler": hanging_cleanup_if_worker_alive}
+        dispatch_kwargs = {
+            "job": self._work_to_be_terminated,
+            "termination_queue": tq,
+            "work_tracking_queue": wq,
+            "exit_handler": hanging_cleanup_if_worker_alive,
+        }
         parent_dispatcher = mp.Process(target=error_handling_dispatcher, args=(dispatcher, eq), kwargs=dispatch_kwargs)
         parent_dispatcher.start()
 
@@ -1121,33 +1189,42 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item
-            self.assertEqual(msg_body, work_done,
-                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            self.assertEqual(
+                msg_body, work_done, "Was expecting to find worker task_id (msg_body) tracked in the queue"
+            )
             cleanup_attempt_1 = wq.get(True, 1)
-            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_1,
-                             "Was expecting to find a trace of cleanup attempt 1 "
-                             "tracked in the work queue")
+            self.assertEqual(
+                "cleanup_start_{}".format(msg_body),
+                cleanup_attempt_1,
+                "Was expecting to find a trace of cleanup attempt 1 " "tracked in the work queue",
+            )
             cleanup_attempt_2 = wq.get(True, 1)
-            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_2,
-                             "Was expecting to find a trace of cleanup attempt 2 "
-                             "tracked in the work queue")
+            self.assertEqual(
+                "cleanup_start_{}".format(msg_body),
+                cleanup_attempt_2,
+                "Was expecting to find a trace of cleanup attempt 2 " "tracked in the work queue",
+            )
             cleanup_end = wq.get(True, 1)
-            self.assertEqual("cleanup_end_with_dead_worker_{}".format(msg_body), cleanup_end,
-                             "Was expecting to find a trace of cleanup reaching its end, "
-                             "after worker was killed (try 2)")
+            self.assertEqual(
+                "cleanup_end_with_dead_worker_{}".format(msg_body),
+                cleanup_end,
+                "Was expecting to find a trace of cleanup reaching its end, " "after worker was killed (try 2)",
+            )
             self.assertTrue(wq.empty(), "There should be no more work tracked on the work Queue")
             # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
         finally:
             if worker and worker.is_running():
-                logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
-                               "Killing it.".format(worker.pid))
+                logger.warning(
+                    "Dispatched worker process with PID {} did not complete in timeout. "
+                    "Killing it.".format(worker.pid)
+                )
                 os.kill(worker.pid, signal.SIGKILL)
                 self.fail("Worker did not complete in timeout as expected. Test fails.")
             self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
 
     def test_cleanup_second_try_succeeds_after_killing_worker_with_retry(self):
-        """ Same as :meth:`test_cleanup_second_try_succeeds_after_killing_worker_with_dlq`, but this queue allows
-            retries. Changes asserts to ensure the message gets retried after cleanup.
+        """Same as :meth:`test_cleanup_second_try_succeeds_after_killing_worker_with_dlq`, but this queue allows
+        retries. Changes asserts to ensure the message gets retried after cleanup.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -1158,8 +1235,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         worker_sleep_interval = 0.05  # how long to "work"
         cleanup_timeout = int(worker_sleep_interval + 3)  # how long to allow cleanup to run, max (integer seconds)
 
-        def hanging_cleanup_if_worker_alive(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.SimpleQueue,
-                                            queue_message, cleanup_timeout=cleanup_timeout):
+        def hanging_cleanup_if_worker_alive(
+            task_id,
+            termination_queue: mp.Queue,
+            work_tracking_queue: mp.SimpleQueue,
+            queue_message,
+            cleanup_timeout=cleanup_timeout,
+        ):
             cleanup_logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
             cleanup_logger.setLevel(logging.DEBUG)
             cleanup_logger.debug("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
@@ -1167,8 +1249,10 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             work_tracking_queue.put("cleanup_start_{}".format(queue_message.body))
 
             sleep_before_cleanup = 0.25
-            cleanup_logger.debug("Sleeping for {} seconds to allow worker process state to stabilize before "
-                                 "inspecting it during this cleanup.".format(sleep_before_cleanup))
+            cleanup_logger.debug(
+                "Sleeping for {} seconds to allow worker process state to stabilize before "
+                "inspecting it during this cleanup.".format(sleep_before_cleanup)
+            )
             sleep(sleep_before_cleanup)
 
             # Get the PID of the worker off the termination_queue, then put it back on, as if it wasn't removed
@@ -1178,12 +1262,19 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             worker_during_cleanup = ps.Process(worker_pid_during_cleanup)
 
             # Log what psutil sees of this worker. 'zombie' is what we're looking for if it was killed
-            cleanup_logger.debug("psutil.pid_exists({}) = {}".format(
-                worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup)))
-            cleanup_logger.debug("worker_during_cleanup.is_running() = {} [PID={}]".format(
-                worker_during_cleanup.is_running(), worker_during_cleanup.pid))
-            cleanup_logger.debug("worker_during_cleanup.status() = {} [PID={}]".format(
-                worker_during_cleanup.status(), worker_during_cleanup.pid))
+            cleanup_logger.debug(
+                "psutil.pid_exists({}) = {}".format(worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup))
+            )
+            cleanup_logger.debug(
+                "worker_during_cleanup.is_running() = {} [PID={}]".format(
+                    worker_during_cleanup.is_running(), worker_during_cleanup.pid
+                )
+            )
+            cleanup_logger.debug(
+                "worker_during_cleanup.status() = {} [PID={}]".format(
+                    worker_during_cleanup.status(), worker_during_cleanup.pid
+                )
+            )
             if worker_during_cleanup.status() != ps.STATUS_ZOMBIE:  # hang cleanup if worker is running
                 sleep(cleanup_timeout + 0.5)  # sleep for longer than the allowed time for exit handling
                 # Should not get to this point, since the timeout wrapper should interrupt during the above sleep
@@ -1192,9 +1283,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
                 # Should only get to this point if the worker was dead/killed when this cleanup ran
                 work_tracking_queue.put("cleanup_end_with_dead_worker_{}".format(queue_message.body))
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       long_poll_seconds=0, monitor_sleep_time=0.05,
-                                       exit_handling_timeout=cleanup_timeout)
+        dispatcher = SQSWorkDispatcher(
+            queue,
+            worker_process_name="Test Worker Process",
+            long_poll_seconds=0,
+            monitor_sleep_time=0.05,
+            exit_handling_timeout=cleanup_timeout,
+        )
         dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
 
         wq = mp.SimpleQueue()  # work tracking queue
@@ -1208,10 +1303,12 @@ class SQSWorkDispatcherTests(BaseTestValidator):
                 error_queue.put_nowait(exc)
                 raise exc
 
-        dispatch_kwargs = {"job": self._work_to_be_terminated,
-                           "termination_queue": tq,
-                           "work_tracking_queue": wq,
-                           "exit_handler": hanging_cleanup_if_worker_alive}
+        dispatch_kwargs = {
+            "job": self._work_to_be_terminated,
+            "termination_queue": tq,
+            "work_tracking_queue": wq,
+            "exit_handler": hanging_cleanup_if_worker_alive,
+        }
         parent_dispatcher = mp.Process(target=error_handling_dispatcher, args=(dispatcher, eq), kwargs=dispatch_kwargs)
         parent_dispatcher.start()
 
@@ -1244,30 +1341,40 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item
-            self.assertEqual(msg_body, work_done,
-                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            self.assertEqual(
+                msg_body, work_done, "Was expecting to find worker task_id (msg_body) tracked in the queue"
+            )
 
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item
-            self.assertEqual(msg_body, work_done,
-                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            self.assertEqual(
+                msg_body, work_done, "Was expecting to find worker task_id (msg_body) tracked in the queue"
+            )
             cleanup_attempt_1 = wq.get()
-            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_1,
-                             "Was expecting to find a trace of cleanup attempt 1 "
-                             "tracked in the work queue")
+            self.assertEqual(
+                "cleanup_start_{}".format(msg_body),
+                cleanup_attempt_1,
+                "Was expecting to find a trace of cleanup attempt 1 " "tracked in the work queue",
+            )
             cleanup_attempt_2 = wq.get()
-            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_2,
-                             "Was expecting to find a trace of cleanup attempt 2 "
-                             "tracked in the work queue")
+            self.assertEqual(
+                "cleanup_start_{}".format(msg_body),
+                cleanup_attempt_2,
+                "Was expecting to find a trace of cleanup attempt 2 " "tracked in the work queue",
+            )
             cleanup_end = wq.get()
-            self.assertEqual("cleanup_end_with_dead_worker_{}".format(msg_body), cleanup_end,
-                             "Was expecting to find a trace of cleanup reaching its end, "
-                             "after worker was killed (try 2)")
+            self.assertEqual(
+                "cleanup_end_with_dead_worker_{}".format(msg_body),
+                cleanup_end,
+                "Was expecting to find a trace of cleanup reaching its end, " "after worker was killed (try 2)",
+            )
             self.assertTrue(wq.empty(), "There should be no more work tracked on the work Queue")
         finally:
             if worker and worker.is_running():
-                logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
-                               "Killing it.".format(worker.pid))
+                logger.warning(
+                    "Dispatched worker process with PID {} did not complete in timeout. "
+                    "Killing it.".format(worker.pid)
+                )
                 os.kill(worker.pid, signal.SIGKILL)
                 self.fail("Worker did not complete in timeout as expected. Test fails.")
             self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
@@ -1275,7 +1382,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
     def test_worker_process_error_exception_data(self):
         unknown_worker = "Unknown Worker"
         no_queue_message = "Queue Message None or not provided"
-        fake_queue_message = SQSMockMessage(SQS(message='Fake Message', attributes=None))
+        fake_queue_message = SQSMockMessage(SQS(message="Fake Message", attributes=None))
 
         def raise_exc_no_args():
             raise QueueWorkerProcessError()
@@ -1284,7 +1391,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             raise_exc_no_args()
         self.assertTrue(
             (unknown_worker in str(err_ctx1.exception)),
-            "QueueWorkerProcessError did not mention '{}'.".format(unknown_worker)
+            "QueueWorkerProcessError did not mention '{}'.".format(unknown_worker),
         )
         self.assertTrue(
             ("Queue Message None or not provided" in str(err_ctx1.exception)),
@@ -1316,7 +1423,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertTrue(("1133" in str(err_ctx3.exception)), "QueueWorkerProcessError did not mention '1133'.")
         self.assertTrue(
             (unknown_worker in str(err_ctx3.exception)),
-            "QueueWorkerProcessError did not mention '{}'.".format(unknown_worker)
+            "QueueWorkerProcessError did not mention '{}'.".format(unknown_worker),
         )
 
         def raise_exc_with_qmsg_and_message():
@@ -1355,7 +1462,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         def raise_exc_with_qmsg_and_worker_process_name_and_message():
             fake_queue_message.body = 1166
             raise QueueWorkerProcessError(
-                "Custom Message about THIS", worker_process_name="MyJob", queue_message=fake_queue_message,
+                "Custom Message about THIS",
+                worker_process_name="MyJob",
+                queue_message=fake_queue_message,
             )
 
         with self.assertRaises(QueueWorkerProcessError) as err_ctx6:
@@ -1408,33 +1517,37 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         logger.debug("Terminated worker with PID=[{}] using signal.SIGTERM".format(pid))
 
     @classmethod
-    def _work_to_be_terminated(cls, task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue,
-                               *args, **kwargs):
+    def _work_to_be_terminated(
+        cls, task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, *args, **kwargs
+    ):
         # Put task_id in the work_tracking_queue so we know we saw this work
         work_tracking_queue.put(task_id)
         # Put PID of worker process in the termination_queue to let worker_terminator proc know what to kill
         termination_queue.put(os.getpid())
         sleep(0.25)  # hang for a short period to ensure terminator has time to kill this
 
-    def _fail_runaway_processes(self,
-                                logger,
-                                worker: mp.Process = None,
-                                terminator: mp.Process = None,
-                                dispatcher: mp.Process = None):
+    def _fail_runaway_processes(
+        self, logger, worker: mp.Process = None, terminator: mp.Process = None, dispatcher: mp.Process = None
+    ):
         fail_with_runaway_proc = False
         if worker and worker.is_alive():
-            logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
-                           "Killing it.".format(worker.pid))
+            logger.warning(
+                "Dispatched worker process with PID {} did not complete in timeout. " "Killing it.".format(worker.pid)
+            )
             os.kill(worker.pid, signal.SIGKILL)
             fail_with_runaway_proc = True
         if terminator and terminator.is_alive():
-            logger.warning("Terminator worker process with PID {} did not complete in timeout. "
-                           "Killing it.".format(terminator.pid))
+            logger.warning(
+                "Terminator worker process with PID {} did not complete in timeout. "
+                "Killing it.".format(terminator.pid)
+            )
             os.kill(terminator.pid, signal.SIGKILL)
             fail_with_runaway_proc = True
         if dispatcher and dispatcher.is_alive():
-            logger.warning("Parent dispatcher process with PID {} did not complete in timeout. "
-                           "Killing it.".format(dispatcher.pid))
+            logger.warning(
+                "Parent dispatcher process with PID {} did not complete in timeout. "
+                "Killing it.".format(dispatcher.pid)
+            )
             os.kill(dispatcher.pid, signal.SIGKILL)
             fail_with_runaway_proc = True
         if fail_with_runaway_proc:

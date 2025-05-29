@@ -8,46 +8,53 @@ from sqlalchemy import func
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
-from dataactcore.scripts.obsolete.fsrs import (config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL,
-                                               config_state_mappings)
+from dataactcore.scripts.obsolete.fsrs import (
+    config_valid,
+    fetch_and_replace_batch,
+    GRANT,
+    PROCUREMENT,
+    SERVICE_MODEL,
+    config_state_mappings,
+)
 from dataactcore.models.subaward import Subaward
-from dataactcore.scripts.obsolete.populate_subaward_table_fsrs import (populate_subaward_table_fsrs,
-                                                                       fix_broken_links_fsrs)
+from dataactcore.scripts.obsolete.populate_subaward_table_fsrs import (
+    populate_subaward_table_fsrs,
+    fix_broken_links_fsrs,
+)
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
 
 def log_fsrs_counts(total_awards):
-    """ Count the subawards of the awards in this batch.
+    """Count the subawards of the awards in this batch.
 
-        Args:
-            total_awards: the award objects from this batch of pulls
+    Args:
+        total_awards: the award objects from this batch of pulls
     """
     no_sub_awards = sum(len(a.subawards) for a in total_awards)
     logger.info("Inserted/Updated %s awards, %s subawards", len(total_awards), no_sub_awards)
 
 
 def metric_counts(award_list, award_type, metrics):
-    """ Adds to the given metric count
+    """Adds to the given metric count
 
-        Args:
-            award_list: list of award objects that contain subawards
-            award_type: procurement or grant for which key to add to
-            metrics: the dictionary containing the metrics we need
+    Args:
+        award_list: list of award objects that contain subawards
+        award_type: procurement or grant for which key to add to
+        metrics: the dictionary containing the metrics we need
     """
-    metrics[award_type + '_awards'] += len(award_list)
-    metrics[award_type + '_subawards'] += sum(len(a.subawards) for a in award_list)
+    metrics[award_type + "_awards"] += len(award_list)
+    metrics[award_type + "_subawards"] += sum(len(a.subawards) for a in award_list)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     now = datetime.datetime.now()
     configure_logging()
-    parser = argparse.ArgumentParser(description='Pull data from FSRS Feed')
-    parser.add_argument('-p', '--procurement', action='store_true', help="Load just procurement awards")
-    parser.add_argument('-g', '--grants', action='store_true', help="Load just grant awards")
-    parser.add_argument('-i', '--ids', type=int, nargs='+',
-                        help="Single or list of FSRS ids to pull from the FSRS API")
+    parser = argparse.ArgumentParser(description="Pull data from FSRS Feed")
+    parser.add_argument("-p", "--procurement", action="store_true", help="Load just procurement awards")
+    parser.add_argument("-g", "--grants", action="store_true", help="Load just grant awards")
+    parser.add_argument("-i", "--ids", type=int, nargs="+", help="Single or list of FSRS ids to pull from the FSRS API")
 
     with create_app().app_context():
         logger.info("Begin loading FSRS data from FSRS API")
@@ -55,12 +62,12 @@ if __name__ == '__main__':
         args = parser.parse_args()
 
         metrics_json = {
-            'script_name': 'load_fsrs.py',
-            'start_time': str(now),
-            'procurement_awards': 0,
-            'procurement_subawards': 0,
-            'grant_awards': 0,
-            'grant_subawards': 0
+            "script_name": "load_fsrs.py",
+            "start_time": str(now),
+            "procurement_awards": 0,
+            "procurement_subawards": 0,
+            "grant_awards": 0,
+            "grant_subawards": 0,
         }
 
         # Setups state mapping for deriving state name
@@ -85,50 +92,51 @@ if __name__ == '__main__':
                     fix_broken_links_fsrs(sess, PROCUREMENT, min_date=last_updated_at)
                     fix_broken_links_fsrs(sess, GRANT, min_date=last_updated_at)
 
-                awards = ['Starting']
-                logger.info('Loading latest FSRS reports')
+                awards = ["Starting"]
+                logger.info("Loading latest FSRS reports")
                 while len(awards) > 0:
-                    procs = fetch_and_replace_batch(sess, PROCUREMENT, SERVICE_MODEL[PROCUREMENT].next_id(sess),
-                                                    min_id=True)
+                    procs = fetch_and_replace_batch(
+                        sess, PROCUREMENT, SERVICE_MODEL[PROCUREMENT].next_id(sess), min_id=True
+                    )
                     grants = fetch_and_replace_batch(sess, GRANT, SERVICE_MODEL[GRANT].next_id(sess), min_id=True)
                     updated_proc_internal_ids.extend([proc.internal_id for proc in procs])
                     updated_grant_internal_ids.extend([grant.internal_id for grant in grants])
                     awards = procs + grants
                     log_fsrs_counts(awards)
-                    metric_counts(procs, 'procurement', metrics_json)
-                    metric_counts(grants, 'grant', metrics_json)
+                    metric_counts(procs, "procurement", metrics_json)
+                    metric_counts(grants, "grant", metrics_json)
 
             elif args.procurement and args.ids:
                 if last_updated_at:
                     fix_broken_links_fsrs(sess, PROCUREMENT, min_date=last_updated_at)
 
                 for procurement_id in args.ids:
-                    logger.info('Loading FSRS reports for procurement id {}'.format(procurement_id))
+                    logger.info("Loading FSRS reports for procurement id {}".format(procurement_id))
                     procs = fetch_and_replace_batch(sess, PROCUREMENT, procurement_id)
                     updated_proc_internal_ids.extend([proc.internal_id for proc in procs])
                     log_fsrs_counts(procs)
-                    metric_counts(procs, 'procurement', metrics_json)
+                    metric_counts(procs, "procurement", metrics_json)
 
             elif args.grants and args.ids:
                 if last_updated_at:
                     fix_broken_links_fsrs(sess, GRANT, min_date=last_updated_at)
 
                 for grant_id in args.ids:
-                    logger.info('Loading FSRS reports for grant id {}'.format(grant_id))
+                    logger.info("Loading FSRS reports for grant id {}".format(grant_id))
                     grants = fetch_and_replace_batch(sess, GRANT, grant_id)
                     updated_grant_internal_ids.extend([grant.internal_id for grant in grants])
                     log_fsrs_counts(grants)
-                    metric_counts(grants, 'grant', metrics_json)
+                    metric_counts(grants, "grant", metrics_json)
             else:
                 if not args.ids:
-                    logger.error('Missing --ids argument when loading just procurement or grants awards')
+                    logger.error("Missing --ids argument when loading just procurement or grants awards")
                 else:
-                    logger.error('Missing --procurement or --grants argument when loading specific award ids')
+                    logger.error("Missing --procurement or --grants argument when loading specific award ids")
                 sys.exit(1)
 
-            logger.info('Populating subaward table based off new data')
-            new_procurements = (SERVICE_MODEL[PROCUREMENT].next_id(sess) > original_min_procurement_id)
-            new_grants = (SERVICE_MODEL[GRANT].next_id(sess) > original_min_grant_id)
+            logger.info("Populating subaward table based off new data")
+            new_procurements = SERVICE_MODEL[PROCUREMENT].next_id(sess) > original_min_procurement_id
+            new_grants = SERVICE_MODEL[GRANT].next_id(sess) > original_min_grant_id
             proc_ids = list(set(updated_proc_internal_ids))
             grant_ids = list(set(updated_grant_internal_ids))
 
@@ -151,8 +159,8 @@ if __name__ == '__main__':
 
         # Only change the last run date if we aren't doing specific ids to backfill
         if not args.ids:
-            update_external_data_load_date(now, datetime.datetime.now(), 'subaward')
-        metrics_json['duration'] = str(datetime.datetime.now() - now)
+            update_external_data_load_date(now, datetime.datetime.now(), "subaward")
+        metrics_json["duration"] = str(datetime.datetime.now() - now)
 
-        with open('load_fsrs_metrics.json', 'w+') as metrics_file:
+        with open("load_fsrs_metrics.json", "w+") as metrics_file:
             json.dump(metrics_json, metrics_file)

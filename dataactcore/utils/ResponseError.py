@@ -1,7 +1,8 @@
 class ResponseError(Exception):
-    """ Exception wrapper to be used in an http response, allows exceptions to specify status codes when raised """
+    """Exception wrapper to be used in an http response, allows exceptions to specify status codes when raised"""
+
     def __init__(self, message, status=500, error_class=None, error_type=None, **kwargs):
-        """ Create a new ResponseError
+        """Create a new ResponseError
 
         Args:
             message: Message to be attached to exception

@@ -3,11 +3,11 @@ import re
 
 
 class StringCleaner:
-    """ Provides basic functionality for sanitizing string inputs """
+    """Provides basic functionality for sanitizing string inputs"""
 
     @staticmethod
     def clean_string(data, remove_extras=True):
-        """ Change to lowercase, trim whitespace on ends, and replace internal spaces with underscores if desired
+        """Change to lowercase, trim whitespace on ends, and replace internal spaces with underscores if desired
 
         Args:
             data: String to be cleaned
@@ -35,18 +35,18 @@ class StringCleaner:
 
     @staticmethod
     def split_csv(string):
-        """ Split string into a list, excluding empty strings
+        """Split string into a list, excluding empty strings
 
-            Args:
-                string: the string to split
+        Args:
+            string: the string to split
 
-            Returns:
-                Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the
-                original
+        Returns:
+            Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the
+            original
         """
         if string is None:
             return []
-        return [n.strip() for n in string.split(',') if n]
+        return [n.strip() for n in string.split(",") if n]
 
     @staticmethod
     def is_numeric(data):
@@ -59,7 +59,7 @@ class StringCleaner:
     @staticmethod
     def is_date(data):
         try:
-            datetime.datetime.strptime(data, '%m/%d/%Y')
+            datetime.datetime.strptime(data, "%m/%d/%Y")
             return True
         except ValueError:
             return False

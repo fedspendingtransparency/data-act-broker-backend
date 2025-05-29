@@ -92,8 +92,9 @@ def update_fpds_le(sess):
     )
     sess.commit()
 
-    logger.info("Finished FPDS legal entity 9-digit zips without dashes, starting FPDS legal entity 9-digit zips "
-                "with dashes")
+    logger.info(
+        "Finished FPDS legal entity 9-digit zips without dashes, starting FPDS legal entity 9-digit zips " "with dashes"
+    )
 
     # FPDS LE 9-digit dash
     sess.execute(
@@ -278,18 +279,21 @@ def update_fabs_ppop(sess):
 def main():
     sess = GlobalDB.db().session
 
-    parser = argparse.ArgumentParser(description='Pull data from the FPDS Atom Feed.')
-    parser.add_argument('-mv', '--matview', help='Create the matviews, make sure they do not already exist',
-                        action='store_true')
-    parser.add_argument('-dmv', '--delete_matview', help='Delete the matviews', action='store_true')
-    parser.add_argument('-fpdsle', '--fpds_le', help='Run FPDS Legal Entity updates', action='store_true')
-    parser.add_argument('-fpdsppop', '--fpds_ppop', help='Run FPDS PPOP updates', action='store_true')
-    parser.add_argument('-fabsle', '--fabs_le', help='Run FABS Legal Entity updates', action='store_true')
-    parser.add_argument('-fabsppop', '--fabs_ppop', help='Run FABS PPOP updates', action='store_true')
-    parser.add_argument('-a', '--all', help='Run all updates without creating or deleting matviews',
-                        action='store_true')
-    parser.add_argument('-am', '--all_matview', help='Run all updates and create and delete matviews',
-                        action='store_true')
+    parser = argparse.ArgumentParser(description="Pull data from the FPDS Atom Feed.")
+    parser.add_argument(
+        "-mv", "--matview", help="Create the matviews, make sure they do not already exist", action="store_true"
+    )
+    parser.add_argument("-dmv", "--delete_matview", help="Delete the matviews", action="store_true")
+    parser.add_argument("-fpdsle", "--fpds_le", help="Run FPDS Legal Entity updates", action="store_true")
+    parser.add_argument("-fpdsppop", "--fpds_ppop", help="Run FPDS PPOP updates", action="store_true")
+    parser.add_argument("-fabsle", "--fabs_le", help="Run FABS Legal Entity updates", action="store_true")
+    parser.add_argument("-fabsppop", "--fabs_ppop", help="Run FABS PPOP updates", action="store_true")
+    parser.add_argument(
+        "-a", "--all", help="Run all updates without creating or deleting matviews", action="store_true"
+    )
+    parser.add_argument(
+        "-am", "--all_matview", help="Run all updates and create and delete matviews", action="store_true"
+    )
     args = parser.parse_args()
 
     logger.info("Starting county code fixes")
@@ -322,7 +326,7 @@ def main():
     logger.info("Completed county code fixes")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with create_app().app_context():
         configure_logging()
         main()

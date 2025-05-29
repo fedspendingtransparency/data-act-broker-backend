@@ -29,57 +29,36 @@ def deep_merge(left, right):
 
 # Reasonable defaults to avoid clutter in our config files
 DEFAULT_CONFIG = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'default': {
-            'format': "%(asctime)s %(levelname)s:%(name)s:%(message)s"
-        },
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {"format": "%(asctime)s %(levelname)s:%(name)s:%(message)s"},
     },
-    'handlers': {
-        'console': {
-            'formatter': 'default',
-            'class': 'logging.StreamHandler'
-        },
+    "handlers": {
+        "console": {"formatter": "default", "class": "logging.StreamHandler"},
     },
-    'loggers': {
+    "loggers": {
         # i.e. "all modules"
-        '': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True
-        },
-        'dataactbroker': {
-            'level': 'DEBUG',
-            'propagate': True
-        },
-        'dataactcore': {
-            'level': 'DEBUG',
-            'propagate': True
-        },
-        'dataactvalidator': {
-            'level': 'DEBUG',
-            'propagate': True
-        },
-        '__main__': {  # for the __main__ module within /dataactvalidator/app.py
-            'level': 'DEBUG',
-            'propagate': True
-        },
-    }
+        "": {"handlers": ["console"], "level": "INFO", "propagate": True},
+        "dataactbroker": {"level": "DEBUG", "propagate": True},
+        "dataactcore": {"level": "DEBUG", "propagate": True},
+        "dataactvalidator": {"level": "DEBUG", "propagate": True},
+        "__main__": {"level": "DEBUG", "propagate": True},  # for the __main__ module within /dataactvalidator/app.py
+    },
 }
 
 
-def configure_logging(service_name='broker'):
+def configure_logging(service_name="broker"):
     config = DEFAULT_CONFIG
-    if 'python_config' in CONFIG_LOGGING:
-        config = deep_merge(config, CONFIG_LOGGING['python_config'])
+    if "python_config" in CONFIG_LOGGING:
+        config = deep_merge(config, CONFIG_LOGGING["python_config"])
     logging.config.dictConfig(config)
 
     resource = Resource.create(attributes={"service.name": service_name})
     provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
 
-    if CONFIG_BROKER['local']:
+    if CONFIG_BROKER["local"]:
         # if local, print the traces to the console
         trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
     else:
@@ -96,5 +75,5 @@ def configure_logging(service_name='broker'):
     URLLibInstrumentor().instrument(tracer_provider=trace.get_tracer_provider())
     ThreadingInstrumentor().instrument()
 
-    logging.getLogger('boto3').setLevel(logging.CRITICAL)
-    logging.getLogger('botocore').setLevel(logging.CRITICAL)
+    logging.getLogger("boto3").setLevel(logging.CRITICAL)
+    logging.getLogger("botocore").setLevel(logging.CRITICAL)

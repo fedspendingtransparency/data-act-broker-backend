@@ -6,7 +6,8 @@ from dataactbroker.handlers.account_handler import AccountHandler, logout
 
 
 def add_login_routes(app, bcrypt):
-    """ Create routes related to login """
+    """Create routes related to login"""
+
     @app.route("/v1/login/", methods=["POST"])
     def login():
         account_manager = AccountHandler(request, bcrypt=bcrypt)

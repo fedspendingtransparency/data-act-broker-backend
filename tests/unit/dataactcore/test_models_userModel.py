@@ -9,7 +9,7 @@ def test_user_affiliation_fks(database, user_constants):
     sess = database.session
     users = [UserFactory() for _ in range(3)]
     cgacs = [CGACFactory() for _ in range(6)]
-    permission = PERMISSION_TYPE_DICT['reader']
+    permission = PERMISSION_TYPE_DICT["reader"]
     for idx, user in enumerate(users):
         user.affiliations = [
             UserAffiliation(cgac=cgacs[idx * 2], permission_type_id=permission),

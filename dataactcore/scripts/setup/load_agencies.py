@@ -17,19 +17,15 @@ from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 from dataactbroker.helpers.validation_helper import clean_col
 
 CUSTOM_CGACS = [
-    {
-        'CGAC AGENCY CODE': '999',
-        'AGENCY NAME': 'Non-published FABS Vendor Agency',
-        'AGENCY ABBREVIATION': 'TFVA'
-    }
+    {"CGAC AGENCY CODE": "999", "AGENCY NAME": "Non-published FABS Vendor Agency", "AGENCY ABBREVIATION": "TFVA"}
 ]
 CUSTOM_SUBTIERS = [
     {
-        'CGAC AGENCY CODE': '999',
-        'SUBTIER CODE': 'TFVA',
-        'SUBTIER NAME': 'Non-published FABS Vendor Subtier Agency',
-        'TOPTIER_FLAG': 'TRUE',
-        'IS_FREC': 'FALSE'
+        "CGAC AGENCY CODE": "999",
+        "SUBTIER CODE": "TFVA",
+        "SUBTIER NAME": "Non-published FABS Vendor Subtier Agency",
+        "TOPTIER_FLAG": "TRUE",
+        "IS_FREC": "FALSE",
     }
 ]
 
@@ -37,60 +33,60 @@ logger = logging.getLogger(__name__)
 
 
 def get_agency_file(base_path):
-    """ Retrieves the agency file to load
+    """Retrieves the agency file to load
 
-        Args:
-            base_path: directory of domain config files
+    Args:
+        base_path: directory of domain config files
 
-        Returns:
-            the file path for the agency file either online or locally
+    Returns:
+        the file path for the agency file either online or locally
     """
-    agency_codes_file = os.path.join(base_path, 'agency_codes.csv')
-    if CONFIG_BROKER.get('usas_public_reference_url'):
+    agency_codes_file = os.path.join(base_path, "agency_codes.csv")
+    if CONFIG_BROKER.get("usas_public_reference_url"):
         os.remove(agency_codes_file)
-        agency_codes_url = '{}/agency_codes.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
-        logger.info('Loading agency codes file from {}'.format(agency_codes_url))
+        agency_codes_url = "{}/agency_codes.csv".format(CONFIG_BROKER["usas_public_reference_url"])
+        logger.info("Loading agency codes file from {}".format(agency_codes_url))
         r = requests.get(agency_codes_url, allow_redirects=True)
-        open(agency_codes_file, 'wb').write(r.content)
+        open(agency_codes_file, "wb").write(r.content)
     return agency_codes_file
 
 
 def extract_abbreviation(row):
-    """ Helper function for comparing datasets, this extracts the abbreviation from the db name
+    """Helper function for comparing datasets, this extracts the abbreviation from the db name
 
-        Args:
-            row: row in the dataframe representing the db model
+    Args:
+        row: row in the dataframe representing the db model
 
-        Returns:
-            abbreviation extracted from agency_name or np.nan
+    Returns:
+        abbreviation extracted from agency_name or np.nan
     """
-    abbr = re.findall(r'^.* \((.*)\)$', row['agency_name'])
-    if abbr and abbr[0] != 'nan':
+    abbr = re.findall(r"^.* \((.*)\)$", row["agency_name"])
+    if abbr and abbr[0] != "nan":
         return abbr[0]
     else:
         return np.nan
 
 
 def extract_name(row):
-    """ Helper function for comparing datasets, this extracts the name from the db name
+    """Helper function for comparing datasets, this extracts the name from the db name
 
-        Args:
-            row: row in the dataframe representing the db model
+    Args:
+        row: row in the dataframe representing the db model
 
-        Returns:
-            name extracted from agency_name or np.nan
+    Returns:
+        name extracted from agency_name or np.nan
     """
-    return row['agency_name'][:row['agency_name'].rindex('(') - 1]
+    return row["agency_name"][: row["agency_name"].rindex("(") - 1]
 
 
 def delete_missing_cgacs(models, new_data):
-    """ If the new file doesn't contain CGACs we had before, we should delete the non-existent ones.
+    """If the new file doesn't contain CGACs we had before, we should delete the non-existent ones.
 
-        Args:
-            models: all existing frec models in the database
-            new_data: All the entries gathered from the agency file
+    Args:
+        models: all existing frec models in the database
+        new_data: All the entries gathered from the agency file
     """
-    to_delete = set(models.keys()) - set(new_data['cgac_code'])
+    to_delete = set(models.keys()) - set(new_data["cgac_code"])
     sess = GlobalDB.db().session
     if to_delete:
         sess.query(CGAC).filter(CGAC.cgac_code.in_(to_delete)).delete(synchronize_session=False)
@@ -99,32 +95,32 @@ def delete_missing_cgacs(models, new_data):
 
 
 def update_cgacs(models, new_data):
-    """ Modify existing models or create new ones.
+    """Modify existing models or create new ones.
 
-        Args:
-            models: all existing cgac models in the database
-            new_data: All the entries gathered from the agency file
+    Args:
+        models: all existing cgac models in the database
+        new_data: All the entries gathered from the agency file
     """
     for _, row in new_data.iterrows():
-        cgac_code = row['cgac_code']
-        agency_abbreviation = row['agency_abbreviation']
+        cgac_code = row["cgac_code"]
+        agency_abbreviation = row["agency_abbreviation"]
         if cgac_code not in models:
             models[cgac_code] = CGAC()
         for field, value in row.items():
-            if field == 'agency_name':
-                value = ('%s (%s)' % (value, agency_abbreviation))
+            if field == "agency_name":
+                value = "%s (%s)" % (value, agency_abbreviation)
             setattr(models[cgac_code], field, value)
 
 
 def load_cgac(file_name, force_reload=False):
-    """ Load CGAC (high-level agency names) lookup table.
+    """Load CGAC (high-level agency names) lookup table.
 
-        Args:
-            file_name: path/url to the file to be read
-            force_reload: whether to reload regardless
+    Args:
+        file_name: path/url to the file to be read
+        force_reload: whether to reload regardless
 
-        Returns:
-            True if new data was loaded, False if the load was skipped
+    Returns:
+        True if new data was loaded, False if the load was skipped
     """
     sess = GlobalDB.db().session
     models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
@@ -134,9 +130,11 @@ def load_cgac(file_name, force_reload=False):
 
     # Check and add custom CGACs to incoming list for comparison
     for custom_cgac in CUSTOM_CGACS:
-        if custom_cgac['CGAC AGENCY CODE'] in data['CGAC AGENCY CODE'].values:
-            raise ValueError(f"Custom CGAC code found in agency list: {custom_cgac['CGAC AGENCY CODE']}."
-                             f" Consult the latest agency list with the custom CGAC code.")
+        if custom_cgac["CGAC AGENCY CODE"] in data["CGAC AGENCY CODE"].values:
+            raise ValueError(
+                f"Custom CGAC code found in agency list: {custom_cgac['CGAC AGENCY CODE']}."
+                f" Consult the latest agency list with the custom CGAC code."
+            )
         else:
             custom_cgac_row = pd.DataFrame([custom_cgac])
             data = pd.concat([data, custom_cgac_row], ignore_index=True)
@@ -145,18 +143,26 @@ def load_cgac(file_name, force_reload=False):
     data = clean_data(
         data,
         CGAC,
-        {'cgac_agency_code': 'cgac_code', 'agency_name': 'agency_name', 'agency_abbreviation': 'agency_abbreviation',
-         'icon_filename': 'icon_name'},
-        {'cgac_code': {'pad_to_length': 3}}
+        {
+            "cgac_agency_code": "cgac_code",
+            "agency_name": "agency_name",
+            "agency_abbreviation": "agency_abbreviation",
+            "icon_filename": "icon_name",
+        },
+        {"cgac_code": {"pad_to_length": 3}},
     )
-    data['icon_name'] = data['icon_name'].apply(clean_col, args=False)
+    data["icon_name"] = data["icon_name"].apply(clean_col, args=False)
     # de-dupe
-    data.drop_duplicates(subset=['cgac_code'], inplace=True)
+    data.drop_duplicates(subset=["cgac_code"], inplace=True)
 
     # compare to existing content in table
-    diff_found = check_dataframe_diff(data, CGAC, ['cgac_id'], ['cgac_code'],
-                                      lambda_funcs=[('agency_abbreviation', extract_abbreviation),
-                                                    ('agency_name', extract_name)])
+    diff_found = check_dataframe_diff(
+        data,
+        CGAC,
+        ["cgac_id"],
+        ["cgac_code"],
+        lambda_funcs=[("agency_abbreviation", extract_abbreviation), ("agency_name", extract_name)],
+    )
 
     if force_reload or diff_found:
         delete_missing_cgacs(models, data)
@@ -164,21 +170,21 @@ def load_cgac(file_name, force_reload=False):
         sess.add_all(models.values())
         sess.commit()
 
-        logger.info('%s CGAC records inserted', len(models))
+        logger.info("%s CGAC records inserted", len(models))
         return True
     else:
-        logger.info('No differences found, skipping cgac table reload.')
+        logger.info("No differences found, skipping cgac table reload.")
         return False
 
 
 def delete_missing_frecs(models, new_data):
-    """ If the new file doesn't contain FRECs we had before, we should delete the non-existent ones.
+    """If the new file doesn't contain FRECs we had before, we should delete the non-existent ones.
 
-        Args:
-            models: all existing frec models in the database
-            new_data: All the entries gathered from the agency file
+    Args:
+        models: all existing frec models in the database
+        new_data: All the entries gathered from the agency file
     """
-    to_delete = set(models.keys()) - set(new_data['frec_code'])
+    to_delete = set(models.keys()) - set(new_data["frec_code"])
     sess = GlobalDB.db().session
     if to_delete:
         sess.query(FREC).filter(FREC.frec_code.in_(to_delete)).delete(synchronize_session=False)
@@ -187,37 +193,37 @@ def delete_missing_frecs(models, new_data):
 
 
 def update_frecs(models, new_data, cgac_dict):
-    """ Modify existing models or create new ones.
+    """Modify existing models or create new ones.
 
-        Args
-            models: all existing frec models in the database
-            new_data: All the entries gathered from the agency file
-            cgac_dict: A dictionary of all cgacs in the database
+    Args
+        models: all existing frec models in the database
+        new_data: All the entries gathered from the agency file
+        cgac_dict: A dictionary of all cgacs in the database
     """
     for _, row in new_data.iterrows():
-        if row['cgac_code'] not in cgac_dict:
+        if row["cgac_code"] not in cgac_dict:
             new_data.drop(_)
             continue
-        row['cgac_id'] = cgac_dict[row['cgac_code']]
-        frec_code = row['frec_code']
-        frec_abbreviation = row['frec_abbreviation']
+        row["cgac_id"] = cgac_dict[row["cgac_code"]]
+        frec_code = row["frec_code"]
+        frec_abbreviation = row["frec_abbreviation"]
         if frec_code not in models:
             models[frec_code] = FREC()
         for field, value in row.items():
-            if field == 'agency_name' and frec_abbreviation:
-                value = ('%s (%s)' % (value, frec_abbreviation))
+            if field == "agency_name" and frec_abbreviation:
+                value = "%s (%s)" % (value, frec_abbreviation)
             setattr(models[frec_code], field, value)
 
 
 def load_frec(file_name, force_reload=False):
-    """ Load FREC (high-level agency names) lookup table.
+    """Load FREC (high-level agency names) lookup table.
 
-        Args:
-            file_name: path/url to the file to be read
-            force_reload: whether to reload regardless
+    Args:
+        file_name: path/url to the file to be read
+        force_reload: whether to reload regardless
 
-        Returns:
-            True if new data was loaded, False if the load was skipped
+    Returns:
+        True if new data was loaded, False if the load was skipped
     """
     sess = GlobalDB.db().session
     models = {frec.frec_code: frec for frec in sess.query(FREC)}
@@ -229,29 +235,43 @@ def load_frec(file_name, force_reload=False):
     data = clean_data(
         data,
         FREC,
-        {'frec': 'frec_code', 'cgac_agency_code': 'cgac_code', 'frec_entity_description': 'agency_name',
-         'frec_abbreviation': 'frec_abbreviation', 'frec_cgac_association': 'frec_cgac',
-         'icon_filename': 'icon_name'},
-        {'frec': {'keep_null': False}, 'cgac_code': {'pad_to_length': 3}, 'frec_code': {'pad_to_length': 4}}
+        {
+            "frec": "frec_code",
+            "cgac_agency_code": "cgac_code",
+            "frec_entity_description": "agency_name",
+            "frec_abbreviation": "frec_abbreviation",
+            "frec_cgac_association": "frec_cgac",
+            "icon_filename": "icon_name",
+        },
+        {"frec": {"keep_null": False}, "cgac_code": {"pad_to_length": 3}, "frec_code": {"pad_to_length": 4}},
     )
-    data['icon_name'] = data['icon_name'].apply(clean_col, args=False)
+    data["icon_name"] = data["icon_name"].apply(clean_col, args=False)
     # de-dupe
-    data = data[data.frec_cgac == 'TRUE']
-    data.drop(['frec_cgac'], axis=1, inplace=True)
-    data.drop_duplicates(subset=['frec_code'], inplace=True)
+    data = data[data.frec_cgac == "TRUE"]
+    data.drop(["frec_cgac"], axis=1, inplace=True)
+    data.drop_duplicates(subset=["frec_code"], inplace=True)
     # create foreign key dicts
-    cgac_dict = {str(cgac.cgac_code): cgac.cgac_id for
-                 cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data['cgac_code'])).all()}
+    cgac_dict = {
+        str(cgac.cgac_code): cgac.cgac_id
+        for cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data["cgac_code"])).all()
+    }
     cgac_dict_flipped = {cgac_id: cgac_code for cgac_code, cgac_id in cgac_dict.items()}
 
     # compare to existing content in table
     def extract_cgac(row):
-        return cgac_dict_flipped[row['cgac_id']] if row['cgac_id'] in cgac_dict_flipped else np.nan
+        return cgac_dict_flipped[row["cgac_id"]] if row["cgac_id"] in cgac_dict_flipped else np.nan
 
-    diff_found = check_dataframe_diff(data, FREC, ['frec_id', 'cgac_id'], ['frec_code'],
-                                      lambda_funcs=[('frec_abbreviation', extract_abbreviation),
-                                                    ('agency_name', extract_name),
-                                                    ('cgac_code', extract_cgac)])
+    diff_found = check_dataframe_diff(
+        data,
+        FREC,
+        ["frec_id", "cgac_id"],
+        ["frec_code"],
+        lambda_funcs=[
+            ("frec_abbreviation", extract_abbreviation),
+            ("agency_name", extract_name),
+            ("cgac_code", extract_cgac),
+        ],
+    )
     if force_reload or diff_found:
         # create foreign key dicts
 
@@ -261,45 +281,46 @@ def load_frec(file_name, force_reload=False):
         sess.add_all(models.values())
         sess.commit()
 
-        logger.info('%s FREC records inserted', len(models))
+        logger.info("%s FREC records inserted", len(models))
         return True
     else:
-        logger.info('No differences found, skipping frec table reload.')
+        logger.info("No differences found, skipping frec table reload.")
         return False
 
 
 def delete_missing_sub_tier_agencies(models, new_data):
-    """ If the new file doesn't contain Sub Tier Agencies we had before, we should delete the non-existent ones
+    """If the new file doesn't contain Sub Tier Agencies we had before, we should delete the non-existent ones
 
-        Args:
-            models: all existing sub tier models in the database
-            new_data: All the entries gathered from the agency file
+    Args:
+        models: all existing sub tier models in the database
+        new_data: All the entries gathered from the agency file
     """
-    to_delete = set(models.keys()) - set(new_data['sub_tier_agency_code'])
+    to_delete = set(models.keys()) - set(new_data["sub_tier_agency_code"])
     sess = GlobalDB.db().session
     if to_delete:
         sess.query(SubTierAgency).filter(SubTierAgency.sub_tier_agency_code.in_(to_delete)).delete(
-            synchronize_session=False)
+            synchronize_session=False
+        )
     for sub_tier_agency_code in to_delete:
         del models[sub_tier_agency_code]
 
 
 def update_sub_tier_agencies(models, new_data, cgac_dict, frec_dict):
-    """ Modify existing models or create new ones
+    """Modify existing models or create new ones
 
-        Args:
-            models: the list of existing models
-            new_data: the data that was read in from the file
-            cgac_dict: a dictionary of all cgac codes in the database
-            frec_dict: a dictionary of all frec codes in the database
+    Args:
+        models: the list of existing models
+        new_data: the data that was read in from the file
+        cgac_dict: a dictionary of all cgac codes in the database
+        frec_dict: a dictionary of all frec codes in the database
     """
     for _, row in new_data.iterrows():
-        if row['cgac_code'] not in cgac_dict:
+        if row["cgac_code"] not in cgac_dict:
             new_data.drop(_)
             continue
-        row['cgac_id'] = cgac_dict[row['cgac_code']]
-        row['frec_id'] = frec_dict[row['frec_code']]
-        sub_tier_agency_code = row['sub_tier_agency_code']
+        row["cgac_id"] = cgac_dict[row["cgac_code"]]
+        row["frec_id"] = frec_dict[row["frec_code"]]
+        sub_tier_agency_code = row["sub_tier_agency_code"]
         if sub_tier_agency_code not in models:
             models[sub_tier_agency_code] = SubTierAgency()
         for field, value in row.items():
@@ -307,106 +328,123 @@ def update_sub_tier_agencies(models, new_data, cgac_dict, frec_dict):
 
 
 def load_sub_tier_agencies(file_name, force_reload=False):
-    """ Load Sub Tier Agency (sub_tier-level agency names) lookup table.
+    """Load Sub Tier Agency (sub_tier-level agency names) lookup table.
 
-        Args:
-            file_name: path/url to the file to be read
-            force_reload: whether to reload regardless
+    Args:
+        file_name: path/url to the file to be read
+        force_reload: whether to reload regardless
 
-        Returns:
-            True if new data was loaded, False if the load was skipped
+    Returns:
+        True if new data was loaded, False if the load was skipped
     """
     sess = GlobalDB.db().session
-    models = {sub_tier_agency.sub_tier_agency_code: sub_tier_agency for
-              sub_tier_agency in sess.query(SubTierAgency)}
+    models = {sub_tier_agency.sub_tier_agency_code: sub_tier_agency for sub_tier_agency in sess.query(SubTierAgency)}
 
     # read Sub Tier Agency values from csv
     data = pd.read_csv(file_name, dtype=str)
 
     # Check and add custom Subtiers to incoming list for comparison
     for custom_subtier in CUSTOM_SUBTIERS:
-        if custom_subtier['SUBTIER CODE'] in data['SUBTIER CODE'].values:
-            raise ValueError(f"Custom Subtier code found in agency list: {custom_subtier['SUBTIER CODE']}."
-                             f" Consult the latest agency list with the custom Subtier code.")
+        if custom_subtier["SUBTIER CODE"] in data["SUBTIER CODE"].values:
+            raise ValueError(
+                f"Custom Subtier code found in agency list: {custom_subtier['SUBTIER CODE']}."
+                f" Consult the latest agency list with the custom Subtier code."
+            )
         else:
             custom_cgac_row = pd.DataFrame([custom_subtier])
             data = pd.concat([data, custom_cgac_row], ignore_index=True)
 
-    condition = data['TOPTIER_FLAG'] == 'TRUE'
-    data.loc[condition, 'PRIORITY'] = 1
-    data.loc[~condition, 'PRIORITY'] = 2
-    data.replace({'TRUE': True, 'FALSE': False}, inplace=True)
+    condition = data["TOPTIER_FLAG"] == "TRUE"
+    data.loc[condition, "PRIORITY"] = 1
+    data.loc[~condition, "PRIORITY"] = 2
+    data.replace({"TRUE": True, "FALSE": False}, inplace=True)
 
     # clean data
     data = clean_data(
         data,
         SubTierAgency,
-        {'cgac_agency_code': 'cgac_code', 'subtier_code': 'sub_tier_agency_code', 'priority': 'priority',
-         'frec': 'frec_code', 'subtier_name': 'sub_tier_agency_name', 'is_frec': 'is_frec'},
-        {'cgac_code': {'pad_to_length': 3}, 'frec_code': {'pad_to_length': 4},
-         'sub_tier_agency_code': {'pad_to_length': 4}}
+        {
+            "cgac_agency_code": "cgac_code",
+            "subtier_code": "sub_tier_agency_code",
+            "priority": "priority",
+            "frec": "frec_code",
+            "subtier_name": "sub_tier_agency_name",
+            "is_frec": "is_frec",
+        },
+        {
+            "cgac_code": {"pad_to_length": 3},
+            "frec_code": {"pad_to_length": 4},
+            "sub_tier_agency_code": {"pad_to_length": 4},
+        },
     )
     # de-dupe
-    data.drop_duplicates(subset=['sub_tier_agency_code'], inplace=True)
+    data.drop_duplicates(subset=["sub_tier_agency_code"], inplace=True)
     # create foreign key dicts
-    cgac_dict = {str(cgac.cgac_code): cgac.cgac_id for
-                 cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data['cgac_code'])).all()}
+    cgac_dict = {
+        str(cgac.cgac_code): cgac.cgac_id
+        for cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data["cgac_code"])).all()
+    }
     cgac_dict_flipped = {cgac_id: cgac_code for cgac_code, cgac_id in cgac_dict.items()}
-    frec_dict = {str(frec.frec_code): frec.frec_id for
-                 frec in sess.query(FREC).filter(FREC.frec_code.in_(data['frec_code'])).all()}
+    frec_dict = {
+        str(frec.frec_code): frec.frec_id
+        for frec in sess.query(FREC).filter(FREC.frec_code.in_(data["frec_code"])).all()
+    }
     frec_dict_flipped = {frec_id: frec_code for frec_code, frec_id in frec_dict.items()}
 
     # compare to existing content in table
     def int_to_float(row):
-        return float(row['priority'])
+        return float(row["priority"])
 
     def extract_cgac(row):
-        return cgac_dict_flipped[row['cgac_id']] if row['cgac_id'] in cgac_dict_flipped else np.nan
+        return cgac_dict_flipped[row["cgac_id"]] if row["cgac_id"] in cgac_dict_flipped else np.nan
 
     def extract_frec(row):
-        return frec_dict_flipped[row['frec_id']] if row['frec_id'] in frec_dict_flipped else np.nan
+        return frec_dict_flipped[row["frec_id"]] if row["frec_id"] in frec_dict_flipped else np.nan
 
-    diff_found = check_dataframe_diff(data, SubTierAgency, ['sub_tier_agency_id', 'cgac_id', 'frec_id'],
-                                      ['sub_tier_agency_code'],
-                                      lambda_funcs=[('priority', int_to_float), ('cgac_code', extract_cgac),
-                                                    ('frec_code', extract_frec)])
+    diff_found = check_dataframe_diff(
+        data,
+        SubTierAgency,
+        ["sub_tier_agency_id", "cgac_id", "frec_id"],
+        ["sub_tier_agency_code"],
+        lambda_funcs=[("priority", int_to_float), ("cgac_code", extract_cgac), ("frec_code", extract_frec)],
+    )
     if force_reload or diff_found:
         delete_missing_sub_tier_agencies(models, data)
         update_sub_tier_agencies(models, data, cgac_dict, frec_dict)
         sess.add_all(models.values())
         sess.commit()
 
-        logger.info('%s Sub Tier Agency records inserted', len(models))
+        logger.info("%s Sub Tier Agency records inserted", len(models))
         return True
     else:
-        logger.info('No differences found, skipping subtier table reload.')
+        logger.info("No differences found, skipping subtier table reload.")
         return False
 
 
 def load_agency_data(base_path, force_reload=False):
-    """ Load agency data into the database
+    """Load agency data into the database
 
-        Args:
-            base_path: directory that contains the agency files
-            force_reload: whether to reload regardless
+    Args:
+        base_path: directory that contains the agency files
+        force_reload: whether to reload regardless
     """
     start_time = datetime.now()
     agency_codes_file = get_agency_file(base_path)
 
     # Parse data
     with create_app().app_context():
-        logger.info('Loading CGAC')
+        logger.info("Loading CGAC")
         new_cgac = load_cgac(agency_codes_file, force_reload=force_reload)
-        logger.info('Loading FREC')
+        logger.info("Loading FREC")
         new_frec = load_frec(agency_codes_file, force_reload=force_reload)
-        logger.info('Loading Sub Tier Agencies')
+        logger.info("Loading Sub Tier Agencies")
         new_sub_tier = load_sub_tier_agencies(agency_codes_file, force_reload=force_reload)
 
         # If we've updated the data at all, update the external data load date
         if new_cgac or new_frec or new_sub_tier:
-            update_external_data_load_date(start_time, datetime.now(), 'agency')
+            update_external_data_load_date(start_time, datetime.now(), "agency")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
-    load_agency_data(os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config'))
+    load_agency_data(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))

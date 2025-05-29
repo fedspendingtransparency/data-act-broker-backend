@@ -175,6 +175,7 @@ class ObjectClassFactory(factory.Factory):
 class AssistanceListingFactory(factory.Factory):
     class Meta:
         model = domainModels.AssistanceListing
+
     assistance_listing_id = None
     program_number = fuzzy.FuzzyDecimal(0, 99, 3)
     program_title = fuzzy.FuzzyText()
@@ -377,9 +378,10 @@ class ZipCityFactory(factory.Factory):
 
 
 class CDCityGroupedFactory(factory.Factory):
-    """ Groups city, state, and congressional districts from the zips and zip_city table for derivation
-        (uses threshold logic)
+    """Groups city, state, and congressional districts from the zips and zip_city table for derivation
+    (uses threshold logic)
     """
+
     class Meta:
         model = domainModels.CDCityGrouped
 
@@ -422,8 +424,8 @@ class SAMRecipientFactory(factory.Factory):
     country_code = fuzzy.FuzzyText()
     congressional_district = fuzzy.FuzzyText()
     entity_structure = fuzzy.FuzzyText()
-    business_types_codes = ['A', 'B', 'C']
-    business_types = ['Full Name A', 'Full Name B', 'Full Name C']
+    business_types_codes = ["A", "B", "C"]
+    business_types = ["Full Name A", "Full Name B", "Full Name C"]
     ultimate_parent_uei = fuzzy.FuzzyText()
     ultimate_parent_unique_ide = fuzzy.FuzzyText()
     ultimate_parent_legal_enti = fuzzy.FuzzyText()
@@ -473,10 +475,10 @@ class DEFCFactory(factory.Factory):
 
     defc_id = None
     code = fuzzy.FuzzyText()
-    public_laws = ['PL 123-3', 'PL 456-12']
-    public_law_short_titles = ['123-3 A', '456-12 B']
+    public_laws = ["PL 123-3", "PL 456-12"]
+    public_law_short_titles = ["123-3 A", "456-12 B"]
     group = fuzzy.FuzzyText()
-    urls = ['http://test-url.com/A/', 'http://test-url.com/B/']
+    urls = ["http://test-url.com/A/", "http://test-url.com/B/"]
     is_valid = True
     earliest_pl_action_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
 
@@ -488,7 +490,7 @@ class FundingOpportunityFactory(factory.Factory):
     funding_opportunity_id = None
     funding_opportunity_number = fuzzy.FuzzyText()
     title = fuzzy.FuzzyText()
-    assistance_listing_numbers = ['12.345', '98.765']
+    assistance_listing_numbers = ["12.345", "98.765"]
     agency_name = fuzzy.FuzzyText()
     status = fuzzy.FuzzyText()
     open_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))

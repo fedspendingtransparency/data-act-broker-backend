@@ -2,7 +2,7 @@ from tests.integration.baseTestAPI import BaseTestAPI
 
 
 class LoginTests(BaseTestAPI):
-    """ Test login, logout, and session handling """
+    """Test login, logout, and session handling"""
 
     def test_login(self):
         """Test broker login."""
@@ -13,7 +13,7 @@ class LoginTests(BaseTestAPI):
             self.assertIsInstance(response.json, dict)
         except AttributeError:
             self.fail("Response is missing JSON component")
-        self.assertIn('success', response.json["message"].lower())
+        self.assertIn("success", response.json["message"].lower())
         # assert response.status_code == 200 (pytest syntax: note to future self)
         json = response.json
         self.assertIn("user_id", json)
@@ -31,7 +31,7 @@ class LoginTests(BaseTestAPI):
             self.assertIsInstance(response.json, dict)
         except AttributeError:
             self.fail("Response is missing JSON component")
-        self.assertIn('success', response.json["message"].lower())
+        self.assertIn("success", response.json["message"].lower())
 
     def test_session_logout1(self):
         """Test session after broker logout."""

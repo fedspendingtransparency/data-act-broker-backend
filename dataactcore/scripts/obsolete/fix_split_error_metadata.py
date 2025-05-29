@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 def duplicate_removal(table):
-    """ Run the sql to remove duplicates
+    """Run the sql to remove duplicates
 
-        Args:
-            table: The table to remove the duplicates from
+    Args:
+        table: The table to remove the duplicates from
     """
-    logger.info('Fixing {} duplicated entries'.format(table))
+    logger.info("Fixing {} duplicated entries".format(table))
 
     # Creating a temporary table storing all the duplicates
     create_table_sql = """
@@ -27,7 +27,7 @@ def duplicate_removal(table):
     """
     sess.execute(create_table_sql.format(table))
     # In case something went wrong, we don't want extra data
-    sess.execute('TRUNCATE TABLE temp_duplicated_{};'.format(table))
+    sess.execute("TRUNCATE TABLE temp_duplicated_{};".format(table))
 
     # Inserting a summary of all duplicated error metadata
     duplicates_insert_sql = """
@@ -62,17 +62,17 @@ def duplicate_removal(table):
     """
     sess.execute(delete_sql.format(table=table))
 
-    sess.execute('DROP TABLE temp_duplicated_{}'.format(table))
+    sess.execute("DROP TABLE temp_duplicated_{}".format(table))
     sess.commit()
 
-    logger.info('{} duplicated entries fixed'.format(table))
+    logger.info("{} duplicated entries fixed".format(table))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sess = GlobalDB.db().session
 
     configure_logging()
 
     with create_app().app_context():
-        duplicate_removal('error_metadata')
-        duplicate_removal('published_error_metadata')
+        duplicate_removal("error_metadata")
+        duplicate_removal("published_error_metadata")

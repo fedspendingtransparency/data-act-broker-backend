@@ -4,8 +4,9 @@ from dataactcore.models.baseModel import Base
 
 
 class SAMSubcontract(Base):
-    """ Model for SAM subcontract data """
-    __tablename__ = 'sam_subcontract'
+    """Model for SAM subcontract data"""
+
+    __tablename__ = "sam_subcontract"
     sam_subcontract_id = Column(Integer, primary_key=True)
     subaward_report_id = Column(Integer, index=True, unique=True)
     subaward_report_number = Column(Text, index=True, unique=True)
@@ -64,8 +65,9 @@ Index("ix_sam_subcontract_ppop_state_upper", func.upper(SAMSubcontract.ppop_stat
 
 
 class SAMSubgrant(Base):
-    """ Model for SAM subgrant data """
-    __tablename__ = 'sam_subgrant'
+    """Model for SAM subgrant data"""
+
+    __tablename__ = "sam_subgrant"
     sam_subgrant_id = Column(Integer, primary_key=True)
     subaward_report_id = Column(Integer, index=True, unique=True)
     subaward_report_number = Column(Text, index=True, unique=True)
@@ -122,7 +124,8 @@ Index("ix_sam_subgrant_ppop_state_upper", func.upper(SAMSubgrant.ppop_state_code
 
 
 class Subaward(Base):
-    """ Model for all subaward data """
+    """Model for all subaward data"""
+
     __tablename__ = "subaward"
     id = Column(BigInteger, primary_key=True)
 

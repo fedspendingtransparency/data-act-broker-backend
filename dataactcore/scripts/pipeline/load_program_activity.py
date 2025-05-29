@@ -21,26 +21,26 @@ from dataactcore.utils.failure_threshold_exception import FailureThresholdExceed
 
 logger = logging.getLogger(__name__)
 
-PA_BUCKET = CONFIG_BROKER['data_sources_bucket']
-PA_SUB_KEY = 'OMB_Data/'
-PA_FILE_NAME = 'DATA Act Program Activity List for Treas.csv'
-VALID_HEADERS = {'AGENCY_CODE', 'ALLOCATION_ID', 'ACCOUNT_CODE', 'PA_CODE', 'PA_TITLE', 'FYQ'}
+PA_BUCKET = CONFIG_BROKER["data_sources_bucket"]
+PA_SUB_KEY = "OMB_Data/"
+PA_FILE_NAME = "DATA Act Program Activity List for Treas.csv"
+VALID_HEADERS = {"AGENCY_CODE", "ALLOCATION_ID", "ACCOUNT_CODE", "PA_CODE", "PA_TITLE", "FYQ"}
 
 
 def get_program_activity_file(base_path):
-    """ Retrieves the program activity file to load
+    """Retrieves the program activity file to load
 
-        Args:
-            base_path: directory of domain config files
+    Args:
+        base_path: directory of domain config files
 
-        Returns:
-            the file path for the pa file either on S3 or locally
+    Returns:
+        the file path for the pa file either on S3 or locally
     """
-    if CONFIG_BROKER['use_aws']:
-        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+    if CONFIG_BROKER["use_aws"]:
+        s3 = boto3.resource("s3", region_name=CONFIG_BROKER["aws_region"])
         s3_object = s3.Object(PA_BUCKET, PA_SUB_KEY + PA_FILE_NAME)
         response = s3_object.get(Key=(PA_SUB_KEY + PA_FILE_NAME))
-        pa_file = io.BytesIO(response['Body'].read())
+        pa_file = io.BytesIO(response["Body"].read())
     else:
         pa_file = os.path.join(base_path, PA_FILE_NAME)
 
@@ -48,17 +48,18 @@ def get_program_activity_file(base_path):
 
 
 def get_date_of_current_pa_upload(base_path):
-    """ Gets the last time the file was uploaded to S3, or alternatively the last time the local file was modified.
+    """Gets the last time the file was uploaded to S3, or alternatively the last time the local file was modified.
 
-        Args:
-            base_path: directory of domain config files
+    Args:
+        base_path: directory of domain config files
 
-        Returns:
-            DateTime object
+    Returns:
+        DateTime object
     """
-    if CONFIG_BROKER['use_aws']:
-        last_uploaded = boto3.client('s3', region_name=CONFIG_BROKER['aws_region']). \
-            head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY + PA_FILE_NAME)['LastModified']
+    if CONFIG_BROKER["use_aws"]:
+        last_uploaded = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"]).head_object(
+            Bucket=PA_BUCKET, Key=PA_SUB_KEY + PA_FILE_NAME
+        )["LastModified"]
         # LastModified is coming back to us in UTC already; just drop the TZ.
         last_uploaded = last_uploaded.replace(tzinfo=None)
     else:
@@ -68,14 +69,17 @@ def get_date_of_current_pa_upload(base_path):
 
 
 def get_stored_pa_last_upload():
-    """ Gets last recorded timestamp from last time file was processed.
+    """Gets last recorded timestamp from last time file was processed.
 
-        Returns:
-            Upload date of most recent file we have recorded (Datetime object)
+    Returns:
+        Upload date of most recent file we have recorded (Datetime object)
     """
     sess = GlobalDB.db().session
-    last_stored_obj = sess.query(ExternalDataLoadDate).filter_by(
-        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload']).one_or_none()
+    last_stored_obj = (
+        sess.query(ExternalDataLoadDate)
+        .filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT["program_activity_upload"])
+        .one_or_none()
+    )
     if not last_stored_obj:
         # return epoch ts to make sure we load the data the first time through,
         # and ideally any time the data might have been wiped
@@ -86,59 +90,59 @@ def get_stored_pa_last_upload():
 
 
 def export_public_pa(raw_data):
-    """ Exports a public copy of the raw file (modified columns)
+    """Exports a public copy of the raw file (modified columns)
 
-        Args:
-            raw_data: the raw csv data analyzed from the latest program activity file
+    Args:
+        raw_data: the raw csv data analyzed from the latest program activity file
     """
     updated_cols = {
-        'FYQ': 'REPORTING_PERIOD',
-        'AGENCY': 'AGENCY_IDENTIFIER_NAME',
-        'ALLOCATION_ID': 'ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE',
-        'AGENCY_CODE': 'AGENCY_IDENTIFIER_CODE',
-        'ACCOUNT_CODE': 'MAIN_ACCOUNT_CODE',
-        'PA_TITLE': 'PROGRAM_ACTIVITY_NAME',
-        'PA_CODE': 'PROGRAM_ACTIVITY_CODE',
-        'OMB_BUREAU_TITLE_OPTNL': 'OMB_BUREAU_TITLE_OPTNL',
-        'OMB_ACCOUNT_TITLE_OPTNL': 'OMB_ACCOUNT_TITLE_OPTNL'
+        "FYQ": "REPORTING_PERIOD",
+        "AGENCY": "AGENCY_IDENTIFIER_NAME",
+        "ALLOCATION_ID": "ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE",
+        "AGENCY_CODE": "AGENCY_IDENTIFIER_CODE",
+        "ACCOUNT_CODE": "MAIN_ACCOUNT_CODE",
+        "PA_TITLE": "PROGRAM_ACTIVITY_NAME",
+        "PA_CODE": "PROGRAM_ACTIVITY_CODE",
+        "OMB_BUREAU_TITLE_OPTNL": "OMB_BUREAU_TITLE_OPTNL",
+        "OMB_ACCOUNT_TITLE_OPTNL": "OMB_ACCOUNT_TITLE_OPTNL",
     }
     raw_data = raw_data[list(updated_cols.keys())]
     raw_data.columns = [list(updated_cols.values())]
 
-    export_name = 'program_activity.csv'
-    logger.info('Exporting loaded PA file to {}'.format(export_name))
+    export_name = "program_activity.csv"
+    logger.info("Exporting loaded PA file to {}".format(export_name))
     raw_data.to_csv(export_name, index=0)
 
 
 def load_program_activity_data(base_path, force_reload=False, export=False):
-    """ Load program activity lookup table.
+    """Load program activity lookup table.
 
-        Args:
-            base_path: directory of domain config files
-            force_reload: whether or not to force a reload
-            export: whether or not to export a public copy of the file
+    Args:
+        base_path: directory of domain config files
+        force_reload: whether or not to force a reload
+        export: whether or not to export a public copy of the file
     """
     now = datetime.datetime.now()
     metrics_json = {
-        'script_name': 'load_program_activity.py',
-        'start_time': str(now),
-        'records_received': 0,
-        'duplicates_dropped': 0,
-        'invalid_records_dropped': 0,
-        'records_deleted': 0,
-        'records_inserted': 0
+        "script_name": "load_program_activity.py",
+        "start_time": str(now),
+        "records_received": 0,
+        "duplicates_dropped": 0,
+        "invalid_records_dropped": 0,
+        "records_deleted": 0,
+        "records_inserted": 0,
     }
     dropped_count = 0
 
-    logger.info('Checking PA upload dates to see if we can skip.')
+    logger.info("Checking PA upload dates to see if we can skip.")
     last_upload = get_date_of_current_pa_upload(base_path)
     if not (last_upload > get_stored_pa_last_upload()) and not force_reload:
-        logger.info('Skipping load as it\'s already been done')
+        logger.info("Skipping load as it's already been done")
     else:
-        logger.info('Getting the progrma activity file')
+        logger.info("Getting the progrma activity file")
         program_activity_file = get_program_activity_file(base_path)
 
-        logger.info('Loading program activity: {}'.format(PA_FILE_NAME))
+        logger.info("Loading program activity: {}".format(PA_FILE_NAME))
 
         with create_app().app_context():
             sess = GlobalDB.db().session
@@ -151,7 +155,7 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
             headers = set([header.upper() for header in list(raw_data)])
 
             if not VALID_HEADERS.issubset(headers):
-                logger.error('Missing required headers. Required headers include: %s' % str(VALID_HEADERS))
+                logger.error("Missing required headers. Required headers include: %s" % str(VALID_HEADERS))
                 exit_if_nonlocal(4)
                 return
 
@@ -159,14 +163,22 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
                 dropped_count, data = clean_data(
                     raw_data,
                     ProgramActivity,
-                    {'fyq': 'fiscal_year_period', 'agency_code': 'agency_id', 'allocation_id': 'allocation_transfer_id',
-                     'account_code': 'account_number', 'pa_code': 'program_activity_code',
-                     'pa_title': 'program_activity_name'},
-                    {'program_activity_code': {'pad_to_length': 4}, 'agency_id': {'pad_to_length': 3},
-                     'allocation_transfer_id': {'pad_to_length': 3, 'keep_null': True},
-                     'account_number': {'pad_to_length': 4}},
-                    ['agency_id', 'program_activity_code', 'account_number', 'program_activity_name'],
-                    True
+                    {
+                        "fyq": "fiscal_year_period",
+                        "agency_code": "agency_id",
+                        "allocation_id": "allocation_transfer_id",
+                        "account_code": "account_number",
+                        "pa_code": "program_activity_code",
+                        "pa_title": "program_activity_name",
+                    },
+                    {
+                        "program_activity_code": {"pad_to_length": 4},
+                        "agency_id": {"pad_to_length": 3},
+                        "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True},
+                        "account_number": {"pad_to_length": 4},
+                    },
+                    ["agency_id", "program_activity_code", "account_number", "program_activity_name"],
+                    True,
                 )
             except FailureThresholdExceededError as e:
                 if e.count == 0:
@@ -174,28 +186,30 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
                     exit_if_nonlocal(4)
                     return
                 else:
-                    logger.error('Loading of program activity file failed due to exceeded failure threshold. '
-                                 'Application tried to drop {} rows'.format(e.count))
+                    logger.error(
+                        "Loading of program activity file failed due to exceeded failure threshold. "
+                        "Application tried to drop {} rows".format(e.count)
+                    )
                     exit_if_nonlocal(5)
                     return
 
-            metrics_json['records_deleted'] = sess.query(ProgramActivity).delete()
-            metrics_json['invalid_records_dropped'] = dropped_count
+            metrics_json["records_deleted"] = sess.query(ProgramActivity).delete()
+            metrics_json["invalid_records_dropped"] = dropped_count
 
             # Lowercase Program Activity Name
-            data['program_activity_name'] = data['program_activity_name'].apply(lambda x: lowercase_or_notify(x))
+            data["program_activity_name"] = data["program_activity_name"].apply(lambda x: lowercase_or_notify(x))
             # Convert FYQ to FYP
-            data['fiscal_year_period'] = data['fiscal_year_period'].apply(lambda x: convert_fyq_to_fyp(x))
+            data["fiscal_year_period"] = data["fiscal_year_period"].apply(lambda x: convert_fyq_to_fyp(x))
 
             # because we're only loading a subset of program activity info, there will be duplicate records in the
             # dataframe. this is ok, but need to de-duped before the db load. We also need to log them.
             base_count = len(data.index)
-            metrics_json['records_received'] = base_count
+            metrics_json["records_received"] = base_count
             data.drop_duplicates(inplace=True)
 
             dupe_count = base_count - len(data.index)
-            logger.info('Dropped {} duplicate rows.'.format(dupe_count))
-            metrics_json['duplicates_dropped'] = dupe_count
+            logger.info("Dropped {} duplicate rows.".format(dupe_count))
+            metrics_json["duplicates_dropped"] = dupe_count
 
             # insert to db
             table_name = ProgramActivity.__table__.name
@@ -206,14 +220,14 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
                 export_public_pa(raw_data)
 
         end_time = datetime.datetime.now()
-        update_external_data_load_date(now, end_time, 'program_activity')
-        update_external_data_load_date(last_upload, end_time, 'program_activity_upload')
-        logger.info('{} records inserted to {}'.format(num, table_name))
-        metrics_json['records_inserted'] = num
+        update_external_data_load_date(now, end_time, "program_activity")
+        update_external_data_load_date(last_upload, end_time, "program_activity_upload")
+        logger.info("{} records inserted to {}".format(num, table_name))
+        metrics_json["records_inserted"] = num
 
-        metrics_json['duration'] = str(end_time - now)
+        metrics_json["duration"] = str(end_time - now)
 
-    with open('load_program_activity_metrics.json', 'w+') as metrics_file:
+    with open("load_program_activity_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
 
     if dropped_count > 0:
@@ -222,38 +236,38 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
 
 
 def lowercase_or_notify(x):
-    """ Lowercases the input if it is valid, otherwise logs the error and sets a default value
+    """Lowercases the input if it is valid, otherwise logs the error and sets a default value
 
-        Args:
-            String to lowercase
+    Args:
+        String to lowercase
 
-        Returns:
-            Lowercased string if possible, else unmodified string or default value.
+    Returns:
+        Lowercased string if possible, else unmodified string or default value.
     """
     try:
         return x.lower()
     except Exception:
         if x and not np.isnan(x):
-            logger.info('Program activity of {} was unable to be lowercased. Entered as-is.'.format(x))
+            logger.info("Program activity of {} was unable to be lowercased. Entered as-is.".format(x))
             return x
         else:
-            logger.info('Null value found for program activity name. Entered default value.')  # should not happen
-            return '(not provided)'
+            logger.info("Null value found for program activity name. Entered default value.")  # should not happen
+            return "(not provided)"
 
 
 def convert_fyq_to_fyp(fyq):
-    """ Converts the fyq provided to fyp if it is in fyq format. Do nothing if it is already in fyp format
+    """Converts the fyq provided to fyp if it is in fyq format. Do nothing if it is already in fyp format
 
-        Args:
-            fyq: String to convert or leave alone fiscal year quarters
+    Args:
+        fyq: String to convert or leave alone fiscal year quarters
 
-        Returns:
-            FYQ converted to FYP or left the same
+    Returns:
+        FYQ converted to FYP or left the same
     """
     # If it's in quarter format, convert to period
-    if re.match(r'^FY\d{2}Q\d$', str(fyq).upper().strip()):
+    if re.match(r"^FY\d{2}Q\d$", str(fyq).upper().strip()):
         # Make sure it's all uppercase and replace the Q with a P
-        fyq = fyq.upper().strip().replace('Q', 'P')
+        fyq = fyq.upper().strip().replace("Q", "P")
         # take the last character in the string (the quarter), multiply by 3, replace
         quarter = fyq[-1]
         period = str(int(quarter) * 3).zfill(2)
@@ -262,12 +276,13 @@ def convert_fyq_to_fyp(fyq):
     return fyq
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
-    parser = argparse.ArgumentParser(description='Loads in Program Activity data')
-    parser.add_argument('-e', '--export', help='If provided, exports a public version of the file locally',
-                        action='store_true')
-    parser.add_argument('-f', '--force', help='If provided, forces a reload', action='store_true')
+    parser = argparse.ArgumentParser(description="Loads in Program Activity data")
+    parser.add_argument(
+        "-e", "--export", help="If provided, exports a public version of the file locally", action="store_true"
+    )
+    parser.add_argument("-f", "--force", help="If provided, forces a reload", action="store_true")
     args = parser.parse_args()
 
     config_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")

@@ -15,7 +15,7 @@ def reset_alembic(alembic_version):
         engine = db.engine
         sess = db.session
         metadata = MetaData(bind=engine)
-        alembic_table = Table('alembic_version', metadata, autoload=True)
+        alembic_table = Table("alembic_version", metadata, autoload=True)
         u = update(alembic_table)
         u = u.values({"version_num": alembic_version})
         sess.execute(u)
@@ -23,7 +23,6 @@ def reset_alembic(alembic_version):
 
 
 parser = argparse.ArgumentParser(description="Reset alembic version table.")
-parser.add_argument(
-    'version', help="Version to set the Alembic migration table to.")
-v = vars(parser.parse_args())['version']
+parser.add_argument("version", help="Version to set the Alembic migration table to.")
+v = vars(parser.parse_args())["version"]
 reset_alembic(v)

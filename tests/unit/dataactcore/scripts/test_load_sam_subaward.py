@@ -27,84 +27,79 @@ class MockSAMSubawardApi:
         self.total_delete_records = total_delete_records
 
     def get_records(self, url_string):
-        base_url = url_string.split('?')[0]
-        if base_url == ASSISTANCE_API_URL.split('?')[0]:
+        base_url = url_string.split("?")[0]
+        if base_url == ASSISTANCE_API_URL.split("?")[0]:
             record_type = self.assistance_record
         else:
             record_type = self.contract_record
-        params_strings = url_string.split('?')[1].split('&')
-        params = {
-            params_string.split('=')[0]: params_string.split('=')[1]
-            for params_string in params_strings
-        }
-        page_size = int(params.get('pageSize', LIMIT))
-        page_number = int(params.get('pageNumber', 0))
-        load_type = params.get('status')
-        total_records = self.total_publish_records if load_type == 'Published' else self.total_delete_records
+        params_strings = url_string.split("?")[1].split("&")
+        params = {params_string.split("=")[0]: params_string.split("=")[1] for params_string in params_strings}
+        page_size = int(params.get("pageSize", LIMIT))
+        page_number = int(params.get("pageNumber", 0))
+        load_type = params.get("status")
+        total_records = self.total_publish_records if load_type == "Published" else self.total_delete_records
         total_pages = math.ceil(total_records / page_size)
         return {
-            'totalPages': total_pages,
-            'totalRecords': total_records,
-            'pageNumber': page_number,
-            'data': [
+            "totalPages": total_pages,
+            "totalRecords": total_records,
+            "pageNumber": page_number,
+            "data": [
                 record_type(str(i), i, load_type)
                 for i in range(max(0, min(page_size, total_records - (page_number * page_size))))
-            ]
+            ],
         }
 
     @staticmethod
-    def assistance_record(report_number, report_id, load_type='Published'):
+    def assistance_record(report_number, report_id, load_type="Published"):
         return {
-            'status': load_type,
-            'submittedDate': date.today().strftime("%Y-%m-%d"),
-            'subVendorName': uuid.uuid4().hex,
-            'subVendorUei': uuid.uuid4().hex,
-            'subAwardNumber': uuid.uuid4().hex,
-            'subAwardAmount': uuid.uuid4().hex,
-            'subAwardDate': date.today().strftime("%Y-%m-%d"),
-            'reportUpdatedDate': date.today().strftime("%Y-%m-%d"),
-            'subawardReportId': report_id,
-            'subawardReportNumber': report_number,
-            'placeOfPerformance': {
-                'streetAddress': None,
-                'streetAddress2': None,
-                'city': uuid.uuid4().hex,
-                'congressionalDistrict': uuid.uuid4().hex,
-                'state': {'code': uuid.uuid4().hex, 'name': uuid.uuid4().hex},
-                'country': {'code': uuid.uuid4().hex, 'name': uuid.uuid4().hex},
-                'zip': uuid.uuid4().hex,
+            "status": load_type,
+            "submittedDate": date.today().strftime("%Y-%m-%d"),
+            "subVendorName": uuid.uuid4().hex,
+            "subVendorUei": uuid.uuid4().hex,
+            "subAwardNumber": uuid.uuid4().hex,
+            "subAwardAmount": uuid.uuid4().hex,
+            "subAwardDate": date.today().strftime("%Y-%m-%d"),
+            "reportUpdatedDate": date.today().strftime("%Y-%m-%d"),
+            "subawardReportId": report_id,
+            "subawardReportNumber": report_number,
+            "placeOfPerformance": {
+                "streetAddress": None,
+                "streetAddress2": None,
+                "city": uuid.uuid4().hex,
+                "congressionalDistrict": uuid.uuid4().hex,
+                "state": {"code": uuid.uuid4().hex, "name": uuid.uuid4().hex},
+                "country": {"code": uuid.uuid4().hex, "name": uuid.uuid4().hex},
+                "zip": uuid.uuid4().hex,
             },
-            'organizationInfo': None,
-            'assistanceListingNumber': [{'title': uuid.uuid4().hex, 'number': uuid.uuid4().hex}],
-            'subawardDescription': uuid.uuid4().hex,
-            'fain': uuid.uuid4().hex,
-            'actionDate': date.today().strftime("%Y-%m-%d"),
-            'totalFedFundingAmount': uuid.uuid4().hex,
-            'baseObligationDate': date.today().strftime("%Y-%m-%d"),
-            'projectDescription': uuid.uuid4().hex,
-            'baseAssistanceTypeCode': uuid.uuid4().hex,
-            'baseAssistanceTypeDesc': None,
-            'agencyCode': uuid.uuid4().hex,
-            'assistanceType': None,
-            'primeEntityUei': uuid.uuid4().hex,
-            'primeEntityName': uuid.uuid4().hex,
-            'primeAwardKey': uuid.uuid4().hex,
-            'vendorPhysicalAddress': {
-                'streetAddress': uuid.uuid4().hex,
-                'streetAddress2': None,
-                'city': uuid.uuid4().hex,
-                'congressionalDistrict': uuid.uuid4().hex,
-                'state': {'code': uuid.uuid4().hex, 'name': uuid.uuid4().hex},
-                'country': {'code': uuid.uuid4().hex, 'name': uuid.uuid4().hex},
-                'zip': uuid.uuid4().hex,
+            "organizationInfo": None,
+            "assistanceListingNumber": [{"title": uuid.uuid4().hex, "number": uuid.uuid4().hex}],
+            "subawardDescription": uuid.uuid4().hex,
+            "fain": uuid.uuid4().hex,
+            "actionDate": date.today().strftime("%Y-%m-%d"),
+            "totalFedFundingAmount": uuid.uuid4().hex,
+            "baseObligationDate": date.today().strftime("%Y-%m-%d"),
+            "projectDescription": uuid.uuid4().hex,
+            "baseAssistanceTypeCode": uuid.uuid4().hex,
+            "baseAssistanceTypeDesc": None,
+            "agencyCode": uuid.uuid4().hex,
+            "assistanceType": None,
+            "primeEntityUei": uuid.uuid4().hex,
+            "primeEntityName": uuid.uuid4().hex,
+            "primeAwardKey": uuid.uuid4().hex,
+            "vendorPhysicalAddress": {
+                "streetAddress": uuid.uuid4().hex,
+                "streetAddress2": None,
+                "city": uuid.uuid4().hex,
+                "congressionalDistrict": uuid.uuid4().hex,
+                "state": {"code": uuid.uuid4().hex, "name": uuid.uuid4().hex},
+                "country": {"code": uuid.uuid4().hex, "name": uuid.uuid4().hex},
+                "zip": uuid.uuid4().hex,
             },
-            'subDbaName': None,
-            'subParentName': uuid.uuid4().hex,
-            'subParentUei': uuid.uuid4().hex,
-            'subBusinessType': [
-                {'code': uuid.uuid4().hex, 'name': uuid.uuid4().hex}
-            ],
-            'subTopPayEmployee': []
+            "subDbaName": None,
+            "subParentName": uuid.uuid4().hex,
+            "subParentUei": uuid.uuid4().hex,
+            "subBusinessType": [{"code": uuid.uuid4().hex, "name": uuid.uuid4().hex}],
+            "subTopPayEmployee": [],
         }
 
     @staticmethod
@@ -167,7 +162,7 @@ class MockSAMSubawardApi:
 @pytest.mark.parametrize("data_type,load_type", itertools.product(("assistance", "contract"), ("published", "deleted")))
 @patch("dataactcore.scripts.pipeline.load_sam_subaward.get_with_exception_hand")
 def test_load_subawards(mock_get_with_exception_hand, data_type, load_type, database):
-    model = SAMSubgrant if data_type == 'assistance' else SAMSubcontract
+    model = SAMSubgrant if data_type == "assistance" else SAMSubcontract
     total_publish_records = 100
     total_delete_records = 50
     mock_get_with_exception_hand.side_effect = MockSAMSubawardApi(
@@ -208,8 +203,8 @@ def test_load_subawards(mock_get_with_exception_hand, data_type, load_type, data
 
 @pytest.mark.parametrize("data_type", ("assistance", "contract"))
 def test_store_subawards(data_type, database):
-    model = SAMSubgrant if data_type == 'assistance' else SAMSubcontract
-    new_subawards = pd.DataFrame({'subaward_report_number': [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]})
+    model = SAMSubgrant if data_type == "assistance" else SAMSubcontract
+    new_subawards = pd.DataFrame({"subaward_report_number": [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]})
     session = database.session
 
     # Load subawards.
@@ -221,10 +216,12 @@ def test_store_subawards(data_type, database):
     assert set(new_subawards.subaward_report_number) == db_report_nums_post_load
 
     # Load additional subawards.
-    more_subawards = pd.concat([
-        new_subawards,
-        pd.DataFrame({'subaward_report_number': [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]}),
-    ])
+    more_subawards = pd.concat(
+        [
+            new_subawards,
+            pd.DataFrame({"subaward_report_number": [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]}),
+        ]
+    )
     store_subawards(session, more_subawards, model)
     db_report_nums_post_load = set(record[0] for record in session.query(model.subaward_report_number).all())
 
@@ -235,8 +232,8 @@ def test_store_subawards(data_type, database):
 
 @pytest.mark.parametrize("data_type", ("assistance", "contract"))
 def test_delete_subawards(data_type, database):
-    model = SAMSubgrant if data_type == 'assistance' else SAMSubcontract
-    new_subawards = pd.DataFrame({'subaward_report_number': [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]})
+    model = SAMSubgrant if data_type == "assistance" else SAMSubcontract
+    new_subawards = pd.DataFrame({"subaward_report_number": [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]})
     session = database.session
 
     # Load subawards
@@ -258,7 +255,7 @@ def parsed_assistance_keys():
     return set(
         col.name
         for col in SAMSubgrant.__table__.columns
-        if col.name not in ['created_at', 'updated_at', 'sam_subgrant_id']
+        if col.name not in ["created_at", "updated_at", "sam_subgrant_id"]
     )
 
 
@@ -267,7 +264,7 @@ def parsed_contract_keys():
     return set(
         col.name
         for col in SAMSubcontract.__table__.columns
-        if col.name not in ['created_at', 'updated_at', 'sam_subcontract_id']
+        if col.name not in ["created_at", "updated_at", "sam_subcontract_id"]
     )
 
 
@@ -275,7 +272,7 @@ def test_parse_raw_subaward_assistance(parsed_assistance_keys):
     report_number = uuid.uuid4().hex
     report_id = random.randint(1, 1000)
     raw_subaward_dict = MockSAMSubawardApi.assistance_record(report_number, report_id)
-    result = parse_raw_subaward(raw_subaward_dict, 'assistance')
+    result = parse_raw_subaward(raw_subaward_dict, "assistance")
     assert set(result.keys()) == parsed_assistance_keys
 
 
@@ -283,7 +280,7 @@ def test_parse_raw_subaward_contract(parsed_contract_keys):
     report_number = uuid.uuid4().hex
     report_id = random.randint(1, 1000)
     raw_subaward_dict = MockSAMSubawardApi.contract_record(report_number, report_id)
-    result = parse_raw_subaward(raw_subaward_dict, 'contract')
+    result = parse_raw_subaward(raw_subaward_dict, "contract")
     assert set(result.keys()) == parsed_contract_keys
 
 

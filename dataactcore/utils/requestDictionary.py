@@ -2,19 +2,19 @@ from werkzeug.exceptions import BadRequest
 
 
 class RequestDictionary:
-    """ Provides an interface to an http request """
+    """Provides an interface to an http request"""
 
     def __init__(self, request, optional_request=False):
         self.requestDict = self.derive(request, optional_request)
 
     def get_value(self, value):
-        """ Returns value for specified key """
+        """Returns value for specified key"""
         if value not in self.requestDict:
             raise ValueError(value + " not found")
         return self.requestDict[value]
 
     def exists(self, value):
-        """ Returns True if key is in request json """
+        """Returns True if key is in request json"""
         if value not in self.requestDict:
             return False
         return True
@@ -30,7 +30,7 @@ class RequestDictionary:
         try:
             if "Content-Type" not in request.headers:
                 raise ValueError("Must include Content-Type header")
-            content_type = request.headers['Content-Type']
+            content_type = request.headers["Content-Type"]
 
             # Allowing extra content after application/json for Firefox compatibility
             if request.is_json:
@@ -44,9 +44,9 @@ class RequestDictionary:
             # This is not common and is a one-off solution for inbound API
             elif "multipart/form-data" in content_type:
                 request_data = request.form.to_dict()
-                request_data['_files'] = request.files
+                request_data["_files"] = request.files
                 for key, value in request_data.items():
-                    if str(value).upper() in ('NULL', 'NONE'):
+                    if str(value).upper() in ("NULL", "NONE"):
                         request_data[key] = None
                 return request_data
             else:
