@@ -87,22 +87,6 @@ def export_public_park(raw_data):
         Args:
             raw_data: the raw csv data analyzed from the latest program activity file
     """
-    updated_cols = {
-        'FY': 'FISCAL_YEAR',
-        'PD': 'PERIOD',
-        'ALLOC_XFER_AGENCY': 'ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE',
-        'AID': 'AGENCY_IDENTIFIER_CODE',
-        'MAIN_ACCT': 'MAIN_ACCOUNT_CODE',
-        'SUB_ACCT': 'SUB_ACCOUNT_CODE',
-        'COMPOUND_KEY': 'COMPOUND_KEY',
-        'PARK': 'PARK_CODE',
-        'PARK_NAME': 'PARK_NAME',
-        'RECORD_UPDATE_TS': 'RECORD_UPDATE_TIMESTAMP',
-        'FILE_UPDATE_TS': 'FILE_UPDATE_TIMESTAMP'
-    }
-    raw_data = raw_data[list(updated_cols.keys())]
-    raw_data.columns = [list(updated_cols.values())]
-
     export_name = 'park.csv'
     logger.info('Exporting loaded PARK file to {}'.format(export_name))
     raw_data.to_csv(export_name, index=0)

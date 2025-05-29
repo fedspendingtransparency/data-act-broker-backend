@@ -87,9 +87,8 @@ def test_export_park(mocked_get_park_file, mocked_get_current_date, mocked_get_s
         actual_headers = export_park.readline()
     remove_exported_file()
 
-    expected_headers = ('FISCAL_YEAR,PERIOD,ALLOCATION_TRANSFER_AGENCY_IDENTIFIER_CODE,AGENCY_IDENTIFIER_CODE,'
-                        'MAIN_ACCOUNT_CODE,SUB_ACCOUNT_CODE,COMPOUND_KEY,PARK_CODE,PARK_NAME,RECORD_UPDATE_TIMESTAMP,'
-                        'FILE_UPDATE_TIMESTAMP\n')
+    expected_headers = ('FY,PD,ALLOC_XFER_AGENCY,AID,MAIN_ACCT,SUB_ACCT,COMPOUND_KEY,PARK,PARK_NAME,RECORD_UPDATE_TS,'
+                        'FILE_UPDATE_TS\n')
     assert expected_headers == actual_headers
 
     remove_metrics_file()
