@@ -14,31 +14,32 @@ from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
-'''
+"""
 This script is used to pull updated financial assistance records (from --date to present) for FSRS.
 It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_PREFIX}) for the most
 recent file that was uploaded, and use the boto3 response for --date.
-'''
+"""
 
-BUCKET_NAME = CONFIG_BROKER['data_extracts_bucket']
-BUCKET_PREFIX = 'fsrs_award_extracts/'
+BUCKET_NAME = CONFIG_BROKER["data_extracts_bucket"]
+BUCKET_PREFIX = "fsrs_award_extracts/"
 
 
 def get_award_updates(mod_date):
-    """ Runs the SQL to extract new award information for FSRS
+    """Runs the SQL to extract new award information for FSRS
 
-        Args:
-            mod_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
+    Args:
+        mod_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
 
-        Returns:
-            The results of the SQL query
+    Returns:
+        The results of the SQL query
     """
     logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
     sess = GlobalDB.db().session
     # Query Summary:
     # Each row is the *latest transaction of an award* with the transaction’s modified_date being within the past day
     # and also includes summary data about the award associated with the transaction.
-    results = sess.execute(f"""
+    results = sess.execute(
+        f"""
         WITH updated_transactions AS (
             SELECT DISTINCT fain
             FROM published_fabs AS pf_b
@@ -117,40 +118,45 @@ def get_award_updates(mod_date):
             ob.base_date AS base_obligation_date,
             ob.award_description AS project_description,
             ob.updated_at AS last_modified_date
-        FROM only_base AS ob; """)
+        FROM only_base AS ob; """
+    )
     return results
 
 
 def main():
     now = datetime.datetime.now()
-    parser = argparse.ArgumentParser(description='Pull')
-    parser.add_argument('--date',
-                        help='Specify modified date in mm/dd/yyyy format. Overrides --auto option.',
-                        nargs=1, type=str)
-    parser.add_argument('--auto',
-                        help='Polls S3 for the most recently uploaded FABS_for_FSRS file, '
-                             + 'and uses that as the modified date.',
-                        action='store_true')
+    parser = argparse.ArgumentParser(description="Pull")
+    parser.add_argument(
+        "--date", help="Specify modified date in mm/dd/yyyy format. Overrides --auto option.", nargs=1, type=str
+    )
+    parser.add_argument(
+        "--auto",
+        help="Polls S3 for the most recently uploaded FABS_for_FSRS file, " + "and uses that as the modified date.",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     metrics_json = {
-        'script_name': 'get_fsrs_updates.py',
-        'start_time': str(now),
-        'records_provided': 0,
-        'start_date': ''
+        "script_name": "get_fsrs_updates.py",
+        "start_time": str(now),
+        "records_provided": 0,
+        "start_date": "",
     }
 
     if args.auto:
-        s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
+        s3_resource = boto3.resource("s3", region_name="us-gov-west-1")
         extract_bucket = s3_resource.Bucket(BUCKET_NAME)
         all_fsrs_extracts = extract_bucket.objects.filter(Prefix=BUCKET_PREFIX)
         mod_date = max(all_fsrs_extracts, key=lambda k: k.last_modified).last_modified.strftime("%m/%d/%Y")
 
     if args.date:
         arg_date = args.date[0]
-        given_date = arg_date.split('/')
-        if not re.match(r'^\d{2}$', given_date[0]) or not re.match(r'^\d{2}$', given_date[1])\
-                or not re.match(r'^\d{4}$', given_date[2]):
+        given_date = arg_date.split("/")
+        if (
+            not re.match(r"^\d{2}$", given_date[0])
+            or not re.match(r"^\d{2}$", given_date[1])
+            or not re.match(r"^\d{4}$", given_date[2])
+        ):
             logger.error("Date " + arg_date + " not in proper mm/dd/yyyy format")
             return
         mod_date = arg_date
@@ -159,34 +165,51 @@ def main():
         logger.error("Date or auto setting is required.")
         return
 
-    metrics_json['start_date'] = mod_date
+    metrics_json["start_date"] = mod_date
 
     results = get_award_updates(mod_date)
     logger.info("Completed SQL query, starting file writing")
 
     full_file_path = os.path.join(os.getcwd(), "fsrs_update.csv")
-    with open(full_file_path, 'w', newline='') as csv_file:
-        out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+    with open(full_file_path, "w", newline="") as csv_file:
+        out_csv = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
         # write headers to file
-        headers = ['federal_award_id', 'status', 'eligibility', 'sai_number', 'agency_code', 'duns_no', 'dunsplus4',
-                   'uei', 'principal_place_cc', 'principal_place_state_code', 'principal_place_country_code',
-                   'principal_place_zip', 'cfda_program_num', 'starting_date', 'ending_date',
-                   'total_fed_funding_amount', 'base_obligation_date', 'project_description', 'last_modified_date']
+        headers = [
+            "federal_award_id",
+            "status",
+            "eligibility",
+            "sai_number",
+            "agency_code",
+            "duns_no",
+            "dunsplus4",
+            "uei",
+            "principal_place_cc",
+            "principal_place_state_code",
+            "principal_place_country_code",
+            "principal_place_zip",
+            "cfda_program_num",
+            "starting_date",
+            "ending_date",
+            "total_fed_funding_amount",
+            "base_obligation_date",
+            "project_description",
+            "last_modified_date",
+        ]
         out_csv.writerow(headers)
         for row in results:
-            metrics_json['records_provided'] += 1
+            metrics_json["records_provided"] += 1
             out_csv.writerow(row)
     # close file
     csv_file.close()
 
-    metrics_json['duration'] = str(datetime.datetime.now() - now)
+    metrics_json["duration"] = str(datetime.datetime.now() - now)
 
-    with open('get_fsrs_updates_metrics.json', 'w+') as metrics_file:
+    with open("get_fsrs_updates_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
     logger.info("Script complete")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     with create_app().app_context():
         main()

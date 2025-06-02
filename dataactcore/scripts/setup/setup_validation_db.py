@@ -32,6 +32,6 @@ def insert_codes(sess):
         sess.merge(rule_impact)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     setup_validation_db()

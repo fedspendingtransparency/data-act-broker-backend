@@ -23,18 +23,20 @@ def user_app(test_app):
 
 @pytest.mark.usefixtures("user_constants")
 def test_list_user_emails(database, user_app):
-    """ Test listing user emails """
+    """Test listing user emails"""
     cgacs = [CGACFactory() for _ in range(3)]
-    users = [UserFactory.with_cgacs(cgacs[0]),
-             UserFactory.with_cgacs(cgacs[0], cgacs[1]),
-             UserFactory.with_cgacs(cgacs[1]),
-             UserFactory.with_cgacs(cgacs[2])]
+    users = [
+        UserFactory.with_cgacs(cgacs[0]),
+        UserFactory.with_cgacs(cgacs[0], cgacs[1]),
+        UserFactory.with_cgacs(cgacs[1]),
+        UserFactory.with_cgacs(cgacs[2]),
+    ]
     database.session.add_all(users)
     database.session.commit()
 
     def user_ids():
-        result = user_app.get('/v1/list_user_emails/').data.decode('UTF-8')
-        return {user['id'] for user in json.loads(result)['users']}
+        result = user_app.get("/v1/list_user_emails/").data.decode("UTF-8")
+        return {user["id"] for user in json.loads(result)["users"]}
 
     g.user = users[0]
     assert user_ids() == {users[0].user_id, users[1].user_id}
@@ -49,10 +51,10 @@ def test_list_user_emails(database, user_app):
 @pytest.mark.usefixtures("user_constants")
 @pytest.mark.usefixtures("user_app")
 def test_list_submission_users_admin(database):
-    """ Test listing all users with a submission (admin called the function) """
-    cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    admin_user = UserFactory(website_admin=True, name='Admin User', email='admin@domain.com')
-    other_user = UserFactory.with_cgacs(cgacs[0], name='Test User', email='test@domain.com')
+    """Test listing all users with a submission (admin called the function)"""
+    cgacs = [CGACFactory(cgac_code="000"), CGACFactory(cgac_code="111")]
+    admin_user = UserFactory(website_admin=True, name="Admin User", email="admin@domain.com")
+    other_user = UserFactory.with_cgacs(cgacs[0], name="Test User", email="test@domain.com")
     database.session.add_all(cgacs + [admin_user, other_user])
     database.session.commit()
 
@@ -62,22 +64,22 @@ def test_list_submission_users_admin(database):
 
     g.user = admin_user
     response = list_submission_users(False)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # Only lists users with submissions and doesn't care about affiliations because admin
     assert len(user_response) == 1
-    assert user_response[0]['user_id'] == other_user.user_id
-    assert user_response[0]['name'] == other_user.name
-    assert user_response[0]['email'] == other_user.email
+    assert user_response[0]["user_id"] == other_user.user_id
+    assert user_response[0]["name"] == other_user.name
+    assert user_response[0]["email"] == other_user.email
 
 
 @pytest.mark.usefixtures("user_constants")
 @pytest.mark.usefixtures("user_app")
 def test_list_submission_users_cgac_affil(database):
-    """ Test listing users based on cgac affiliations """
-    cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
-    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User', email='test@domain.com')
+    """Test listing users based on cgac affiliations"""
+    cgacs = [CGACFactory(cgac_code="000"), CGACFactory(cgac_code="111")]
+    first_user = UserFactory.with_cgacs(cgacs[0], name="Test User 1", email="test1@domain.com")
+    other_user = UserFactory.with_cgacs(cgacs[1], name="Test User", email="test@domain.com")
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
@@ -88,36 +90,37 @@ def test_list_submission_users_cgac_affil(database):
 
     g.user = first_user
     response = list_submission_users(False)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # List both users because each has a submission with the cgac
     assert len(user_response) == 2
-    assert {user_response[0]['user_id'], user_response[1]['user_id']} == {first_user.user_id, other_user.user_id}
-    assert {user_response[0]['name'], user_response[1]['name']} == {first_user.name, other_user.name}
-    assert {user_response[0]['email'], user_response[1]['email']} == {first_user.email, other_user.email}
+    assert {user_response[0]["user_id"], user_response[1]["user_id"]} == {first_user.user_id, other_user.user_id}
+    assert {user_response[0]["name"], user_response[1]["name"]} == {first_user.name, other_user.name}
+    assert {user_response[0]["email"], user_response[1]["email"]} == {first_user.email, other_user.email}
 
     g.user = other_user
     response = list_submission_users(False)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # List only the submissions this user is part of because they have no cgac/frec affiliations with either submission
     assert len(user_response) == 1
-    assert user_response[0]['user_id'] == other_user.user_id
-    assert user_response[0]['name'] == other_user.name
-    assert user_response[0]['email'] == other_user.email
+    assert user_response[0]["user_id"] == other_user.user_id
+    assert user_response[0]["name"] == other_user.name
+    assert user_response[0]["email"] == other_user.email
 
 
 @pytest.mark.usefixtures("user_constants")
 @pytest.mark.usefixtures("user_app")
 def test_list_submission_users_frec_affil(database):
-    """ Test listing users based on frec affiliations """
-    cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    frecs = [FRECFactory(frec_code='0000', cgac=cgacs[0]), FRECFactory(frec_code='1111', cgac=cgacs[1])]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
-    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User', email='test@domain.com')
-    third_user = UserFactory(name='Frec User', email='frec@domain.com')
-    third_user.affiliations = [UserAffiliation(frec=frecs[0], user_id=third_user.user_id,
-                                               permission_type_id=PERMISSION_TYPE_DICT['reader'])]
+    """Test listing users based on frec affiliations"""
+    cgacs = [CGACFactory(cgac_code="000"), CGACFactory(cgac_code="111")]
+    frecs = [FRECFactory(frec_code="0000", cgac=cgacs[0]), FRECFactory(frec_code="1111", cgac=cgacs[1])]
+    first_user = UserFactory.with_cgacs(cgacs[0], name="Test User 1", email="test1@domain.com")
+    other_user = UserFactory.with_cgacs(cgacs[1], name="Test User", email="test@domain.com")
+    third_user = UserFactory(name="Frec User", email="frec@domain.com")
+    third_user.affiliations = [
+        UserAffiliation(frec=frecs[0], user_id=third_user.user_id, permission_type_id=PERMISSION_TYPE_DICT["reader"])
+    ]
     database.session.add_all(cgacs + frecs + [first_user, other_user])
     database.session.commit()
 
@@ -129,27 +132,27 @@ def test_list_submission_users_frec_affil(database):
 
     g.user = third_user
     response = list_submission_users(False)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # List the first user because they have a submission with that frec
     assert len(user_response) == 1
-    assert user_response[0]['user_id'] == first_user.user_id
-    assert user_response[0]['name'] == first_user.name
-    assert user_response[0]['email'] == first_user.email
+    assert user_response[0]["user_id"] == first_user.user_id
+    assert user_response[0]["name"] == first_user.name
+    assert user_response[0]["email"] == first_user.email
 
 
 @pytest.mark.usefixtures("user_constants")
 @pytest.mark.usefixtures("user_app")
 def test_list_submission_users_cgac_frec_affil(database):
-    """ Test listing users based on both cgac and frec affiliations """
-    cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    frecs = [FRECFactory(frec_code='0000', cgac=cgacs[0]), FRECFactory(frec_code='1111', cgac=cgacs[1])]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
-    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User', email='test@domain.com')
-    third_user = UserFactory.with_cgacs(cgacs[1], name='Frec User', email='frec@domain.com')
-    third_user.affiliations =\
-        third_user.affiliations + [UserAffiliation(frec=frecs[0], user_id=third_user.user_id,
-                                                   permission_type_id=PERMISSION_TYPE_DICT['reader'])]
+    """Test listing users based on both cgac and frec affiliations"""
+    cgacs = [CGACFactory(cgac_code="000"), CGACFactory(cgac_code="111")]
+    frecs = [FRECFactory(frec_code="0000", cgac=cgacs[0]), FRECFactory(frec_code="1111", cgac=cgacs[1])]
+    first_user = UserFactory.with_cgacs(cgacs[0], name="Test User 1", email="test1@domain.com")
+    other_user = UserFactory.with_cgacs(cgacs[1], name="Test User", email="test@domain.com")
+    third_user = UserFactory.with_cgacs(cgacs[1], name="Frec User", email="frec@domain.com")
+    third_user.affiliations = third_user.affiliations + [
+        UserAffiliation(frec=frecs[0], user_id=third_user.user_id, permission_type_id=PERMISSION_TYPE_DICT["reader"])
+    ]
     database.session.add_all(cgacs + frecs + [first_user, other_user])
     database.session.commit()
 
@@ -162,22 +165,22 @@ def test_list_submission_users_cgac_frec_affil(database):
 
     g.user = third_user
     response = list_submission_users(False)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # List both other users because one has a frec agency and one has a cgac
     assert len(user_response) == 2
-    assert {user_response[0]['user_id'], user_response[1]['user_id']} == {first_user.user_id, other_user.user_id}
-    assert {user_response[0]['name'], user_response[1]['name']} == {first_user.name, other_user.name}
-    assert {user_response[0]['email'], user_response[1]['email']} == {first_user.email, other_user.email}
+    assert {user_response[0]["user_id"], user_response[1]["user_id"]} == {first_user.user_id, other_user.user_id}
+    assert {user_response[0]["name"], user_response[1]["name"]} == {first_user.name, other_user.name}
+    assert {user_response[0]["email"], user_response[1]["email"]} == {first_user.email, other_user.email}
 
 
 @pytest.mark.usefixtures("user_constants")
 @pytest.mark.usefixtures("user_app")
 def test_list_submission_users_owned(database):
-    """ Test listing users based on owned submissions """
-    cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
-    other_user = UserFactory.with_cgacs(cgacs[0], name='Test User', email='test@domain.com')
+    """Test listing users based on owned submissions"""
+    cgacs = [CGACFactory(cgac_code="000"), CGACFactory(cgac_code="111")]
+    first_user = UserFactory.with_cgacs(cgacs[0], name="Test User 1", email="test1@domain.com")
+    other_user = UserFactory.with_cgacs(cgacs[0], name="Test User", email="test@domain.com")
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
@@ -187,29 +190,29 @@ def test_list_submission_users_owned(database):
 
     g.user = first_user
     response = list_submission_users(False)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # Don't list any submissions because they don't own any and have no cgac/frec affiliations
     assert len(user_response) == 0
 
     g.user = other_user
     response = list_submission_users(False)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # List the user because they have a submission they own (even though it doesn't match the cgac)
     assert len(user_response) == 1
-    assert user_response[0]['user_id'] == other_user.user_id
-    assert user_response[0]['name'] == other_user.name
-    assert user_response[0]['email'] == other_user.email
+    assert user_response[0]["user_id"] == other_user.user_id
+    assert user_response[0]["name"] == other_user.name
+    assert user_response[0]["email"] == other_user.email
 
 
 @pytest.mark.usefixtures("user_constants")
 @pytest.mark.usefixtures("user_app")
 def test_list_submission_users_fabs_dabs(database):
-    """ Test listing DABS vs FABS users """
-    cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
-    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User', email='test@domain.com')
+    """Test listing DABS vs FABS users"""
+    cgacs = [CGACFactory(cgac_code="000"), CGACFactory(cgac_code="111")]
+    first_user = UserFactory.with_cgacs(cgacs[0], name="Test User 1", email="test1@domain.com")
+    other_user = UserFactory.with_cgacs(cgacs[1], name="Test User", email="test@domain.com")
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
@@ -220,18 +223,18 @@ def test_list_submission_users_fabs_dabs(database):
 
     g.user = first_user
     response = list_submission_users(False)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # List only the first user because they're the only ones with a DABS submission
     assert len(user_response) == 1
-    assert user_response[0]['user_id'] == first_user.user_id
-    assert user_response[0]['name'] == first_user.name
+    assert user_response[0]["user_id"] == first_user.user_id
+    assert user_response[0]["name"] == first_user.name
 
     response = list_submission_users(True)
-    user_response = json.loads(response.data.decode('UTF-8'))['users']
+    user_response = json.loads(response.data.decode("UTF-8"))["users"]
 
     # List only the other user because they're the only ones with a FABS submission
     assert len(user_response) == 1
-    assert user_response[0]['user_id'] == other_user.user_id
-    assert user_response[0]['name'] == other_user.name
-    assert user_response[0]['email'] == other_user.email
+    assert user_response[0]["user_id"] == other_user.user_id
+    assert user_response[0]["name"] == other_user.name
+    assert user_response[0]["email"] == other_user.email

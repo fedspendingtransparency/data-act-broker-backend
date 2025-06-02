@@ -8,7 +8,7 @@ class CsvAbstractWriter(object):
     use with the "with" python construct
     """
 
-    BUFFER_SIZE = (5 * 1024 ** 2)
+    BUFFER_SIZE = 5 * 1024**2
     BATCH_SIZE = 100
 
     def __init__(self, header):
@@ -41,7 +41,7 @@ class CsvAbstractWriter(object):
             self.finish_batch()
 
     def finish_batch(self):
-        """ Write the last unfinished batch """
+        """Write the last unfinished batch"""
         io_stream = io.StringIO()
         csv_formatter = csv.writer(io_stream)
         csv_formatter.writerows(self.rows)

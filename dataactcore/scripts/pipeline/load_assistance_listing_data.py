@@ -20,7 +20,7 @@ from dataactcore.utils.loader_utils import clean_data, insert_dataframe, format_
 
 logger = logging.getLogger(__name__)
 
-S3_ASSISTANCE_LISTING_FILE = '{}/assistance_listing.csv'.format(CONFIG_BROKER['usas_public_reference_url'])
+S3_ASSISTANCE_LISTING_FILE = "{}/assistance_listing.csv".format(CONFIG_BROKER["usas_public_reference_url"])
 
 DATA_CLEANING_MAP = {
     "program_title": "program_title",
@@ -62,17 +62,17 @@ DATA_CLEANING_MAP = {
     "omb_agency_code": "omb_agency_code",
     "omb_bureau_code": "omb_bureau_code",
     "published_date": "published_date",
-    "archived_date": "archived_date"
+    "archived_date": "archived_date",
 }
 
 
 def load_assistance_listing(base_path, load_local=False, local_file_name="assistance_listing.csv"):
-    """ Load assistance listing.
+    """Load assistance listing.
 
-        Args:
-            base_path: directory that contains the assistance listing values files.
-            load_local: boolean indicating whether to load from a local file or not
-            local_file_name: the name of the file if loading locally
+    Args:
+        base_path: directory that contains the assistance listing values files.
+        load_local: boolean indicating whether to load from a local file or not
+        local_file_name: the name of the file if loading locally
     """
     local_now = datetime.now()
     if not load_local:
@@ -80,40 +80,36 @@ def load_assistance_listing(base_path, load_local=False, local_file_name="assist
         tmp_name = str(time.time()).replace(".", "") + "_assistance_listing.csv"
         filename = os.path.join(base_path, tmp_name)
         r = requests.get(S3_ASSISTANCE_LISTING_FILE, allow_redirects=True)
-        open(filename, 'wb').write(r.content)
+        open(filename, "wb").write(r.content)
     else:
         filename = os.path.join(base_path, local_file_name)
-    logger.info('Loading assistance listing file: ' + filename)
+    logger.info("Loading assistance listing file: " + filename)
     model = AssistanceListing
 
-    metrics_json = {
-        'script_name': 'load_assistance_listing_data.py',
-        'start_time': str(local_now),
-        'new_records': 0
-    }
+    metrics_json = {"script_name": "load_assistance_listing_data.py", "start_time": str(local_now), "new_records": 0}
 
     def fix_program_number(row, decimals=3):
-        multiplier = 10 ** decimals
-        value = math.floor(row['program_number'] * multiplier + 0.5) / multiplier
-        return str(value).ljust(6, '0')
+        multiplier = 10**decimals
+        value = math.floor(row["program_number"] * multiplier + 0.5) / multiplier
+        return str(value).ljust(6, "0")
 
     with create_app().app_context():
         configure_logging()
         sess = GlobalDB.db().session
 
-        import_data = pd.read_csv(filename, dtype=str, encoding='cp1252', na_filter=False)
-        import_data = clean_data(
-            import_data,
-            model,
-            DATA_CLEANING_MAP,
-            {}
-        )
+        import_data = pd.read_csv(filename, dtype=str, encoding="cp1252", na_filter=False)
+        import_data = clean_data(import_data, model, DATA_CLEANING_MAP, {})
         import_data["published_date"] = format_date(import_data["published_date"])
         import_data["archived_date"] = format_date(import_data["archived_date"])
         table_name = model.__table__.name
         # Check if there is new data to load
-        new_data = check_dataframe_diff(import_data, model, ['assistance_listing_id'], ['program_number'],
-                                        lambda_funcs=[('program_number', fix_program_number)])
+        new_data = check_dataframe_diff(
+            import_data,
+            model,
+            ["assistance_listing_id"],
+            ["program_number"],
+            lambda_funcs=[("program_number", fix_program_number)],
+        )
         if new_data:
             # insert to db
             sess.query(model).delete()
@@ -121,19 +117,19 @@ def load_assistance_listing(base_path, load_local=False, local_file_name="assist
             sess.commit()
 
             # If we've updated the data at all, update the external data load date
-            update_external_data_load_date(local_now, datetime.now(), 'assistance_listing')
+            update_external_data_load_date(local_now, datetime.now(), "assistance_listing")
     if not load_local:
         os.remove(filename)
     if new_data:
-        logger.info('{} records inserted to {}'.format(num, table_name))
-        metrics_json['new_records'] = num
+        logger.info("{} records inserted to {}".format(num, table_name))
+        metrics_json["new_records"] = num
     else:
         logger.info("Skipped assistance listing load, no new data.")
         sys.exit(3)
 
-    metrics_json['duration'] = str(datetime.now() - local_now)
+    metrics_json["duration"] = str(datetime.now() - local_now)
 
-    with open('load_assistance_listing_data_metrics.json', 'w+') as metrics_file:
+    with open("load_assistance_listing_data_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
 
 
@@ -144,6 +140,6 @@ def main():
     load_assistance_listing(*sys.argv[1:])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     main()

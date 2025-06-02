@@ -26,8 +26,13 @@ class SQSMockQueue:
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
-    def receive_messages(WaitTimeSeconds, AttributeNames=None, MessageAttributeNames=None,   # noqa
-                         VisibilityTimeout=30, MaxNumberOfMessages=1):  # noqa
+    def receive_messages(
+        WaitTimeSeconds,  # noqa
+        AttributeNames=None,  # noqa
+        MessageAttributeNames=None,  # noqa
+        VisibilityTimeout=30,  # noqa
+        MaxNumberOfMessages=1,  # noqa
+    ):  # noqa
         sess = GlobalDB.db().session
         messages = []
         # Limit returned messages by MaxNumberOfMessages: start=0, stop=MaxNumberOfMessages
@@ -43,8 +48,9 @@ class SQSMockQueue:
 
     @property
     def attributes(self):
-        mock_redrive = '{{"deadLetterTargetArn": "FAKE_ARN:{}", ' \
-                       '"maxReceiveCount": {}}}'.format(self.UNITTEST_MOCK_DEAD_LETTER_QUEUE, self.max_receive_count)
+        mock_redrive = '{{"deadLetterTargetArn": "FAKE_ARN:{}", ' '"maxReceiveCount": {}}}'.format(
+            self.UNITTEST_MOCK_DEAD_LETTER_QUEUE, self.max_receive_count
+        )
         return {"ReceiveMessageWaitTimeSeconds": "10", "RedrivePolicy": mock_redrive}
 
     @property
@@ -57,17 +63,25 @@ class SQSMockDeadLetterQueue:
 
     @staticmethod
     def send_message(MessageBody, MessageAttributes=None):  # noqa
-        SQSMockDeadLetterQueue.logger.debug("executing SQSMockDeadLetterQueue.send_message({}, {})".format( # noqa
-            MessageBody, MessageAttributes))
+        SQSMockDeadLetterQueue.logger.debug(
+            "executing SQSMockDeadLetterQueue.send_message({}, {})".format(MessageBody, MessageAttributes)  # noqa
+        )
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
-    def receive_messages(WaitTimeSeconds, AttributeNames=None, MessageAttributeNames=None,  # noqa
-                         VisibilityTimeout=30, MaxNumberOfMessages=1):  # noqa
-        SQSMockDeadLetterQueue.logger.debug("executing SQSMockDeadLetterQueue.receive_messages("
-                                            "{}, {}, {}, {}, {})".format(WaitTimeSeconds, AttributeNames,
-                                                                         MessageAttributeNames, VisibilityTimeout,
-                                                                         MaxNumberOfMessages))
+    def receive_messages(
+        WaitTimeSeconds,  # noqa
+        AttributeNames=None,  # noqa
+        MessageAttributeNames=None,  # noqa
+        VisibilityTimeout=30,  # noqa
+        MaxNumberOfMessages=1,  # noqa
+    ):  # noqa
+        SQSMockDeadLetterQueue.logger.debug(
+            "executing SQSMockDeadLetterQueue.receive_messages("
+            "{}, {}, {}, {}, {})".format(
+                WaitTimeSeconds, AttributeNames, MessageAttributeNames, VisibilityTimeout, MaxNumberOfMessages
+            )
+        )
         return []
 
 
@@ -86,11 +100,9 @@ class SQSMockMessage:
         return self.__hash__() == other.__hash__()
 
     def __str__(self):
-        return (
-            "SQSMockMessage(body={}, message_attributes={})".format(self.body, self.message_attributes)
-        )
+        return "SQSMockMessage(body={}, message_attributes={})".format(self.body, self.message_attributes)
 
-    def change_visibility(self, VisibilityTimeout): # noqa
+    def change_visibility(self, VisibilityTimeout):  # noqa
         # Do nothing
         pass
 
@@ -100,15 +112,16 @@ class SQSMockMessage:
         return {}
 
 
-def sqs_queue(region_name=CONFIG_BROKER['aws_region'], queue_name=CONFIG_BROKER['sqs_queue_name']):
-    if CONFIG_BROKER['local']:
+def sqs_queue(region_name=CONFIG_BROKER["aws_region"], queue_name=CONFIG_BROKER["sqs_queue_name"]):
+    if CONFIG_BROKER["local"]:
         if queue_name == SQSMockQueue.UNITTEST_MOCK_DEAD_LETTER_QUEUE:
             return SQSMockDeadLetterQueue()
         return SQSMockQueue()
     else:
         # stuff that's in get_queue
         # Using endpoint_url as botocore defaults to the legacy endpoint url 'https://{env}.queue.amazonaws.com'
-        sqs = boto3.resource('sqs', endpoint_url='https://sqs.{}.amazonaws.com'.format(region_name),
-                             region_name=region_name)
+        sqs = boto3.resource(
+            "sqs", endpoint_url="https://sqs.{}.amazonaws.com".format(region_name), region_name=region_name
+        )
         queue = sqs.get_queue_by_name(QueueName=queue_name)
         return queue

@@ -1,4 +1,4 @@
-""" These classes define the ORM models to be used by sqlalchemy for the error database """
+"""These classes define the ORM models to be used by sqlalchemy for the error database"""
 
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.orm import relationship
@@ -28,8 +28,9 @@ class File(Base):
     __tablename__ = "file"
 
     file_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_file_job", ondelete="CASCADE"),
-                    nullable=True, unique=True)
+    job_id = Column(
+        Integer, ForeignKey("job.job_id", name="fk_file_job", ondelete="CASCADE"), nullable=True, unique=True
+    )
     job = relationship("Job", uselist=False, cascade="delete")
     filename = Column(Text, nullable=True)
     file_status_id = Column(Integer, ForeignKey("file_status.file_status_id", name="fk_file_status_id"))
@@ -58,8 +59,9 @@ class ErrorMetadata(Base):
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type_file_status_id"))
     file_type = relationship("FileType", foreign_keys=[file_type_id])
     # Second file type id is used in cross file errors
-    target_file_type_id = Column(Integer,
-                                 ForeignKey("file_type.file_type_id", name="fk_target_file_type_file_status_id"))
+    target_file_type_id = Column(
+        Integer, ForeignKey("file_type.file_type_id", name="fk_target_file_type_file_status_id")
+    )
     target_file_type = relationship("FileType", foreign_keys=[target_file_type_id])
     original_rule_label = Column(Text, nullable=True)
     severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id", name="fk_error_severity_id"))
@@ -79,14 +81,17 @@ class PublishedErrorMetadata(Base):
     occurrences = Column(Integer)
     first_row = Column(Integer)
     rule_failed = Column(Text, nullable=True)
-    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id",
-                                              name="fk_published_error_metadata_file_type_id"))
+    file_type_id = Column(
+        Integer, ForeignKey("file_type.file_type_id", name="fk_published_error_metadata_file_type_id")
+    )
     file_type = relationship("FileType", foreign_keys=[file_type_id])
     # Second file type id is used in cross file errors
-    target_file_type_id = Column(Integer, ForeignKey("file_type.file_type_id",
-                                                     name="fk_published_error_metadata_target_file_type_id"))
+    target_file_type_id = Column(
+        Integer, ForeignKey("file_type.file_type_id", name="fk_published_error_metadata_target_file_type_id")
+    )
     target_file_type = relationship("FileType", foreign_keys=[target_file_type_id])
     original_rule_label = Column(Text, nullable=True)
-    severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id",
-                                             name="fk_published_error_metadata_severity_id"))
+    severity_id = Column(
+        Integer, ForeignKey("rule_severity.rule_severity_id", name="fk_published_error_metadata_severity_id")
+    )
     severity = relationship("RuleSeverity")

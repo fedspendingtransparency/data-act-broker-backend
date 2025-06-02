@@ -12,7 +12,7 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class LabelLoader:
     validation_labels_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
-    headers = ['label', 'error_message', 'file_type', 'column_name', 'label_type']
+    headers = ["label", "error_message", "file_type", "column_name", "label_type"]
 
     @classmethod
     def load_labels(cls, filename):
@@ -26,11 +26,11 @@ class LabelLoader:
             filename = os.path.join(cls.validation_labels_path, filename)
 
             # open csv
-            with open(filename, 'r') as csvfile:
+            with open(filename, "r") as csvfile:
                 # read header
                 header = csvfile.readline()
                 # split header into filed names
-                raw_field_names = header.split(',')
+                raw_field_names = header.split(",")
                 field_names = []
                 # clean field names
                 for field in raw_field_names:
@@ -46,15 +46,22 @@ class LabelLoader:
 
                 reader = csv.DictReader(csvfile, fieldnames=field_names)
                 for row in reader:
-                    validation_label = ValidationLabel(label=row['label'], error_message=row['error_message'],
-                                                       column_name=row['column_name'], label_type=row['label_type'])
+                    validation_label = ValidationLabel(
+                        label=row["label"],
+                        error_message=row["error_message"],
+                        column_name=row["column_name"],
+                        label_type=row["label_type"],
+                    )
 
                     # look up file type id
                     try:
                         file_id = FILE_TYPE_DICT[row["file_type"]]
                     except Exception as e:
-                        raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
-                            e, row["file_type"], row["rule_label"]))
+                        raise Exception(
+                            "{}: file type={}, rule label={}. Rule not loaded.".format(
+                                e, row["file_type"], row["rule_label"]
+                            )
+                        )
 
                     validation_label.file_id = file_id
 
@@ -62,6 +69,6 @@ class LabelLoader:
             sess.commit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     LabelLoader.load_labels("validationLabels.csv")
