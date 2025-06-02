@@ -1,0 +1,31 @@
+name: Initialize Test Environment
+
+inputs:
+  working-directory:
+    description: Directory where the requirements can be found; used when multiple repos are checked out
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Copy and modify test configs
+      shell: bash
+      run: |
+        cp dataactcore/config_example.yml dataactcore/config.yml
+        cp dataactcore/local_config_example.yml dataactcore/local_config.yml
+        cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
+        mkdir ${ERROR_REPORT_PATH}
+        sed -i.bak -E "s/host:.*$/host: ${BROKER_DB_HOST}/" dataactcore/local_config.yml
+        sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml
+        sed -i.bak -E "s/error_report_path:.*$/error_report_path: ${ERROR_REPORT_PATH_ESCAPED}/" dataactcore/local_config.yml
+
+    - name: Build docker containers for DB
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: docker compose up -d --quiet-pull dataact-broker-db dataact-broker-init-db
+
+    - name: Wait on DB containers to be available
+      shell: bash
+      run: |
+        ttl=30; echo "Try DB conn from container for $ttl seconds"; until [ $ttl -le 0 ] || psql $DATABASE_URL -c 'select 1 where 1=1'; do echo $ttl; ((ttl--)); sleep 1; done; [ $ttl -gt 0 ]
+

@@ -1,0 +1,49 @@
+name: Unit Tests
+
+env:
+  BROKER_DB_HOST: localhost
+  BROKER_DB_PORT: 5435
+  ERROR_REPORT_PATH: "dataactcore/tmp/"
+  ERROR_REPORT_PATH_ESCAPED: "dataactcore\/tmp\/"
+
+on:
+  workflow_call:
+
+jobs:
+  Run:
+    name: Run
+    runs-on: ${{ vars.RUNNER_VERSION }}
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+        with:
+          path: data-act-broker-backend
+
+      - name: Init Python Environment
+        uses: ./data-act-broker-backend/.github/actions/init-python-environment
+        with:
+          working-directory: ./data-act-broker-backend
+
+      - name: Init Test Environment
+        uses: ./data-act-broker-backend/.github/actions/init-test-environment
+        with:
+          working-directory: ./data-act-broker-backend
+
+      - name: Run Test Cases
+        id: run-test-cases
+        uses: ./data-act-broker-backend/.github/actions/run-pytest
+        with:
+          cov-report-name: 'unit-tests'
+          ignore-glob: '**/tests/integration/*'
+          include-glob: 'test_*.py *_test.py'
+          working-directory: ./data-act-broker-backend
+
+      - name: Shutdown docker
+        working-directory: ./data-act-broker-backend
+        shell: bash
+        run: docker compose down
+
+      - name: Cleanup error dir
+        working-directory: ./data-act-broker-backend
+        shell: bash
+        run: rm -r ${ERROR_REPORT_PATH}
