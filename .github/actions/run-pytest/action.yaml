@@ -49,7 +49,9 @@ runs:
         "pytest
         -r=fEs
         -x
-        --cov=data-act-broker-backend
+        --cov=dataactbroker
+        --cov=dataactcore
+        --cov=dataactvalidator
         --cov-report term
         --cov-report xml:{cov_report_name}
         --dist worksteal

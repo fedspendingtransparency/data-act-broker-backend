@@ -1,23 +1,55 @@
 name: Initialize Test Environment
 
+env:
+  BROKER_DB_HOST: localhost
+  BROKER_DB_PORT: 5435
+  ERROR_REPORT_PATH: "dataactcore/tmp/"
+
 inputs:
   working-directory:
     description: Directory where the requirements can be found; used when multiple repos are checked out
     default: ""
+  broker-db-username:
+    description: Broker DB User
+    default: admin
+  broker-db-password:
+    description: Broker DB Password
+    default: root
+  broker-db-host:
+    description: Broker DB Host
+    default: localhost
+  broker-db-port:
+    description: Broker DB Port
+    default: 5435
+  broker-db-name:
+    description: Broker DB Name
+    default: data_broker
+  error-report-path:
+    description: Directory where the error reports are kept
+    default: "dataactcore/tmp/"
 
 runs:
   using: composite
   steps:
+    - name: Add env vars
+      shell: bash
+      run: |
+        echo "BROKER_DB_HOST=${{ inputs.broker-db-host }}" >> $GITHUB_ENV
+        echo "BROKER_DB_PORT=${{ inputs.broker-db-port }}" >> $GITHUB_ENV
+        echo "ERROR_REPORT_PATH=${{ inputs.error-report-path }}" >> $GITHUB_ENV
+        echo "DATABASE_URL=postgres://${{ inputs.broker-db-username }}:${{ inputs.broker-db-password }}@${{ inputs.broker-db-host }}:${{ inputs.broker-db-port }}/${{ inputs.broker-db-name }}" >> $GITHUB_ENV
+
     - name: Copy and modify test configs
+      working-directory: ${{ inputs.working-directory }}
       shell: bash
       run: |
         cp dataactcore/config_example.yml dataactcore/config.yml
         cp dataactcore/local_config_example.yml dataactcore/local_config.yml
         cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
         mkdir ${ERROR_REPORT_PATH}
-        sed -i.bak -E "s/host:.*$/host: ${BROKER_DB_HOST}/" dataactcore/local_config.yml
-        sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml
-        sed -i.bak -E "s/error_report_path:.*$/error_report_path: ${ERROR_REPORT_PATH_ESCAPED}/" dataactcore/local_config.yml
+        sed -i.bak -E "s@host:.*@host: ${BROKER_DB_HOST}@" dataactcore/local_config.yml
+        sed -i.bak -E "s@port:.*@port: ${BROKER_DB_PORT}@" dataactcore/local_config.yml
+        sed -i.bak -E "s@error_report_path:.*@error_report_path: ${ERROR_REPORT_PATH}@" dataactcore/local_config.yml
 
     - name: Build docker containers for DB
       working-directory: ${{ inputs.working-directory }}

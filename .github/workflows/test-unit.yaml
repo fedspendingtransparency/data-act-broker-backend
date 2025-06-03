@@ -1,11 +1,5 @@
 name: Unit Tests
 
-env:
-  BROKER_DB_HOST: localhost
-  BROKER_DB_PORT: 5435
-  ERROR_REPORT_PATH: "dataactcore/tmp/"
-  ERROR_REPORT_PATH_ESCAPED: "dataactcore\/tmp\/"
-
 on:
   workflow_call:
 
@@ -37,6 +31,7 @@ jobs:
           ignore-glob: '**/tests/integration/*'
           include-glob: 'test_*.py *_test.py'
           working-directory: ./data-act-broker-backend
+          db-state: ''
 
       - name: Shutdown docker
         working-directory: ./data-act-broker-backend

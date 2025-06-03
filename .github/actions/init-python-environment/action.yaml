@@ -26,4 +26,4 @@ runs:
     - name: Install dependencies
       working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: pip install requirements.txt
+      run: pip install -r requirements.txt
