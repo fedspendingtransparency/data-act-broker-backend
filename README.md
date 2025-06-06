@@ -1,5 +1,7 @@
 # DATA Broker Backend
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black) [![Pull Request Checks](https://github.com/fedspendingtransparency/data-act-broker-backend/actions/workflows/pull-request-checks.yaml/badge.svg)](https://github.com/fedspendingtransparency/data-act-broker-backend/actions/workflows/pull-request-checks.yaml) [![Test Coverage](https://codeclimate.com/github/fedspendingtransparency/data-act-broker-backend/badges/coverage.svg)](https://codeclimate.com/github/fedspendingtransparency/data-act-broker-backend/coverage) [![Code Climate](https://codeclimate.com/github/fedspendingtransparency/data-act-broker-backend/badges/gpa.svg)](https://codeclimate.com/github/fedspendingtransparency/data-act-broker-backend)
+
 The DATA Broker backend is a collection of services that power the Data Broker's central data submission platform.
 
 The website that runs on these services is here: [https://broker.usaspending.gov/](https://broker.usaspending.gov/ "DATA Broker website").
