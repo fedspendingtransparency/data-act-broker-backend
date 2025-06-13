@@ -2,8 +2,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.domainModels import ExternalDataType
-from dataactcore.models.jobModels import Submission # noqa
-from dataactcore.models.userModel import User # noqa
+from dataactcore.models.jobModels import Submission  # noqa
+from dataactcore.models.userModel import User  # noqa
 from dataactvalidator.health_check import create_app
 
 
@@ -24,6 +24,6 @@ def insert_codes(sess):
         sess.merge(external_data_type)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     setup_static_data()

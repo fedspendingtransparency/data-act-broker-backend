@@ -42,16 +42,16 @@ validator_config_path = os.path.join(base_path, "dataactvalidator", "config")
 
 def setup_db():
     """Set up broker database and initialize data."""
-    logger.info('Setting up db')
+    logger.info("Setting up db")
     setup_all_db()
     setup_emails()
 
 
 def create_admin():
     """Create initial admin user."""
-    logger.info('Creating admin user')
-    admin_email = CONFIG_BROKER['admin_email']
-    admin_pass = CONFIG_BROKER['admin_password']
+    logger.info("Creating admin user")
+    admin_email = CONFIG_BROKER["admin_email"]
+    admin_pass = CONFIG_BROKER["admin_password"]
     with create_app().app_context():
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.email == admin_email).one_or_none()
@@ -65,27 +65,27 @@ def create_admin():
 
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
-    logger.info('Loading TAS')
+    logger.info("Loading TAS")
     load_tas()
 
 
 def load_failed_tas():
     """Load/update the TAS table to reflect the latest list."""
-    logger.info('Loading TAS Failing Edits')
+    logger.info("Loading TAS Failing Edits")
     load_all_tas_failing_edits()
 
 
 def load_sql_rules():
     """Load the SQL-based validation rules."""
-    logger.info('Loading SQL-based validation rules')
+    logger.info("Loading SQL-based validation rules")
     SQLLoader.load_sql("sqlRules.csv")
-    logger.info('Loading non-SQL-based validation labels')
+    logger.info("Loading non-SQL-based validation labels")
     LabelLoader.load_labels("validationLabels.csv")
 
 
 def load_rule_settings():
     """Load the default rule settings."""
-    logger.info('Loading the default rule settings')
+    logger.info("Loading the default rule settings")
     with create_app().app_context():
         sess = GlobalDB.db().session
         # Clearing the current defaults before reloading them
@@ -96,23 +96,23 @@ def load_rule_settings():
 
 def load_domain_value_files(base_path, force=False):
     """Load domain values (Country codes, Program Activity, Object Class, Assistance Listing)."""
-    logger.info('Loading Object Class')
+    logger.info("Loading Object Class")
     load_object_class(base_path)
-    logger.info('Loading Assistance Listing')
+    logger.info("Loading Assistance Listing")
     load_assistance_listing(base_path)
-    logger.info('Loading Program Activity')
+    logger.info("Loading Program Activity")
     load_program_activity_data(base_path)
-    logger.info('Loading Country codes')
+    logger.info("Loading Country codes")
     load_country_codes(force)
 
 
 def load_sf133():
-    logger.info('Loading SF-133')
+    logger.info("Loading SF-133")
     # Unlike other domain value files, SF 133 data is stored
     # on S3. If the application's 'use_aws' option is turned
     # off, tell the SF 133 load to look for files in the
     # validator's local config file instead
-    if CONFIG_BROKER['use_aws']:
+    if CONFIG_BROKER["use_aws"]:
         load_all_sf133()
     else:
         load_all_sf133(validator_config_path)
@@ -120,28 +120,28 @@ def load_sf133():
 
 def load_validator_schema():
     """Load file-level .csv schemas into the broker database."""
-    logger.info('Loading validator schemas')
+    logger.info("Loading validator schemas")
     SchemaLoader.load_all_from_path(validator_config_path)
 
 
 def load_location_codes(force_reload):
-    """ Load city and county codes into the broker database.
+    """Load city and county codes into the broker database.
 
-        Args:
-            force_reload: Boolean to force reloads of location data even if checks indicate no changes have been made
+    Args:
+        force_reload: Boolean to force reloads of location data even if checks indicate no changes have been made
     """
-    logger.info('Loading location data')
+    logger.info("Loading location data")
     load_location_data(force_reload)
 
 
 def load_zip_codes():
     """Load zip codes into the broker database."""
-    logger.info('Loading zip code data')
+    logger.info("Loading zip code data")
     read_zips()
 
 
 def uncache_all_files():
-    logger.info('Un-caching all generated files')
+    logger.info("Un-caching all generated files")
     with create_app().app_context():
         sess = GlobalDB.db().session
         sess.query(FileGeneration).update({"is_cached_file": False}, synchronize_session=False)
@@ -149,43 +149,50 @@ def uncache_all_files():
 
 
 def load_submission_schedule():
-    """ Load submission window schedule into the broker database. """
-    logger.info('Loading submission window schedule data')
+    """Load submission window schedule into the broker database."""
+    logger.info("Loading submission window schedule data")
     load_submission_window_schedule()
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Initialize the Data Broker.')
-    parser.add_argument('-i', '--initialize', help='Run all broker initialization tasks', action='store_true')
-    parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
-    parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')
-    parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
-    parser.add_argument('-rs', '--load_rules_settings', help='Load default rule settings', action='store_true')
-    parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such as object class',
-                        action='store_true')
-    parser.add_argument('-cc', '--update_country_codes', help='update country codes', action='store_true')
-    parser.add_argument('-oc', '--update_object_class', help='load object class to database', action='store_true')
-    parser.add_argument('-al', '--assistance_listing_load', help='Load Assistance Listing to database',
-                        action='store_true')
-    parser.add_argument('-pa', '--program_activity', help='Load program activity to database', action='store_true')
-    parser.add_argument('-park', '--load_park', help='Load PARK to database', action='store_true')
-    parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
-                        action='store_true')
-    parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
-    parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
-    parser.add_argument('-tfe', '--update_failed_tas', help='Update broker TAS failed validations list',
-                        action='store_true')
-    parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
-    parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
-    parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
-    parser.add_argument('-sch', '--load_submission_schedule', help='Load submission window schedule',
-                        action='store_true')
-    parser.add_argument('-defc', '--load_defc', help='Load DEFC to database', action='store_true')
-    parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
-    parser.add_argument('-f', '--load_funding_opportunity_number', help='Load funding opportunity numbers',
-                        action='store_true')
-    parser.add_argument('--force', help='Forces actions to occur in certain scripts regardless of checks',
-                        action='store_true')
+    parser = argparse.ArgumentParser(description="Initialize the Data Broker.")
+    parser.add_argument("-i", "--initialize", help="Run all broker initialization tasks", action="store_true")
+    parser.add_argument("-db", "--setup_db", help="Create broker database and helper tables", action="store_true")
+    parser.add_argument("-a", "--create_admin", help="Create an admin user", action="store_true")
+    parser.add_argument("-r", "--load_rules", help="Load SQL-based validation rules", action="store_true")
+    parser.add_argument("-rs", "--load_rules_settings", help="Load default rule settings", action="store_true")
+    parser.add_argument(
+        "-d", "--update_domain", help="load slowly changing domain values such as object class", action="store_true"
+    )
+    parser.add_argument("-cc", "--update_country_codes", help="update country codes", action="store_true")
+    parser.add_argument("-oc", "--update_object_class", help="load object class to database", action="store_true")
+    parser.add_argument(
+        "-al", "--assistance_listing_load", help="Load Assistance Listing to database", action="store_true"
+    )
+    parser.add_argument("-pa", "--program_activity", help="Load program activity to database", action="store_true")
+    parser.add_argument("-park", "--load_park", help="Load PARK to database", action="store_true")
+    parser.add_argument(
+        "-c", "--load_agencies", help="Update agency data (CGACs, FRECs, SubTierAgencies)", action="store_true"
+    )
+    parser.add_argument("-t", "--update_tas", help="Update broker TAS list", action="store_true")
+    parser.add_argument("-s", "--update_sf133", help="Update broker SF-133 reports", action="store_true")
+    parser.add_argument(
+        "-tfe", "--update_failed_tas", help="Update broker TAS failed validations list", action="store_true"
+    )
+    parser.add_argument("-v", "--update_validator", help="Update validator schema", action="store_true")
+    parser.add_argument("-l", "--load_location", help="Load city and county codes", action="store_true")
+    parser.add_argument("-z", "--load_zips", help="Load zip code data", action="store_true")
+    parser.add_argument(
+        "-sch", "--load_submission_schedule", help="Load submission window schedule", action="store_true"
+    )
+    parser.add_argument("-defc", "--load_defc", help="Load DEFC to database", action="store_true")
+    parser.add_argument("-u", "--uncache_all_files", help="Un-cache file generation requests", action="store_true")
+    parser.add_argument(
+        "-f", "--load_funding_opportunity_number", help="Load funding opportunity numbers", action="store_true"
+    )
+    parser.add_argument(
+        "--force", help="Forces actions to occur in certain scripts regardless of checks", action="store_true"
+    )
     args = parser.parse_args()
 
     if args.initialize:
@@ -270,6 +277,6 @@ def main():
         load_funding_opportunity_number_data(args.force)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     main()

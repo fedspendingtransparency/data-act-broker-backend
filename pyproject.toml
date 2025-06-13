@@ -1,0 +1,19 @@
+[tool.black]
+line-length = 120
+target-version = ['py312']
+exclude = '/(\.git|\.venv|venv|migrations)/'
+
+[tool.coverage.run]
+omit = [
+    # tests themselves don't need coverage measurements
+    "*/tests/*",
+    # nor db migration scripts
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_lines = [
+    # Have to re-enable the standard pragma
+    "pragma: no cover"
+]

@@ -12,7 +12,7 @@ We use three main branches:
 
 Only non-breaking, stable code is merged into `development` and promoted to higher branches in order to prevent disruptions to users and team members.
 
-All code to be merged should be submitted to the `development` branch via a GitHub pull request. The pull request template is available [here](/pull_request_template.md "Pull Request Template"), and faciliates code reviews and quality checks.
+All code to be merged should be submitted to the `development` branch via a GitHub pull request. The pull request template is available [here](/.github/pull_request_template.md "Pull Request Template"), and faciliates code reviews and quality checks.
 
 ### Continuous Integration
 

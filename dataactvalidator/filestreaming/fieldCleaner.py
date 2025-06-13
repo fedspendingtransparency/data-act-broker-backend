@@ -8,17 +8,17 @@ from dataactcore.models.validationModels import FileColumn
 
 
 class FieldCleaner(StringCleaner):
-    """ This class takes a field definition file and cleans it,
-        producing a field definition file that can be read by schemaLoader """
+    """This class takes a field definition file and cleans it,
+    producing a field definition file that can be read by schemaLoader"""
 
     @staticmethod
     def clean_file(file_in, file_out):
-        """ Clean input file line by line and create output file """
+        """Clean input file line by line and create output file"""
         # Open CSV file for reading each record as a dictionary
         with open(file_in, "rU") as csvfile:
             reader = csv.DictReader(csvfile)
             fieldnames = ["fieldname", "fieldname_short", "required", "data_type", "field_length"]
-            writer = csv.DictWriter(open(file_out, "w"), fieldnames=fieldnames, lineterminator='\n')
+            writer = csv.DictWriter(open(file_out, "w"), fieldnames=fieldnames, lineterminator="\n")
             writer.writeheader()
             for record in reader:
                 # Pass record into clean_record to sanitize
@@ -28,7 +28,7 @@ class FieldCleaner(StringCleaner):
 
     @staticmethod
     def clean_record(record):
-        """ Clean up an individual record, and write to output file.
+        """Clean up an individual record, and write to output file.
 
         Args:
             record: dict of field specifications, keys should be 'fieldname','required','data_type', and 'field_length'
@@ -38,18 +38,18 @@ class FieldCleaner(StringCleaner):
         """
 
         # Clean name, required, type, and length
-        record['fieldname'] = FieldCleaner.clean_name(record['fieldname'])
+        record["fieldname"] = FieldCleaner.clean_name(record["fieldname"])
         # fieldname_short is the machine-friendly name provided with the
         # schema, so the only change we'll make to it is stripping whitespace
-        record['fieldname_short'] = record['fieldname_short'].strip()
-        record['required'] = FieldCleaner.clean_required(record['required'])
-        record['data_type'] = FieldCleaner.clean_type(record['data_type'])
-        record['field_length'] = FieldCleaner.clean_length(record['field_length'])
+        record["fieldname_short"] = record["fieldname_short"].strip()
+        record["required"] = FieldCleaner.clean_required(record["required"])
+        record["data_type"] = FieldCleaner.clean_type(record["data_type"])
+        record["field_length"] = FieldCleaner.clean_length(record["field_length"])
         return record
 
     @staticmethod
     def clean_name(name):
-        """ Remove whitespace from name and change to lowercase, also clean up special characters """
+        """Remove whitespace from name and change to lowercase, also clean up special characters"""
         # Convert to lowercase and remove whitespace on ends
         name = FieldCleaner.clean_string(name)
         # Remove braces and parentheses
@@ -58,25 +58,32 @@ class FieldCleaner(StringCleaner):
 
     @staticmethod
     def clean_required(required):
-        """ Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False,
-            otherwise raises an exception """
+        """Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False,
+        otherwise raises an exception"""
         required = FieldCleaner.clean_string(required, False)
         if required[0:3].lower() == "asp":
             # Remove ASP prefix
             required = required[5:]
         if required == "required" or required == "(required)" or required == "true":
             return "true"
-        elif required == "false" or required == "" or required == "optional" or required == "required if relevant" or \
-                required == "required if modification" or required == "conditional per validation rule" or \
-                required == "conditional per award type" or required == "conditionally required" or \
-                required == "derived":
+        elif (
+            required == "false"
+            or required == ""
+            or required == "optional"
+            or required == "required if relevant"
+            or required == "required if modification"
+            or required == "conditional per validation rule"
+            or required == "conditional per award type"
+            or required == "conditionally required"
+            or required == "derived"
+        ):
             return "false"
         else:
             raise ValueError("".join(["Unknown value for required: ", required]))
 
     @staticmethod
     def clean_type(clean_type):
-        """ Interprets all inputs as int, str, or bool.  For unexpected inputs, raises an exception. """
+        """Interprets all inputs as int, str, or bool.  For unexpected inputs, raises an exception."""
         clean_type = FieldCleaner.clean_string(clean_type, False)
         if clean_type == "integer" or clean_type == "int":
             return "int"
@@ -100,7 +107,7 @@ class FieldCleaner(StringCleaner):
 
     @staticmethod
     def clean_length(length):
-        """ Checks that input is a positive integer, otherwise raises an exception. """
+        """Checks that input is a positive integer, otherwise raises an exception."""
         length = FieldCleaner.clean_string(length, False)
         if length == "":
             # Empty length is fine, this means there is no length requirement
@@ -116,7 +123,7 @@ class FieldCleaner(StringCleaner):
 
     @classmethod
     def clean_row(cls, row, long_to_short_dict, fields):
-        """ Strips whitespace, replaces empty strings with None, and pads fields that need it
+        """Strips whitespace, replaces empty strings with None, and pads fields that need it
 
         Args:
             row: Record in this row
@@ -150,7 +157,7 @@ class FieldCleaner(StringCleaner):
 
     @staticmethod
     def pad_field(field, value):
-        """ Pad value with appropriate number of leading zeros if needed
+        """Pad value with appropriate number of leading zeros if needed
 
         Args:
             field: FileColumn object
@@ -168,7 +175,7 @@ class FieldCleaner(StringCleaner):
 
     @staticmethod
     def pad_field_vectorized(series: pd.Series, field: FileColumn):
-        """ In-place padding of values in cells of the given series with appropriate number of leading zeros, if needed
+        """In-place padding of values in cells of the given series with appropriate number of leading zeros, if needed
 
         Args:
             series: pd.Series whose values to pad
@@ -185,7 +192,7 @@ class FieldCleaner(StringCleaner):
             return series
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     FieldCleaner.clean_file("../config/awardProcurementFieldsRaw.csv", "../config/awardProcurementFields.csv")
     FieldCleaner.clean_file("../config/appropFieldsRaw.csv", "../config/appropFields.csv")
