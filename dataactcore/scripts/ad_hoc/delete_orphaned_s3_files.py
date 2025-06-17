@@ -16,19 +16,16 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    """ Delete all submission files in S3 that no longer connect to a submission that exists in the DB """
-    logger.info({
-        'message': 'Deleting orphaned submission files',
-        'message_type': 'BrokerInfo'
-    })
-    s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-    bucket = s3.Bucket(CONFIG_BROKER['aws_bucket'])
+    """Delete all submission files in S3 that no longer connect to a submission that exists in the DB"""
+    logger.info({"message": "Deleting orphaned submission files", "message_type": "BrokerInfo"})
+    s3 = boto3.resource("s3", region_name=CONFIG_BROKER["aws_region"])
+    bucket = s3.Bucket(CONFIG_BROKER["aws_bucket"])
 
     # get the submission IDs from S3
     submission_ids = []
     for bucket_object in bucket.objects.all():
-        if re.match(r'^\d+/.*', bucket_object.key):
-            submission_ids.append(bucket_object.key.split('/')[0])
+        if re.match(r"^\d+/.*", bucket_object.key):
+            submission_ids.append(bucket_object.key.split("/")[0])
     submission_ids = list(set(submission_ids))
 
     # get the submission IDs from the database
@@ -44,13 +41,10 @@ def main():
     for sub in orphaned_subs:
         delete_submission_files(sess, sub)
 
-    logger.info({
-        'message': 'Finished deleting orphaned submission files',
-        'message_type': 'BrokerInfo'
-    })
+    logger.info({"message": "Finished deleting orphaned submission files", "message_type": "BrokerInfo"})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     with create_app().app_context():
         main()

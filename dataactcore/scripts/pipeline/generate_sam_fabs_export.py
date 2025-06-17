@@ -15,28 +15,28 @@ from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
-'''
+"""
 This script is used to pull updated financial assistance records (from --date to present) for SAM.
-'''
+"""
 
 
 def get_award_updates_query(start_date=None, end_date=None):
-    """ Creates a string to run as the update query. This is needed because the mod date is a variable and therefore
-        a constant cannot be created.
+    """Creates a string to run as the update query. This is needed because the mod date is a variable and therefore
+    a constant cannot be created.
 
-        Args:
-            start_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
-            end_date: a string in the mm/dd/yyyy format of the date until which to run the SQL
+    Args:
+        start_date: a string in the mm/dd/yyyy format of the date from which to run the SQL
+        end_date: a string in the mm/dd/yyyy format of the date until which to run the SQL
 
-        Returns:
-            A string representing the SQL query to run.
+    Returns:
+        A string representing the SQL query to run.
     """
     filter_array = []
     if start_date:
-        filter_array.append(f'updated_at >= \'{start_date}\'')
+        filter_array.append(f"updated_at >= '{start_date}'")
     if end_date:
-        filter_array.append(f'updated_at < \'{end_date}\'')
-    query_filter = ' AND '.join(filter_array)
+        filter_array.append(f"updated_at < '{end_date}'")
+    query_filter = " AND ".join(filter_array)
 
     # Query Summary:
     # Each row is the latest instance of any transaction that has been updated in the requested time period
@@ -213,66 +213,71 @@ def get_award_updates_query(start_date=None, end_date=None):
 
 def main():
     now = datetime.now()
-    parser = argparse.ArgumentParser(description='Pull')
-    parser.add_argument('--start_date',
-                        help='Specify start date in mm/dd/yyyy format to compare to mod date. Overrides --auto option.',
-                        nargs=1, type=str)
-    parser.add_argument('--end_date',
-                        help='Specify end date in mm/dd/yyyy format to compare to mod date. Inclusive. '
-                             + 'Overrides --auto option.',
-                        nargs=1, type=str)
-    parser.add_argument('--auto',
-                        help='Polls S3 for the most recently uploaded FABS_for_SAM file, '
-                             + 'and uses that as the modified date.',
-                        action='store_true')
+    parser = argparse.ArgumentParser(description="Pull")
+    parser.add_argument(
+        "--start_date",
+        help="Specify start date in mm/dd/yyyy format to compare to mod date. Overrides --auto option.",
+        nargs=1,
+        type=str,
+    )
+    parser.add_argument(
+        "--end_date",
+        help="Specify end date in mm/dd/yyyy format to compare to mod date. Inclusive. " + "Overrides --auto option.",
+        nargs=1,
+        type=str,
+    )
+    parser.add_argument(
+        "--auto",
+        help="Polls S3 for the most recently uploaded FABS_for_SAM file, " + "and uses that as the modified date.",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     metrics_json = {
-        'script_name': 'generate_sam_fabs_export.py',
-        'start_time': str(now),
-        'records_provided': 0,
-        'start_date': ''
+        "script_name": "generate_sam_fabs_export.py",
+        "start_time": str(now),
+        "records_provided": 0,
+        "start_date": "",
     }
 
-    start_date, end_date = validate_load_dates(args.start_date, args.end_date, args.auto, load_type='fabs_extract')
+    start_date, end_date = validate_load_dates(args.start_date, args.end_date, args.auto, load_type="fabs_extract")
     if end_date:
         # Adding an extra day to be inclusive
-        end_date = datetime.strptime(end_date, '%m/%d/%Y') + relativedelta(days=1)
-        end_date = end_date.strftime('%m/%d/%Y')
-    start_log = start_date or 'project start'
-    end_log = end_date or 'present'
+        end_date = datetime.strptime(end_date, "%m/%d/%Y") + relativedelta(days=1)
+        end_date = end_date.strftime("%m/%d/%Y")
+    start_log = start_date or "project start"
+    end_log = end_date or "present"
 
-    metrics_json['start_date'] = start_date
+    metrics_json["start_date"] = start_date
 
     update_query = get_award_updates_query(start_date, end_date)
-    formatted_today = now.strftime('%Y%m%d')
+    formatted_today = now.strftime("%Y%m%d")
 
-    filename = f'FABS_for_SAM_{formatted_today}.csv'
+    filename = f"FABS_for_SAM_{formatted_today}.csv"
     if args.start_date or args.end_date:
-        start_string = f"_from_{datetime.strptime(start_log, '%m/%d/%Y').strftime('%Y%m%d')}" if args.start_date \
-            else ''
-        end_string = f'_to_{datetime.strptime(end_log, '%m/%d/%Y').strftime('%Y%m%d')}' if args.end_date else ''
-        filename = f'FABS_for_SAM{start_string}{end_string}.csv'
+        start_string = f"_from_{datetime.strptime(start_log, '%m/%d/%Y').strftime('%Y%m%d')}" if args.start_date else ""
+        end_string = f"_to_{datetime.strptime(end_log, '%m/%d/%Y').strftime('%Y%m%d')}" if args.end_date else ""
+        filename = f"FABS_for_SAM{start_string}{end_string}.csv"
 
     local_file = os.path.join(os.getcwd(), filename)
     sess = GlobalDB.db().session
 
-    logger.info(f'Starting SQL query of financial assistance records from {start_log} to {end_log}...')
+    logger.info(f"Starting SQL query of financial assistance records from {start_log} to {end_log}...")
     write_stream_query(sess, update_query, local_file, local_file, True, generate_headers=True, generate_string=False)
-    logger.info('Completed SQL query, file written')
+    logger.info("Completed SQL query, file written")
 
     # We only want to update the external data load date if it was an automatic run, not a specific one
     if args.auto:
-        update_external_data_load_date(now, datetime.now(), 'fabs_extract')
+        update_external_data_load_date(now, datetime.now(), "fabs_extract")
 
-    metrics_json['duration'] = str(datetime.now() - now)
+    metrics_json["duration"] = str(datetime.now() - now)
 
-    with open('generate_sam_fabs_export_metrics.json', 'w+') as metrics_file:
+    with open("generate_sam_fabs_export_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
-    logger.info('Script complete')
+    logger.info("Script complete")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     with create_app().app_context():
         main()

@@ -41,12 +41,7 @@ class MockSession(object):
         return self._query
 
 
-def mock_response(
-        status=200,
-        content="CONTENT",
-        json_data=None,
-        raise_for_status=None,
-        url=None):
+def mock_response(status=200, content="CONTENT", json_data=None, raise_for_status=None, url=None):
     """
     since we typically test a bunch of different
     requests calls for a service, we are going to do
@@ -64,7 +59,5 @@ def mock_response(
     mock_resp.url = url
     # add json data if provided
     if json_data:
-        mock_resp.json = Mock(
-            return_value=json_data
-        )
+        mock_resp.json = Mock(return_value=json_data)
     return mock_resp

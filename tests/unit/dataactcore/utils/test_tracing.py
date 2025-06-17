@@ -13,14 +13,15 @@ from opentelemetry.sdk.resources import Resource
 from dataactcore.utils.tracing import (
     OpenTelemetryEagerlyDropTraceFilter,
     OpenTelemetryLoggingTraceFilter,
-    SubprocessTrace
+    SubprocessTrace,
 )
 
 
 class CustomConsoleSpanExporter(ConsoleSpanExporter):
-    """ ConsoleSpanExporter's export (despite going to sys.stdout) doesn't get captured by capsys.
-        This fixes that by calling the print from in here.
+    """ConsoleSpanExporter's export (despite going to sys.stdout) doesn't get captured by capsys.
+    This fixes that by calling the print from in here.
     """
+
     def export(self, spans):
         for span in spans:
             print(self.formatter(span))
@@ -28,7 +29,7 @@ class CustomConsoleSpanExporter(ConsoleSpanExporter):
 
 
 # Initialize the tracer provider and exporter for testing
-provider = TracerProvider(resource=Resource.create({'service.name': 'test-service'}))
+provider = TracerProvider(resource=Resource.create({"service.name": "test-service"}))
 trace.set_tracer_provider(provider)
 exporter = CustomConsoleSpanExporter()
 span_processor = SimpleSpanProcessor(exporter)
@@ -77,9 +78,9 @@ def test_logging_trace_spans_basic(caplog):
     assert f"span id: {span_id}" in caplog.text, "span_id not found in logging output"
 
 
-@pytest.mark.skip('OpenTelemetry doesn\'t support custom filters')
+@pytest.mark.skip("OpenTelemetry doesn't support custom filters")
 def test_drop_key_on_trace_spans(caplog, capsys):
-    """ Test that traces that have any span with the key that marks them for dropping, are not logged, but those that
+    """Test that traces that have any span with the key that marks them for dropping, are not logged, but those that
     do not have this marker, are still logged"""
     caplog.set_level(logging.DEBUG)
     test = f"{inspect.stack()[0][3]}"
@@ -91,8 +92,8 @@ def test_drop_key_on_trace_spans(caplog, capsys):
         test_msg = f"a test message was logged during {test}"
         logger.warning(test_msg)
         # do things
-        x = 2 ** 5
-        thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
+        x = 2**5
+        thirty_two_squares = [m for m in map(lambda y: y**2, range(x))]
         assert thirty_two_squares[-1] == 961
 
         # Drop this span so it is not sent to the server, and not logged by the trace logger
@@ -105,7 +106,7 @@ def test_drop_key_on_trace_spans(caplog, capsys):
         test_msg2 = f"a second test message was logged during {test}"
         logger.warning(test_msg2)
         # do things
-        x = 2 ** 7
+        x = 2**7
 
     captured = capsys.readouterr()
     assert test_msg in caplog.text, "caplog.text did not seem to capture logging output during test"
@@ -132,14 +133,14 @@ def test_logging_trace_spans(caplog, capsys):
         test_msg = f"a test message was logged during {test}"
         logger.warning(test_msg)
         # do things
-        x = 2 ** 5
-        thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
+        x = 2**5
+        thirty_two_squares = [m for m in map(lambda y: y**2, range(x))]
         assert thirty_two_squares[-1] == 961
 
     captured = capsys.readouterr()
     assert test_msg in caplog.text, "caplog.text did not seem to capture logging output during test"
-    assert f'{trace_id:x}' in captured.out, "trace_id not found in logging output"
-    assert f'{span_id:x}' in captured.out, "span_id not found in logging output"
+    assert f"{trace_id:x}" in captured.out, "trace_id not found in logging output"
+    assert f"{span_id:x}" in captured.out, "span_id not found in logging output"
     assert f"{test}_resource" in captured.out, "traced resource not found in logging output"
 
 
@@ -231,6 +232,6 @@ def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
         q.put(span_ids, block=True, timeout=5)
         logger.warning(subproc_test_msg)
         # do things
-        x = 2 ** 5
-        thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
+        x = 2**5
+        thirty_two_squares = [m for m in map(lambda y: y**2, range(x))]
         assert thirty_two_squares[-1] == 961

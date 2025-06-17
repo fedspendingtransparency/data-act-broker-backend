@@ -23,22 +23,29 @@ BACKFILL_DISPLAYTAS_SF133_SQL = """
     WHERE display_tas IS NULL;
 """
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
 
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        logger.info('Starting display_tas backfill script.')
+        logger.info("Starting display_tas backfill script.")
 
-        table_list = ['sf_133', 'appropriation', 'object_class_program_activity', 'award_financial',
-                      'published_appropriation', 'published_object_class_program_activity', 'published_award_financial']
+        table_list = [
+            "sf_133",
+            "appropriation",
+            "object_class_program_activity",
+            "award_financial",
+            "published_appropriation",
+            "published_object_class_program_activity",
+            "published_award_financial",
+        ]
         for table in table_list:
-            logger.info('Backfilling empty display_tas values in the {} table.'.format(table))
+            logger.info("Backfilling empty display_tas values in the {} table.".format(table))
             executed = sess.execute(BACKFILL_DISPLAYTAS_SF133_SQL.format(table))
-            logger.info('Backfill completed, {} rows affected\n'.format(executed.rowcount))
+            logger.info("Backfill completed, {} rows affected\n".format(executed.rowcount))
         sess.commit()
 
-        logger.info('Completed display_tas backfill script')
+        logger.info("Completed display_tas backfill script")
 
         sess.close()

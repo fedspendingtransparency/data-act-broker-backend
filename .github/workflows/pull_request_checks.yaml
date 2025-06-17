@@ -1,0 +1,71 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+
+# Only allow a single run of the PR checks for each branch. This means that in the case of multiple
+# PRs opened from a single branch into multiple others (e.g., hotfixes) a single run of the PR checks
+# will occur. However, additional runs of the PR checks will be triggered when the source branch
+# is re-synced with the target branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # There isn't a good way to avoid running a workflow when a Draft PR is opened. As a result, we
+  # first check if a Draft PR triggered this workflow and cancel the workflow if that is the case.
+  Cancel-If-Draft-Pull-Request:
+    if: github.event.pull_request.draft == true
+    uses: ./.github/workflows/cancel-running-workflow.yaml
+
+  # The conditional in each of the workflows below is required. Without these checks they will be skipped
+  # when the "Cancel-If-Draft-Pull-Request" workflow is skipped.
+  Run-Code-Style-Checks:
+    name: Run Code Style Checks
+    needs: Cancel-If-Draft-Pull-Request
+    if: |
+      always() &&
+      needs.Cancel-If-Draft-Pull-Request.result == 'skipped'
+    uses: ./.github/workflows/code-style-checks.yaml
+
+  # Prepare Code Climate to receive coverage report
+  Code-Climate-Before-Build:
+    name: Code Climate Before Build
+    needs: Run-Code-Style-Checks
+    if: ${{ !failure() && !cancelled() }}
+    uses: ./.github/workflows/code-climate-before-build.yaml
+    with:
+      source-branch: ${{ github.head_ref }}
+      source-commit-sha: ${{ github.event.pull_request.head.sha }}
+    secrets:
+      cc_test_reporter_id: ${{ secrets.CC_TEST_REPORTER_ID }}
+
+  Run-Unit-Tests:
+    name: Run Unit Tests
+    needs: Code-Climate-Before-Build
+    if: ${{ !failure() && !cancelled() }}
+    uses: ./.github/workflows/test-unit.yaml
+
+  Run-Integration-Tests:
+    name: Run Integration Tests
+    needs: Code-Climate-Before-Build
+    if: ${{ !failure() && !cancelled() }}
+    uses: ./.github/workflows/test-integration.yaml
+
+  Code-Climate-Report-Coverage:
+    name: Code Climate Report Coverage
+    needs:
+      - Run-Unit-Tests
+      - Run-Integration-Tests
+    if: ${{ !failure() && !cancelled() }}
+    uses: ./.github/workflows/code-climate-report-coverage.yaml
+    with:
+      source-branch: ${{ github.head_ref }}
+      source-commit-sha: ${{ github.event.pull_request.head.sha }}
+    secrets:
+      cc_test_reporter_id: ${{ secrets.CC_TEST_REPORTER_ID }}

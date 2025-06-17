@@ -28,6 +28,6 @@ def insert_codes(sess):
         sess.merge(error)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     setup_error_db()

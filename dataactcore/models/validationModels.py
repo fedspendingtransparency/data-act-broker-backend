@@ -1,4 +1,4 @@
-""" These classes define the ORM models to be used by sqlalchemy for the job tracker database """
+"""These classes define the ORM models to be used by sqlalchemy for the job tracker database"""
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Enum
 from sqlalchemy.orm import relationship
@@ -59,7 +59,7 @@ class RuleSql(Base):
     query_name = Column(Text)
     expected_value = Column(Text)
     category = Column(Text)
-    sensitive = Column(Boolean, nullable=False, server_default='False')
+    sensitive = Column(Boolean, nullable=False, server_default="False")
 
 
 class ValidationLabel(Base):
@@ -71,7 +71,7 @@ class ValidationLabel(Base):
     file_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file"), nullable=True)
     file = relationship("FileType", uselist=False, foreign_keys=[file_id])
     column_name = Column(Text)
-    label_type = Column(Enum('requirement', 'type', name='label_types'))
+    label_type = Column(Enum("requirement", "type", name="label_types"))
 
 
 class RuleSetting(Base):
@@ -81,11 +81,13 @@ class RuleSetting(Base):
     agency_code = Column(Text)
     rule_label = Column(Text, nullable=False)
     file_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_setting_file_type"), nullable=True)
-    target_file_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_setting_target_file_type"),
-                            nullable=True)
+    target_file_id = Column(
+        Integer, ForeignKey("file_type.file_type_id", name="fk_setting_target_file_type"), nullable=True
+    )
     priority = Column(Integer, nullable=False)
-    impact_id = Column(Integer, ForeignKey("rule_impact.rule_impact_id", ondelete="CASCADE", name="fk_impact"),
-                       nullable=False)
+    impact_id = Column(
+        Integer, ForeignKey("rule_impact.rule_impact_id", ondelete="CASCADE", name="fk_impact"), nullable=False
+    )
 
 
 class RuleImpact(Base):

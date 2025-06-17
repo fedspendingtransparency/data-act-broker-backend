@@ -1,19 +1,23 @@
 from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'fabs45'
+_FILE = "fabs45"
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'indirect_federal_sharing', 'federal_action_obligation',
-                       'uniqueid_AssistanceTransactionUniqueKey'}
+    expected_subset = {
+        "row_number",
+        "indirect_federal_sharing",
+        "federal_action_obligation",
+        "uniqueid_AssistanceTransactionUniqueKey",
+    }
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ Test when both are provided, IndirectCostFederalShareAmount should be less than or equal to
-        FederalActionObligation.
+    """Test when both are provided, IndirectCostFederalShareAmount should be less than or equal to
+    FederalActionObligation.
     """
 
     # One or both not provided, rule ignored
@@ -29,15 +33,15 @@ def test_success(database):
     fabs_6 = FABSFactory(indirect_federal_sharing=5, federal_action_obligation=6)
 
     # Ignore when CorrectionDeleteIndicator is D
-    fabs_7 = FABSFactory(indirect_federal_sharing=123, federal_action_obligation=0, correction_delete_indicatr='d')
+    fabs_7 = FABSFactory(indirect_federal_sharing=123, federal_action_obligation=0, correction_delete_indicatr="d")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test failure when both are provided, IndirectCostFederalShareAmount should be less than or equal to
-        FederalActionObligation.
+    """Test failure when both are provided, IndirectCostFederalShareAmount should be less than or equal to
+    FederalActionObligation.
     """
 
     # ICFSA is not 0 but FAO is

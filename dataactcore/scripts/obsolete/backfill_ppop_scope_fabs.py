@@ -36,7 +36,7 @@ BACKFILL_FABS_PPOP_SCOPE_SQL_2 = r"""
         AND place_of_performance_scope IS NULL);
 """
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
 
     with create_app().app_context():
@@ -44,16 +44,16 @@ if __name__ == '__main__':
 
         affected = 0
 
-        logger.info('Backfilling empty place_of_performance_scope values in the fabs table (part i).')
+        logger.info("Backfilling empty place_of_performance_scope values in the fabs table (part i).")
         executed = sess.execute(BACKFILL_FABS_PPOP_SCOPE_SQL_1)
         affected += executed.rowcount
         sess.commit()
 
-        logger.info('Backfilling empty place_of_performance_scope values in the fabs table (part ii).')
+        logger.info("Backfilling empty place_of_performance_scope values in the fabs table (part ii).")
         executed = sess.execute(BACKFILL_FABS_PPOP_SCOPE_SQL_2)
         affected += executed.rowcount
         sess.commit()
 
-        logger.info('Backfill completed, {} rows affected\n'.format(affected))
+        logger.info("Backfill completed, {} rows affected\n".format(affected))
 
         sess.close()

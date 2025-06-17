@@ -42,8 +42,8 @@ class SAMSubcontractFactory(factory.Factory):
     ppop_city_name = fuzzy.FuzzyText()
     ppop_zip_code = fuzzy.FuzzyText()
     ppop_congressional_district = fuzzy.FuzzyText()
-    business_types_codes = ['A', 'B', 'C']
-    business_types_names = ['Full Name A', 'Full Name B', 'Full Name C']
+    business_types_codes = ["A", "B", "C"]
+    business_types_names = ["Full Name A", "Full Name B", "Full Name C"]
     description = fuzzy.FuzzyText()
     high_comp_officer1_full_na = fuzzy.FuzzyText()
     high_comp_officer1_amount = fuzzy.FuzzyText()
@@ -91,8 +91,8 @@ class SAMSubgrantFactory(factory.Factory):
     ppop_city_name = fuzzy.FuzzyText()
     ppop_zip_code = fuzzy.FuzzyText()
     ppop_congressional_district = fuzzy.FuzzyText()
-    business_types_codes = ['A', 'B', 'C']
-    business_types_names = ['Full Name A', 'Full Name B', 'Full Name C']
+    business_types_codes = ["A", "B", "C"]
+    business_types_names = ["Full Name A", "Full Name B", "Full Name C"]
     description = fuzzy.FuzzyText()
     high_comp_officer1_full_na = fuzzy.FuzzyText()
     high_comp_officer1_amount = fuzzy.FuzzyText()

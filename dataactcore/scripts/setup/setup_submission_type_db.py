@@ -22,6 +22,6 @@ def insert_codes(sess):
         sess.merge(submission_type)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     configure_logging()
     setup_submission_type_db()
