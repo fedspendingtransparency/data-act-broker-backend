@@ -1,18 +1,16 @@
-import boto3
 import csv
 import logging
+import multiprocessing as mp
 import os
 import re
+import time
 import traceback
+from datetime import datetime, timedelta
+
+import boto3
 import pandas as pd
 import psutil as ps
-import multiprocessing as mp
-import time
-from datetime import timedelta
-
-from datetime import datetime
-
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, case, or_
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 from dataactbroker.helpers.validation_helper import (
@@ -49,7 +47,14 @@ from dataactcore.interfaces.function_bag import (
 )
 from dataactcore.interfaces.db import db_connection
 
-from dataactcore.models.domainModels import Office, concat_display_tas_dict, concat_tas_dict_vectorized
+from dataactcore.models.domainModels import (
+    concat_display_tas_dict,
+    concat_tas_dict_vectorized,
+    CGAC,
+    FREC,
+    Office,
+    SubTierAgency,
+)
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
@@ -895,7 +900,9 @@ class ValidationManager:
                     lambda x: derive_fabs_awarding_sub_tier(x, office_list), axis=1
                 )
                 chunk_df["afa_generated_unique"] = chunk_df.apply(lambda x: derive_fabs_afa_generated_unique(x), axis=1)
-                chunk_df["unique_award_key"] = chunk_df.apply(lambda x: derive_fabs_unique_award_key(x), axis=1)
+                agency_codes = self.retrieve_agency_codes(chunk_df, sess)
+                chunk_df = chunk_df.merge(agency_codes, how="left", on="awarding_sub_tier_agency_c")
+                chunk_df["unique_award_key"] = derive_fabs_unique_award_key(chunk_df)
             else:
                 # Updating DEFC QQQ specifically to be a single Q. Only check B and C because they're the only files
                 # with DEFC columns
@@ -1073,6 +1080,20 @@ class ValidationManager:
                     "status": "end",
                 }
             )
+
+    @staticmethod
+    def retrieve_agency_codes(chunk_df, sess):
+        return pd.read_sql(
+            sess.query(
+                SubTierAgency.sub_tier_agency_code.label("awarding_sub_tier_agency_c"),
+                case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label("awarding_agency_code"),
+            )
+            .join(CGAC, SubTierAgency.cgac_id == CGAC.cgac_id)
+            .join(FREC, SubTierAgency.frec_id == FREC.frec_id)
+            .filter(SubTierAgency.sub_tier_agency_code.in_(chunk_df["awarding_sub_tier_agency_c"]))
+            .statement,
+            sess.connection(),
+        )
 
     def run_sql_validations(self, short_colnames, writer, warning_writer):
         """Run all SQL rules for this file type
