@@ -430,13 +430,7 @@ def initialize_test_row(
 ):
     """Initialize the values in the object being run through the fabs_derivations function"""
     column_list = [col.key for col in PublishedFABS.__table__.columns]
-    remove_cols = [
-        "created_at",
-        "updated_at",
-        "modified_at",
-        "is_active",
-        "published_fabs_id",
-    ]
+    remove_cols = ["created_at", "updated_at", "modified_at", "is_active", "published_fabs_id"]
     for remove_col in remove_cols:
         column_list.remove(remove_col)
     col_string = ", ".join(column_list)
@@ -637,11 +631,8 @@ def test_ppop_derivations(database):
 
     # when ppop_zip4a is 9 digits and no congressional district (historical)
     submission_id = initialize_test_row(
-        database,
-        ppop_zip4a="111111111",
-        ppop_code="NY00001",
-        submission_id=2,
-        action_date="2022/01/01",
+        database, ppop_zip4a="111111111", ppop_code="NY00001", submission_id=2, action_date="2022/01/01"
+
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -653,11 +644,7 @@ def test_ppop_derivations(database):
 
     # when ppop_zip4a is 9 digits and has congressional district
     submission_id = initialize_test_row(
-        database,
-        ppop_zip4a="12345-4321",
-        ppop_cd="03",
-        ppop_code="NY0000r",
-        submission_id=3,
+        database, ppop_zip4a="12345-4321", ppop_cd="03", ppop_code="NY0000r", submission_id=3
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -760,11 +747,7 @@ def test_legal_entity_derivations(database):
 
     # Test historical derivations
     submission_id = initialize_test_row(
-        database,
-        le_zip5="11111",
-        le_zip4="1111",
-        submission_id=2,
-        action_date="2022/01/01",
+        database, le_zip5="11111", le_zip4="1111", submission_id=2, action_date="2022/01/01"
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -863,12 +846,7 @@ def test_derive_office_data(database):
     # if office_code is not present, derive it from historical data (record type 2 or 3 uses fain, ignores uri)
     # In this case, there is no funding office but there is an awarding office
     submission_id = initialize_test_row(
-        database,
-        awarding_office=None,
-        funding_office=None,
-        fain="12345",
-        award_mod_amend="1",
-        submission_id=3,
+        database, awarding_office=None, funding_office=None, fain="12345", award_mod_amend="1", submission_id=3
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -880,12 +858,7 @@ def test_derive_office_data(database):
 
     # if office_code is not present, and no valid fain is given, office code and name are blank
     submission_id = initialize_test_row(
-        database,
-        awarding_office=None,
-        funding_office=None,
-        fain="54321",
-        award_mod_amend="1",
-        submission_id=4,
+        database, awarding_office=None, funding_office=None, fain="54321", award_mod_amend="1", submission_id=4
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -898,12 +871,7 @@ def test_derive_office_data(database):
     # if office_code is not present, and valid fain is given, with no office codes, office code and name are blank
     # In this case, funding office is present, awarding office is not
     submission_id = initialize_test_row(
-        database,
-        awarding_office=None,
-        funding_office=None,
-        fain="123456",
-        award_mod_amend="1",
-        submission_id=5,
+        database, awarding_office=None, funding_office=None, fain="123456", award_mod_amend="1", submission_id=5
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -971,12 +939,7 @@ def test_derive_office_data(database):
 
     # if office_code is not present and valid uri is given but it's record type 2, everything should be empty
     submission_id = initialize_test_row(
-        database,
-        awarding_office=None,
-        funding_office=None,
-        uri="654321",
-        award_mod_amend="1",
-        submission_id=9,
+        database, awarding_office=None, funding_office=None, uri="654321", award_mod_amend="1", submission_id=9
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1006,12 +969,7 @@ def test_derive_office_data(database):
 
     # if office_code is not present and mod number is the same as the base record, do not derive it from historical data
     submission_id = initialize_test_row(
-        database,
-        awarding_office=None,
-        funding_office=None,
-        fain="12345",
-        award_mod_amend="0",
-        submission_id=11,
+        database, awarding_office=None, funding_office=None, fain="12345", award_mod_amend="0", submission_id=11
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1140,12 +1098,7 @@ def test_derive_ppop_code(database):
 
     # Default to 00000 if legal entity city code is nothing and country is USA
     submission_id = initialize_test_row(
-        database,
-        record_type=3,
-        ppop_code=None,
-        legal_country="USA",
-        le_zip5="54321",
-        submission_id=6,
+        database, record_type=3, ppop_code=None, legal_country="USA", le_zip5="54321", submission_id=6
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1154,12 +1107,7 @@ def test_derive_ppop_code(database):
 
     # Properly set city code if legal entity city code is there and country is USA
     submission_id = initialize_test_row(
-        database,
-        record_type=3,
-        ppop_code=None,
-        legal_country="USA",
-        le_zip5="12345",
-        submission_id=7,
+        database, record_type=3, ppop_code=None, legal_country="USA", le_zip5="12345", submission_id=7
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1187,12 +1135,7 @@ def test_derive_pii_redacted_ppop_data(database):
 
     # Test derivations for historical data
     submission_id = initialize_test_row(
-        database,
-        record_type=3,
-        legal_country="USA",
-        le_zip5="11111",
-        submission_id=2,
-        action_date="2022/01/01",
+        database, record_type=3, legal_country="USA", le_zip5="11111", submission_id=2, action_date="2022/01/01"
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1209,11 +1152,7 @@ def test_derive_pii_redacted_ppop_data(database):
 
     # Test derivations when country code isn't USA
     submission_id = initialize_test_row(
-        database,
-        record_type=3,
-        legal_country="GBR",
-        legal_foreign_city="London",
-        submission_id=3,
+        database, record_type=3, legal_country="GBR", legal_foreign_city="London", submission_id=3
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1355,13 +1294,7 @@ def test_derive_labels(database):
 
     # Testing for valid values of each
     submission_id = initialize_test_row(
-        database,
-        cdi="c",
-        action_type="a",
-        assist_type="02",
-        busi_type="d",
-        busi_fund="non",
-        submission_id=3,
+        database, cdi="c", action_type="a", assist_type="02", busi_type="d", busi_fund="non", submission_id=3
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1396,13 +1329,7 @@ def test_derive_labels(database):
 
     # Test multiple business types (2 valid, 1 invalid)
     submission_id = initialize_test_row(
-        database,
-        cdi="f",
-        action_type="z",
-        assist_type="01",
-        record_type=5,
-        busi_type="azb",
-        submission_id=5,
+        database, cdi="f", action_type="z", assist_type="01", record_type=5, busi_type="azb", submission_id=5
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1422,11 +1349,7 @@ def test_derive_ppop_scope(database):
 
     # when ppop_zip4a is 5 digits and has congressional district
     submission_id = initialize_test_row(
-        database,
-        ppop_zip4a="12345-4321",
-        ppop_cd="03",
-        ppop_code="NY0000r",
-        submission_id=3,
+        database, ppop_zip4a="12345-4321", ppop_cd="03", ppop_code="NY0000r", submission_id=3
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1505,12 +1428,7 @@ def test_derive_ppop_scope(database):
 
     # cases when ppop code is not provided but derived earlier
     submission_id = initialize_test_row(
-        database,
-        record_type=3,
-        ppop_code=None,
-        legal_country="USA",
-        le_zip5="54321",
-        submission_id=14,
+        database, record_type=3, ppop_code=None, legal_country="USA", le_zip5="54321", submission_id=14
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()

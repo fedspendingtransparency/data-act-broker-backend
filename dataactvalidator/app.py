@@ -29,8 +29,8 @@ from dataactvalidator.validator_logging import log_job_message
 
 logger = logging.getLogger(__name__)
 
-READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
-RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
+READY_STATUSES = [JOB_STATUS_DICT["waiting"], JOB_STATUS_DICT["ready"]]
+RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT["running"]]
 JOB_TYPE = "Validator"
 
 
@@ -39,23 +39,23 @@ def create_app():
 
 
 def run_app():
-    """ Run the application. """
+    """Run the application."""
     app = create_app()
 
     with app.app_context():
-        current_app.debug = CONFIG_SERVICES['debug']
-        local = CONFIG_BROKER['local']
+        current_app.debug = CONFIG_SERVICES["debug"]
+        local = CONFIG_BROKER["local"]
         g.is_local = local
         current_app.config.from_object(__name__)
 
         # Future: Override config w/ environment variable, if set
-        current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
+        current_app.config.from_envvar("VALIDATOR_SETTINGS", silent=True)
 
         # Start a trace for this poll iter to capture activity in APM
         with SubprocessTrace(
-                name=f"job.{JOB_TYPE}",
-                kind=SpanKind.INTERNAL,
-                service=JOB_TYPE.lower(),
+            name=f"job.{JOB_TYPE}",
+            kind=SpanKind.INTERNAL,
+            service=JOB_TYPE.lower(),
         ) as parent:
             # Set True to add trace to App Analytics
             parent.set_attributes(
@@ -63,7 +63,7 @@ def run_app():
                     "service": JOB_TYPE.lower(),
                     "job_type": str(JOB_TYPE),
                     "message": "Starting SQS worker session",
-                    "analytics_sample_rate": 1.0
+                    "analytics_sample_rate": 1.0,
                 }
             )
 
@@ -80,30 +80,35 @@ def run_app():
 
             while keep_polling:
                 # With cleanup handling engaged, allowing retries
-                dispatcher = SQSWorkDispatcher(queue, worker_process_name=JOB_TYPE,
-                                               worker_can_start_child_processes=True)
+                dispatcher = SQSWorkDispatcher(
+                    queue, worker_process_name=JOB_TYPE, worker_can_start_child_processes=True
+                )
 
                 def choose_job_by_message_attributes(message):
                     # Determine if this is a retry of this message, in which case job execution should know so it can
                     # do cleanup before proceeding with the job
                     q_msg_attr = message.attributes  # the non-user-defined (queue-defined) attributes on the message
                     is_retry = False
-                    if q_msg_attr.get('ApproximateReceiveCount') is not None:
-                        is_retry = int(q_msg_attr.get('ApproximateReceiveCount')) > 1
+                    if q_msg_attr.get("ApproximateReceiveCount") is not None:
+                        is_retry = int(q_msg_attr.get("ApproximateReceiveCount")) > 1
 
                     msg_attr = message.message_attributes
-                    if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
+                    if msg_attr and msg_attr.get("validation_type", {}).get("StringValue") == "generation":
                         # Generating a file
-                        job_signature = {"_job": validator_process_file_generation,
-                                         "file_gen_id": message.body,
-                                         "is_retry": is_retry}
+                        job_signature = {
+                            "_job": validator_process_file_generation,
+                            "file_gen_id": message.body,
+                            "is_retry": is_retry,
+                        }
                     else:
                         # Running validations (or generating a file from a Job)
-                        a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                        job_signature = {"_job": validator_process_job,
-                                         "job_id": message.body,
-                                         "agency_code": a_agency_code,
-                                         "is_retry": is_retry}
+                        a_agency_code = msg_attr.get("agency_code", {}).get("StringValue") if msg_attr else None
+                        job_signature = {
+                            "_job": validator_process_job,
+                            "job_id": message.body,
+                            "agency_code": a_agency_code,
+                            "is_retry": is_retry,
+                        }
                     return job_signature
 
                 message_found = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
@@ -117,23 +122,21 @@ def run_app():
 
 
 def validator_process_file_generation(file_gen_id, is_retry=False):
-    """ Retrieves a FileGeneration object based on its ID, and kicks off a file generation. Handles errors by ensuring
-        the FileGeneration (if exists) is no longer cached.
+    """Retrieves a FileGeneration object based on its ID, and kicks off a file generation. Handles errors by ensuring
+    the FileGeneration (if exists) is no longer cached.
 
-        Args:
-            file_gen_id: ID of a FileGeneration object
-            is_retry: If this is not the very first time handling execution of this job. If True, cleanup is
-                      performed before proceeding to retry the job
+    Args:
+        file_gen_id: ID of a FileGeneration object
+        is_retry: If this is not the very first time handling execution of this job. If True, cleanup is
+                  performed before proceeding to retry the job
 
-        Raises:
-            Any Exceptions raised by the FileGenerationManager
+    Raises:
+        Any Exceptions raised by the FileGenerationManager
     """
     # Add args name and values as span tags on this trace
     tag_data = locals()
     with SubprocessTrace(
-            name=f"job.{JOB_TYPE}.file_generation",
-            kind=SpanKind.INTERNAL,
-            service=JOB_TYPE.lower()
+        name=f"job.{JOB_TYPE}.file_generation", kind=SpanKind.INTERNAL, service=JOB_TYPE.lower()
     ) as span:
         file_gen_data = {}
         span.set_attributes({k: str(v) for k, v in tag_data.items()})
@@ -144,16 +147,16 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                     message="Attempting a retry of {} after successful retry-cleanup.".format(inspect.stack()[0][3]),
                     job_type=JOB_TYPE,
                     job_id=file_gen_id,
-                    is_debug=True
+                    is_debug=True,
                 )
             else:
                 log_job_message(
                     logger=logger,
                     message="Retry of {} found to be not necessary after cleanup. "
-                            "Returning from job with success.".format(inspect.stack()[0][3]),
+                    "Returning from job with success.".format(inspect.stack()[0][3]),
                     job_type=JOB_TYPE,
                     job_id=file_gen_id,
-                    is_debug=True
+                    is_debug=True,
                 )
                 return
         else:
@@ -162,7 +165,7 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                 message="Starting processing of file generation request",
                 job_type=JOB_TYPE,
                 job_id=file_gen_id,
-                is_debug=True
+                is_debug=True,
             )
 
         sess = GlobalDB.db().session
@@ -172,18 +175,19 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
             file_generation = sess.query(FileGeneration).filter_by(file_generation_id=file_gen_id).one_or_none()
             if file_generation:
                 file_gen_data = {
-                    'agency_code': file_generation.agency_code,
-                    'agency_type': file_generation.agency_type,
-                    'start_date': file_generation.start_date,
-                    'end_date': file_generation.end_date,
-                    'file_type': file_generation.file_type,
-                    'file_path': file_generation.file_path,
+                    "agency_code": file_generation.agency_code,
+                    "agency_type": file_generation.agency_type,
+                    "start_date": file_generation.start_date,
+                    "end_date": file_generation.end_date,
+                    "file_type": file_generation.file_type,
+                    "file_path": file_generation.file_path,
                 }
-                file_gen_data['resource'] = f"file_generation/{file_generation.file_type}"
+                file_gen_data["resource"] = f"file_generation/{file_generation.file_type}"
                 span.set_attributes(file_gen_data)
             elif file_generation is None:
-                raise ResponseError('FileGeneration ID {} not found in database'.format(file_gen_id),
-                                    StatusCode.CLIENT_ERROR, None)
+                raise ResponseError(
+                    "FileGeneration ID {} not found in database".format(file_gen_id), StatusCode.CLIENT_ERROR, None
+                )
 
             file_generation_manager = FileGenerationManager(sess, g.is_local, file_generation=file_generation)
             file_generation_manager.generate_file()
@@ -191,10 +195,10 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
         except Exception as e:
             # Log uncaught exceptions and fail all Jobs referencing this FileGeneration
             error_data = {
-                'message': 'An unhandled exception occurred in the Validator during file generation',
-                'message_type': 'ValidatorInfo',
-                'file_generation_id': file_gen_id,
-                'traceback': traceback.format_exc()
+                "message": "An unhandled exception occurred in the Validator during file generation",
+                "message_type": "ValidatorInfo",
+                "file_generation_id": file_gen_id,
+                "traceback": traceback.format_exc(),
             }
             if file_generation:
                 error_data.update(file_gen_data)
@@ -211,7 +215,7 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
                     generation_jobs = sess.query(Job).filter_by(file_generation_id=file_gen_id).all()
                     for job in generation_jobs:
                         if job.job_status in RUNNING_STATUSES:
-                            mark_job_status(job.job_id, 'failed')
+                            mark_job_status(job.job_id, "failed")
                             sess.refresh(job)
                             job.file_generation_id = None
                             job.error_message = str(e)
@@ -229,25 +233,21 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
 
 
 def validator_process_job(job_id, agency_code, is_retry=False):
-    """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
-        no longer running.
+    """Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
+    no longer running.
 
-        Args:
-            job_id: ID of a Job
-            agency_code: CGAC or FREC code for agency, only required for file generations by Job
-            is_retry: If this is not the very first time handling execution of this job. If True, cleanup is
-                      performed before proceeding to retry the job
+    Args:
+        job_id: ID of a Job
+        agency_code: CGAC or FREC code for agency, only required for file generations by Job
+        is_retry: If this is not the very first time handling execution of this job. If True, cleanup is
+                  performed before proceeding to retry the job
 
-        Raises:
-            Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
+    Raises:
+        Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
     # Add args name and values as span tags on this trace
     tag_data = locals()
-    with SubprocessTrace(
-            name=f"job.{JOB_TYPE}.validation",
-            kind=SpanKind.INTERNAL,
-            service=JOB_TYPE.lower()
-    ) as span:
+    with SubprocessTrace(name=f"job.{JOB_TYPE}.validation", kind=SpanKind.INTERNAL, service=JOB_TYPE.lower()) as span:
         job_data = {}
         span.set_attributes({k: str(v) for k, v in tag_data.items()})
         if is_retry:
@@ -257,16 +257,16 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                     message="Attempting a retry of {} after successful retry-cleanup.".format(inspect.stack()[0][3]),
                     job_type=JOB_TYPE,
                     job_id=job_id,
-                    is_debug=True
+                    is_debug=True,
                 )
             else:
                 log_job_message(
                     logger=logger,
                     message="Retry of {} found to be not necessary after cleanup. "
-                            "Returning from job with success.".format(inspect.stack()[0][3]),
+                    "Returning from job with success.".format(inspect.stack()[0][3]),
                     job_type=JOB_TYPE,
                     job_id=job_id,
-                    is_debug=True
+                    is_debug=True,
                 )
                 return
         else:
@@ -275,7 +275,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
                 message="Starting processing of validation request",
                 job_type=JOB_TYPE,
                 job_id=job_id,
-                is_debug=True
+                is_debug=True,
             )
 
         sess = GlobalDB.db().session
@@ -286,37 +286,41 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
             if job:
                 job_data = {
-                    'submission_id': job.submission_id,
-                    'job_type': job.job_type.name,
-                    'file_type': job.file_type.name if job.file_type else None,
+                    "submission_id": job.submission_id,
+                    "job_type": job.job_type.name,
+                    "file_type": job.file_type.name if job.file_type else None,
                 }
-                job_data['resource'] = job.job_type.name + (f"/{job.file_type.name}" if job.file_type else "")
+                job_data["resource"] = job.job_type.name + (f"/{job.file_type.name}" if job.file_type else "")
                 span.set_attributes(job_data)
             elif job is None:
                 validation_error_type = ValidationError.job_error
                 write_file_error(job_id, None, validation_error_type)
-                raise ResponseError('Job ID {} not found in database'.format(job_id),
-                                    StatusCode.CLIENT_ERROR, None, validation_error_type)
+                raise ResponseError(
+                    "Job ID {} not found in database".format(job_id),
+                    StatusCode.CLIENT_ERROR,
+                    None,
+                    validation_error_type,
+                )
 
-            mark_job_status(job_id, 'ready')
+            mark_job_status(job_id, "ready")
 
             # We can either validate or generate a file based on Job ID
-            if job.job_type.name == 'file_upload':
+            if job.job_type.name == "file_upload":
                 # Generate A, E, or F file
                 file_generation_manager = FileGenerationManager(sess, g.is_local, job=job)
                 file_generation_manager.generate_file(agency_code)
             else:
                 # Run validations
-                validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES['error_report_path'])
+                validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES["error_report_path"])
                 validation_manager.validate_job(job.job_id)
 
         except (ResponseError, csv.Error, pd.errors.ParserError, UnicodeDecodeError, ValueError) as e:
             # Handle exceptions explicitly raised during validation
             error_data = {
-                'message': 'An exception occurred in the Validator',
-                'message_type': 'ValidatorInfo',
-                'job_id': job_id,
-                'traceback': traceback.format_exc()
+                "message": "An exception occurred in the Validator",
+                "message_type": "ValidatorInfo",
+                "job_id": job_id,
+                "traceback": traceback.format_exc(),
             }
 
             if job:
@@ -336,7 +340,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
 
                     write_file_error(job.job_id, job.filename, error_type, extra_info=extra_info)
 
-                mark_job_status(job.job_id, 'invalid')
+                mark_job_status(job.job_id, "invalid")
             else:
                 logger.error(error_data)
                 raise e
@@ -344,10 +348,10 @@ def validator_process_job(job_id, agency_code, is_retry=False):
         except Exception as e:
             # Log uncaught exceptions and fail the Job
             error_data = {
-                'message': 'An unhandled exception occurred in the Validator',
-                'message_type': 'ValidatorInfo',
-                'job_id': job_id,
-                'traceback': traceback.format_exc()
+                "message": "An unhandled exception occurred in the Validator",
+                "message_type": "ValidatorInfo",
+                "job_id": job_id,
+                "traceback": traceback.format_exc(),
             }
             if job:
                 error_data.update(job_data)
@@ -355,7 +359,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
 
             # Try to mark the Job as failed, but continue raising the original Exception if not possible
             try:
-                mark_job_status(job_id, 'failed')
+                mark_job_status(job_id, "failed")
 
                 sess.refresh(job)
                 job.error_message = str(e)
@@ -370,13 +374,13 @@ def validator_process_job(job_id, agency_code, is_retry=False):
 
 
 def cleanup_generation(file_gen_id):
-    """ Cleans up generation task if to be reused
+    """Cleans up generation task if to be reused
 
-        Args:
-            file_gen_id: file generation id
+    Args:
+        file_gen_id: file generation id
 
-        Returns:
-            boolean whether or not it needs to be run again
+    Returns:
+        boolean whether or not it needs to be run again
     """
     sess = GlobalDB.db().session
     retry = False
@@ -385,9 +389,10 @@ def cleanup_generation(file_gen_id):
     if gen and not gen.file_path:
         retry = True
     elif gen:
-        running_jobs = sess.query(Job).filter(Job.file_generation_id == file_gen_id,
-                                              Job.job_status_id.in_(RUNNING_STATUSES))
-        retry = (running_jobs.count() > 0)
+        running_jobs = sess.query(Job).filter(
+            Job.file_generation_id == file_gen_id, Job.job_status_id.in_(RUNNING_STATUSES)
+        )
+        retry = running_jobs.count() > 0
         if retry:
             gen.file_path = None
             gen.is_cached_file = False
@@ -396,13 +401,13 @@ def cleanup_generation(file_gen_id):
 
 
 def cleanup_validation(job_id):
-    """ Cleans up validation task if to be reused
+    """Cleans up validation task if to be reused
 
-        Args:
-            job_id: ID of a Job
+    Args:
+        job_id: ID of a Job
 
-        Returns:
-            boolean whether or not it needs to be run again
+    Returns:
+        boolean whether or not it needs to be run again
     """
     sess = GlobalDB.db().session
     retry = False
@@ -410,14 +415,14 @@ def cleanup_validation(job_id):
     job = sess.query(Job).filter(Job.job_id == job_id).one_or_none()
     if job and job.job_status_id in RUNNING_STATUSES:
         if job.job_status_id not in READY_STATUSES:
-            job.job_status_id = JOB_STATUS_DICT['waiting']
+            job.job_status_id = JOB_STATUS_DICT["waiting"]
             sess.commit()
         retry = True
     return retry
 
 
 if __name__ == "__main__":
-    configure_logging(f'broker-validator-{CONFIG_BROKER['environment']}')
+    configure_logging(f"broker-validator-{CONFIG_BROKER['environment']}")
     # Configure Tracer to drop traces of polls of the queue that have been flagged as uninteresting
     OpenTelemetryEagerlyDropTraceFilter.activate()
     run_app()

@@ -571,16 +571,7 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
     return errors
 
 
-def check_type(
-    data,
-    type_fields,
-    type_labels,
-    report_headers,
-    csv_schema,
-    short_cols,
-    flex_data,
-    is_fabs,
-):
+def check_type(data, type_fields, type_labels, report_headers, csv_schema, short_cols, flex_data, is_fabs):
     """Check if all fields that are a type other than string match that type.
 
     Args:
@@ -634,15 +625,7 @@ def check_type(
     return errors
 
 
-def check_length(
-    data,
-    length_fields,
-    report_headers,
-    csv_schema,
-    short_cols,
-    flex_data,
-    type_error_rows,
-):
+def check_length(data, length_fields, report_headers, csv_schema, short_cols, flex_data, type_error_rows):
     """Check if all fields that have a maximum length are at or under that length.
 
     Args:
@@ -757,20 +740,9 @@ def parse_fields(sess, fields):
         of headers that are: required, must be some kind of number, must be a boolean, have a maximum length,
         and need to be padded if they're too short
     """
-    parsed_fields = {
-        "required": [],
-        "number": [],
-        "boolean": [],
-        "format": [],
-        "length": [],
-        "padded": [],
-    }
+    parsed_fields = {"required": [], "number": [], "boolean": [], "format": [], "length": [], "padded": []}
     expected_headers = []
-    number_field_types = [
-        FIELD_TYPE_DICT["INT"],
-        FIELD_TYPE_DICT["DECIMAL"],
-        FIELD_TYPE_DICT["LONG"],
-    ]
+    number_field_types = [FIELD_TYPE_DICT["INT"], FIELD_TYPE_DICT["DECIMAL"], FIELD_TYPE_DICT["LONG"]]
     for field in fields:
         # Create a list of just the header names
         expected_headers.append(field.name_short)

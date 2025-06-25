@@ -18,8 +18,8 @@ def error_rows(rule_file, staging_db, submission=None, models=None, assert_num=N
     those models. Return the resulting (invalid) rows"""
     if submission is None:
         submission = Submission(
-            user_id=None, reporting_start_date=datetime(2015, 10, 1),
-            reporting_end_date=datetime(2015, 10, 31))
+            user_id=None, reporting_start_date=datetime(2015, 10, 1), reporting_end_date=datetime(2015, 10, 31)
+        )
     if models is None:
         models = []
 
@@ -34,7 +34,7 @@ def error_rows(rule_file, staging_db, submission=None, models=None, assert_num=N
     result = staging_db.connection.execute(sql).fetchall()
 
     if assert_num is not None:
-        assert (len(result) == assert_num)
+        assert len(result) == assert_num
 
     return result
 

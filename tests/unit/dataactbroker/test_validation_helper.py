@@ -213,11 +213,7 @@ def test_concat_flex():
 
 
 def test_derive_unique_id():
-    row = {
-        "display_tas": "DISPLAY-TAS",
-        "afa_generated_unique": "AFA-GENERATED-UNIQUE",
-        "something": "else",
-    }
+    row = {"display_tas": "DISPLAY-TAS", "afa_generated_unique": "AFA-GENERATED-UNIQUE", "something": "else"}
     assert (
         validation_helper.derive_unique_id(row, is_fabs=True) == "AssistanceTransactionUniqueKey:"
         " AFA-GENERATED-UNIQUE"
@@ -352,12 +348,7 @@ def test_apply_label():
 
 
 def test_gather_flex_fields():
-    flex_data = pd.DataFrame(
-        {
-            "row_number": ["1", "2", "3", "4", "5"],
-            "concatted": ["A", "B", "C", "D", "E"],
-        }
-    )
+    flex_data = pd.DataFrame({"row_number": ["1", "2", "3", "4", "5"], "concatted": ["A", "B", "C", "D", "E"]})
     row = {"Row Number": "4"}
     assert validation_helper.gather_flex_fields(row, flex_data) == "D"
     assert validation_helper.gather_flex_fields(row, None) == ""
@@ -391,10 +382,7 @@ def test_valid_length():
     non_length_field = FileColumn()
     csv_schema = {"length_field": length_field, "non_length_field": non_length_field}
 
-    row = {
-        "Field Name": "length_field",
-        "Value Provided": "this is more than five characters",
-    }
+    row = {"Field Name": "length_field", "Value Provided": "this is more than five characters"}
     assert validation_helper.valid_length(row, csv_schema) is False
     row = {"Field Name": "length_field", "Value Provided": "four"}
     assert validation_helper.valid_length(row, csv_schema) is True
@@ -441,17 +429,8 @@ def test_check_required():
     required = ["required1", "required2"]
     required_labels = {"required1": "Required 1"}
     report_headers = ValidationManager.report_headers
-    short_cols = {
-        "required1": "req1",
-        "not_required1": "n_req1",
-        "not_required2": "n_req2",
-    }
-    flex_data = pd.DataFrame(
-        {
-            "row_number": ["1", "2", "3", "4", "5"],
-            "concatted": ["A", "B", "C", "D", "E"],
-        }
-    )
+    short_cols = {"required1": "req1", "not_required1": "n_req1", "not_required2": "n_req2"}
+    flex_data = pd.DataFrame({"row_number": ["1", "2", "3", "4", "5"], "concatted": ["A", "B", "C", "D", "E"]})
     is_fabs = False
 
     error_msg = ValidationError.required_error_msg
@@ -462,42 +441,9 @@ def test_check_required():
     expected_data = [
         ["ID3", "req1", error_msg, "", expected_value, "", "C", "3", "", error_type],
         ["ID5", "req1", error_msg, "", expected_value, "", "E", "5", "", error_type],
-        [
-            "ID2",
-            "required2",
-            error_msg,
-            "",
-            expected_value,
-            "",
-            "B",
-            "2",
-            "",
-            error_type,
-        ],
-        [
-            "ID4",
-            "required2",
-            error_msg,
-            "",
-            expected_value,
-            "",
-            "D",
-            "4",
-            "",
-            error_type,
-        ],
-        [
-            "ID5",
-            "required2",
-            error_msg,
-            "",
-            expected_value,
-            "",
-            "E",
-            "5",
-            "",
-            error_type,
-        ],
+        ["ID2", "required2", error_msg, "", expected_value, "", "B", "2", "", error_type],
+        ["ID4", "required2", error_msg, "", expected_value, "", "D", "4", "", error_type],
+        ["ID5", "required2", error_msg, "", expected_value, "", "E", "5", "", error_type],
     ]
     expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_required(
@@ -507,66 +453,11 @@ def test_check_required():
 
     is_fabs = True
     expected_data = [
-        [
-            "ID3",
-            "req1",
-            error_msg,
-            "",
-            expected_value,
-            "",
-            "C",
-            "3",
-            "Required 1",
-            error_type,
-        ],
-        [
-            "ID5",
-            "req1",
-            error_msg,
-            "",
-            expected_value,
-            "",
-            "E",
-            "5",
-            "Required 1",
-            error_type,
-        ],
-        [
-            "ID2",
-            "required2",
-            error_msg,
-            "",
-            expected_value,
-            "",
-            "B",
-            "2",
-            "",
-            error_type,
-        ],
-        [
-            "ID4",
-            "required2",
-            error_msg,
-            "",
-            expected_value,
-            "",
-            "D",
-            "4",
-            "",
-            error_type,
-        ],
-        [
-            "ID5",
-            "required2",
-            error_msg,
-            "",
-            expected_value,
-            "",
-            "E",
-            "5",
-            "",
-            error_type,
-        ],
+        ["ID3", "req1", error_msg, "", expected_value, "", "C", "3", "Required 1", error_type],
+        ["ID5", "req1", error_msg, "", expected_value, "", "E", "5", "Required 1", error_type],
+        ["ID2", "required2", error_msg, "", expected_value, "", "B", "2", "", error_type],
+        ["ID4", "required2", error_msg, "", expected_value, "", "D", "4", "", error_type],
+        ["ID5", "required2", error_msg, "", expected_value, "", "E", "5", "", error_type],
     ]
     expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_required(
@@ -595,12 +486,7 @@ def test_check_type():
         "dec": FileColumn(field_types_id=FIELD_TYPE_DICT["DECIMAL"]),
     }
     short_cols = {"int": "i", "bool": "b"}
-    flex_data = pd.DataFrame(
-        {
-            "row_number": ["1", "2", "3", "4", "5"],
-            "concatted": ["A", "B", "C", "D", "E"],
-        }
-    )
+    flex_data = pd.DataFrame({"row_number": ["1", "2", "3", "4", "5"], "concatted": ["A", "B", "C", "D", "E"]})
     is_fabs = False
 
     error_msg = ValidationError.type_error_msg
@@ -608,105 +494,25 @@ def test_check_type():
     # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
-        [
-            "ID4",
-            "i",
-            error_msg,
-            "i: no",
-            "This field must be a int",
-            "",
-            "D",
-            "4",
-            "",
-            error_type,
-        ],
-        [
-            "ID5",
-            "b",
-            error_msg,
-            "b: 4",
-            "This field must be a boolean",
-            "",
-            "E",
-            "5",
-            "",
-            error_type,
-        ],
-        [
-            "ID3",
-            "dec",
-            error_msg,
-            "dec: no",
-            "This field must be a decimal",
-            "",
-            "C",
-            "3",
-            "",
-            error_type,
-        ],
+        ["ID4", "i", error_msg, "i: no", "This field must be a int", "", "D", "4", "", error_type],
+        ["ID5", "b", error_msg, "b: 4", "This field must be a boolean", "", "E", "5", "", error_type],
+        ["ID3", "dec", error_msg, "dec: no", "This field must be a decimal", "", "C", "3", "", error_type],
     ]
     expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_type(
-        data,
-        type_fields,
-        type_labels,
-        report_headers,
-        csv_schema,
-        short_cols,
-        flex_data,
-        is_fabs,
+        data, type_fields, type_labels, report_headers, csv_schema, short_cols, flex_data, is_fabs
     )
     assert_frame_equal(error_df, expected_error_df)
 
     is_fabs = True
     expected_data = [
-        [
-            "ID4",
-            "i",
-            error_msg,
-            "i: no",
-            "This field must be a int",
-            "",
-            "D",
-            "4",
-            "Integer",
-            error_type,
-        ],
-        [
-            "ID5",
-            "b",
-            error_msg,
-            "b: 4",
-            "This field must be a boolean",
-            "",
-            "E",
-            "5",
-            "",
-            error_type,
-        ],
-        [
-            "ID3",
-            "dec",
-            error_msg,
-            "dec: no",
-            "This field must be a decimal",
-            "",
-            "C",
-            "3",
-            "Decimal",
-            error_type,
-        ],
+        ["ID4", "i", error_msg, "i: no", "This field must be a int", "", "D", "4", "Integer", error_type],
+        ["ID5", "b", error_msg, "b: 4", "This field must be a boolean", "", "E", "5", "", error_type],
+        ["ID3", "dec", error_msg, "dec: no", "This field must be a decimal", "", "C", "3", "Decimal", error_type],
     ]
     expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_type(
-        data,
-        type_fields,
-        type_labels,
-        report_headers,
-        csv_schema,
-        short_cols,
-        flex_data,
-        is_fabs,
+        data, type_fields, type_labels, report_headers, csv_schema, short_cols, flex_data, is_fabs
     )
     assert_frame_equal(error_df, expected_error_df)
 
@@ -724,41 +530,17 @@ def test_check_length():
     report_headers = ValidationManager.report_headers
     csv_schema = {"has_length": FileColumn(length=3), "no_length": FileColumn()}
     short_cols = {"has_length": "len"}
-    flex_data = pd.DataFrame(
-        {
-            "row_number": ["1", "2", "3", "4", "5"],
-            "concatted": ["A", "B", "C", "D", "E"],
-        }
-    )
+    flex_data = pd.DataFrame({"row_number": ["1", "2", "3", "4", "5"], "concatted": ["A", "B", "C", "D", "E"]})
     type_error_rows = ["5"]
 
     error_msg = ValidationError.length_error_msg
     error_type = ValidationError.length_error
     # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
-    expected_data = [
-        [
-            "ID4",
-            "len",
-            error_msg,
-            "len: 1234",
-            "Max length: 3",
-            "",
-            "D",
-            "4",
-            "",
-            error_type,
-        ]
-    ]
+    expected_data = [["ID4", "len", error_msg, "len: 1234", "Max length: 3", "", "D", "4", "", error_type]]
     expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_length(
-        data,
-        length_fields,
-        report_headers,
-        csv_schema,
-        short_cols,
-        flex_data,
-        type_error_rows,
+        data, length_fields, report_headers, csv_schema, short_cols, flex_data, type_error_rows
     )
     assert_frame_equal(error_df, expected_error_df)
 
@@ -774,12 +556,7 @@ def test_check_field_format():
     format_fields = ["dates"]
     report_headers = ValidationManager.report_headers
     short_cols = {"dates": "date"}
-    flex_data = pd.DataFrame(
-        {
-            "row_number": ["1", "2", "3", "4", "5"],
-            "concatted": ["A", "B", "C", "D", "E"],
-        }
-    )
+    flex_data = pd.DataFrame({"row_number": ["1", "2", "3", "4", "5"], "concatted": ["A", "B", "C", "D", "E"]})
 
     error_msg = ValidationError.field_format_error_msg
     error_type = ValidationError.field_format_error
@@ -834,13 +611,7 @@ def test_parse_fields(database):
         FileColumn(name_short="string", field_types_id=FIELD_TYPE_DICT["STRING"], length=5),
         FileColumn(name_short="bool", field_types_id=FIELD_TYPE_DICT["BOOLEAN"], required=True),
         FileColumn(name_short="dec", field_types_id=FIELD_TYPE_DICT["DECIMAL"]),
-        FileColumn(
-            name_short="int",
-            field_types_id=FIELD_TYPE_DICT["INT"],
-            padded_flag=True,
-            length=4,
-            required=True,
-        ),
+        FileColumn(name_short="int", field_types_id=FIELD_TYPE_DICT["INT"], padded_flag=True, length=4, required=True),
         FileColumn(name_short="date", field_types_id=FIELD_TYPE_DICT["DATE"]),
     ]
     sess.add_all(fields)
@@ -876,8 +647,7 @@ def test_process_formatting_errors():
     ]
     expected_format_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     assert_frame_equal(
-        validation_helper.process_formatting_errors(short_rows, long_rows, report_headers),
-        expected_format_error_df,
+        validation_helper.process_formatting_errors(short_rows, long_rows, report_headers), expected_format_error_df
     )
 
 

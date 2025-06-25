@@ -26,11 +26,7 @@ class FlexField(Base):
     flex_field_id = Column(BigInteger, primary_key=True)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_flex_field_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_flex_field_submission_id"),
         nullable=False,
         index=True,
     )
@@ -50,11 +46,7 @@ class Appropriation(Base):
     appropriation_id = Column(Integer, primary_key=True)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_appropriation_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_appropriation_submission_id"),
         nullable=False,
         index=True,
     )
@@ -93,10 +85,7 @@ class Appropriation(Base):
 
 
 Index(
-    "ix_appropriation_account_num_submission_id",
-    Appropriation.account_num,
-    Appropriation.submission_id,
-    unique=False,
+    "ix_appropriation_account_num_submission_id", Appropriation.account_num, Appropriation.submission_id, unique=False
 )
 
 
@@ -109,9 +98,7 @@ class ObjectClassProgramActivity(Base):
     submission_id = Column(
         Integer,
         ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_object_class_program_activity_submission_id",
+            "submission.submission_id", ondelete="CASCADE", name="fk_object_class_program_activity_submission_id"
         ),
         nullable=False,
         index=True,
@@ -215,11 +202,7 @@ class AwardFinancial(Base):
     award_financial_id = Column(BigInteger, primary_key=True)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_award_financial_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_award_financial_submission_id"),
         nullable=False,
         index=True,
     )
@@ -318,11 +301,7 @@ class TotalObligations(Base):
     total_obligations_id = Column(Integer, primary_key=True)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_total_obligations_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_total_obligations_submission_id"),
         nullable=False,
         unique=True,
         index=True,
@@ -341,11 +320,7 @@ class PublishedTotalObligations(Base):
     published_total_obligations_id = Column(Integer, primary_key=True)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_published_total_obligations_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_total_obligations_submission_id"),
         nullable=False,
         unique=True,
         index=True,
@@ -364,11 +339,7 @@ class PublishedFlexField(Base):
     published_flex_field_id = Column(BigInteger, primary_key=True)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_published_flex_field_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_flex_field_submission_id"),
         nullable=False,
         index=True,
     )
@@ -388,11 +359,7 @@ class PublishedAppropriation(Base):
     published_appropriation_id = Column(Integer, primary_key=True)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_published_appropriation_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_appropriation_submission_id"),
         nullable=False,
         index=True,
     )
@@ -516,11 +483,7 @@ class PublishedAwardFinancial(Base):
     published_award_financial_id = Column(BigInteger, primary_key=True)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_published_award_financial_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_award_financial_submission_id"),
         nullable=False,
         index=True,
     )
@@ -602,11 +565,7 @@ class AwardFinancialAssistance(Base):
     unique_award_key = Column(Text)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_award_financial_assistance_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_award_financial_assistance_submission_id"),
         nullable=False,
         index=True,
     )
@@ -710,11 +669,7 @@ class AwardProcurement(Base):
     unique_award_key = Column(Text)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_award_procurement_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_award_procurement_submission_id"),
         nullable=False,
         index=True,
     )
@@ -1120,11 +1075,7 @@ class PublishedAwardProcurement(Base):
     unique_award_key = Column(Text)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id",
-            ondelete="CASCADE",
-            name="fk_published_award_procurement_submission_id",
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_published_award_procurement_submission_id"),
         nullable=False,
         index=True,
     )
@@ -1747,14 +1698,8 @@ Index(
     func.upper(DetachedAwardProcurement.awardee_or_recipient_uei),
 )
 
-Index(
-    "ix_dap_piid_upp_trans",
-    func.upper(func.translate(DetachedAwardProcurement.piid, "-", "")),
-)
-Index(
-    "ix_dap_pai_upp_trans",
-    func.upper(func.translate(DetachedAwardProcurement.parent_award_id, "-", "")),
-)
+Index("ix_dap_piid_upp_trans", func.upper(func.translate(DetachedAwardProcurement.piid, "-", "")))
+Index("ix_dap_pai_upp_trans", func.upper(func.translate(DetachedAwardProcurement.parent_award_id, "-", "")))
 
 Index("ix_dap_uei_upper", func.upper(DetachedAwardProcurement.awardee_or_recipient_uei))
 Index("ix_dap_puei_upper", func.upper(DetachedAwardProcurement.ultimate_parent_uei))
@@ -1948,11 +1893,7 @@ class PublishedFABS(Base):
         super(PublishedFABS, self).__init__(**clean_kwargs)
 
 
-Index(
-    "ix_published_fabs_is_active",
-    PublishedFABS.is_active,
-    postgresql_where=(PublishedFABS.is_active.is_(True)),
-)
+Index("ix_published_fabs_is_active", PublishedFABS.is_active, postgresql_where=(PublishedFABS.is_active.is_(True)))
 
 Index(
     "ix_published_fabs_fain_awarding_sub_tier_is_active",

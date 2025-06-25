@@ -313,19 +313,10 @@ class ValidationManager:
             # When we finish the initial data loading we want to set the progress of the basic validations to 100
             self.basic_val_progress = 100
             update_val_progress(
-                sess,
-                self.job,
-                self.basic_val_progress,
-                self.tas_progress,
-                self.sql_val_progress,
-                self.final_progress,
+                sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress, self.final_progress
             )
 
-            if self.file_type.name in (
-                "appropriations",
-                "program_activity",
-                "award_financial",
-            ):
+            if self.file_type.name in ("appropriations", "program_activity", "award_financial"):
                 update_account_nums(self.model, self.submission_id)
 
                 if self.file_type.name == "award_financial":
@@ -341,12 +332,7 @@ class ValidationManager:
             # FABS as the multiplier is 0
             self.tas_progress = 100
             update_val_progress(
-                sess,
-                self.job,
-                self.basic_val_progress,
-                self.tas_progress,
-                self.sql_val_progress,
-                self.final_progress,
+                sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress, self.final_progress
             )
 
             # SQL Validations
@@ -354,18 +340,8 @@ class ValidationManager:
                 open(self.error_file_path, "a", newline="") as error_file,
                 open(self.warning_file_path, "a", newline="") as warning_file,
             ):
-                error_csv = csv.writer(
-                    error_file,
-                    delimiter=",",
-                    quoting=csv.QUOTE_MINIMAL,
-                    lineterminator="\n",
-                )
-                warning_csv = csv.writer(
-                    warning_file,
-                    delimiter=",",
-                    quoting=csv.QUOTE_MINIMAL,
-                    lineterminator="\n",
-                )
+                error_csv = csv.writer(error_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+                warning_csv = csv.writer(warning_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
 
                 # third phase of validations: run validation rules as specified in the schema guidance. These
                 # validations are sql-based.
@@ -413,16 +389,12 @@ class ValidationManager:
             # Update submission to include action dates where applicable
             if self.is_fabs:
                 sess.query(FABS).filter(
-                    FABS.row_number.in_(error_rows_unique),
-                    FABS.submission_id == self.submission_id,
+                    FABS.row_number.in_(error_rows_unique), FABS.submission_id == self.submission_id
                 ).update({"is_valid": False}, synchronize_session=False)
                 sess.commit()
                 min_action_date, max_action_date = get_action_dates(self.submission_id)
                 sess.query(Submission).filter(Submission.submission_id == self.submission_id).update(
-                    {
-                        "reporting_start_date": min_action_date,
-                        "reporting_end_date": max_action_date,
-                    },
+                    {"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
                     synchronize_session=False,
                 )
 
@@ -442,12 +414,7 @@ class ValidationManager:
 
             self.final_progress = 100
             update_val_progress(
-                sess,
-                self.job,
-                self.basic_val_progress,
-                self.tas_progress,
-                self.sql_val_progress,
-                self.final_progress,
+                sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress, self.final_progress
             )
 
             # Mark validation as finished in job tracker
@@ -527,13 +494,9 @@ class ValidationManager:
             raise ResponseError("", StatusCode.CLIENT_ERROR, None, ValidationError.file_type_error)
 
         # Base file check
-        (
-            file_row_count,
-            self.short_pop_rows,
-            self.long_pop_rows,
-            self.short_null_rows,
-            self.long_null_rows,
-        ) = simple_file_scan(self.reader, bucket_name, region_name, self.file_name)
+        file_row_count, self.short_pop_rows, self.long_pop_rows, self.short_null_rows, self.long_null_rows = (
+            simple_file_scan(self.reader, bucket_name, region_name, self.file_name)
+        )
         self.short_rows = self.short_null_rows + self.short_pop_rows
         self.long_rows = self.long_null_rows + self.long_pop_rows
         # total_rows = header + long_rows (and will be added on per chunk)
@@ -551,18 +514,8 @@ class ValidationManager:
             open(self.error_file_path, "w", newline="") as error_file,
             open(self.warning_file_path, "w", newline="") as warning_file,
         ):
-            error_csv = csv.writer(
-                error_file,
-                delimiter=",",
-                quoting=csv.QUOTE_MINIMAL,
-                lineterminator="\n",
-            )
-            warning_csv = csv.writer(
-                warning_file,
-                delimiter=",",
-                quoting=csv.QUOTE_MINIMAL,
-                lineterminator="\n",
-            )
+            error_csv = csv.writer(error_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+            warning_csv = csv.writer(warning_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
             error_csv.writerow(self.report_headers)
             warning_csv.writerow(self.report_headers)
 
@@ -747,8 +700,7 @@ class ValidationManager:
             try:
                 for chunk_df in reader_obj:
                     result = pool.apply_async(
-                        func=self.parallel_process_data_chunk,
-                        args=(chunk_df, shared_data, file_row_count, m_lock),
+                        func=self.parallel_process_data_chunk, args=(chunk_df, shared_data, file_row_count, m_lock)
                     )
                     results.append(result)
                 pool.close()
@@ -1027,10 +979,7 @@ class ValidationManager:
             )
             field_format_error_rows = field_format_errors["Row Number"].tolist()
 
-            total_errors = pd.concat(
-                [req_errors, type_errors, length_errors, field_format_errors],
-                ignore_index=True,
-            )
+            total_errors = pd.concat([req_errors, type_errors, length_errors, field_format_errors], ignore_index=True)
 
             # Converting these to ints because pandas likes to change them to floats randomly
             total_errors[["Row Number", "error_type"]] = total_errors[["Row Number", "error_type"]].astype(int)
@@ -1100,8 +1049,7 @@ class ValidationManager:
                     chunk_df["piid"].notna(), "transaction_obligated_amou"
                 ].sum()
                 shared_data["total_asst_obligations"] += chunk_df.loc[
-                    (chunk_df["fain"].notna()) | (chunk_df["uri"].notna()),
-                    "transaction_obligated_amou",
+                    (chunk_df["fain"].notna()) | (chunk_df["uri"].notna()), "transaction_obligated_amou"
                 ].sum()
                 shared_data["total_obligations"] += chunk_df["transaction_obligated_amou"].sum()
 
@@ -1111,11 +1059,7 @@ class ValidationManager:
             flex_data = flex_data[flex_data["row_number"].isin(chunk_df["row_number"])]
 
             flex_rows = pd.melt(
-                flex_data,
-                id_vars=["row_number"],
-                value_vars=self.flex_fields,
-                var_name="header",
-                value_name="cell",
+                flex_data, id_vars=["row_number"], value_vars=self.flex_fields, var_name="header", value_name="cell"
             )
 
             # Filling in all the shared data for these flex fields
@@ -1145,12 +1089,7 @@ class ValidationManager:
             # Seeing how far into the file we currently are
             self.basic_val_progress = shared_data["total_data_rows"] / file_row_count * 100
             update_val_progress(
-                sess,
-                self.job,
-                self.basic_val_progress,
-                self.tas_progress,
-                self.sql_val_progress,
-                self.final_progress,
+                sess, self.job, self.basic_val_progress, self.tas_progress, self.sql_val_progress, self.final_progress
             )
         if not chunk_df.empty:
             logger.info(
@@ -1304,14 +1243,8 @@ class ValidationManager:
             second_file_id = FILE_TYPE_DICT[second_file]
             combo_rules = cross_file_rules.filter(
                 or_(
-                    and_(
-                        RuleSql.file_id == first_file_id,
-                        RuleSql.target_file_id == second_file_id,
-                    ),
-                    and_(
-                        RuleSql.file_id == second_file_id,
-                        RuleSql.target_file_id == first_file_id,
-                    ),
+                    and_(RuleSql.file_id == first_file_id, RuleSql.target_file_id == second_file_id),
+                    and_(RuleSql.file_id == second_file_id, RuleSql.target_file_id == first_file_id),
                 )
             )
 
@@ -1326,18 +1259,8 @@ class ValidationManager:
                 open(error_file_path, "w", newline="") as error_file,
                 open(warning_file_path, "w", newline="") as warning_file,
             ):
-                error_csv = csv.writer(
-                    error_file,
-                    delimiter=",",
-                    quoting=csv.QUOTE_MINIMAL,
-                    lineterminator="\n",
-                )
-                warning_csv = csv.writer(
-                    warning_file,
-                    delimiter=",",
-                    quoting=csv.QUOTE_MINIMAL,
-                    lineterminator="\n",
-                )
+                error_csv = csv.writer(error_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+                warning_csv = csv.writer(warning_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
 
                 # write headers to file
                 error_csv.writerow(self.cross_file_report_headers)

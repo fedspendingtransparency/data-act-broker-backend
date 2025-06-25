@@ -24,7 +24,7 @@ from tests.unit.dataactcore.factories.user import UserFactory
 
 
 class BaseTestAPI(unittest.TestCase):
-    """ Test login, logout, and session handling """
+    """Test login, logout, and session handling"""
 
     @classmethod
     def setUpClass(cls):
@@ -37,9 +37,9 @@ class BaseTestAPI(unittest.TestCase):
             suite = cls.__name__.lower()
             config = dataactcore.config.CONFIG_DB
             cls.num = randint(1, 9999)
-            config['db_name'] = 'unittest{}_{}_data_broker'.format(cls.num, suite)
+            config["db_name"] = "unittest{}_{}_data_broker".format(cls.num, suite)
             dataactcore.config.CONFIG_DB = config
-            create_database(CONFIG_DB['db_name'])
+            create_database(CONFIG_DB["db_name"])
             run_migrations()
 
             # drop and re-create test user db/tables
@@ -55,57 +55,65 @@ class BaseTestAPI(unittest.TestCase):
 
             # set up default e-mails for tests
             test_users = {
-                'admin_user': 'data.act.tester.1@gmail.com',
-                'agency_user': 'data.act.test.2@gmail.com',
-                'agency_user_2': 'data.act.test.3@gmail.com',
-                'no_permissions_user': 'data.act.tester.4@gmail.com',
-                'editfabs_user': 'data.act.test.5@gmail.com'
+                "admin_user": "data.act.tester.1@gmail.com",
+                "agency_user": "data.act.test.2@gmail.com",
+                "agency_user_2": "data.act.test.3@gmail.com",
+                "no_permissions_user": "data.act.tester.4@gmail.com",
+                "editfabs_user": "data.act.test.5@gmail.com",
             }
-            user_password = '!passw0rdUp!'
-            admin_password = '@pprovedPassw0rdy'
+            user_password = "!passw0rdUp!"
+            admin_password = "@pprovedPassw0rdy"
 
             # get user info and save as class variables for use by tests
             sess = GlobalDB.db().session
-            admin_cgac = CGAC(cgac_code='SYS', agency_name='Admin Agency')
+            admin_cgac = CGAC(cgac_code="SYS", agency_name="Admin Agency")
             cls.admin_cgac_code = admin_cgac.cgac_code
             sess.add(admin_cgac)
             sess.commit()
 
-            cgac = CGAC(cgac_code='000', agency_name='Example Agency')
+            cgac = CGAC(cgac_code="000", agency_name="Example Agency")
             sess.add(cgac)
             sess.commit()
 
-            frec = FREC(frec_code='0001', cgac_id=cgac.cgac_id, agency_name='Example FREC')
+            frec = FREC(frec_code="0001", cgac_id=cgac.cgac_id, agency_name="Example FREC")
             sess.add(frec)
             sess.commit()
-            sub_tier = SubTierAgency(cgac_id=cgac.cgac_id, frec_id=frec.frec_id, sub_tier_agency_code='0000',
-                                     sub_tier_agency_name='Example Sub Tier')
+            sub_tier = SubTierAgency(
+                cgac_id=cgac.cgac_id,
+                frec_id=frec.frec_id,
+                sub_tier_agency_code="0000",
+                sub_tier_agency_name="Example Sub Tier",
+            )
             sess.add(sub_tier)
 
             # set up users for status tests
-            def add_user(email, name, username, permission_type=ALL_PERMISSION_TYPES_DICT['writer'],
-                         website_admin=False):
+            def add_user(
+                email, name, username, permission_type=ALL_PERMISSION_TYPES_DICT["writer"], website_admin=False
+            ):
                 user = UserFactory(
-                    email=email, website_admin=website_admin,
-                    name=name, username=username,
-                    affiliations=[UserAffiliation(
-                        cgac=cgac,
-                        permission_type_id=permission_type
-                    )]
+                    email=email,
+                    website_admin=website_admin,
+                    name=name,
+                    username=username,
+                    affiliations=[UserAffiliation(cgac=cgac, permission_type_id=permission_type)],
                 )
                 user.salt, user.password_hash = get_password_hash(user_password, Bcrypt())
                 sess.add(user)
 
-            add_user(test_users['agency_user'], "Test User", "testUser")
-            add_user(test_users['agency_user_2'], "Test User 2", "testUser2")
-            add_user(test_users['editfabs_user'], "Fabs Writer", "fabsWriter",
-                     permission_type=ALL_PERMISSION_TYPES_DICT['editfabs'])
+            add_user(test_users["agency_user"], "Test User", "testUser")
+            add_user(test_users["agency_user_2"], "Test User 2", "testUser2")
+            add_user(
+                test_users["editfabs_user"],
+                "Fabs Writer",
+                "fabsWriter",
+                permission_type=ALL_PERMISSION_TYPES_DICT["editfabs"],
+            )
 
             # add new users
             create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(), website_admin=True)
             create_user_with_password(test_users["no_permissions_user"], user_password, Bcrypt())
 
-            agency_user = sess.query(User).filter(User.email == test_users['agency_user']).one()
+            agency_user = sess.query(User).filter(User.email == test_users["agency_user"]).one()
             cls.agency_user_id = agency_user.user_id
 
             sess.commit()
@@ -114,20 +122,20 @@ class BaseTestAPI(unittest.TestCase):
         cls.test_users = test_users
         cls.user_password = user_password
         cls.admin_password = admin_password
-        cls.local = CONFIG_BROKER['local']
+        cls.local = CONFIG_BROKER["local"]
 
     def setUp(self):
         """Set up broker unit tests."""
         app = create_broker_app()
-        app.config['TESTING'] = True
-        app.config['DEBUG'] = False
+        app.config["TESTING"] = True
+        app.config["DEBUG"] = False
         self.app = TestApp(app)
 
     @classmethod
     def tearDownClass(cls):
         """Tear down class-level resources."""
         GlobalDB.close()
-        drop_database(CONFIG_DB['db_name'])
+        drop_database(CONFIG_DB["db_name"])
 
     def tearDown(self):
         """Tear down broker unit tests."""
@@ -135,7 +143,7 @@ class BaseTestAPI(unittest.TestCase):
     def login_admin_user(self):
         """Log an admin user into broker."""
         # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['admin_user'], "password": self.admin_password}
+        user = {"username": self.test_users["admin_user"], "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
@@ -144,7 +152,7 @@ class BaseTestAPI(unittest.TestCase):
         """Log an agency user (non-admin) into broker."""
         # TODO: put user data in pytest fixture; put credentials in config file
         if username is None:
-            username = self.test_users['agency_user']
+            username = self.test_users["agency_user"]
         user = {"username": username, "password": self.user_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]
