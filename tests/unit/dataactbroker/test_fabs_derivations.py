@@ -88,7 +88,7 @@ def initialize_db_values(db):
         zip_code=zip_code_3.zip5, preferred_city_name="Test City 2", state_code=zip_code_3.state_abbreviation
     )
     zip_city_3 = ZipCityFactory(
-        zip_code=zip_code_4.zip5, preferred_city_name="Test City 3", state_code=zip_code_4.state_abbreviation,
+        zip_code=zip_code_4.zip5, preferred_city_name="Test City 3", state_code=zip_code_4.state_abbreviation
     )
     zip_city_4 = ZipCityFactory(
         zip_code=zip_code_historical_1.zip5,
