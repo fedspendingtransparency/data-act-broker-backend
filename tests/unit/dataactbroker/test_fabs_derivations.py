@@ -38,64 +38,32 @@ def initialize_db_values(db):
     """Initialize the values in the DB that can be used throughout the tests"""
     # Zips
     zip_code_1 = ZipsFactory(
-        zip5="12345",
-        zip_last4="6789",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no="01",
+        zip5="12345", zip_last4="6789", state_abbreviation="NY", county_number="001", congressional_district_no="01"
     )
     zip_code_2 = ZipsFactory(
-        zip5="12345",
-        zip_last4="4321",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no="02",
+        zip5="12345", zip_last4="4321", state_abbreviation="NY", county_number="001", congressional_district_no="02"
     )
     zip_code_3 = ZipsFactory(
-        zip5="54321",
-        zip_last4="4321",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no="05",
+        zip5="54321", zip_last4="4321", state_abbreviation="NY", county_number="001", congressional_district_no="05"
     )
     zip_code_4 = ZipsFactory(
-        zip5="98765",
-        zip_last4="4321",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no=None,
+        zip5="98765", zip_last4="4321", state_abbreviation="NY", county_number="001", congressional_district_no=None
     )
     zip_code_historical_1 = ZipsHistoricalFactory(
-        zip5="11111",
-        zip_last4="1111",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no="03",
+        zip5="11111", zip_last4="1111", state_abbreviation="NY", county_number="001", congressional_district_no="03"
     )
     # Grouped zips (we are assuming a correct SQL query on creation of this table)
     zips_grouped_1 = ZipsGroupedFactory(
-        zip5="12345",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no="90",
+        zip5="12345", state_abbreviation="NY", county_number="001", congressional_district_no="90"
     )
     zips_grouped_2 = ZipsGroupedFactory(
-        zip5="54321",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no="05",
+        zip5="54321", state_abbreviation="NY", county_number="001", congressional_district_no="05"
     )
     zips_grouped_3 = ZipsGroupedFactory(
-        zip5="98765",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no="90",
+        zip5="98765", state_abbreviation="NY", county_number="001", congressional_district_no="90"
     )
     zips_grouped_historical_1 = ZipsGroupedHistoricalFactory(
-        zip5="11111",
-        state_abbreviation="NY",
-        county_number="001",
-        congressional_district_no="03",
+        zip5="11111", state_abbreviation="NY", county_number="001", congressional_district_no="03"
     )
     # CDs grouped by zip/state only
     cd_zips_grouped_1 = CDZipsGroupedFactory(zip5="12345", state_abbreviation="NY", congressional_district_no="02")
@@ -114,19 +82,13 @@ def initialize_db_values(db):
 
     # Cities
     zip_city = ZipCityFactory(
-        zip_code=zip_code_1.zip5,
-        preferred_city_name="Test City",
-        state_code=zip_code_1.state_abbreviation,
+        zip_code=zip_code_1.zip5, preferred_city_name="Test City", state_code=zip_code_1.state_abbreviation
     )
     zip_city_2 = ZipCityFactory(
-        zip_code=zip_code_3.zip5,
-        preferred_city_name="Test City 2",
-        state_code=zip_code_3.state_abbreviation,
+        zip_code=zip_code_3.zip5, preferred_city_name="Test City 2", state_code=zip_code_3.state_abbreviation
     )
     zip_city_3 = ZipCityFactory(
-        zip_code=zip_code_4.zip5,
-        preferred_city_name="Test City 3",
-        state_code=zip_code_4.state_abbreviation,
+        zip_code=zip_code_4.zip5, preferred_city_name="Test City 3", state_code=zip_code_4.state_abbreviation,
     )
     zip_city_4 = ZipCityFactory(
         zip_code=zip_code_historical_1.zip5,
@@ -632,7 +594,6 @@ def test_ppop_derivations(database):
     # when ppop_zip4a is 9 digits and no congressional district (historical)
     submission_id = initialize_test_row(
         database, ppop_zip4a="111111111", ppop_code="NY00001", submission_id=2, action_date="2022/01/01"
-
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()

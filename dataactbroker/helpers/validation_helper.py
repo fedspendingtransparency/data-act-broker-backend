@@ -6,11 +6,7 @@ from decimal import Decimal, DecimalException
 from datetime import datetime
 from pandas import isnull
 
-from dataactcore.models.lookups import (
-    FIELD_TYPE_DICT_ID,
-    FIELD_TYPE_DICT,
-    FILE_TYPE_DICT_ID,
-)
+from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT, FILE_TYPE_DICT_ID
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -848,13 +844,7 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
     except AttributeError:
         # File does not exist, and so does not need to be closed
         pass
-    return (
-        file_row_count,
-        short_pop_rows,
-        long_pop_rows,
-        short_null_rows,
-        long_null_rows,
-    )
+    return file_row_count, short_pop_rows, long_pop_rows, short_null_rows, long_null_rows
 
 
 def update_val_progress(sess, job, validation_progress, tas_progress, sql_progress, final_progress):

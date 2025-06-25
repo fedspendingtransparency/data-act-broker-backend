@@ -72,14 +72,8 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner, StringCleaner
 
-from dataactvalidator.validation_handlers.errorInterface import (
-    record_row_error,
-    write_all_row_errors,
-)
-from dataactvalidator.validation_handlers.validator import (
-    cross_validate_sql,
-    validate_file_by_sql,
-)
+from dataactvalidator.validation_handlers.errorInterface import record_row_error, write_all_row_errors
+from dataactvalidator.validation_handlers.validator import cross_validate_sql, validate_file_by_sql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -160,12 +154,7 @@ class ValidationManager:
 
         # create long-to-short (and vice-versa) column name mappings
         sess = GlobalDB.db().session
-        colnames = sess.query(
-            FileColumn.gsdm_name,
-            FileColumn.name,
-            FileColumn.name_short,
-            FileColumn.file_id,
-        ).all()
+        colnames = sess.query(FileColumn.gsdm_name, FileColumn.name, FileColumn.name_short, FileColumn.file_id).all()
 
         # fill in long_to_short and short_to_long dicts
         for col in colnames:
@@ -345,11 +334,7 @@ class ValidationManager:
 
                 # third phase of validations: run validation rules as specified in the schema guidance. These
                 # validations are sql-based.
-                self.run_sql_validations(
-                    self.short_to_long_dict[self.file_type.file_type_id],
-                    error_csv,
-                    warning_csv,
-                )
+                self.run_sql_validations(self.short_to_long_dict[self.file_type.file_type_id], error_csv, warning_csv)
                 self.sql_val_progress = 100
                 update_val_progress(
                     sess,
@@ -366,18 +351,10 @@ class ValidationManager:
             if not self.is_local:
                 s3 = boto3.client("s3", region_name=region_name)
 
-                s3.upload_file(
-                    self.error_file_path,
-                    bucket_name,
-                    self.get_file_name(self.error_file_name),
-                )
+                s3.upload_file(self.error_file_path, bucket_name, self.get_file_name(self.error_file_name))
                 os.remove(self.error_file_path)
 
-                s3.upload_file(
-                    self.warning_file_path,
-                    bucket_name,
-                    self.get_file_name(self.warning_file_name),
-                )
+                s3.upload_file(self.warning_file_path, bucket_name, self.get_file_name(self.warning_file_name))
                 os.remove(self.warning_file_path)
 
             # Calculate total number of rows in file that passed validations
@@ -931,7 +908,7 @@ class ValidationManager:
                 # with DEFC columns
                 if self.file_type_name in ["program_activity", "award_financial"]:
                     chunk_df["disaster_emergency_fund_code"] = chunk_df["disaster_emergency_fund_code"].apply(
-                        lambda x: (re.sub(re.escape("QQQ"), "Q", x, flags=re.IGNORECASE) if x else None)
+                        lambda x: re.sub(re.escape("QQQ"), "Q", x, flags=re.IGNORECASE) if x else None
                     )
                 chunk_df["tas"] = concat_tas_dict_vectorized(chunk_df)
                 # display_tas is done with axis=1 (row-wise, where each dict-like row is passed into the given lambda)
@@ -1294,11 +1271,7 @@ class ValidationManager:
                 s3.upload_file(error_file_path, bucket_name, self.get_file_name(error_file_name))
                 os.remove(error_file_path)
 
-                s3.upload_file(
-                    warning_file_path,
-                    bucket_name,
-                    self.get_file_name(warning_file_name),
-                )
+                s3.upload_file(warning_file_path, bucket_name, self.get_file_name(warning_file_name))
                 os.remove(warning_file_path)
 
             pairs_finished += 1

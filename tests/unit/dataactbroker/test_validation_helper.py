@@ -10,12 +10,7 @@ from dataactvalidator.app import ValidationManager, ValidationError
 from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.models.lookups import (
-    FIELD_TYPE_DICT,
-    JOB_STATUS_DICT,
-    JOB_TYPE_DICT,
-    FILE_TYPE_DICT,
-)
+from dataactcore.models.lookups import FIELD_TYPE_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 
@@ -653,20 +648,8 @@ def test_process_formatting_errors():
 
 def test_simple_file_scan():
     # Note: only testing locally
-    assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (
-        11,
-        [5],
-        [2, 3, 7],
-        [],
-        [],
-    )
-    assert validation_helper.simple_file_scan(CsvReader(), None, None, BLANK_C) == (
-        5,
-        [],
-        [],
-        [3],
-        [4],
-    )
+    assert validation_helper.simple_file_scan(CsvReader(), None, None, READ_ERROR) == (11, [5], [2, 3, 7], [], [])
+    assert validation_helper.simple_file_scan(CsvReader(), None, None, BLANK_C) == (5, [], [], [3], [4])
 
 
 @pytest.mark.usefixtures("job_constants")

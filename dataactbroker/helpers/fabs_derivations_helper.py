@@ -107,7 +107,7 @@ def derive_awarding_agency_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed awarding agency info derivation, " "updated {}".format(res.rowcount), submission_id, query_start
+        "Completed awarding agency info derivation, " "updated {}".format(res.rowcount), submission_id, start_time
     )
 
 
