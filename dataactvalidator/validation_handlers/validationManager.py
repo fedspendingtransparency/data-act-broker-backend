@@ -192,13 +192,9 @@ class ValidationManager:
 
         # accounting for the column duns/uei <-> mismatch
         if self.short_to_long_dict:
-            self.short_to_long_dict[FILE_TYPE_DICT["fabs"]][
-                "uei"
-            ] = "awardeeorrecipientuei"
+            self.short_to_long_dict[FILE_TYPE_DICT["fabs"]]["uei"] = "awardeeorrecipientuei"
         if self.short_to_gsdm_dict:
-            self.short_to_gsdm_dict[FILE_TYPE_DICT["fabs"]][
-                "uei"
-            ] = "AwardeeOrRecipientUEI"
+            self.short_to_gsdm_dict[FILE_TYPE_DICT["fabs"]]["uei"] = "AwardeeOrRecipientUEI"
 
     def get_file_name(self, path):
         """Return full path of error report based on provided name
@@ -275,9 +271,7 @@ class ValidationManager:
         self.model = [ft.model for ft in FILE_TYPE if ft.name == self.file_type.name][0]
 
         # Delete existing file level errors for this submission
-        sess.query(ErrorMetadata).filter(
-            ErrorMetadata.job_id == self.job.job_id
-        ).delete()
+        sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == self.job.job_id).delete()
         sess.commit()
         # Clear existing records for this submission
         sess.query(self.model).filter_by(submission_id=self.submission_id).delete()
@@ -356,9 +350,10 @@ class ValidationManager:
             )
 
             # SQL Validations
-            with open(self.error_file_path, "a", newline="") as error_file, open(
-                self.warning_file_path, "a", newline=""
-            ) as warning_file:
+            with (
+                open(self.error_file_path, "a", newline="") as error_file,
+                open(self.warning_file_path, "a", newline="") as warning_file,
+            ):
                 error_csv = csv.writer(
                     error_file,
                     delimiter=",",
@@ -423,9 +418,7 @@ class ValidationManager:
                 ).update({"is_valid": False}, synchronize_session=False)
                 sess.commit()
                 min_action_date, max_action_date = get_action_dates(self.submission_id)
-                sess.query(Submission).filter(
-                    Submission.submission_id == self.submission_id
-                ).update(
+                sess.query(Submission).filter(Submission.submission_id == self.submission_id).update(
                     {
                         "reporting_start_date": min_action_date,
                         "reporting_end_date": max_action_date,
@@ -435,12 +428,7 @@ class ValidationManager:
 
             # Update job metadata
             # Total rows = total rows with data + header + short_pop_rows + long_pop_rows
-            self.job.number_of_rows = (
-                self.total_data_rows
-                + 1
-                + len(self.short_pop_rows)
-                + len(self.long_pop_rows)
-            )
+            self.job.number_of_rows = self.total_data_rows + 1 + len(self.short_pop_rows) + len(self.long_pop_rows)
             self.job.number_of_rows_valid = valid_rows
             sess.commit()
 
@@ -536,9 +524,7 @@ class ValidationManager:
         # Extension Check
         extension = os.path.splitext(self.file_name)[1]
         if not extension or extension.lower() not in [".csv", ".txt"]:
-            raise ResponseError(
-                "", StatusCode.CLIENT_ERROR, None, ValidationError.file_type_error
-            )
+            raise ResponseError("", StatusCode.CLIENT_ERROR, None, ValidationError.file_type_error)
 
         # Base file check
         (
@@ -556,22 +542,15 @@ class ValidationManager:
         self.total_data_rows = 0
 
         # Making base error/warning files
-        self.error_file_name = report_file_name(
-            self.submission_id, False, self.file_type.name
-        )
-        self.error_file_path = "".join(
-            [CONFIG_SERVICES["error_report_path"], self.error_file_name]
-        )
-        self.warning_file_name = report_file_name(
-            self.submission_id, True, self.file_type.name
-        )
-        self.warning_file_path = "".join(
-            [CONFIG_SERVICES["error_report_path"], self.warning_file_name]
-        )
+        self.error_file_name = report_file_name(self.submission_id, False, self.file_type.name)
+        self.error_file_path = "".join([CONFIG_SERVICES["error_report_path"], self.error_file_name])
+        self.warning_file_name = report_file_name(self.submission_id, True, self.file_type.name)
+        self.warning_file_path = "".join([CONFIG_SERVICES["error_report_path"], self.warning_file_name])
 
-        with open(self.error_file_path, "w", newline="") as error_file, open(
-            self.warning_file_path, "w", newline=""
-        ) as warning_file:
+        with (
+            open(self.error_file_path, "w", newline="") as error_file,
+            open(self.warning_file_path, "w", newline="") as warning_file,
+        ):
             error_csv = csv.writer(
                 error_file,
                 delimiter=",",
@@ -588,9 +567,7 @@ class ValidationManager:
             warning_csv.writerow(self.report_headers)
 
         # Adding formatting errors to error file
-        format_error_df = process_formatting_errors(
-            self.short_rows, self.long_rows, self.report_headers
-        )
+        format_error_df = process_formatting_errors(self.short_rows, self.long_rows, self.report_headers)
         for index, row in format_error_df.iterrows():
             record_row_error(
                 self.error_list,
@@ -662,9 +639,7 @@ class ValidationManager:
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
-            raise ResponseError(
-                "", StatusCode.CLIENT_ERROR, None, ValidationError.row_count_error
-            )
+            raise ResponseError("", StatusCode.CLIENT_ERROR, None, ValidationError.row_count_error)
 
         # Add a warning if the file is blank
         if (
@@ -690,9 +665,7 @@ class ValidationManager:
                 "Rule Label": "DABSBLANK",
                 "error_type": ValidationError.blank_file_error,
             }
-            empty_file_df = pd.DataFrame(
-                [empty_file], columns=list(self.report_headers + ["error_type"])
-            )
+            empty_file_df = pd.DataFrame([empty_file], columns=list(self.report_headers + ["error_type"]))
             record_row_error(
                 self.error_list,
                 self.job.job_id,
@@ -789,12 +762,8 @@ class ValidationManager:
                 raise e
 
             # Resetting these out here as they are used later in the process
-            self.total_proc_obligations = round(
-                shared_data["total_proc_obligations"], 2
-            )
-            self.total_asst_obligations = round(
-                shared_data["total_asst_obligations"], 2
-            )
+            self.total_proc_obligations = round(shared_data["total_proc_obligations"], 2)
+            self.total_asst_obligations = round(shared_data["total_asst_obligations"], 2)
             self.total_obligations = round(shared_data["total_obligations"], 2)
             self.total_rows = shared_data["total_rows"]
             self.total_data_rows = shared_data["total_data_rows"]
@@ -833,9 +802,7 @@ class ValidationManager:
         self.error_rows = shared_data["error_rows"]
         self.error_list = shared_data["error_list"]
 
-    def parallel_process_data_chunk(
-        self, chunk_df, shared_data, file_row_count, m_lock=None
-    ):
+    def parallel_process_data_chunk(self, chunk_df, shared_data, file_row_count, m_lock=None):
         """Wrapper around process_data_chunk for parallelization and error catching
 
         Args:
@@ -856,9 +823,7 @@ class ValidationManager:
             sess = conn.session
 
         try:
-            self.process_data_chunk(
-                chunk_df, shared_data, file_row_count, sess=sess, lockable=lockable
-            )
+            self.process_data_chunk(chunk_df, shared_data, file_row_count, sess=sess, lockable=lockable)
         except Exception as e:
             logger.exception(e)
             with lockable:
@@ -869,9 +834,7 @@ class ValidationManager:
             conn.close()
             logging.shutdown()
 
-    def process_data_chunk(
-        self, chunk_df, shared_data, file_row_count, sess=None, lockable=None
-    ):
+    def process_data_chunk(self, chunk_df, shared_data, file_row_count, sess=None, lockable=None):
         """Loads in a chunk of the file and performs initial validations
 
         Args:
@@ -925,15 +888,11 @@ class ValidationManager:
         # Increment row numbers if any were ignored being too long
         # This syncs the row numbers back to their original values
         for row in sorted(self.long_rows):
-            chunk_df.loc[chunk_df["row_number"] >= row, "row_number"] = (
-                chunk_df["row_number"] + 1
-            )
+            chunk_df.loc[chunk_df["row_number"] >= row, "row_number"] = chunk_df["row_number"] + 1
 
         logger.info(
             {
-                "message": "Loading rows starting from {}".format(
-                    chunk_df["row_number"].iloc[0]
-                ),
+                "message": "Loading rows starting from {}".format(chunk_df["row_number"].iloc[0]),
                 "message_type": "ValidatorInfo",
                 "submission_id": self.submission_id,
                 "job_id": self.job_id,
@@ -1001,9 +960,7 @@ class ValidationManager:
 
             # Padding specific fields
             for field in self.parsed_fields["padded"]:
-                chunk_df[field] = FieldCleaner.pad_field_vectorized(
-                    chunk_df[field], self.csv_schema[field]
-                )
+                chunk_df[field] = FieldCleaner.pad_field_vectorized(chunk_df[field], self.csv_schema[field])
             # Cleaning up numbers so they can be inserted properly
             for field in self.parsed_fields["number"]:
                 clean_numbers_vectorized(chunk_df[field])
@@ -1013,34 +970,22 @@ class ValidationManager:
                 chunk_df["awarding_sub_tier_agency_c"] = chunk_df.apply(
                     lambda x: derive_fabs_awarding_sub_tier(x, office_list), axis=1
                 )
-                chunk_df["afa_generated_unique"] = chunk_df.apply(
-                    lambda x: derive_fabs_afa_generated_unique(x), axis=1
-                )
+                chunk_df["afa_generated_unique"] = chunk_df.apply(lambda x: derive_fabs_afa_generated_unique(x), axis=1)
                 agency_codes = self.retrieve_agency_codes(chunk_df, sess)
-                chunk_df = chunk_df.merge(
-                    agency_codes, how="left", on="awarding_sub_tier_agency_c"
-                )
+                chunk_df = chunk_df.merge(agency_codes, how="left", on="awarding_sub_tier_agency_c")
                 chunk_df["unique_award_key"] = derive_fabs_unique_award_key(chunk_df)
             else:
                 # Updating DEFC QQQ specifically to be a single Q. Only check B and C because they're the only files
                 # with DEFC columns
                 if self.file_type_name in ["program_activity", "award_financial"]:
-                    chunk_df["disaster_emergency_fund_code"] = chunk_df[
-                        "disaster_emergency_fund_code"
-                    ].apply(
-                        lambda x: (
-                            re.sub(re.escape("QQQ"), "Q", x, flags=re.IGNORECASE)
-                            if x
-                            else None
-                        )
+                    chunk_df["disaster_emergency_fund_code"] = chunk_df["disaster_emergency_fund_code"].apply(
+                        lambda x: (re.sub(re.escape("QQQ"), "Q", x, flags=re.IGNORECASE) if x else None)
                     )
                 chunk_df["tas"] = concat_tas_dict_vectorized(chunk_df)
                 # display_tas is done with axis=1 (row-wise, where each dict-like row is passed into the given lambda)
                 # because the rendering label is not generated consistently, but will have a different rendered-label
                 # depending on which TAS components were present and which were not present (NULL, NaN, None)
-                chunk_df["display_tas"] = chunk_df.apply(
-                    lambda x: concat_display_tas_dict(x), axis=1
-                )
+                chunk_df["display_tas"] = chunk_df.apply(lambda x: concat_display_tas_dict(x), axis=1)
             chunk_df["unique_id"] = derive_unique_id_vectorized(chunk_df, self.is_fabs)
 
             # Separate each of the checks to their own dataframes, then concat them together
@@ -1088,9 +1033,7 @@ class ValidationManager:
             )
 
             # Converting these to ints because pandas likes to change them to floats randomly
-            total_errors[["Row Number", "error_type"]] = total_errors[
-                ["Row Number", "error_type"]
-            ].astype(int)
+            total_errors[["Row Number", "error_type"]] = total_errors[["Row Number", "error_type"]].astype(int)
 
             with lockable:
                 shared_data["error_rows"] = shared_data["error_rows"] + [
@@ -1115,9 +1058,7 @@ class ValidationManager:
             total_errors.drop(["error_type"], axis=1, inplace=True, errors="ignore")
 
             # Remove type error rows from original dataframe
-            chunk_df = chunk_df[
-                ~chunk_df["row_number"].isin(type_error_rows + field_format_error_rows)
-            ]
+            chunk_df = chunk_df[~chunk_df["row_number"].isin(type_error_rows + field_format_error_rows)]
             chunk_df.drop(["unique_id"], axis=1, inplace=True)
 
         # Write all the errors/warnings to their files
@@ -1149,15 +1090,11 @@ class ValidationManager:
             chunk_df["uei"] = chunk_df["awardee_or_recipient_uei"]
             chunk_df.drop(columns=["awardee_or_recipient_uei"], axis=1, inplace=True)
 
-        insert_dataframe(
-            chunk_df, self.model.__table__.name, sess.connection(), method="copy"
-        )
+        insert_dataframe(chunk_df, self.model.__table__.name, sess.connection(), method="copy")
 
         # Update running totals
         if self.file_type_name == "award_financial":
-            chunk_df["transaction_obligated_amou"] = (
-                chunk_df["transaction_obligated_amou"].astype(float).fillna(0)
-            )
+            chunk_df["transaction_obligated_amou"] = chunk_df["transaction_obligated_amou"].astype(float).fillna(0)
             with lockable:
                 shared_data["total_proc_obligations"] += chunk_df.loc[
                     chunk_df["piid"].notna(), "transaction_obligated_amou"
@@ -1166,9 +1103,7 @@ class ValidationManager:
                     (chunk_df["fain"].notna()) | (chunk_df["uri"].notna()),
                     "transaction_obligated_amou",
                 ].sum()
-                shared_data["total_obligations"] += chunk_df[
-                    "transaction_obligated_amou"
-                ].sum()
+                shared_data["total_obligations"] += chunk_df["transaction_obligated_amou"].sum()
 
         # Flex Fields
         if flex_data is not None:
@@ -1192,14 +1127,10 @@ class ValidationManager:
             flex_rows["file_type_id"] = self.file_type_id
 
             # Adding the entire set of flex fields
-            rows_inserted = insert_dataframe(
-                flex_rows, FlexField.__table__.name, sess.connection(), method="copy"
-            )
+            rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection(), method="copy")
             logger.info(
                 {
-                    "message": "Loaded {} flex field rows for batch".format(
-                        rows_inserted
-                    ),
+                    "message": "Loaded {} flex field rows for batch".format(rows_inserted),
                     "message_type": "ValidatorInfo",
                     "submission_id": self.submission_id,
                     "job_id": self.job_id,
@@ -1212,9 +1143,7 @@ class ValidationManager:
         with lockable:
             sess.commit()
             # Seeing how far into the file we currently are
-            self.basic_val_progress = (
-                shared_data["total_data_rows"] / file_row_count * 100
-            )
+            self.basic_val_progress = shared_data["total_data_rows"] / file_row_count * 100
             update_val_progress(
                 sess,
                 self.job,
@@ -1226,9 +1155,7 @@ class ValidationManager:
         if not chunk_df.empty:
             logger.info(
                 {
-                    "message": "Loaded rows up to {}".format(
-                        chunk_df["row_number"].iloc[-1]
-                    ),
+                    "message": "Loaded rows up to {}".format(chunk_df["row_number"].iloc[-1]),
                     "message_type": "ValidatorInfo",
                     "submission_id": self.submission_id,
                     "job_id": self.job_id,
@@ -1243,17 +1170,11 @@ class ValidationManager:
         return pd.read_sql(
             sess.query(
                 SubTierAgency.sub_tier_agency_code.label("awarding_sub_tier_agency_c"),
-                case(
-                    (SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code
-                ).label("awarding_agency_code"),
+                case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label("awarding_agency_code"),
             )
             .join(CGAC, SubTierAgency.cgac_id == CGAC.cgac_id)
             .join(FREC, SubTierAgency.frec_id == FREC.frec_id)
-            .filter(
-                SubTierAgency.sub_tier_agency_code.in_(
-                    chunk_df["awarding_sub_tier_agency_c"]
-                )
-            )
+            .filter(SubTierAgency.sub_tier_agency_code.in_(chunk_df["awarding_sub_tier_agency_c"]))
             .statement,
             sess.connection(),
         )
@@ -1354,8 +1275,7 @@ class ValidationManager:
         job_start = datetime.now()
         logger.info(
             {
-                "message": "Beginning cross-file validations on submission_id: "
-                + str(submission_id),
+                "message": "Beginning cross-file validations on submission_id: " + str(submission_id),
                 "message_type": "ValidatorInfo",
                 "submission_id": submission_id,
                 "job_id": job.job_id,
@@ -1396,23 +1316,16 @@ class ValidationManager:
             )
 
             # get error file name/path
-            error_file_name = report_file_name(
-                submission_id, False, second_file, first_file
-            )
-            error_file_path = "".join(
-                [CONFIG_SERVICES["error_report_path"], error_file_name]
-            )
-            warning_file_name = report_file_name(
-                submission_id, True, second_file, first_file
-            )
-            warning_file_path = "".join(
-                [CONFIG_SERVICES["error_report_path"], warning_file_name]
-            )
+            error_file_name = report_file_name(submission_id, False, second_file, first_file)
+            error_file_path = "".join([CONFIG_SERVICES["error_report_path"], error_file_name])
+            warning_file_name = report_file_name(submission_id, True, second_file, first_file)
+            warning_file_path = "".join([CONFIG_SERVICES["error_report_path"], warning_file_name])
 
             # open error report and gather failed rules within it
-            with open(error_file_path, "w", newline="") as error_file, open(
-                warning_file_path, "w", newline=""
-            ) as warning_file:
+            with (
+                open(error_file_path, "w", newline="") as error_file,
+                open(warning_file_path, "w", newline="") as warning_file,
+            ):
                 error_csv = csv.writer(
                     error_file,
                     delimiter=",",
@@ -1431,12 +1344,8 @@ class ValidationManager:
                 warning_csv.writerow(self.cross_file_report_headers)
 
                 # send comboRules to validator.crossValidate sql
-                current_cols_short_to_long = self.short_to_long_dict[
-                    first_file_id
-                ].copy()
-                current_cols_short_to_long.update(
-                    self.short_to_long_dict[second_file_id].copy()
-                )
+                current_cols_short_to_long = self.short_to_long_dict[first_file_id].copy()
+                current_cols_short_to_long.update(self.short_to_long_dict[second_file_id].copy())
                 cross_validate_sql(
                     combo_rules.all(),
                     submission_id,
@@ -1459,9 +1368,7 @@ class ValidationManager:
                 bucket_name = CONFIG_BROKER["aws_bucket"]
                 s3 = boto3.client("s3", region_name=region_name)
 
-                s3.upload_file(
-                    error_file_path, bucket_name, self.get_file_name(error_file_name)
-                )
+                s3.upload_file(error_file_path, bucket_name, self.get_file_name(error_file_name))
                 os.remove(error_file_path)
 
                 s3.upload_file(
@@ -1483,8 +1390,7 @@ class ValidationManager:
         job_duration = (datetime.now() - job_start).total_seconds()
         logger.info(
             {
-                "message": "Completed cross-file validations on submission_id: "
-                + str(submission_id),
+                "message": "Completed cross-file validations on submission_id: " + str(submission_id),
                 "message_type": "ValidatorInfo",
                 "submission_id": submission_id,
                 "job_id": job.job_id,
@@ -1548,9 +1454,7 @@ class ValidationManager:
             validation_error_type = ValidationError.job_error
             write_file_error(job_id, None, validation_error_type)
             raise ResponseError(
-                "Job ID {} is not a validation job (job type is {})".format(
-                    job_id, job.job_type.name
-                ),
+                "Job ID {} is not a validation job (job type is {})".format(job_id, job.job_type.name),
                 StatusCode.CLIENT_ERROR,
                 None,
                 validation_error_type,
@@ -1647,9 +1551,7 @@ def update_account_nums(model_class, submission_id):
     sess.commit()
 
 
-def update_total_obligations(
-    submission_id, total_obligations, total_proc_obligations, total_asst_obligations
-):
+def update_total_obligations(submission_id, total_obligations, total_proc_obligations, total_asst_obligations):
     """Simply updates the total obligations record for a submission
 
     Args:
@@ -1661,9 +1563,7 @@ def update_total_obligations(
     sess = GlobalDB.db().session
 
     # Delete existing total obligations if such exist
-    sess.query(TotalObligations).filter(
-        TotalObligations.submission_id == submission_id
-    ).delete()
+    sess.query(TotalObligations).filter(TotalObligations.submission_id == submission_id).delete()
     sess.commit()
 
     new_totals = TotalObligations(

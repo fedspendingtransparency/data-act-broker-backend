@@ -114,9 +114,7 @@ def test_clean_frame_vectorized_mixed_types():
         columns=list("ABCD"),
     )
 
-    df_under_test = validation_helper.clean_frame_vectorized(
-        df_under_test, convert_to_str=True
-    )
+    df_under_test = validation_helper.clean_frame_vectorized(df_under_test, convert_to_str=True)
 
     expected_df = pd.DataFrame(
         [
@@ -185,9 +183,7 @@ def test_clean_numbers_vectorized_mixed_types():
     )
 
     for col in df_under_test.columns:
-        validation_helper.clean_numbers_vectorized(
-            df_under_test[col], convert_to_str=True
-        )
+        validation_helper.clean_numbers_vectorized(df_under_test[col], convert_to_str=True)
 
     expected_df = pd.DataFrame(
         [
@@ -204,21 +200,15 @@ def test_clean_numbers_vectorized_mixed_types():
 def test_concat_flex():
     # Tests a blank value, column sorting, ignoring row number, and the basic functionality
     flex_row = {"row_number": "4", "col 3": None, "col 2": "B", "col 1": "A"}
-    flex_df = pd.DataFrame(
-        {"row_number": ["4"], "col 3": [None], "col 2": ["B"], "col 1": ["A"]}
-    )
+    flex_df = pd.DataFrame({"row_number": ["4"], "col 3": [None], "col 2": ["B"], "col 1": ["A"]})
     assert validation_helper.concat_flex(flex_row) == "col 1: A, col 2: B, col 3: "
-    flex_df["concatted"] = flex_df.apply(
-        lambda x: validation_helper.concat_flex(x), axis=1
-    )
+    flex_df["concatted"] = flex_df.apply(lambda x: validation_helper.concat_flex(x), axis=1)
     assert flex_df["concatted"][0] == "col 1: A, col 2: B, col 3: "
 
     flex_row = {"just one": "column"}
     flex_df = pd.DataFrame({"just one": ["column"]})
     assert validation_helper.concat_flex(flex_row) == "just one: column"
-    flex_df["concatted"] = flex_df.apply(
-        lambda x: validation_helper.concat_flex(x), axis=1
-    )
+    flex_df["concatted"] = flex_df.apply(lambda x: validation_helper.concat_flex(x), axis=1)
     assert flex_df["concatted"][0] == "just one: column"
 
 
@@ -229,8 +219,7 @@ def test_derive_unique_id():
         "something": "else",
     }
     assert (
-        validation_helper.derive_unique_id(row, is_fabs=True)
-        == "AssistanceTransactionUniqueKey:"
+        validation_helper.derive_unique_id(row, is_fabs=True) == "AssistanceTransactionUniqueKey:"
         " AFA-GENERATED-UNIQUE"
     )
     assert validation_helper.derive_unique_id(row, is_fabs=False) == "TAS: DISPLAY-TAS"
@@ -243,10 +232,7 @@ def test_derive_fabs_awarding_sub_tier():
     # Normal
     assert validation_helper.derive_fabs_awarding_sub_tier(row, office_list) == "9876"
     # Derivation
-    assert (
-        validation_helper.derive_fabs_awarding_sub_tier(derive_row, office_list)
-        == "0123"
-    )
+    assert validation_helper.derive_fabs_awarding_sub_tier(derive_row, office_list) == "0123"
     # Failed Derivation
     assert validation_helper.derive_fabs_awarding_sub_tier(derive_row, {}) is None
 
@@ -260,10 +246,7 @@ def test_derive_fabs_afa_generated_unique():
         "assistance_listing_number": "4567",
         "award_modification_amendme": "0",
     }
-    assert (
-        validation_helper.derive_fabs_afa_generated_unique(row)
-        == "0123_FAIN_URI_4567_0"
-    )
+    assert validation_helper.derive_fabs_afa_generated_unique(row) == "0123_FAIN_URI_4567_0"
 
     # Some missing
     row = {
@@ -273,10 +256,7 @@ def test_derive_fabs_afa_generated_unique():
         "assistance_listing_number": "4567",
         "award_modification_amendme": None,
     }
-    assert (
-        validation_helper.derive_fabs_afa_generated_unique(row)
-        == "0123_-none-_URI_4567_-none-"
-    )
+    assert validation_helper.derive_fabs_afa_generated_unique(row) == "0123_-none-_URI_4567_-none-"
 
     # All missing
     row = {
@@ -286,10 +266,7 @@ def test_derive_fabs_afa_generated_unique():
         "assistance_listing_number": None,
         "award_modification_amendme": None,
     }
-    assert (
-        validation_helper.derive_fabs_afa_generated_unique(row)
-        == "-none-_-none-_-none-_-none-_-none-"
-    )
+    assert validation_helper.derive_fabs_afa_generated_unique(row) == "-none-_-none-_-none-_-none-_-none-"
 
 
 def test_retrieve_agency_codes(database):
@@ -404,15 +381,9 @@ def test_expected_type():
     csv_schema = {"bool_field": bool_field, "dec_field": dec_field}
 
     row = {"Field Name": "bool_field"}
-    assert (
-        validation_helper.expected_type(row, csv_schema)
-        == "This field must be a boolean"
-    )
+    assert validation_helper.expected_type(row, csv_schema) == "This field must be a boolean"
     row = {"Field Name": "dec_field"}
-    assert (
-        validation_helper.expected_type(row, csv_schema)
-        == "This field must be a decimal"
-    )
+    assert validation_helper.expected_type(row, csv_schema) == "This field must be a decimal"
 
 
 def test_valid_length():
@@ -453,9 +424,7 @@ def test_update_field_name():
 
 def test_add_field_name_to_value():
     row = {"Field Name": "field_name", "Value Provided": "value_provided"}
-    assert (
-        validation_helper.add_field_name_to_value(row) == "field_name: value_provided"
-    )
+    assert validation_helper.add_field_name_to_value(row) == "field_name: value_provided"
 
 
 def test_check_required():
@@ -530,9 +499,7 @@ def test_check_required():
             error_type,
         ],
     ]
-    expected_error_df = pd.DataFrame(
-        expected_data, columns=report_headers + ["error_type"]
-    )
+    expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_required(
         data, required, required_labels, report_headers, short_cols, flex_data, is_fabs
     )
@@ -601,9 +568,7 @@ def test_check_required():
             error_type,
         ],
     ]
-    expected_error_df = pd.DataFrame(
-        expected_data, columns=report_headers + ["error_type"]
-    )
+    expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_required(
         data, required, required_labels, report_headers, short_cols, flex_data, is_fabs
     )
@@ -680,9 +645,7 @@ def test_check_type():
             error_type,
         ],
     ]
-    expected_error_df = pd.DataFrame(
-        expected_data, columns=report_headers + ["error_type"]
-    )
+    expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_type(
         data,
         type_fields,
@@ -734,9 +697,7 @@ def test_check_type():
             error_type,
         ],
     ]
-    expected_error_df = pd.DataFrame(
-        expected_data, columns=report_headers + ["error_type"]
-    )
+    expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_type(
         data,
         type_fields,
@@ -789,9 +750,7 @@ def test_check_length():
             error_type,
         ]
     ]
-    expected_error_df = pd.DataFrame(
-        expected_data, columns=report_headers + ["error_type"]
-    )
+    expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     error_df = validation_helper.check_length(
         data,
         length_fields,
@@ -864,24 +823,16 @@ def test_check_field_format():
             error_type,
         ],
     ]
-    expected_error_df = pd.DataFrame(
-        expected_data, columns=report_headers + ["error_type"]
-    )
-    error_df = validation_helper.check_field_format(
-        data, format_fields, report_headers, short_cols, flex_data
-    )
+    expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
+    error_df = validation_helper.check_field_format(data, format_fields, report_headers, short_cols, flex_data)
     assert_frame_equal(error_df, expected_error_df)
 
 
 def test_parse_fields(database):
     sess = database.session
     fields = [
-        FileColumn(
-            name_short="string", field_types_id=FIELD_TYPE_DICT["STRING"], length=5
-        ),
-        FileColumn(
-            name_short="bool", field_types_id=FIELD_TYPE_DICT["BOOLEAN"], required=True
-        ),
+        FileColumn(name_short="string", field_types_id=FIELD_TYPE_DICT["STRING"], length=5),
+        FileColumn(name_short="bool", field_types_id=FIELD_TYPE_DICT["BOOLEAN"], required=True),
         FileColumn(name_short="dec", field_types_id=FIELD_TYPE_DICT["DECIMAL"]),
         FileColumn(
             name_short="int",
@@ -923,13 +874,9 @@ def test_process_formatting_errors():
         ["", error_name, error_msg, "", "", "", "", "5", "", error_type],
         ["", error_name, error_msg, "", "", "", "", "6", "", error_type],
     ]
-    expected_format_error_df = pd.DataFrame(
-        expected_data, columns=report_headers + ["error_type"]
-    )
+    expected_format_error_df = pd.DataFrame(expected_data, columns=report_headers + ["error_type"])
     assert_frame_equal(
-        validation_helper.process_formatting_errors(
-            short_rows, long_rows, report_headers
-        ),
+        validation_helper.process_formatting_errors(short_rows, long_rows, report_headers),
         expected_format_error_df,
     )
 

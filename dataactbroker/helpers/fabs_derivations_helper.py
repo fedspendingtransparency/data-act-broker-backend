@@ -78,8 +78,7 @@ def derive_assistance_listing(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id))
 
     log_derivation(
-        "Completed assistance_listing_title derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed assistance_listing_title derivation, " "updated {}".format(res.rowcount),
         submission_id,
         start_time,
     )
@@ -143,8 +142,7 @@ def derive_funding_agency_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed funding sub tier code derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed funding sub tier code derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -183,9 +181,7 @@ def derive_funding_agency_data(sess, submission_id):
         query_start,
     )
 
-    log_derivation(
-        "Completed funding_agency data derivation", submission_id, start_time
-    )
+    log_derivation("Completed funding_agency data derivation", submission_id, start_time)
 
 
 def derive_ppop_state(sess, submission_id):
@@ -216,8 +212,7 @@ def derive_ppop_state(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id))
 
     log_derivation(
-        "Completed place of performance state derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed place of performance state derivation, " "updated {}".format(res.rowcount),
         submission_id,
         start_time,
     )
@@ -231,9 +226,7 @@ def split_ppop_zip(sess, submission_id):
         submission_id: The ID of the submission derivations are being run for
     """
     start_time = datetime.now()
-    log_derivation(
-        "Beginning place of performance zip5 and zip last4 derivation", submission_id
-    )
+    log_derivation("Beginning place of performance zip5 and zip last4 derivation", submission_id)
 
     query = r"""
         UPDATE tmp_fabs_{submission_id}
@@ -247,8 +240,7 @@ def split_ppop_zip(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id))
 
     log_derivation(
-        "Completed place of performance zip5 and zip last4 derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed place of performance zip5 and zip last4 derivation, " "updated {}".format(res.rowcount),
         submission_id,
         start_time,
     )
@@ -284,20 +276,15 @@ def derive_ppop_location_data(sess, submission_id):
             AND place_of_performance_zip5 = zip5
             AND cast_as_date(action_date) < '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed ppop congr/county info for 9 digit historical zips derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop congr/county info for 9 digit historical zips derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning ppop congr/county info for 9 digit zips derivation", submission_id
-    )
+    log_derivation("Beginning ppop congr/county info for 9 digit zips derivation", submission_id)
     # Deriving congressional and county info for records with a 9 digit zip
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -312,20 +299,15 @@ def derive_ppop_location_data(sess, submission_id):
             AND place_of_performance_zip5 = zip5
             AND cast_as_date(action_date) >= '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed ppop congr/county info for 9 digit zips derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop congr/county info for 9 digit zips derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning ppop congr info for 5-digit historical zip derivation", submission_id
-    )
+    log_derivation("Beginning ppop congr info for 5-digit historical zip derivation", submission_id)
     # Deriving historical congressional info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -336,20 +318,15 @@ def derive_ppop_location_data(sess, submission_id):
             AND place_of_performance_congr IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed ppop congr info for 5-digit historical zip derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop congr info for 5-digit historical zip derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning ppop congr info for 5-digit zip derivation", submission_id
-    )
+    log_derivation("Beginning ppop congr info for 5-digit zip derivation", submission_id)
     # Deriving congressional info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -360,12 +337,9 @@ def derive_ppop_location_data(sess, submission_id):
             AND place_of_performance_congr IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed ppop congr info for 5-digit zip derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop congr info for 5-digit zip derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -384,8 +358,7 @@ def derive_ppop_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed ppop congr info for county derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop congr info for county derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -405,8 +378,7 @@ def derive_ppop_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed ppop congr info by city derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop congr info by city derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -424,8 +396,7 @@ def derive_ppop_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed ppop congr info by state derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop congr info by state derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -442,12 +413,9 @@ def derive_ppop_location_data(sess, submission_id):
             AND place_of_perform_county_co IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed ppop historical county info derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop historical county info derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -464,9 +432,7 @@ def derive_ppop_location_data(sess, submission_id):
             AND place_of_perform_county_co IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
         "Completed ppop county info derivation, " "updated {}".format(res.rowcount),
         submission_id,
@@ -474,9 +440,7 @@ def derive_ppop_location_data(sess, submission_id):
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning ppop city info for transactions with zips derivation", submission_id
-    )
+    log_derivation("Beginning ppop city info for transactions with zips derivation", submission_id)
     # Deriving city info for transactions with zips
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -487,16 +451,13 @@ def derive_ppop_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed ppop city info for transactions with zips derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop city info for transactions with zips derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning ppop county info for county ppop derivation", submission_id
-    )
+    log_derivation("Beginning ppop county info for county ppop derivation", submission_id)
     # Deriving county code info for transactions with ppop code XX**###
     query = r"""
         UPDATE tmp_fabs_{submission_id}
@@ -506,8 +467,7 @@ def derive_ppop_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed ppop county info for county ppop derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop county info for county ppop derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -529,8 +489,7 @@ def derive_ppop_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed ppop city info for city ppop derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop city info for city ppop derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -549,15 +508,13 @@ def derive_ppop_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed remaining county name derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed remaining county name derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
     log_derivation(
-        "Completed place of performance location derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed place of performance location derivation, " "updated {}".format(res.rowcount),
         submission_id,
         start_time,
     )
@@ -590,8 +547,7 @@ def derive_ppop_scope(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed ppop scope with non-null zip derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop scope with non-null zip derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -618,15 +574,12 @@ def derive_ppop_scope(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed ppop scope with null zip derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed ppop scope with null zip derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
-    log_derivation(
-        "Completed place of performance scope derivation", submission_id, start_time
-    )
+    log_derivation("Completed place of performance scope derivation", submission_id, start_time)
 
 
 def derive_le_location_data(sess, submission_id):
@@ -660,9 +613,7 @@ def derive_le_location_data(sess, submission_id):
             AND legal_entity_zip5 = zip5
             AND cast_as_date(action_date) < '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
         "Completed legal entity location with 9 digit historical zip derivation derivation, "
         "updated {}".format(res.rowcount),
@@ -690,12 +641,9 @@ def derive_le_location_data(sess, submission_id):
             AND legal_entity_zip5 = zip5
             AND cast_as_date(action_date) >= '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed legal entity location with 9 digit zip derivation derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity location with 9 digit zip derivation derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -732,9 +680,7 @@ def derive_le_location_data(sess, submission_id):
             AND legal_entity_congressional IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
         "Completed historical legal entity congressional for 5-digit zip derivation, "
         "updated {}".format(res.rowcount),
@@ -743,9 +689,7 @@ def derive_le_location_data(sess, submission_id):
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning legal entity congressional for 5-digit zip derivation", submission_id
-    )
+    log_derivation("Beginning legal entity congressional for 5-digit zip derivation", submission_id)
     # Deriving congressional info for remaining blanks (with zip code)
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -756,12 +700,9 @@ def derive_le_location_data(sess, submission_id):
             AND legal_entity_congressional IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed legal entity congressional for 5-digit zip derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity congressional for 5-digit zip derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -778,12 +719,9 @@ def derive_le_location_data(sess, submission_id):
             AND legal_entity_county_code IS NULL
             AND cast_as_date(action_date) < '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed legal entity county and state derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity county and state derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -800,20 +738,15 @@ def derive_le_location_data(sess, submission_id):
             AND legal_entity_county_code IS NULL
             AND cast_as_date(action_date) >= '{zip_date}';
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, zip_date=ZIP_DATE_CHANGE))
     log_derivation(
-        "Completed legal entity county and state derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity county and state derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning legal entity county names with zips derivation", submission_id
-    )
+    log_derivation("Beginning legal entity county names with zips derivation", submission_id)
     # Deriving county names for records with zips (type 2 and 3)
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -825,16 +758,13 @@ def derive_le_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed legal entity county names with zips derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity county names with zips derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning legal entity state names with zips derivation", submission_id
-    )
+    log_derivation("Beginning legal entity state names with zips derivation", submission_id)
     # Deriving state names for records with zips (type 2 and 3)
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -845,16 +775,13 @@ def derive_le_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed legal entity state names with zips derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity state names with zips derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
     query_start = datetime.now()
-    log_derivation(
-        "Beginning legal entity city info with zips derivation", submission_id
-    )
+    log_derivation("Beginning legal entity city info with zips derivation", submission_id)
     # Deriving city info for records with zips (type 2 and 3)
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -865,8 +792,7 @@ def derive_le_location_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed legal entity city info with zips derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity city info with zips derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -917,9 +843,7 @@ def derive_le_location_data(sess, submission_id):
         query_start,
     )
 
-    log_derivation(
-        "Completed legal entity location derivation", submission_id, start_time
-    )
+    log_derivation("Completed legal entity location derivation", submission_id, start_time)
 
 
 def derive_office_data(sess, submission_id):
@@ -1007,8 +931,7 @@ def derive_office_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Beginning office data record type not 1 derivation, "
-        "updated {}".format(res.rowcount),
+        "Beginning office data record type not 1 derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -1087,8 +1010,7 @@ def derive_office_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed office data record type 1 derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed office data record type 1 derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -1148,8 +1070,7 @@ def derive_le_city_code(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id))
 
     log_derivation(
-        "Completed legal entity city code derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity city code derivation, " "updated {}".format(res.rowcount),
         submission_id,
         start_time,
     )
@@ -1163,9 +1084,7 @@ def derive_ppop_country_name(sess, submission_id):
         submission_id: The ID of the submission derivations are being run for
     """
     start_time = datetime.now()
-    log_derivation(
-        "Beginning place of performance country name derivation", submission_id
-    )
+    log_derivation("Beginning place of performance country name derivation", submission_id)
 
     query = """
         UPDATE tmp_fabs_{submission_id}
@@ -1176,8 +1095,7 @@ def derive_ppop_country_name(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id))
 
     log_derivation(
-        "Completed place of performance country name derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed place of performance country name derivation, " "updated {}".format(res.rowcount),
         submission_id,
         start_time,
     )
@@ -1202,8 +1120,7 @@ def derive_le_country_name(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id))
 
     log_derivation(
-        "Completed legal entity country name derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed legal entity country name derivation, " "updated {}".format(res.rowcount),
         submission_id,
         start_time,
     )
@@ -1246,8 +1163,7 @@ def derive_pii_redacted_ppop_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed PII redacted USA records derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed PII redacted USA records derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -1267,15 +1183,12 @@ def derive_pii_redacted_ppop_data(sess, submission_id):
     """
     res = sess.execute(query.format(submission_id=submission_id))
     log_derivation(
-        "Completed PII redacted non-USA records derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed PII redacted non-USA records derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
 
-    log_derivation(
-        "Completed PII redacted information derivation", submission_id, start_time
-    )
+    log_derivation("Completed PII redacted information derivation", submission_id, start_time)
 
 
 def derive_parent_uei(sess, submission_id):
@@ -1335,8 +1248,7 @@ def derive_executive_compensation(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id))
 
     log_derivation(
-        "Completed executive compensation derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed executive compensation derivation, " "updated {}".format(res.rowcount),
         submission_id,
         start_time,
     )
@@ -1355,9 +1267,7 @@ def derive_labels(sess, submission_id):
     query_start = datetime.now()
     log_derivation("Beginning action type label derivation", submission_id)
     # Action type description derivation
-    action_type_values = "), (".join(
-        "'{}', '{}'".format(name, desc) for name, desc in ACTION_TYPE_DICT.items()
-    )
+    action_type_values = "), (".join("'{}', '{}'".format(name, desc) for name, desc in ACTION_TYPE_DICT.items())
     query = """
         WITH action_type_desc AS
             (SELECT *
@@ -1367,9 +1277,7 @@ def derive_labels(sess, submission_id):
         FROM action_type_desc AS atd
         WHERE atd.letter = UPPER(pf.action_type);
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, action_types=action_type_values)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, action_types=action_type_values))
     log_derivation(
         "Completed action type label derivation, " "updated {}".format(res.rowcount),
         submission_id,
@@ -1379,9 +1287,7 @@ def derive_labels(sess, submission_id):
     query_start = datetime.now()
     log_derivation("Beginning assistance type label derivation", submission_id)
     # Assistance type description derivation
-    assistance_type_values = "), (".join(
-        "'{}', '{}'".format(name, desc) for name, desc in ASSISTANCE_TYPE_DICT.items()
-    )
+    assistance_type_values = "), (".join("'{}', '{}'".format(name, desc) for name, desc in ASSISTANCE_TYPE_DICT.items())
     query = """
         WITH assistance_type_description AS
             (SELECT *
@@ -1391,14 +1297,9 @@ def derive_labels(sess, submission_id):
         FROM assistance_type_description AS atd
         WHERE atd.letter = UPPER(pf.assistance_type);
     """
-    res = sess.execute(
-        query.format(
-            submission_id=submission_id, assistance_types=assistance_type_values
-        )
-    )
+    res = sess.execute(query.format(submission_id=submission_id, assistance_types=assistance_type_values))
     log_derivation(
-        "Completed assistance type label derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed assistance type label derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -1406,10 +1307,7 @@ def derive_labels(sess, submission_id):
     query_start = datetime.now()
     log_derivation("Beginning cdi label derivation", submission_id)
     # CorrectionDeleteIndicator description derivation
-    cdi_values = "), (".join(
-        "'{}', '{}'".format(name, desc)
-        for name, desc in CORRECTION_DELETE_IND_DICT.items()
-    )
+    cdi_values = "), (".join("'{}', '{}'".format(name, desc) for name, desc in CORRECTION_DELETE_IND_DICT.items())
     query = """
         WITH cdi_desc AS
             (SELECT *
@@ -1429,9 +1327,7 @@ def derive_labels(sess, submission_id):
     query_start = datetime.now()
     log_derivation("Beginning record type label derivation", submission_id)
     # Record Type description derivation
-    record_type_values = "), (".join(
-        "{}, '{}'".format(name, desc) for name, desc in RECORD_TYPE_DICT.items()
-    )
+    record_type_values = "), (".join("{}, '{}'".format(name, desc) for name, desc in RECORD_TYPE_DICT.items())
     query = """
         WITH record_type_desc AS
             (SELECT *
@@ -1441,9 +1337,7 @@ def derive_labels(sess, submission_id):
         FROM record_type_desc AS rtd
         WHERE rtd.letter = pf.record_type;
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, record_types=record_type_values)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, record_types=record_type_values))
     log_derivation(
         "Completed record type label derivation, " "updated {}".format(res.rowcount),
         submission_id,
@@ -1454,8 +1348,7 @@ def derive_labels(sess, submission_id):
     log_derivation("Beginning business funds ind label derivation", submission_id)
     # Business Funds Indicator description derivation
     business_funds_values = "), (".join(
-        "'{}', '{}'".format(name, desc)
-        for name, desc in BUSINESS_FUNDS_IND_DICT.items()
+        "'{}', '{}'".format(name, desc) for name, desc in BUSINESS_FUNDS_IND_DICT.items()
     )
     query = """
         WITH business_funds_ind_description AS
@@ -1466,14 +1359,9 @@ def derive_labels(sess, submission_id):
         FROM business_funds_ind_description AS bfid
         WHERE bfid.letter = UPPER(pf.business_funds_indicator);
     """
-    res = sess.execute(
-        query.format(
-            submission_id=submission_id, business_funds_ind=business_funds_values
-        )
-    )
+    res = sess.execute(query.format(submission_id=submission_id, business_funds_ind=business_funds_values))
     log_derivation(
-        "Completed business funds ind label derivation, "
-        "updated {}".format(res.rowcount),
+        "Completed business funds ind label derivation, " "updated {}".format(res.rowcount),
         submission_id,
         query_start,
     )
@@ -1481,9 +1369,7 @@ def derive_labels(sess, submission_id):
     query_start = datetime.now()
     log_derivation("Beginning business type label derivation", submission_id)
     # Business types description derivation
-    business_types_values = "), (".join(
-        "'{}', '{}'".format(name, desc) for name, desc in BUSINESS_TYPE_DICT.items()
-    )
+    business_types_values = "), (".join("'{}', '{}'".format(name, desc) for name, desc in BUSINESS_TYPE_DICT.items())
     query = """
         WITH business_type_desc AS
             (SELECT *
@@ -1502,9 +1388,7 @@ def derive_labels(sess, submission_id):
         WHERE
             abt.published_fabs_id = pf.published_fabs_id;
     """
-    res = sess.execute(
-        query.format(submission_id=submission_id, business_types=business_types_values)
-    )
+    res = sess.execute(query.format(submission_id=submission_id, business_types=business_types_values))
     log_derivation(
         "Completed business type label derivation, " "updated {}".format(res.rowcount),
         submission_id,

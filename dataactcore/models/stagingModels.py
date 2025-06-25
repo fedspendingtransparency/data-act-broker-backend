@@ -193,13 +193,9 @@ Index(
     unique=False,
 )
 
-Index(
-    "ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name)
-)
+Index("ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name))
 Index("ix_oc_atc_upper", func.upper(ObjectClassProgramActivity.availability_type_code))
-Index(
-    "ix_oc_dr_upper", func.upper(ObjectClassProgramActivity.by_direct_reimbursable_fun)
-)
+Index("ix_oc_dr_upper", func.upper(ObjectClassProgramActivity.by_direct_reimbursable_fun))
 Index(
     "ix_oc_pa_defc_upper",
     func.upper(ObjectClassProgramActivity.disaster_emergency_fund_code),
@@ -1741,9 +1737,7 @@ class DetachedAwardProcurement(Base):
 
 Index("ix_dap_uak_upper", func.upper(DetachedAwardProcurement.unique_award_key))
 Index("ix_dap_piid_upper", func.upper(DetachedAwardProcurement.piid))
-Index(
-    "ix_dap_parent_award_id_upper", func.upper(DetachedAwardProcurement.parent_award_id)
-)
+Index("ix_dap_parent_award_id_upper", func.upper(DetachedAwardProcurement.parent_award_id))
 Index(
     "ix_dap_awarding_sub_tier_agency_c_upper",
     func.upper(DetachedAwardProcurement.awarding_sub_tier_agency_c),
@@ -1775,9 +1769,7 @@ class FABS(Base):
     afa_generated_unique = Column(Text, index=True, nullable=False)
     submission_id = Column(
         Integer,
-        ForeignKey(
-            "submission.submission_id", ondelete="CASCADE", name="fk_fabs_submission_id"
-        ),
+        ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_fabs_submission_id"),
         nullable=False,
         index=True,
     )
@@ -1887,9 +1879,7 @@ class PublishedFABS(Base):
     funding_sub_tier_agency_co = Column(Text, index=True)
     funding_sub_tier_agency_na = Column(Text)
     indirect_federal_sharing = Column(Numeric)
-    is_active = Column(
-        Boolean, default=False, nullable=False, server_default="False", index=True
-    )
+    is_active = Column(Boolean, default=False, nullable=False, server_default="False", index=True)
     is_historical = Column(Boolean)
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)

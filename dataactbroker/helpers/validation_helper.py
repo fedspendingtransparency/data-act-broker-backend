@@ -86,9 +86,7 @@ def clean_col(value, clean_quotes=True):
     return value
 
 
-def clean_frame_vectorized(
-    frame: pd.DataFrame, convert_to_str=False, clean_quotes=True
-):
+def clean_frame_vectorized(frame: pd.DataFrame, convert_to_str=False, clean_quotes=True):
     """In-place strip of surrounding whitespace, make None if empty, and remove surrounding quotes.
 
     Args:
@@ -113,11 +111,7 @@ def clean_frame_vectorized(
         # NOTE: Need to find symmetry in the surrounding quotes in order to remove them.
         # Unbalanced quotes will not be removed
         for col, s in frame.items():
-            s.update(
-                s[(s.str.startswith('"')) & (s.str.endswith('"'))]
-                .str.strip('"')
-                .str.strip()
-            )
+            s.update(s[(s.str.startswith('"')) & (s.str.endswith('"'))].str.strip('"').str.strip())
     # Null-out all empty strings remaining
     # NOTE: Must use python None here rather than numpy.NaN, because of downstream python code that is not NaN-aware
     frame = frame.mask(frame == "", other=None)
@@ -185,9 +179,7 @@ def clean_numbers_vectorized(series: pd.Series, convert_to_str=False):
     # Get subset of values in series that had ',' replaced
     replacements = s[s.str.contains(",", na=False)].str.replace(",", "")
     # Check if their result is numeric
-    cleanable = (
-        replacements.str.replace(".", "", 1).str.replace("-", "", 1).str.isdigit()
-    )
+    cleanable = replacements.str.replace(".", "", 1).str.replace("-", "", 1).str.isdigit()
     # For those that are numeric, update the original series with their non-comma value
     series.update(replacements[cleanable])
 
@@ -202,18 +194,8 @@ def concat_flex(row):
     Returns:
         A concatenated list of "header: cell" pairs for the flex fields, joined by commas
     """
-    sorted_keys = (
-        row.keys().sort_values()
-        if isinstance(row.keys(), pd.Index)
-        else sorted(row.keys())
-    )
-    return ", ".join(
-        [
-            name + ": " + (row[name] or "")
-            for name in sorted_keys
-            if name != "row_number"
-        ]
-    )
+    sorted_keys = row.keys().sort_values() if isinstance(row.keys(), pd.Index) else sorted(row.keys())
+    return ", ".join([name + ": " + (row[name] or "") for name in sorted_keys if name != "row_number"])
 
 
 def derive_unique_id(row, is_fabs):
@@ -229,9 +211,7 @@ def derive_unique_id(row, is_fabs):
     if not is_fabs:
         unique_id = "TAS: {}".format(row["display_tas"])
     else:
-        unique_id = "AssistanceTransactionUniqueKey: {}".format(
-            row["afa_generated_unique"]
-        )
+        unique_id = "AssistanceTransactionUniqueKey: {}".format(row["afa_generated_unique"])
     return unique_id
 
 
@@ -246,9 +226,7 @@ def derive_unique_id_vectorized(frame: pd.DataFrame, is_fabs):
         A Series with properly formatted unique ID all rows depending on if it's a FABS or DABS submission
     """
     if not is_fabs:
-        return "TAS: " + frame["display_tas"][frame["display_tas"].notnull()].astype(
-            str
-        )
+        return "TAS: " + frame["display_tas"][frame["display_tas"].notnull()].astype(str)
     else:
         return "AssistanceTransactionUniqueKey: " + frame["afa_generated_unique"][
             frame["afa_generated_unique"].notnull()
@@ -302,24 +280,10 @@ def derive_fabs_unique_award_key(df):
     Returns:
         A pandas.Series of unique award keys, generated based on record type and uppercased
     """
-    first = (
-        df["record_type"]
-        .mask(df["record_type"] == "1", "ASST_AGG")
-        .mask(df["record_type"] != "1", "ASST_NON")
-    )
-    second = (
-        df["record_type"]
-        .mask(df["record_type"] == "1", df["uri"])
-        .mask(df["record_type"] != "1", df["fain"])
-    )
+    first = df["record_type"].mask(df["record_type"] == "1", "ASST_AGG").mask(df["record_type"] != "1", "ASST_NON")
+    second = df["record_type"].mask(df["record_type"] == "1", df["uri"]).mask(df["record_type"] != "1", df["fain"])
     third = df["awarding_agency_code"]
-    result = (
-        pd.DataFrame([first, second, third])
-        .fillna("-NONE-")
-        .astype(str)
-        .agg("_".join)
-        .str.upper()
-    )
+    result = pd.DataFrame([first, second, third]).fillna("-NONE-").astype(str).agg("_".join).str.upper()
     return result
 
 
@@ -351,9 +315,7 @@ def gather_flex_fields(row, flex_data):
         The concatenated flex data for the row if there is any, an empty string otherwise.
     """
     if flex_data is not None:
-        return flex_data.loc[
-            flex_data["row_number"] == row["Row Number"], "concatted"
-        ].values[0]
+        return flex_data.loc[flex_data["row_number"] == row["Row Number"], "concatted"].values[0]
     return ""
 
 
@@ -368,14 +330,10 @@ def valid_type(row, csv_schema):
         True or False depending on if the content of the cell is valid for the expected type
     """
     current_field = csv_schema[row["Field Name"]]
-    return is_valid_type(
-        row["Value Provided"], FIELD_TYPE_DICT_ID[current_field.field_types_id]
-    )
+    return is_valid_type(row["Value Provided"], FIELD_TYPE_DICT_ID[current_field.field_types_id])
 
 
-def valid_type_bool_vector(
-    series: pd.Series, csv_schema, type_field=None, match_invalid=False
-):
+def valid_type_bool_vector(series: pd.Series, csv_schema, type_field=None, match_invalid=False):
     """Check datatype validity of each cell in a Series in a vectorized execution
 
     True/False will be determined by whether the value of the cell matches the datatype for the given
@@ -422,9 +380,7 @@ def invalid_type_vector(series: pd.Series, csv_schema, type_field=None):
     Returns:
         A new Series with only invalid datatypes remaining from the one provided.
     """
-    return series.where(
-        valid_type_bool_vector(series, csv_schema, type_field, match_invalid=True)
-    )
+    return series.where(valid_type_bool_vector(series, csv_schema, type_field, match_invalid=True))
 
 
 def expected_type(row, csv_schema):
@@ -438,9 +394,7 @@ def expected_type(row, csv_schema):
         A formatted message explaining what type the field should be
     """
     current_field = csv_schema[row["Field Name"]]
-    return "This field must be a {}".format(
-        FIELD_TYPE_DICT_ID[current_field.field_types_id].lower()
-    )
+    return "This field must be a {}".format(FIELD_TYPE_DICT_ID[current_field.field_types_id].lower())
 
 
 def valid_length(row, csv_schema):
@@ -459,9 +413,7 @@ def valid_length(row, csv_schema):
     return True
 
 
-def valid_length_bool_vector(
-    series: pd.Series, csv_schema, type_field=None, match_invalid=False
-):
+def valid_length_bool_vector(series: pd.Series, csv_schema, type_field=None, match_invalid=False):
     """Check length validity of each cell in a Series in a vectorized execution
 
     True/False will be determined by whether the value of the cell does not exceed the max length fo the field
@@ -508,9 +460,7 @@ def invalid_length_vector(series: pd.Series, csv_schema, type_field=None):
     Returns:
         A new Series with only invalid values (exceeding max length) remaining from the one provided.
     """
-    return series.where(
-        valid_length_bool_vector(series, csv_schema, type_field, match_invalid=True)
-    )
+    return series.where(valid_length_bool_vector(series, csv_schema, type_field, match_invalid=True))
 
 
 def expected_length(row, csv_schema):
@@ -575,9 +525,7 @@ def add_field_name_to_value(row):
     return row["Field Name"] + ": " + row["Value Provided"]
 
 
-def check_required(
-    data, required, required_labels, report_headers, short_cols, flex_data, is_fabs
-):
+def check_required(data, required, required_labels, report_headers, short_cols, flex_data, is_fabs):
     """Check if all fields that are required to have content in the file have content.
 
     Args:
@@ -604,24 +552,16 @@ def check_required(
     )
     # Throw out all rows that have data
     errors = errors[errors["Value Provided"].isnull()]
-    errors.rename(
-        columns={"row_number": "Row Number", "unique_id": "Unique ID"}, inplace=True
-    )
+    errors.rename(columns={"row_number": "Row Number", "unique_id": "Unique ID"}, inplace=True)
     errors = errors.reset_index()
     errors["Value Provided"] = ""
     errors["Rule Message"] = ValidationError.required_error_msg
     errors["Expected Value"] = "(not blank)"
     errors["Difference"] = ""
     if not errors.empty:
-        errors["Rule Label"] = errors.apply(
-            lambda x: apply_label(x, required_labels, is_fabs), axis=1
-        )
-        errors["Flex Field"] = errors.apply(
-            lambda x: gather_flex_fields(x, flex_data), axis=1
-        )
-        errors["Field Name"] = errors.apply(
-            lambda x: update_field_name(x, short_cols), axis=1
-        )
+        errors["Rule Label"] = errors.apply(lambda x: apply_label(x, required_labels, is_fabs), axis=1)
+        errors["Flex Field"] = errors.apply(lambda x: gather_flex_fields(x, flex_data), axis=1)
+        errors["Field Name"] = errors.apply(lambda x: update_field_name(x, short_cols), axis=1)
     else:
         errors["Rule Label"] = ""
         errors["Flex Field"] = ""
@@ -662,9 +602,7 @@ def check_type(
 
     for type_field in type_fields:
         # For each col-Series, null-out (set to NaN) any cells that meet datatype requirements
-        invalid_datatype[type_field] = invalid_type_vector(
-            invalid_datatype[type_field], csv_schema
-        )
+        invalid_datatype[type_field] = invalid_type_vector(invalid_datatype[type_field], csv_schema)
     # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
     errors = pd.melt(
         invalid_datatype,
@@ -676,28 +614,16 @@ def check_type(
 
     # Throw out rows for all cell values that were compliant or originally null
     errors = errors[~(errors["Value Provided"].isnull())]
-    errors.rename(
-        columns={"row_number": "Row Number", "unique_id": "Unique ID"}, inplace=True
-    )
+    errors.rename(columns={"row_number": "Row Number", "unique_id": "Unique ID"}, inplace=True)
     errors = errors.reset_index()
     errors["Rule Message"] = ValidationError.type_error_msg
     errors["Difference"] = ""
     if not errors.empty:
-        errors["Expected Value"] = errors.apply(
-            lambda x: expected_type(x, csv_schema), axis=1
-        )
-        errors["Rule Label"] = errors.apply(
-            lambda x: apply_label(x, type_labels, is_fabs), axis=1
-        )
-        errors["Flex Field"] = errors.apply(
-            lambda x: gather_flex_fields(x, flex_data), axis=1
-        )
-        errors["Field Name"] = errors.apply(
-            lambda x: update_field_name(x, short_cols), axis=1
-        )
-        errors["Value Provided"] = errors.apply(
-            lambda x: add_field_name_to_value(x), axis=1
-        )
+        errors["Expected Value"] = errors.apply(lambda x: expected_type(x, csv_schema), axis=1)
+        errors["Rule Label"] = errors.apply(lambda x: apply_label(x, type_labels, is_fabs), axis=1)
+        errors["Flex Field"] = errors.apply(lambda x: gather_flex_fields(x, flex_data), axis=1)
+        errors["Field Name"] = errors.apply(lambda x: update_field_name(x, short_cols), axis=1)
+        errors["Value Provided"] = errors.apply(lambda x: add_field_name_to_value(x), axis=1)
     else:
         errors["Expected Value"] = ""
         errors["Rule Label"] = ""
@@ -740,9 +666,7 @@ def check_length(
 
     for length_field in length_fields:
         # For each col-Series, null-out (set to NaN) any cells that meet max length requirements
-        exceeds_length[length_field] = invalid_length_vector(
-            exceeds_length[length_field], csv_schema
-        )
+        exceeds_length[length_field] = invalid_length_vector(exceeds_length[length_field], csv_schema)
 
     # Flip the data so each header + cell combination is its own row, keeping the dfrelevant row numbers and unique IDs
     errors = pd.melt(
@@ -754,26 +678,16 @@ def check_length(
     )
     # Throw out rows for all cell values that were compliant or originally null
     errors = errors[~(errors["Value Provided"].isnull())]
-    errors.rename(
-        columns={"row_number": "Row Number", "unique_id": "Unique ID"}, inplace=True
-    )
+    errors.rename(columns={"row_number": "Row Number", "unique_id": "Unique ID"}, inplace=True)
     errors = errors.reset_index()
     errors["Rule Message"] = ValidationError.length_error_msg
     errors["Difference"] = ""
     errors["Rule Label"] = ""
     if not errors.empty:
-        errors["Expected Value"] = errors.apply(
-            lambda x: expected_length(x, csv_schema), axis=1
-        )
-        errors["Flex Field"] = errors.apply(
-            lambda x: gather_flex_fields(x, flex_data), axis=1
-        )
-        errors["Field Name"] = errors.apply(
-            lambda x: update_field_name(x, short_cols), axis=1
-        )
-        errors["Value Provided"] = errors.apply(
-            lambda x: add_field_name_to_value(x), axis=1
-        )
+        errors["Expected Value"] = errors.apply(lambda x: expected_length(x, csv_schema), axis=1)
+        errors["Flex Field"] = errors.apply(lambda x: gather_flex_fields(x, flex_data), axis=1)
+        errors["Field Name"] = errors.apply(lambda x: update_field_name(x, short_cols), axis=1)
+        errors["Value Provided"] = errors.apply(lambda x: add_field_name_to_value(x), axis=1)
     else:
         errors["Expected Value"] = ""
         errors["Flex Field"] = ""
@@ -813,24 +727,16 @@ def check_field_format(data, format_fields, report_headers, short_cols, flex_dat
         errors["matches_format"] = errors.apply(lambda x: valid_format(x), axis=1)
         errors = errors[~errors["matches_format"]]
         errors.drop(["matches_format"], axis=1, inplace=True)
-    errors.rename(
-        columns={"row_number": "Row Number", "unique_id": "Unique ID"}, inplace=True
-    )
+    errors.rename(columns={"row_number": "Row Number", "unique_id": "Unique ID"}, inplace=True)
     errors = errors.reset_index()
     errors["Rule Message"] = ValidationError.field_format_error_msg
     errors["Difference"] = ""
     errors["Rule Label"] = "DABSDATETIME"
     errors["Expected Value"] = "A date in the YYYYMMDD format."
     if not errors.empty:
-        errors["Flex Field"] = errors.apply(
-            lambda x: gather_flex_fields(x, flex_data), axis=1
-        )
-        errors["Field Name"] = errors.apply(
-            lambda x: update_field_name(x, short_cols), axis=1
-        )
-        errors["Value Provided"] = errors.apply(
-            lambda x: add_field_name_to_value(x), axis=1
-        )
+        errors["Flex Field"] = errors.apply(lambda x: gather_flex_fields(x, flex_data), axis=1)
+        errors["Field Name"] = errors.apply(lambda x: update_field_name(x, short_cols), axis=1)
+        errors["Value Provided"] = errors.apply(lambda x: add_field_name_to_value(x), axis=1)
     else:
         errors["Flex Field"] = ""
     # sorting the headers after all the moving around
@@ -914,9 +820,7 @@ def process_formatting_errors(short_rows, long_rows, report_headers):
         }
         format_error_list.append(format_error)
     # Turn the list of dictionaries into a dataframe
-    return pd.DataFrame(
-        format_error_list, columns=list(report_headers + ["error_type"])
-    )
+    return pd.DataFrame(format_error_list, columns=list(report_headers + ["error_type"]))
 
 
 def simple_file_scan(reader, bucket_name, region_name, file_name):
@@ -935,9 +839,7 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
     """
     # Count file rows: throws a File Level Error for non-UTF8 characters
     # Also getting short and long rows for formatting errors and pandas processing
-    temp_file = open(
-        reader.get_filename(region_name, bucket_name, file_name), encoding="utf-8"
-    )
+    temp_file = open(reader.get_filename(region_name, bucket_name, file_name), encoding="utf-8")
     file_row_count = 0
     header_length = 0
     short_pop_rows = []
@@ -983,9 +885,7 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
     )
 
 
-def update_val_progress(
-    sess, job, validation_progress, tas_progress, sql_progress, final_progress
-):
+def update_val_progress(sess, job, validation_progress, tas_progress, sql_progress, final_progress):
     """Updates the progress value of the job based on the type of validation it is.
 
     Args:
@@ -1003,10 +903,7 @@ def update_val_progress(
     final_mult = 0.05 if FILE_TYPE_DICT_ID[job.file_type_id] != "fabs" else 0.1
 
     current_progress = (
-        validation_progress * val_mult
-        + tas_progress * tas_mult
-        + sql_progress * sql_mult
-        + final_progress * final_mult
+        validation_progress * val_mult + tas_progress * tas_mult + sql_progress * sql_mult + final_progress * final_mult
     )
     job.progress = current_progress
     sess.commit()

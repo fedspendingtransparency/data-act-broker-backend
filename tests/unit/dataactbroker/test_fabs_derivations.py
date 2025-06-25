@@ -98,15 +98,9 @@ def initialize_db_values(db):
         congressional_district_no="03",
     )
     # CDs grouped by zip/state only
-    cd_zips_grouped_1 = CDZipsGroupedFactory(
-        zip5="12345", state_abbreviation="NY", congressional_district_no="02"
-    )
-    cd_zips_grouped_2 = CDZipsGroupedFactory(
-        zip5="54321", state_abbreviation="NY", congressional_district_no="05"
-    )
-    cd_zips_grouped_3 = CDZipsGroupedFactory(
-        zip5="98765", state_abbreviation="NY", congressional_district_no="90"
-    )
+    cd_zips_grouped_1 = CDZipsGroupedFactory(zip5="12345", state_abbreviation="NY", congressional_district_no="02")
+    cd_zips_grouped_2 = CDZipsGroupedFactory(zip5="54321", state_abbreviation="NY", congressional_district_no="05")
+    cd_zips_grouped_3 = CDZipsGroupedFactory(zip5="98765", state_abbreviation="NY", congressional_district_no="90")
     cd_zips_grouped_historical = CDZipsGroupedHistoricalFactory(
         zip5="11111", state_abbreviation="NY", congressional_district_no="03"
     )
@@ -114,15 +108,9 @@ def initialize_db_values(db):
     cd_county_grouped = CDCountyGroupedFactory(
         county_number="001", state_abbreviation="NY", congressional_district_no="91"
     )
-    cd_city_grouped_1 = CDCityGroupedFactory(
-        city_code="00001", state_abbreviation="NY", congressional_district_no="92"
-    )
-    cd_city_grouped_2 = CDCityGroupedFactory(
-        city_code="0001R", state_abbreviation="NY", congressional_district_no="94"
-    )
-    cd_state_grouped = CDStateGroupedFactory(
-        state_abbreviation="NY", congressional_district_no="93"
-    )
+    cd_city_grouped_1 = CDCityGroupedFactory(city_code="00001", state_abbreviation="NY", congressional_district_no="92")
+    cd_city_grouped_2 = CDCityGroupedFactory(city_code="0001R", state_abbreviation="NY", congressional_district_no="94")
+    cd_state_grouped = CDStateGroupedFactory(state_abbreviation="NY", congressional_district_no="93")
 
     # Cities
     zip_city = ZipCityFactory(
@@ -155,13 +143,9 @@ def initialize_db_values(db):
     # States
     state = StatesFactory(state_code="NY", state_name="New York")
     # Counties
-    county = CountyCodeFactory(
-        county_number="001", county_name="Test County", state_code="NY"
-    )
+    county = CountyCodeFactory(county_number="001", county_name="Test County", state_code="NY")
     # Countries
-    country_1 = CountryCodeFactory(
-        country_code="USA", country_name="United States of America"
-    )
+    country_1 = CountryCodeFactory(country_code="USA", country_name="United States of America")
     country_2 = CountryCodeFactory(country_code="GBR", country_name="Great Britain")
     # SAMRecipient
     recipient_1 = SAMRecipientFactory(
@@ -225,16 +209,12 @@ def initialize_db_values(db):
         high_comp_officer5_amount=None,
     )
     # Assistance Listing
-    assistance_listing = AssistanceListingFactory(
-        program_number=12.345, program_title="Assistance Listing Title"
-    )
+    assistance_listing = AssistanceListingFactory(program_number=12.345, program_title="Assistance Listing Title")
     # Agencies
     cgac_1 = CGACFactory(cgac_code="000", agency_name="Test CGAC Agency")
     cgac_2 = CGACFactory(cgac_code="111", agency_name="Test CGAC Agency 2")
     frec_1 = FRECFactory(frec_code="0000", agency_name="Test FREC Agency", cgac=cgac_1)
-    frec_2 = FRECFactory(
-        frec_code="1111", agency_name="Test FREC Agency 2", cgac=cgac_2
-    )
+    frec_2 = FRECFactory(frec_code="1111", agency_name="Test FREC Agency 2", cgac=cgac_2)
     cgac_sub_tier = SubTierAgencyFactory(
         sub_tier_agency_code="12AB",
         sub_tier_agency_name="Test Subtier Agency",
@@ -474,9 +454,7 @@ def initialize_test_row(
 
         ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_fabs_id SERIAL PRIMARY KEY;
     """
-    db.session.execute(
-        create_query.format(submission_id=submission_id, cols=col_string)
-    )
+    db.session.execute(create_query.format(submission_id=submission_id, cols=col_string))
 
     insert_query = """
         INSERT INTO tmp_fabs_{submission_id} (federal_action_obligation, non_federal_funding_amount,
@@ -527,9 +505,7 @@ def initialize_test_row(
 
 def get_derived_fabs(db, submission_id):
     """Retrieve the derived submission information."""
-    res = db.session.execute(
-        "SELECT * FROM tmp_fabs_{submission_id}".format(submission_id=submission_id)
-    )
+    res = db.session.execute("SELECT * FROM tmp_fabs_{submission_id}".format(submission_id=submission_id))
     # derived_fabs = db.session.query(PublishedFABS).filter_by(submission_id=submission_id).first()
     return res.fetchone()
 
@@ -570,9 +546,7 @@ def test_assistance_listing_title(database):
     assert fabs_obj.assistance_listing_title is None
 
     # when assistance_listing_number is in the database
-    submission_id = initialize_test_row(
-        database, assistance_listing_num="12.345", submission_id=3
-    )
+    submission_id = initialize_test_row(database, assistance_listing_num="12.345", submission_id=3)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -614,9 +588,7 @@ def test_funding_sub_tier_agency_na(database):
     assert fabs_obj.funding_sub_tier_agency_na == "Test Subtier Agency"
 
     # when funding_sub_tier_agency_co is provided
-    submission_id = initialize_test_row(
-        database, sub_fund_agency_code="4321", submission_id=3
-    )
+    submission_id = initialize_test_row(database, sub_fund_agency_code="4321", submission_id=3)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -642,9 +614,7 @@ def test_ppop_state(database):
     assert fabs_obj.place_of_perfor_state_code is None
     assert fabs_obj.place_of_perform_state_nam == "Multi-state"
 
-    submission_id = initialize_test_row(
-        database, ppop_code="", record_type=3, submission_id=4
-    )
+    submission_id = initialize_test_row(database, ppop_code="", record_type=3, submission_id=4)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -656,9 +626,7 @@ def test_ppop_derivations(database):
     initialize_db_values(database)
 
     # when ppop_zip4a is 9 digits and no congressional district
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="123454321", ppop_code="NY00001", submission_id=2
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="123454321", ppop_code="NY00001", submission_id=2)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -697,9 +665,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_performance_congr == "03"
 
     # when ppop_zip4a is 5 digits
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="12345", ppop_code="NY00000", submission_id=4
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="12345", ppop_code="NY00000", submission_id=4)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -709,9 +675,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_performance_city == "Test City"
 
     # when ppop_zip4 is 9 digits but last 4 are invalid (one cd available)
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="543210000", ppop_code="NY00000", submission_id=5
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="543210000", ppop_code="NY00000", submission_id=5)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -721,9 +685,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_performance_city == "Test City 2"
 
     # when ppop_zip4 is 9 digits (no cd available)
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="987654321", ppop_code="NY0001r", submission_id=6
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="987654321", ppop_code="NY0001r", submission_id=6)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -733,9 +695,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_performance_city == "Test City 3"
 
     # when ppop_code and ppop_zip4 is 'city-wide'
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="City-WIDE", ppop_code="NY0001R", submission_id=7
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="City-WIDE", ppop_code="NY0001R", submission_id=7)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -772,9 +732,7 @@ def test_ppop_derivations(database):
     assert fabs_obj.place_of_performance_congr == "93"
 
     # when we don't have a ppop_code at all
-    submission_id = initialize_test_row(
-        database, ppop_code="", record_type=3, submission_id=10
-    )
+    submission_id = initialize_test_row(database, ppop_code="", record_type=3, submission_id=10)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -789,9 +747,7 @@ def test_legal_entity_derivations(database):
 
     # if there is a legal_entity_zip5, record_type is always 2 or 3
     # when we have legal_entity_zip5 and zip4
-    submission_id = initialize_test_row(
-        database, le_zip5="12345", le_zip4="6789", submission_id=2
-    )
+    submission_id = initialize_test_row(database, le_zip5="12345", le_zip4="6789", submission_id=2)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -833,18 +789,14 @@ def test_legal_entity_derivations(database):
     assert fabs_obj.legal_entity_state_name == "New York"
 
     # when we have legal_entity_zip5 and congressional but no zip4
-    submission_id = initialize_test_row(
-        database, le_zip5="12345", legal_congr="95", submission_id=4
-    )
+    submission_id = initialize_test_row(database, le_zip5="12345", legal_congr="95", submission_id=4)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.legal_entity_congressional == "95"
 
     # if there is no legal_entity_zip5 and record_type is 1, ppop_code is always in format XX**###
-    submission_id = initialize_test_row(
-        database, record_type=1, ppop_cd="03", ppop_code="NY**001", submission_id=5
-    )
+    submission_id = initialize_test_row(database, record_type=1, ppop_cd="03", ppop_code="NY**001", submission_id=5)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -856,9 +808,7 @@ def test_legal_entity_derivations(database):
     assert fabs_obj.legal_entity_state_name == "New York"
 
     # if there is no legal_entity_zip5, record_type is always 1 and ppop_code can be format XX*****
-    submission_id = initialize_test_row(
-        database, record_type=1, ppop_cd="99", ppop_code="NY*****", submission_id=6
-    )
+    submission_id = initialize_test_row(database, record_type=1, ppop_cd="99", ppop_code="NY*****", submission_id=6)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -870,9 +820,7 @@ def test_legal_entity_derivations(database):
     assert fabs_obj.legal_entity_state_name == "New York"
 
     # if there is no legal_entity_zip5, record_type is always 1 and ppop_code can be format 00FORGN
-    submission_id = initialize_test_row(
-        database, record_type=1, ppop_cd=None, ppop_code="00FORGN", submission_id=7
-    )
+    submission_id = initialize_test_row(database, record_type=1, ppop_cd=None, ppop_code="00FORGN", submission_id=7)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -888,17 +836,13 @@ def test_primary_place_country(database):
     initialize_db_values(database)
 
     # if primary_plce_of_performance_country_code is present get country name
-    submission_id = initialize_test_row(
-        database, primary_place_country="USA", submission_id=2
-    )
+    submission_id = initialize_test_row(database, primary_place_country="USA", submission_id=2)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.place_of_perform_country_n == "United States of America"
 
-    submission_id = initialize_test_row(
-        database, primary_place_country="NK", submission_id=3
-    )
+    submission_id = initialize_test_row(database, primary_place_country="NK", submission_id=3)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -1174,27 +1118,21 @@ def test_derive_ppop_code(database):
     initialize_db_values(database)
 
     # Making sure nothing is changing if record type isn't 3
-    submission_id = initialize_test_row(
-        database, record_type=1, legal_country="USA", le_zip5="12345", submission_id=3
-    )
+    submission_id = initialize_test_row(database, record_type=1, legal_country="USA", le_zip5="12345", submission_id=3)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.place_of_performance_code == "NY00000"
 
     # 00FORGN if country isn't USA
-    submission_id = initialize_test_row(
-        database, record_type=3, ppop_code=None, legal_country="GBD", submission_id=4
-    )
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country="GBD", submission_id=4)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.place_of_performance_code == "00FORGN"
 
     # No derivation if country is USA and there is no state code
-    submission_id = initialize_test_row(
-        database, record_type=3, ppop_code=None, legal_country="USA", submission_id=5
-    )
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country="USA", submission_id=5)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -1233,9 +1171,7 @@ def test_derive_pii_redacted_ppop_data(database):
     initialize_db_values(database)
 
     # Test derivations when country code is USA
-    submission_id = initialize_test_row(
-        database, record_type=3, legal_country="USA", le_zip5="54321", submission_id=2
-    )
+    submission_id = initialize_test_row(database, record_type=3, legal_country="USA", le_zip5="54321", submission_id=2)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -1300,9 +1236,7 @@ def test_split_zip(database):
     assert fabs_obj.place_of_perform_zip_last4 is None
 
     # testing with 9-digit
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="123456789", submission_id=3
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="123456789", submission_id=3)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -1310,9 +1244,7 @@ def test_split_zip(database):
     assert fabs_obj.place_of_perform_zip_last4 == "6789"
 
     # testing with 9-digit and dash
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="12345-6789", submission_id=4
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="12345-6789", submission_id=4)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -1320,9 +1252,7 @@ def test_split_zip(database):
     assert fabs_obj.place_of_perform_zip_last4 == "6789"
 
     # testing with city-wide
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="city-wide", submission_id=5
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="city-wide", submission_id=5)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -1477,19 +1407,14 @@ def test_derive_labels(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert (
-        fabs_obj.business_types_desc
-        == BUSINESS_TYPE_DICT["A"] + ";" + BUSINESS_TYPE_DICT["B"]
-    )
+    assert fabs_obj.business_types_desc == BUSINESS_TYPE_DICT["A"] + ";" + BUSINESS_TYPE_DICT["B"]
 
 
 def test_derive_ppop_scope(database):
     initialize_db_values(database)
 
     # when ppop_zip4a is 5 digits and no congressional district
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="123454321", ppop_code="NY00001", submission_id=2
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="123454321", ppop_code="NY00001", submission_id=2)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -1516,27 +1441,21 @@ def test_derive_ppop_scope(database):
     assert fabs_obj.place_of_performance_scope == "Single ZIP Code"
 
     # when ppop_zip4 is 9 digits but last 4 are invalid (one cd available)
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="543210000", ppop_code=None, submission_id=5
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="543210000", ppop_code=None, submission_id=5)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.place_of_performance_scope is None
 
     # when ppop_zip4 is 9 digits (no cd available)
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="987654321", ppop_code="NY0001r", submission_id=6
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="987654321", ppop_code="NY0001r", submission_id=6)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.place_of_performance_scope == "Single ZIP Code"
 
     # when ppop_zip4 is 'city-wide'
-    submission_id = initialize_test_row(
-        database, ppop_zip4a="City-WIDE", ppop_code="NY0001R", submission_id=7
-    )
+    submission_id = initialize_test_row(database, ppop_zip4a="City-WIDE", ppop_code="NY0001R", submission_id=7)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
@@ -1598,17 +1517,13 @@ def test_derive_ppop_scope(database):
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.place_of_performance_scope == "Single ZIP Code"
 
-    submission_id = initialize_test_row(
-        database, record_type=3, ppop_code=None, legal_country="GBD", submission_id=15
-    )
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country="GBD", submission_id=15)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.place_of_performance_scope == "Foreign"
 
-    submission_id = initialize_test_row(
-        database, record_type=1, legal_country="USA", le_zip5="12345", submission_id=16
-    )
+    submission_id = initialize_test_row(database, record_type=1, legal_country="USA", le_zip5="12345", submission_id=16)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
