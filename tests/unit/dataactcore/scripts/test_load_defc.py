@@ -15,7 +15,7 @@ def mock_request_to_govinfo(url):
     if congress != "0":
         govinfo_data = {
             "title": f'Public Law {congress} - {law} - Test `Short Title` "{congress}-{law}"',
-            "dcMD": {"dateIssued": f"2{congress}-01-02"},
+            "dcMD": {"origDateIssued": f"2{congress}-01-02"},
             "download": {"pdflink": f"//test-pdf-link.gov/{congress}/{law}/{congress}-{law}.pdf"},
         }
     return govinfo_data
