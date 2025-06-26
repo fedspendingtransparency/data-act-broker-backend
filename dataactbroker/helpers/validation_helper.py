@@ -267,23 +267,20 @@ def derive_fabs_afa_generated_unique(row):
     )
 
 
-def derive_fabs_unique_award_key(row):
+def derive_fabs_unique_award_key(df):
     """Derives the unique award key for a row.
 
     Args:
-        row: the dataframe row to derive the unique award key for
+        df: pandas.DataFrame to derive the unique award key for
 
     Returns:
-        A unique award key for the row, generated based on record type and uppercased
+        A pandas.Series of unique award keys, generated based on record type and uppercased
     """
-    if str(row["record_type"]) == "1":
-        unique_award_key_list = ["ASST_AGG", row["uri"] or "-none-"]
-    else:
-        unique_award_key_list = ["ASST_NON", row["fain"] or "-none-"]
-
-    unique_award_key_list.append(row["awarding_sub_tier_agency_c"] or "-none-")
-
-    return "_".join(unique_award_key_list).upper()
+    first = df["record_type"].mask(df["record_type"] == "1", "ASST_AGG").mask(df["record_type"] != "1", "ASST_NON")
+    second = df["record_type"].mask(df["record_type"] == "1", df["uri"]).mask(df["record_type"] != "1", df["fain"])
+    third = df["awarding_agency_code"]
+    result = pd.DataFrame([first, second, third]).fillna("-NONE-").astype(str).agg("_".join).str.upper()
+    return result
 
 
 def apply_label(row, labels, is_fabs):
