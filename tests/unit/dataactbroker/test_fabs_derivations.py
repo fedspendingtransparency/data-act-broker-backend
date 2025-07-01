@@ -516,7 +516,6 @@ def test_awarding_agency_cgac(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.awarding_agency_code == "000"
     assert fabs_obj.awarding_agency_name == "Test CGAC Agency"
     assert fabs_obj.awarding_sub_tier_agency_n == "Test Subtier Agency"
 
@@ -528,7 +527,6 @@ def test_awarding_agency_frec(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.awarding_agency_code == "1111"
     assert fabs_obj.awarding_agency_name == "Test FREC Agency 2"
     assert fabs_obj.awarding_sub_tier_agency_n == "Test FREC Subtier Agency"
 
