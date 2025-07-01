@@ -84,7 +84,7 @@ def derive_pl_data(public_law):
         for char in ["'", '"', "`"]:
             short_title = short_title.replace(char, "")
 
-        date_approved = govinfo_data["dcMD"]["dateIssued"]
+        date_approved = govinfo_data["dcMD"]["origDateIssued"]
 
         url = govinfo_data["download"]["pdflink"]
         url = f"http:{url}"
