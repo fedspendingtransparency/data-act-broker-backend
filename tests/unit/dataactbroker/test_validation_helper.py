@@ -8,6 +8,7 @@ import pytest
 from dataactbroker.helpers import validation_helper
 from dataactvalidator.app import ValidationManager, ValidationError
 from dataactvalidator.filestreaming.csvReader import CsvReader
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.lookups import FIELD_TYPE_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 
@@ -259,18 +260,73 @@ def test_derive_fabs_afa_generated_unique():
     assert validation_helper.derive_fabs_afa_generated_unique(row) == "-none-_-none-_-none-_-none-_-none-"
 
 
-def test_derive_fabs_unique_award_key():
-    # Record type 1 - choose URI
-    row = {"awarding_sub_tier_agency_c": "0123", "fain": "FAIN", "uri": "URI", "record_type": "1"}
-    assert validation_helper.derive_fabs_unique_award_key(row) == "ASST_AGG_URI_0123"
-    row = {"awarding_sub_tier_agency_c": None, "fain": "FAIN", "uri": None, "record_type": "1"}
-    assert validation_helper.derive_fabs_unique_award_key(row) == "ASST_AGG_-NONE-_-NONE-"
+def test_retrieve_agency_codes(database):
+    sess = database.session
+    cgac = CGAC(cgac_code="0000", agency_name="Example Agency")
+    sess.add(cgac)
+    sess.commit()
 
-    # Record type 2 - choose FAIN
-    row = {"awarding_sub_tier_agency_c": "4567", "fain": "FAIN", "uri": "URI", "record_type": "2"}
-    assert validation_helper.derive_fabs_unique_award_key(row) == "ASST_NON_FAIN_4567"
-    row = {"awarding_sub_tier_agency_c": None, "fain": None, "uri": "URI", "record_type": "2"}
-    assert validation_helper.derive_fabs_unique_award_key(row) == "ASST_NON_-NONE-_-NONE-"
+    frec = FREC(frec_code="0001", cgac_id=cgac.cgac_id, agency_name="Example FREC")
+    sess.add(frec)
+    sess.commit()
+
+    sub_tiers = [
+        SubTierAgency(
+            cgac_id=cgac.cgac_id,
+            frec_id=frec.frec_id,
+            sub_tier_agency_code="0123",
+            sub_tier_agency_name="Example Sub Tier",
+            is_frec=True,
+        ),
+        SubTierAgency(
+            cgac_id=cgac.cgac_id,
+            frec_id=frec.frec_id,
+            sub_tier_agency_code="0124",
+            sub_tier_agency_name="Another Example Sub Tier",
+            is_frec=False,
+        ),
+    ]
+    sess.add_all(sub_tiers)
+    sess.commit()
+    df = pd.DataFrame(
+        {
+            "awarding_sub_tier_agency_c": ["0123", None, "0124", None],
+            "fain": ["FAIN", "FAIN", "FAIN", None],
+            "uri": ["URI", None, "URI", "URI"],
+            "record_type": ["1", "1", "2", "2"],
+        }
+    )
+    result = ValidationManager().retrieve_agency_codes(df, sess)
+    expected_df = pd.DataFrame(
+        {
+            "awarding_sub_tier_agency_c": ["0123", "0124"],
+            "awarding_agency_code": ["0001", "0000"],
+        }
+    )
+    pd.testing.assert_frame_equal(
+        result.sort_values(by="awarding_sub_tier_agency_c"),
+        expected_df.sort_values(by="awarding_sub_tier_agency_c"),
+    )
+
+
+def test_derive_fabs_unique_award_key(database):
+    df = pd.DataFrame(
+        {
+            "awarding_sub_tier_agency_c": ["0123", None, "0124", None],
+            "fain": ["FAIN", "FAIN", "FAIN", None],
+            "uri": ["URI", None, "URI", "URI"],
+            "record_type": ["1", "1", "2", "2"],
+            "awarding_agency_code": ["0001", None, "0000", None],
+        }
+    )
+    result = validation_helper.derive_fabs_unique_award_key(df)
+    expected = [
+        "ASST_AGG_URI_0001",
+        "ASST_AGG_-NONE-_-NONE-",
+        "ASST_NON_FAIN_0000",
+        "ASST_NON_-NONE-_-NONE-",
+    ]
+    assert result.to_list() == expected
 
 
 def test_apply_label():
