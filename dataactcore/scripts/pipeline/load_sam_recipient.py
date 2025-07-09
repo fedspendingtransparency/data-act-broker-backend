@@ -30,10 +30,11 @@ logger = logging.getLogger(__name__)
 
 SAM_EXTRACT_FILE_FORMAT = "SAM_{data_type}_UTF-8_{period}{version}_%Y%m%d.ZIP"
 SAM_ENTITY_API_FILE_NAME = "SAM_API_DOWNLOAD"
-DATA_TYPES = {"DUNS": "FOUO", "Executive Compensation": "EXECCOMP"}
+DATA_TYPES = {"recipient": "FOUO", "exec_comp": "EXECCOMP"}
 PERIODS = ["MONTHLY", "DAILY"]
 VERSIONS = {"v1": "", "v2": "_V2"}  # V1 files simply exclude the version
-S3_ARCHIVE = CONFIG_BROKER["sam"]["duns"]["csv_archive_bucket"]
+S3_ARCHIVE = CONFIG_BROKER["sam"]["recipient"]["csv_archive_bucket"]
+S3_DATA_DIRS = {"recipient": "DUNS", "exec_comp": "Executive Compensation"}
 S3_ARCHIVE_PATH = "{data_type}/{version}/{file_name}"
 
 
@@ -83,7 +84,7 @@ def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, r
     """Process the script arguments to figure out which files to process from the SAM extracts in which order
 
     Args:
-        data_type: data type to load (DUNS or executive compensation)
+        data_type: data type to load (recipient or executive compensation)
         sess: the database connection
         historic: whether to load in monthly file and daily files after, or just the latest daily files
         local: path to local directory to process, if None, it will go though the remote SAM service
@@ -160,11 +161,11 @@ def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, r
         # a bit redundant but also date validation
         load_date = datetime.datetime.strptime(reload_date, "%Y-%m-%d").date()
     else:
-        sam_field = SAMRecipient.last_sam_mod_date if data_type == "DUNS" else SAMRecipient.last_exec_comp_mod_date
+        sam_field = SAMRecipient.last_sam_mod_date if data_type == "recipient" else SAMRecipient.last_exec_comp_mod_date
         load_date = sess.query(sam_field).filter(sam_field.isnot(None)).order_by(sam_field.desc()).first()
         if not load_date:
-            field = "sam" if data_type == "DUNS" else "executive compensation"
-            raise Exception("No last {} mod date found in DUNS table. Please run historic loader first.".format(field))
+            field = "sam" if data_type == "recipient" else "executive compensation"
+            raise Exception(f"No last {field} mod date found in sam_recipient. Please run historic loader first.")
         load_date = load_date[0]
 
     # only load in the daily files after the load date
@@ -194,7 +195,7 @@ def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, r
                     logger.exception(e.response.content.decode("utf-8"))
                     raise e
 
-    if data_type == "DUNS":
+    if data_type == "recipient":
         updated_date = datetime.date.today()
         metrics["parent_rows_updated"] = update_missing_parent_names(sess, updated_date=updated_date)
         metrics["parent_update_date"] = str(updated_date)
@@ -211,7 +212,7 @@ def extract_dates_from_list(sam_files, data_type, period, version):
 
     Args:
         sam_files: list of sam file names to extract dates from
-        data_type: data type to load (DUNS or executive compensation)
+        data_type: data type to load (recipient or executive compensation)
         period: monthly or daily
         version: v1 or v2
 
@@ -228,7 +229,7 @@ def list_s3_archive_files(data_type, period, version):
     """Given the requested fields, provide a list of available files from the remote S3 archive
 
     Args:
-        data_type: data type to load (DUNS or executive compensation)
+        data_type: data type to load (recipient or executive compensation)
         period: monthly or daily
         version: v1 or v2
 
@@ -243,10 +244,10 @@ def list_s3_archive_files(data_type, period, version):
 
 
 def download_sam_file(root_dir, file_name, api="extract", **filters):
-    """Downloads the requested DUNS file to root_dir
+    """Downloads the requested sam file to root_dir
 
     Args:
-        root_dir: the folder containing the DUNS file
+        root_dir: the folder containing the SAM file
         file_name: the name of the SAM file
         api: string representing the API to use, or None for buckets
         filters: any other additional filters to pass into the call to download the file (for entity api)
@@ -291,7 +292,7 @@ def process_sam_extract_file(data_type, period, version, date, sess, local=None,
     """Process the SAM file found locally or remotely
 
     Args:
-        data_type: data type to load (DUNS or executive compensation)
+        data_type: data type to load (recipient or executive compensation)
         period: monthly or daily
         version: v1 or v2
         sess: the database connection
@@ -315,7 +316,7 @@ def process_sam_extract_file(data_type, period, version, date, sess, local=None,
 
     file_path = os.path.join(root_dir, file_name)
     includes_uei = version == "v2"
-    if data_type == "DUNS":
+    if data_type == "recipient":
         add_update_data, delete_data = parse_sam_recipient_file(file_path, metrics=metrics)
         if add_update_data is not None:
             update_sam_recipient(sess, add_update_data, metrics=metrics, includes_uei=includes_uei)
@@ -337,7 +338,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-t",
         "--data_type",
-        choices=["duns", "exec_comp", "unregistered", "all"],
+        choices=["recipient", "exec_comp", "unregistered", "all"],
         default="all",
         help="Select data type to load",
     )
@@ -359,7 +360,7 @@ if __name__ == "__main__":
     reload_date = args.reload_date
 
     metrics = {
-        "script_name": "load_duns_exec_comp.py",
+        "script_name": "load_sam_recipient.py",
         "start_time": str(now),
         "files_processed": [],
         "records_received": 0,
@@ -379,15 +380,13 @@ if __name__ == "__main__":
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-        if data_type in ("duns", "all"):
+        if data_type in ("recipient", "all"):
             start_time = datetime.datetime.now()
-            load_from_sam_extract("DUNS", sess, historic, local, metrics=metrics, reload_date=reload_date)
+            load_from_sam_extract("recipient", sess, historic, local, metrics=metrics, reload_date=reload_date)
             update_external_data_load_date(start_time, datetime.datetime.now(), "recipient")
         if data_type in ("exec_comp", "all"):
             start_time = datetime.datetime.now()
-            load_from_sam_extract(
-                "Executive Compensation", sess, historic, local, metrics=metrics, reload_date=reload_date
-            )
+            load_from_sam_extract("exec_comp", sess, historic, local, metrics=metrics, reload_date=reload_date)
             update_external_data_load_date(start_time, datetime.datetime.now(), "executive_compensation")
         if data_type in ("unregistered", "all"):
             start_time = datetime.datetime.now()
@@ -403,5 +402,5 @@ if __name__ == "__main__":
     logger.info("Added {} records and updated {} records".format(metrics["records_added"], metrics["records_updated"]))
 
     metrics["duration"] = str(datetime.datetime.now() - now)
-    with open("load_duns_exec_comp_metrics.json", "w+") as metrics_file:
+    with open("load_sam_recipient_metrics.json", "w+") as metrics_file:
         json.dump(metrics, metrics_file)
