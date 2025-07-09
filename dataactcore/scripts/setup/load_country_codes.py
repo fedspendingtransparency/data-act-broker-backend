@@ -73,7 +73,9 @@ def load_country_codes(force_reload=False):
 
         resp = get_xml_with_exception_hand(feed_url, CC_NAMESPACES, False)
 
-        resp_dict = xmltodict.parse(resp.text.encode('latin1').decode('utf-8'), process_namespaces=True, namespaces=CC_NAMESPACES)
+        resp_dict = xmltodict.parse(
+            resp.text.encode("latin1").decode("utf-8"), process_namespaces=True, namespaces=CC_NAMESPACES
+        )
         country_data = list_data(resp_dict["GENCStandardBaseline"]["GeopoliticalEntityEntry"])
         country_list = []
 
