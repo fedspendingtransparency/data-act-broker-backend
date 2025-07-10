@@ -8,7 +8,7 @@ from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregister
 
 
 def test_load_recipient(database):
-    """Test a local run load duns with the test files"""
+    """Test a local run load recipient with the test files"""
     sess = database.session
     recipient_dir = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "recipient")
 

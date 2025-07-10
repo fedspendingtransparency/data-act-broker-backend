@@ -34,6 +34,7 @@ DATA_TYPES = {"recipient": "FOUO", "exec_comp": "EXECCOMP"}
 PERIODS = ["MONTHLY", "DAILY"]
 VERSIONS = {"v1": "", "v2": "_V2"}  # V1 files simply exclude the version
 S3_ARCHIVE = CONFIG_BROKER["sam"]["recipient"]["csv_archive_bucket"]
+# The directory names in S3 will remain unchanged until we reorganize the S3 archives for the modernization effort
 S3_DATA_DIRS = {"recipient": "DUNS", "exec_comp": "Executive Compensation"}
 S3_ARCHIVE_PATH = "{data_type}/{version}/{file_name}"
 
