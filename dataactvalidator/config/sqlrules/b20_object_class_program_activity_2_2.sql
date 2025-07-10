@@ -1,6 +1,6 @@
--- All combinations of TAS, PARK, object class, DEFC, and PYA in File C (award financial) must exist in File B (object
--- class program activity). Since not all object classes will have award activity, it is acceptable for combinations of
--- TAS, PARK, object class, and DEFC combination where PYA = X or NULL in File C to be a subset of those provided in
+-- All combinations of TAS, PARK, object class, and DEFC in File C (award financial) must exist in File B (object class
+-- program activity). Since not all object classes will have award activity, it is acceptable for combinations of TAS,
+-- PARK, object class, and DEFC combination where PYA = "X" or NULL in File C to be a subset of those provided in
 -- File B. If PYA is not provided in File C, the combination of TAS, PARK, object class, and DEFC is applied.
 
 WITH award_financial_b20_{0} AS

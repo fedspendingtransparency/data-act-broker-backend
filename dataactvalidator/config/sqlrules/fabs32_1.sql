@@ -1,4 +1,6 @@
--- PeriodOfPerformanceStartDate is an optional field, but when provided, must follow YYYYMMDD format
+-- PeriodOfPerformanceStartDate, when provided, must follow YYYYMMDD format, where YYYY is the year, MM the month and
+-- DD the day.
+
 SELECT
     row_number,
     period_of_performance_star,

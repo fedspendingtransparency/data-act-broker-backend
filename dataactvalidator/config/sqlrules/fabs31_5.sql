@@ -1,6 +1,7 @@
--- When ActionDate is after October 1, 2010 and ActionType = A, AwardeeOrRecipientUEI should (when provided)
--- have an active registration in SAM as of the ActionDate, unless, when ActionDate is after October 1, 2024,
+-- When ActionDate is after October 1, 2010 and ActionType = A, AwardeeOrRecipientUEI should (when provided) have an
+-- active registration in SAM as of the ActionDate, unless, when ActionDate is after October 1, 2024,
 -- LegalEntityCountryCode is a foreign country.
+
 WITH fabs31_5_{0} AS
     (SELECT
         row_number,
