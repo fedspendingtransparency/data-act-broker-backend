@@ -97,7 +97,7 @@ broker:
     # Session timeout, in seconds
     session_timeout: 1800
 
-    # We import DUNS and FH records from SAM
+    # We import subawards, recipients, and office data from SAM
     sam:
         api_key: example
         account_user_id: example
@@ -112,8 +112,8 @@ broker:
             assistance_api_url: https://api.sam.gov/assistance/v1/subawards/search?api_key={}
             contract_api_url: https://api.sam.gov/contract/v1/subcontracts/search?api_key={}
 
-        # used in load_duns_exec_comp and update_historical_duns
-        duns:
+        # used in load_sam_recipient and update_historical_duns
+        recipient:
             csv_api_url: https://api.sam.gov/data-services/v1/extracts
             csv_archive_bucket: example
             entity_api_url: https://api.sam.gov/entity-information/v2/entities
