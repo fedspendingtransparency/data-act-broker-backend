@@ -241,6 +241,7 @@ def list_s3_archive_files(data_type, period, version):
     archive_bucket = s3_resource.Bucket(S3_ARCHIVE)
     file_name = SAM_EXTRACT_FILE_FORMAT[:30].format(data_type=DATA_TYPES[data_type], period=period)
     prefix = S3_ARCHIVE_PATH.format(data_type=S3_DATA_DIRS[data_type], version=version, file_name=file_name)
+    logger.info(prefix)
     return [os.path.basename(object.key) for object in archive_bucket.objects.filter(Prefix=prefix)]
 
 
@@ -285,6 +286,7 @@ def download_sam_file(root_dir, file_name, api="extract", **filters):
         data_type = reverse_map[file_name.split("_")[1]]
         version = "v2" if "V2" in file_name else "v1"
         key = S3_ARCHIVE_PATH.format(data_type=S3_DATA_DIRS[data_type], version=version, file_name=file_name)
+        logger.info(key)
         s3_client.download_file(S3_ARCHIVE, key, os.path.join(root_dir, file_name))
     logger.info(f"File downloaded:{os.path.join(root_dir, file_name)}")
 
