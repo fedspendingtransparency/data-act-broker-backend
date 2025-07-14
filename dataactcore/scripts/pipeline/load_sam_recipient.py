@@ -240,7 +240,7 @@ def list_s3_archive_files(data_type, period, version):
     s3_resource = boto3.resource("s3", region_name="us-gov-west-1")
     archive_bucket = s3_resource.Bucket(S3_ARCHIVE)
     file_name = SAM_EXTRACT_FILE_FORMAT[:30].format(data_type=DATA_TYPES[data_type], period=period)
-    prefix = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
+    prefix = S3_ARCHIVE_PATH.format(data_type=S3_DATA_DIRS[data_type], version=version, file_name=file_name)
     return [os.path.basename(object.key) for object in archive_bucket.objects.filter(Prefix=prefix)]
 
 
@@ -284,7 +284,7 @@ def download_sam_file(root_dir, file_name, api="extract", **filters):
         reverse_map = {v: k for k, v in DATA_TYPES.items()}
         data_type = reverse_map[file_name.split("_")[1]]
         version = "v2" if "V2" in file_name else "v1"
-        key = S3_ARCHIVE_PATH.format(data_type=data_type, version=version, file_name=file_name)
+        key = S3_ARCHIVE_PATH.format(data_type=S3_DATA_DIRS[data_type], version=version, file_name=file_name)
         s3_client.download_file(S3_ARCHIVE, key, os.path.join(root_dir, file_name))
     logger.info(f"File downloaded:{os.path.join(root_dir, file_name)}")
 
