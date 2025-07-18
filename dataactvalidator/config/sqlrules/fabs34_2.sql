@@ -1,5 +1,5 @@
--- While they are optional fields, if either PeriodOfPerformanceCurrentEndDate or PeriodOfPerformanceStartDate is
--- provided, both fields must be provided.
+-- When PeriodOfPerformanceCurrentEndDate or PeriodOfPerformanceStartDate is provided, both fields should be provided.
+
 SELECT
     row_number,
     period_of_performance_star,

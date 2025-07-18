@@ -1,7 +1,9 @@
 -- The File C GrossOutlayAmountByAward_CPE balance for a TAS, DEFC, program activity code + name, object class code,
--- direct/reimbursable flag, and Award ID combination should continue to be reported in subsequent periods during the
--- FY, once it has been submitted to DATA Act, unless the most recently reported outlay balance for this award breakdown
--- was zero. This only applies to File C outlays, not TOA.
+-- direct/reimbursable flag, Award ID, and PYA combination should continue to be reported in subsequent periods during
+-- the FY, once it has been submitted to Data Broker, unless the most recently reported outlay balance for this award
+-- breakdown was zero. This only applies to File C outlays, not TOA. Note that there are occasions where a program
+-- activity name can justifiably change mid-FY.
+
 WITH c27_prev_sub_{0} AS
     (SELECT CASE WHEN sub.is_quarter_format
             THEN sub_q.submission_id
