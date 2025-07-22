@@ -35,12 +35,10 @@ jobs:
 
   Run-Unit-Tests:
     name: Run Unit Tests
-    needs: Code-Climate-Before-Build
     if: ${{ !failure() && !cancelled() }}
     uses: ./.github/workflows/test-unit.yaml
 
   Run-Integration-Tests:
     name: Run Integration Tests
-    needs: Code-Climate-Before-Build
     if: ${{ !failure() && !cancelled() }}
     uses: ./.github/workflows/test-integration.yaml
