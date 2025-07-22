@@ -24,10 +24,6 @@ install:
   #  - pip --version
 
 before_script:
-  # Get dependencies to report code coverage to code climate
-  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-  - chmod +x ./cc-test-reporter
-  - ./cc-test-reporter before-build
   - cp dataactcore/config_example.yml dataactcore/config.yml
   - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
   - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
@@ -41,15 +37,13 @@ before_script:
 script:
   # Comment these out if we need to run in the Docker image
   #  - docker exec -it dataact-broker-backend /bin/bash -c 'flake8'
-  #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
-  #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml'
+  #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/unit/* --junitxml=tests/test-results.xml'
+  #  - docker exec -it dataact-broker-backend /bin/bash -c 'pytest tests/integration/* --junitxml=tests/test-results.xml'
   - flake8
   - black --check --diff .
-  - pytest tests/unit --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
-  - pytest tests/integration --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  - pytest tests/unit --junitxml=tests/test-results.xml
+  - pytest tests/integration --junitxml=tests/test-results.xml
 
 after_script:
   - docker-compose down
   - rm -r ${ERROR_REPORT_PATH}
-  - mv tests/coverage.xml coverage.xml
-  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
