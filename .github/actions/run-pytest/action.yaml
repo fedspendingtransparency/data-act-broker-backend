@@ -1,9 +1,6 @@
 name: Run Pytest
 
 inputs:
-  cov-report-name:
-    description: Name used in the title of the coverage report output
-    required: true
   db-state:
     description: Whether the DB should be reused from a previous run or recreated
     default: "--reuse-db"
@@ -32,7 +29,6 @@ runs:
     - name: Create environment variables
       shell: bash
       run: |
-        echo "COV_REPORT_NAME=coverage.${{ inputs.cov-report-name }}.xml" >> $GITHUB_ENV
         echo "DB_STATE=${{ inputs.db-state }}" >> $GITHUB_ENV
         echo "IGNORE_GLOB=${{ inputs.ignore-glob }}" >> $GITHUB_ENV
         echo "INCLUDE_GLOB=${{ inputs.include-glob }}" >> $GITHUB_ENV
@@ -78,8 +74,3 @@ runs:
       shell: bash
       run: ${{ steps.build-pytest-command.outputs.pytest-command }}
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage.${{ inputs.cov-report-name }}.xml
-        path: ${{ inputs.working-directory}}/coverage.${{ inputs.cov-report-name }}.xml
