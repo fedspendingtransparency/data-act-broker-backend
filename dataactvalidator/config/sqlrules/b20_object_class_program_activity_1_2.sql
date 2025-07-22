@@ -1,6 +1,6 @@
 -- All combinations of TAS, program activity code+name, object class, DEFC, and PYA in File C (award financial) must
 -- exist in File B (object class program activity). Since not all object classes will have award activity, it is
--- acceptable for combinations of TAS, program activity code+name, object class, and DEFC combination where PYA = X or
+-- acceptable for combinations of TAS, program activity code+name, object class, and DEFC combination where PYA = "X" or
 -- NULL in File C to be a subset of those provided in File B. If PYA is not provided in File C, the combination of TAS,
 -- PAC/PAN, object class, and DEFC is applied.
 
