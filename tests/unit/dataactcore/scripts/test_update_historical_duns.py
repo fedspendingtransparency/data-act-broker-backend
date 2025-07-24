@@ -563,7 +563,7 @@ def test_clean_historic_recipients(database, monkeypatch):
     update_historical_duns.run_sam_batches(recipient_file, sess, block_size=1)
     update_historical_duns.import_historic_recipients(sess)
 
-    # update old DUNS as part of load_duns_exec_comp.py
+    # update old DUNS as part of load_sam_recipient.py
     updated_duns = sess.query(SAMRecipient).filter(SAMRecipient.awardee_or_recipient_uniqu == "000000002").one()
     updated_duns.historic = False
     sess.commit()

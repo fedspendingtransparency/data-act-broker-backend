@@ -721,7 +721,7 @@ def request_sam_entity_api(filters, download_url=None):
     }
     if not filters:
         filters = {}
-    url = download_url if download_url else CONFIG_BROKER["sam"]["duns"]["entity_api_url"]
+    url = download_url if download_url else CONFIG_BROKER["sam"]["recipient"]["entity_api_url"]
     return _request_sam_api(url, request_type="post", headers=headers, params=filters)
 
 
@@ -738,7 +738,7 @@ def request_sam_iqaas_uei_api(filters):
     if not filters:
         filters = {}
     params.update(filters)
-    return _request_sam_api(CONFIG_BROKER["sam"]["duns"]["uei_iqaas_api_url"], request_type="get", params=params)
+    return _request_sam_api(CONFIG_BROKER["sam"]["recipient"]["uei_iqaas_api_url"], request_type="get", params=params)
 
 
 def request_sam_extracts_api(root_dir, file_name):
@@ -757,7 +757,7 @@ def request_sam_extracts_api(root_dir, file_name):
         "Content-Type": "application/json",
     }
     resp = _request_sam_api(
-        CONFIG_BROKER["sam"]["duns"]["csv_api_url"], request_type="get", headers=headers, params=params
+        CONFIG_BROKER["sam"]["recipient"]["csv_api_url"], request_type="get", headers=headers, params=params
     )
     open(local_sam_file, "wb").write(resp.content)
 
