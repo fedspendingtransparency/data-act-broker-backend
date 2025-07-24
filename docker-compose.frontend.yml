@@ -7,7 +7,8 @@ services:
       context: ./../data-act-broker-web-app/
     depends_on: 
       - dataact-broker-backend
-    command: npm run start
+    command: /bin/sh -x -c "npm install webpack-cli@5.2.0; npm run start"
+    working_dir: /data-act/frontend
     restart: on-failure:3 # 3 max attempt, and then it will stop restarting
     environment:
       BROKER_API: http://localhost:9999/v1/
