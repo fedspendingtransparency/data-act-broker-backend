@@ -121,6 +121,9 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
         base_path: directory of domain config files
         force_reload: whether or not to force a reload
         export: whether or not to export a public copy of the file
+
+    Returns:
+        exit code for nightly runs to indicate skipped, failed, etc. or None
     """
     now = datetime.datetime.now()
     metrics_json = {
@@ -152,14 +155,12 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
                 raw_data = pd.read_csv(program_activity_file, dtype=str, na_filter=False)
             except pd.errors.EmptyDataError:
                 log_blank_file()
-                exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
-                return
+                return 4 # exit code chosen arbitrarily, to indicate distinct failure states
             headers = set([header.upper() for header in list(raw_data)])
 
             if not VALID_HEADERS.issubset(headers):
                 logger.error("Missing required headers. Required headers include: %s" % str(VALID_HEADERS))
-                exit_if_nonlocal(4)
-                return
+                return 4
 
             try:
                 dropped_count, data = clean_data(
@@ -185,15 +186,13 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
             except FailureThresholdExceededError as e:
                 if e.count == 0:
                     log_blank_file()
-                    exit_if_nonlocal(4)
-                    return
+                    return 4
                 else:
                     logger.error(
                         "Loading of program activity file failed due to exceeded failure threshold. "
                         "Application tried to drop {} rows".format(e.count)
                     )
-                    exit_if_nonlocal(5)
-                    return
+                    return 5
 
             metrics_json["records_deleted"] = sess.query(ProgramActivity).delete()
             metrics_json["invalid_records_dropped"] = dropped_count
@@ -233,11 +232,10 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
         json.dump(metrics_json, metrics_file)
 
     if skipped:
-        exit_if_nonlocal(6)
+        return 6
 
     if dropped_count > 0:
-        exit_if_nonlocal(3)
-        return
+        return 3
 
 
 def lowercase_or_notify(x):
@@ -292,4 +290,6 @@ if __name__ == "__main__":
 
     config_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
 
-    load_program_activity_data(config_path, force_reload=args.force, export=args.export)
+    exit_code = load_program_activity_data(config_path, force_reload=args.force, export=args.export)
+    if exit_code is not None:
+        exit_if_nonlocal(exit_code)
