@@ -53,10 +53,10 @@ def query_data(session, agency_code, period, year):
         The rows using the provided dates for the given agency.
     """
     # Get the submission ID to compare to
-    submission_query = session.query(Submission.submission_id).filter_by(
-        reporting_fiscal_year=year,
-        reporting_fiscal_period=period,
-        publish_status_id__in=[PUBLISH_STATUS_DICT["published"], PUBLISH_STATUS_DICT["updated"]],
+    submission_query = session.query(Submission.submission_id).filter(
+        Submission.reporting_fiscal_year == year,
+        Submission.reporting_fiscal_period == period,
+        Submission.publish_status_id.in_([PUBLISH_STATUS_DICT["published"], PUBLISH_STATUS_DICT["updated"]]),
     )
     if len(agency_code) == 3:
         submission_query = submission_query.filter_by(cgac_code=agency_code)
