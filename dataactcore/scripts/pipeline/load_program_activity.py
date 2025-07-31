@@ -155,7 +155,7 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
                 raw_data = pd.read_csv(program_activity_file, dtype=str, na_filter=False)
             except pd.errors.EmptyDataError:
                 log_blank_file()
-                return 4 # exit code chosen arbitrarily, to indicate distinct failure states
+                return 4  # exit code chosen arbitrarily, to indicate distinct failure states
             headers = set([header.upper() for header in list(raw_data)])
 
             if not VALID_HEADERS.issubset(headers):

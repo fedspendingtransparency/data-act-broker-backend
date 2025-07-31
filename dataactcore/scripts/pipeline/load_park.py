@@ -128,7 +128,7 @@ def load_park_data(base_path, force_reload=False, export=False):
                 raw_data = pd.read_csv(park_file, dtype=str, na_filter=False)
             except pd.errors.EmptyDataError:
                 log_blank_file()
-                return 4 # exit code chosen arbitrarily, to indicate distinct failure states
+                return 4  # exit code chosen arbitrarily, to indicate distinct failure states
 
             data = clean_data(
                 raw_data,
