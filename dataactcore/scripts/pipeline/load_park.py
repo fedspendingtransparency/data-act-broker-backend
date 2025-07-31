@@ -109,8 +109,10 @@ def load_park_data(base_path, force_reload=False, export=False):
 
     logger.info("Checking PARK upload dates to see if we can skip.")
     last_upload = get_date_of_current_park_upload(base_path)
+    skipped = False
     if not (last_upload > get_stored_park_last_upload()) and not force_reload:
         logger.info("Skipping load as it's already been done")
+        skipped = True
     else:
         logger.info("Getting the PARK file")
         park_file = get_park_file(base_path)
@@ -167,6 +169,9 @@ def load_park_data(base_path, force_reload=False, export=False):
 
     with open("load_park_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
+
+    if skipped:
+        exit_if_nonlocal(6)
 
 
 if __name__ == "__main__":

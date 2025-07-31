@@ -136,8 +136,10 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
 
     logger.info("Checking PA upload dates to see if we can skip.")
     last_upload = get_date_of_current_pa_upload(base_path)
+    skipped = False
     if not (last_upload > get_stored_pa_last_upload()) and not force_reload:
         logger.info("Skipping load as it's already been done")
+        skipped = True
     else:
         logger.info("Getting the progrma activity file")
         program_activity_file = get_program_activity_file(base_path)
@@ -229,6 +231,9 @@ def load_program_activity_data(base_path, force_reload=False, export=False):
 
     with open("load_program_activity_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
+
+    if skipped:
+        exit_if_nonlocal(6)
 
     if dropped_count > 0:
         exit_if_nonlocal(3)
