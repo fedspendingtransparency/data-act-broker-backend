@@ -1,7 +1,6 @@
 from io import StringIO
 from unittest.mock import patch
 import datetime
-import pytest
 import os
 
 from dataactcore.scripts.pipeline import load_program_activity
@@ -192,10 +191,9 @@ def test_load_program_activity_data_only_header(
     mocked_get_stored_date.return_value = datetime.datetime(2016, 12, 31, 0, 0, 0)
     mocked_set_stored_date.return_value = None
 
-    with pytest.raises(SystemExit) as se:
-        load_program_activity.load_program_activity_data("some_path")
+    exitcode = load_program_activity.load_program_activity_data("some_path")
 
-    assert se.value.code == 4
+    assert exitcode == 4
 
     remove_metrics_file()
 
@@ -219,10 +217,9 @@ def test_load_program_activity_data_no_header(
     mocked_get_stored_date.return_value = datetime.datetime(2016, 12, 31, 0, 0, 0)
     mocked_set_stored_date.return_value = None
 
-    with pytest.raises(SystemExit) as se:
-        load_program_activity.load_program_activity_data("some_path")
+    exitcode = load_program_activity.load_program_activity_data("some_path")
 
-    assert se.value.code == 4
+    assert exitcode == 4
 
     remove_metrics_file()
 
@@ -244,9 +241,8 @@ def test_load_program_activity_data_empty_file(
     mocked_get_stored_date.return_value = datetime.datetime(2016, 12, 31, 0, 0, 0)
     mocked_set_stored_date.return_value = None
 
-    with pytest.raises(SystemExit) as se:
-        load_program_activity.load_program_activity_data("some_path")
+    exitcode = load_program_activity.load_program_activity_data("some_path")
 
-    assert se.value.code == 4
+    assert exitcode == 4
 
     remove_metrics_file()

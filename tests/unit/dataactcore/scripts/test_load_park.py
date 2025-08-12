@@ -223,9 +223,8 @@ def test_load_park_data_empty_file(
     mocked_get_stored_date.return_value = datetime.datetime(2016, 12, 31, 0, 0, 0)
     mocked_set_stored_date.return_value = None
 
-    with pytest.raises(SystemExit) as se:
-        load_park.load_park_data("some_path")
+    exitcode = load_park.load_park_data("some_path")
 
-    assert se.value.code == 4
+    assert exitcode == 4
 
     remove_metrics_file()
