@@ -103,14 +103,19 @@ def load_park_data(base_path, force_reload=False, export=False):
         base_path: directory of domain config files
         force_reload: whether to force a reload
         export: whether to export a public copy of the file
+
+    Returns:
+        exit code for nightly runs to indicate skipped, failed, etc. or None
     """
     now = datetime.datetime.now()
     metrics_json = {"script_name": "load_park.py", "start_time": str(now), "records_deleted": 0, "records_inserted": 0}
 
     logger.info("Checking PARK upload dates to see if we can skip.")
     last_upload = get_date_of_current_park_upload(base_path)
+    skipped = False
     if not (last_upload > get_stored_park_last_upload()) and not force_reload:
         logger.info("Skipping load as it's already been done")
+        skipped = True
     else:
         logger.info("Getting the PARK file")
         park_file = get_park_file(base_path)
@@ -123,8 +128,7 @@ def load_park_data(base_path, force_reload=False, export=False):
                 raw_data = pd.read_csv(park_file, dtype=str, na_filter=False)
             except pd.errors.EmptyDataError:
                 log_blank_file()
-                exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
-                return
+                return 4  # exit code chosen arbitrarily, to indicate distinct failure states
 
             data = clean_data(
                 raw_data,
@@ -168,6 +172,9 @@ def load_park_data(base_path, force_reload=False, export=False):
     with open("load_park_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
 
+    if skipped:
+        return 6
+
 
 if __name__ == "__main__":
     configure_logging()
@@ -180,4 +187,6 @@ if __name__ == "__main__":
 
     config_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
 
-    load_park_data(config_path, force_reload=args.force, export=args.export)
+    exit_code = load_park_data(config_path, force_reload=args.force, export=args.export)
+    if exit_code is not None:
+        exit_if_nonlocal(exit_code)
