@@ -49,7 +49,6 @@ runs:
         --cov=dataactcore
         --cov=dataactvalidator
         --cov-report term
-        --cov-report xml:{cov_report_name}
         --dist worksteal
         --durations 50
         --numprocesses {num_processes}
@@ -61,7 +60,6 @@ runs:
         {ignore_glob}
         ".format(
         db_state=os.environ["DB_STATE"],
-        cov_report_name=os.environ["COV_REPORT_NAME"],
         ignore_glob="--ignore-glob=\"{}\"".format(os.environ["IGNORE_GLOB"]) if os.environ.get("IGNORE_GLOB") else "",
         include_glob=os.environ["INCLUDE_GLOB"],
         keyword="-k \"{}\"".format(os.environ["KEYWORD"]) if os.environ.get("KEYWORD") else "",
