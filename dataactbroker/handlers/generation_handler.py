@@ -183,10 +183,12 @@ def generate_detached_file(
         # Check for published submission and BOC data in the provided year/period
         if file_type == "BOC":
             sess = GlobalDB.db().session
-            submission_query = sess.query(Submission).filter_by(
-                reporting_fiscal_year=year,
-                reporting_fiscal_period=period,
-                publish_status_id=lookups.PUBLISH_STATUS_DICT["published"],
+            submission_query = sess.query(Submission).filter(
+                Submission.reporting_fiscal_year == year,
+                Submission.reporting_fiscal_period == period,
+                Submission.publish_status_id.in_(
+                    [lookups.PUBLISH_STATUS_DICT["published"], lookups.PUBLISH_STATUS_DICT["updated"]]
+                ),
             )
             if cgac_code:
                 submission_query = submission_query.filter_by(cgac_code=cgac_code)
