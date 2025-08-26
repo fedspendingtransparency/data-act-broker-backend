@@ -14,6 +14,7 @@ def test_column_headers(database):
         "ussgl487200_downward_adjus_cpe",
         "ussgl497100_downward_adjus_cpe",
         "ussgl497200_downward_adjus_cpe",
+        "ussgl497210_down_adj_refun_cpe",
         "difference",
         "uniqueid_TAS",
         "uniqueid_PIID",
@@ -31,12 +32,14 @@ def test_success(database):
     value_two = Decimal("102.34")
     value_three = Decimal("103.45")
     value_four = Decimal("104.56")
+    value_five = Decimal("105.67")
     award_fin = AwardFinancialFactory(
-        deobligations_recov_by_awa_cpe=value_one + value_two + value_three + value_four,
+        deobligations_recov_by_awa_cpe=value_one + value_two + value_three + value_four + value_five,
         ussgl487100_downward_adjus_cpe=value_one,
         ussgl487200_downward_adjus_cpe=value_two,
         ussgl497100_downward_adjus_cpe=value_three,
         ussgl497200_downward_adjus_cpe=value_four,
+        ussgl497210_down_adj_refun_cpe=value_five,
     )
     # Ignore if something is null
     award_fin_null = AwardFinancialFactory(
@@ -45,6 +48,7 @@ def test_success(database):
         ussgl487200_downward_adjus_cpe=value_one,
         ussgl497100_downward_adjus_cpe=value_two,
         ussgl497200_downward_adjus_cpe=value_three,
+        ussgl497210_down_adj_refun_cpe=value_five,
     )
 
     assert number_of_errors(_FILE, database, models=[award_fin, award_fin_null]) == 0
@@ -60,6 +64,7 @@ def test_failure(database):
         ussgl487200_downward_adjus_cpe=value_two,
         ussgl497100_downward_adjus_cpe=value_two,
         ussgl497200_downward_adjus_cpe=value_two,
+        ussgl497210_down_adj_refun_cpe=value_two,
     )
 
     assert number_of_errors(_FILE, database, models=[award_fin]) == 1

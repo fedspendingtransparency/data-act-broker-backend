@@ -14,6 +14,7 @@ def test_column_headers(database):
         "ussgl487200_downward_adjus_cpe",
         "ussgl497100_downward_adjus_cpe",
         "ussgl497200_downward_adjus_cpe",
+        "ussgl497210_down_adj_refun_cpe",
         "difference",
         "uniqueid_TAS",
         "uniqueid_DisasterEmergencyFundCode",
@@ -30,11 +31,12 @@ def test_success(database):
     """
 
     op = ObjectClassProgramActivityFactory(
-        deobligations_recov_by_pro_cpe=4,
+        deobligations_recov_by_pro_cpe=5,
         ussgl487100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1,
         ussgl497100_downward_adjus_cpe=1,
         ussgl497200_downward_adjus_cpe=1,
+        ussgl497210_down_adj_refun_cpe=1,
         prior_year_adjustment="X",
     )
     # Null check
@@ -44,6 +46,7 @@ def test_success(database):
         ussgl487200_downward_adjus_cpe=None,
         ussgl497100_downward_adjus_cpe=None,
         ussgl497200_downward_adjus_cpe=None,
+        ussgl497210_down_adj_refun_cpe=None,
         prior_year_adjustment="x",
     )
     # Different values, Different PYA
@@ -53,6 +56,7 @@ def test_success(database):
         ussgl487200_downward_adjus_cpe=1,
         ussgl497100_downward_adjus_cpe=1,
         ussgl497200_downward_adjus_cpe=1,
+        ussgl497210_down_adj_refun_cpe=1,
         prior_year_adjustment="A",
     )
 
@@ -65,11 +69,12 @@ def test_failure(database):
     """
 
     op = ObjectClassProgramActivityFactory(
-        deobligations_recov_by_pro_cpe=1,
+        deobligations_recov_by_pro_cpe=4,
         ussgl487100_downward_adjus_cpe=1,
         ussgl487200_downward_adjus_cpe=1,
         ussgl497100_downward_adjus_cpe=1,
         ussgl497200_downward_adjus_cpe=1,
+        ussgl497210_down_adj_refun_cpe=1,
         prior_year_adjustment="X",
     )
 
@@ -79,6 +84,7 @@ def test_failure(database):
         ussgl487200_downward_adjus_cpe=None,
         ussgl497100_downward_adjus_cpe=None,
         ussgl497200_downward_adjus_cpe=None,
+        ussgl497210_down_adj_refun_cpe=None,
         prior_year_adjustment="x",
     )
 
