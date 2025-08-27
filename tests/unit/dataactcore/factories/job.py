@@ -7,6 +7,15 @@ from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
+class PublishStatusFactory(factory.Factory):
+    class Meta:
+        model = jobModels.PublishStatus
+
+    publish_status_id = None
+    name = fuzzy.FuzzyText()
+    description = fuzzy.FuzzyText()
+
+
 class SubmissionFactory(factory.Factory):
     class Meta:
         model = jobModels.Submission

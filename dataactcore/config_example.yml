@@ -124,6 +124,27 @@ broker:
             bucket_name: example
             bucket_prefix: example
 
+    usps:
+        # Username and password for USPS account
+        username: 'username'
+        password: 'password'
+
+        # USPS API endpoints to access
+        login: 'https://epf.usps.gov/up/api/v2/epf/login'
+        files: 'https://epf.usps.gov/up/api/v2/download/dnldlist'
+        download: 'https://epf.usps.gov/up/api/v2/download/epf/{fileId}'
+        logout: 'https://epf.usps.gov/up/api/v2/epf/logout'
+
+        # Specific Product information from USPS
+        product_id: 'ID'
+        product_code: 'CODE'
+
+        # Zip file passwords to access encrypted files
+        zip4:
+            password: 'password'
+        citystate:
+            password: 'password'
+
     # CAIA login
     caia:
         url_root: https://caia.treasury.gov
