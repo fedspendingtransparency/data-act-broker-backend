@@ -21,18 +21,24 @@ def test_success(database):
     Agreements (AssistanceType = 02, 03, 04, and 05).
     """
     fabs_1 = FABSFactory(
-        period_of_performance_star="20120724", period_of_performance_curr="20120724", assistance_type='02',
-        correction_delete_indicatr="c"
+        period_of_performance_star="20120724",
+        period_of_performance_curr="20120724",
+        assistance_type="02",
+        correction_delete_indicatr="c",
     )
     # Ignore with different assistance type
     fabs_2 = FABSFactory(
-        period_of_performance_star="20120724", period_of_performance_curr="20120724", assistance_type='01',
-        correction_delete_indicatr="c"
+        period_of_performance_star="20120724",
+        period_of_performance_curr="20120724",
+        assistance_type="01",
+        correction_delete_indicatr="c",
     )
     # Ignore correction delete indicator of D
     fabs_3 = FABSFactory(
-        period_of_performance_star=None, period_of_performance_curr=None, assistance_type='03',
-        correction_delete_indicatr="d"
+        period_of_performance_star=None,
+        period_of_performance_curr=None,
+        assistance_type="03",
+        correction_delete_indicatr="d",
     )
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3])
@@ -44,16 +50,22 @@ def test_failure(database):
     Agreements (AssistanceType = 02, 03, 04, and 05).
     """
     fabs_1 = FABSFactory(
-        period_of_performance_star='', period_of_performance_curr=None, assistance_type='03',
-        correction_delete_indicatr="c"
+        period_of_performance_star="",
+        period_of_performance_curr=None,
+        assistance_type="03",
+        correction_delete_indicatr="c",
     )
     fabs_2 = FABSFactory(
-        period_of_performance_star='', period_of_performance_curr="20120724", assistance_type='04',
-        correction_delete_indicatr="c"
+        period_of_performance_star="",
+        period_of_performance_curr="20120724",
+        assistance_type="04",
+        correction_delete_indicatr="c",
     )
     fabs_3 = FABSFactory(
-        period_of_performance_star='20120724', period_of_performance_curr=None, assistance_type='05',
-        correction_delete_indicatr="c"
+        period_of_performance_star="20120724",
+        period_of_performance_curr=None,
+        assistance_type="05",
+        correction_delete_indicatr="c",
     )
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3])
