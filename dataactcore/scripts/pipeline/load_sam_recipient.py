@@ -324,7 +324,12 @@ def process_sam_extract_file(data_type, period, version, date, sess, local=None,
         if delete_data is not None:
             update_sam_recipient(sess, delete_data, metrics=metrics, deletes=True, includes_uei=includes_uei)
     else:
-        exec_comp_data = parse_exec_comp_file(file_path, metrics=metrics)
+        try:
+            exec_comp_data = parse_exec_comp_file(file_path, metrics=metrics)
+        except Exception as e:
+            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            s3.upload_file('/tmp/SAM_EXECCOMP_UTF-8_DAILY_V2_20250830.ZIP', 'dti-sam-sftp-exports-prod', 'SAM_EXECCOMP_UTF-8_DAILY_V2_20250830.ZIP')
+            raise e
         update_sam_recipient(sess, exec_comp_data, metrics=metrics, includes_uei=includes_uei)
     if not local:
         os.remove(file_path)
