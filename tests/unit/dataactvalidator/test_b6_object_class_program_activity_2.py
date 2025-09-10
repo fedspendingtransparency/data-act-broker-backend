@@ -11,6 +11,7 @@ def test_column_headers(database):
         "prior_year_adjustment",
         "gross_outlays_undelivered_cpe",
         "ussgl480200_undelivered_or_cpe",
+        "ussgl480210_rein_undel_obs_cpe",
         "ussgl483200_undelivered_or_cpe",
         "ussgl488200_upward_adjustm_cpe",
         "difference",
@@ -31,8 +32,9 @@ def test_success(database):
     """
 
     op = ObjectClassProgramActivityFactory(
-        gross_outlays_undelivered_cpe=3,
+        gross_outlays_undelivered_cpe=4,
         ussgl480200_undelivered_or_cpe=1,
+        ussgl480210_rein_undel_obs_cpe=1,
         ussgl483200_undelivered_or_cpe=1,
         ussgl488200_upward_adjustm_cpe=1,
         prior_year_adjustment="X",
@@ -41,6 +43,7 @@ def test_success(database):
     op2 = ObjectClassProgramActivityFactory(
         gross_outlays_undelivered_cpe=0,
         ussgl480200_undelivered_or_cpe=1,
+        ussgl480210_rein_undel_obs_cpe=1,
         ussgl483200_undelivered_or_cpe=1,
         ussgl488200_upward_adjustm_cpe=1,
         prior_year_adjustment="A",
@@ -55,8 +58,9 @@ def test_failure(database):
     """
 
     op = ObjectClassProgramActivityFactory(
-        gross_outlays_undelivered_cpe=1,
+        gross_outlays_undelivered_cpe=3,
         ussgl480200_undelivered_or_cpe=1,
+        ussgl480210_rein_undel_obs_cpe=1,
         ussgl483200_undelivered_or_cpe=1,
         ussgl488200_upward_adjustm_cpe=1,
         prior_year_adjustment="x",
