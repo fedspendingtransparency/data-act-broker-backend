@@ -10,6 +10,7 @@ def test_column_headers(database):
         "row_number",
         "gross_outlays_undelivered_cpe",
         "ussgl480200_undelivered_or_cpe",
+        "ussgl480210_rein_undel_obs_cpe",
         "ussgl483200_undelivered_or_cpe",
         "ussgl488200_upward_adjustm_cpe",
         "difference",
@@ -30,15 +31,18 @@ def test_success(database):
     value_one = Decimal("101.23")
     value_two = Decimal("102.34")
     value_three = Decimal("103.45")
+    value_four = Decimal("104.56")
     award_fin = AwardFinancialFactory(
-        gross_outlays_undelivered_cpe=value_one + value_two + value_three,
+        gross_outlays_undelivered_cpe=value_one + value_two + value_three + value_four,
         ussgl480200_undelivered_or_cpe=value_one,
+        ussgl480210_rein_undel_obs_cpe=value_four,
         ussgl483200_undelivered_or_cpe=value_two,
         ussgl488200_upward_adjustm_cpe=value_three,
     )
     award_fin_null = AwardFinancialFactory(
         gross_outlays_undelivered_cpe=value_one,
         ussgl480200_undelivered_or_cpe=None,
+        ussgl480210_rein_undel_obs_cpe=None,
         ussgl483200_undelivered_or_cpe=None,
         ussgl488200_upward_adjustm_cpe=value_one,
     )
@@ -53,6 +57,7 @@ def test_failure(database):
     award_fin = AwardFinancialFactory(
         gross_outlays_undelivered_cpe=value_one,
         ussgl480200_undelivered_or_cpe=value_two,
+        ussgl480210_rein_undel_obs_cpe=value_two,
         ussgl483200_undelivered_or_cpe=value_two,
         ussgl488200_upward_adjustm_cpe=value_two,
     )

@@ -8,10 +8,12 @@ SELECT
     ussgl487200_downward_adjus_cpe,
     ussgl497100_downward_adjus_cpe,
     ussgl497200_downward_adjus_cpe,
+    ussgl497210_down_adj_refun_cpe,
     COALESCE(deobligations_recov_by_pro_cpe, 0) - (COALESCE(ussgl487100_downward_adjus_cpe, 0) +
                                                    COALESCE(ussgl487200_downward_adjus_cpe, 0) +
                                                    COALESCE(ussgl497100_downward_adjus_cpe, 0) +
-                                                   COALESCE(ussgl497200_downward_adjus_cpe, 0)) AS "difference",
+                                                   COALESCE(ussgl497200_downward_adjus_cpe, 0) +
+                                                   COALESCE(ussgl497210_down_adj_refun_cpe, 0)) AS "difference",
     display_tas AS "uniqueid_TAS",
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
     program_activity_code AS "uniqueid_ProgramActivityCode",
@@ -23,4 +25,5 @@ WHERE submission_id = {0}
         COALESCE(ussgl487100_downward_adjus_cpe, 0) +
         COALESCE(ussgl487200_downward_adjus_cpe, 0) +
         COALESCE(ussgl497100_downward_adjus_cpe, 0) +
-        COALESCE(ussgl497200_downward_adjus_cpe, 0);
+        COALESCE(ussgl497200_downward_adjus_cpe, 0) +
+        COALESCE(ussgl497210_down_adj_refun_cpe, 0);
