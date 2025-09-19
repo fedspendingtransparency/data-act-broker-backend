@@ -32,6 +32,7 @@ jobs:
           include-glob: 'test_*.py *_test.py *Tests.py *tests.py'
           working-directory: ./data-act-broker-backend
           db-state: ''
+          num-processes: 1
 
       - name: Shutdown docker
         working-directory: ./data-act-broker-backend
