@@ -1,6 +1,6 @@
 -- File B (object class program activity): GrossOutlayAmountByProgramObjectClass_FYB =
--- GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB + GrossOutlaysDeliveredOrdersPaidTotal_FYB
--- for the same TAS/DEFC combination where PYA = "X".
+-- GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB + GrossOutlaysDeliveredOrdersPaidTotal_FYB. This applies to the unique
+-- combination defined in Rule B19 where PYA = "X".
 SELECT
     row_number,
     prior_year_adjustment,

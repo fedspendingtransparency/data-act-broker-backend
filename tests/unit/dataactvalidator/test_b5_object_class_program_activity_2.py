@@ -23,7 +23,7 @@ def test_column_headers(database):
 
 def test_success(database):
     """Tests that Object Class Program activity gross_outlays_delivered_or_cpe + gross_outlays_undelivered_cpe
-    equals gross_outlay_amount_by_pro_cpe for the same TAS/DEFC combination where PYA = "X".
+    equals gross_outlay_amount_by_pro_cpe for the unique Rule B19 combination where PYA = "X".
     """
 
     op = ObjectClassProgramActivityFactory(
@@ -49,7 +49,7 @@ def test_success(database):
 
 def test_failure(database):
     """Tests that Object Class Program activity gross_outlays_delivered_or_cpe + gross_outlays_undelivered_cpe
-    doesn't equal gross_outlay_amount_by_pro_cpe for the same TAS/DEFC combination where PYA = "X".
+    doesn't equal gross_outlay_amount_by_pro_cpe for the unique Rule B19 combination where PYA = "X".
     """
 
     op = ObjectClassProgramActivityFactory(

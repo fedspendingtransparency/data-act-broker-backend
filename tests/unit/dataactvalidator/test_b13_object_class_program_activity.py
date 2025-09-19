@@ -27,7 +27,7 @@ def test_column_headers(database):
 
 def test_success(database):
     """DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE in File B = USSGL(4871+ 4872 + 4971 + 4972)
-    in File B  for the same TAS/DEFC combination where PYA = "X".
+    in File B for the unique combination defined in Rule B19 where PYA = "X".
     """
 
     op = ObjectClassProgramActivityFactory(
@@ -65,7 +65,7 @@ def test_success(database):
 
 def test_failure(database):
     """DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE in File B != USSGL(4871+ 4872 + 4971 + 4972)
-    in File B for the same TAS/DEFC combination where PYA = "X".
+    in File B for the unique combination defined in Rule B19 where PYA = "X".
     """
 
     op = ObjectClassProgramActivityFactory(

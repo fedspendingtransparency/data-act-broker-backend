@@ -1,5 +1,5 @@
--- GrossOutlaysDeliveredOrdersPaidTotal (CPE)= USSGL(4902 + 4908 + 4982) for the same TAS/DEFC combination
--- where PYA = "X". This applies to the program activity and object class level.
+-- GrossOutlaysDeliveredOrdersPaidTotal (CPE)= USSGL(4902 + 4908 + 4982) for the unique combination defined in Rule B19
+-- where PYA = "X".
 SELECT
     row_number,
     prior_year_adjustment,

@@ -1,5 +1,5 @@
--- DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE in File B = USSGL(4871+ 4872 + 4971 + 4972)
--- in File B for the same reporting period and TAS and DEFC combination where PYA = "X".
+-- DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE in File B =USSGL(4871+ 4872 + 4971 + 4972 +
+-- 497210) in File B for the same reporting period for the unique combination defined in Rule B19 where PYA = "X".
 SELECT
     row_number,
     prior_year_adjustment,
