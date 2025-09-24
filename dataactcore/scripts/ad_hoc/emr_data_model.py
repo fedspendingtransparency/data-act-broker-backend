@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import pandas as pd
+from datetime import date, datetime
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
@@ -17,36 +18,59 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import *
 
 class ColumnType(ABC):
-    # @abstractmethod
-    pass
+    @abstractmethod
+    def __init__(self):
+        pass
+
 
 class Text(ColumnType):
-    pass
+    def __init__(self):
+        self.default = ''
+        self.type = str
 
 class Integer(ColumnType):
-    pass
+    def __init__(self):
+        self.default = 0
+        self.type = int
 
 class Double(ColumnType):
-    pass
+    def __init__(self):
+        self.default = 0.0
+        self.type = float
 
 class Boolean(ColumnType):
-    pass
+    def __init__(self):
+        self.default = False
+        self.type = bool
 
 class Array(ColumnType):
     def __init__(self, type):
         self.item_type = type
+        self.default = []
+        self.type = list
 
 class Date(ColumnType):
-    pass
+    def __init__(self, type):
+        self.default = date(1970, 1, 1)
+        self.type = date
 
 class DateTime(ColumnType):
-    pass
+    def __init__(self, type):
+        self.default = datetime(1970, 1, 1, 0, 0, 0)
+        self.type = datetime
 
-class Column(ABC):
-    @abstractmethod
-
-    def __init__(self, column_type: ColumnType, default: bool, nullable: bool, unique: bool):
+class Column():
+    def __init__(self, column_type: ColumnType, default=None, nullable: bool = True, unique: bool = False):
         self.column_type = column_type
+        if default is not None and not self.column_type.validate(default):
+            raise ValueError(f'Invalid default: {default}')
+        elif (default is not None) or nullable:
+            self.column_type.default = default
+        self.unique = unique
+
+    def validate(self, value):
+        # TODO: uniqueness check
+        return isinstance(value, self.column_type.type)
 
 
 class DeltaModel(ABC):
