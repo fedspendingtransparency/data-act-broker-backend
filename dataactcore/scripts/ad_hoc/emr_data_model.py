@@ -106,7 +106,7 @@ def setup_spark():
     return spark
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
     # spark = setup_spark()
 
     # setup hive connection with SQLAlchemy
