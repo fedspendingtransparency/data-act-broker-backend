@@ -1,6 +1,5 @@
--- ObligationsUndeliveredOrdersUnpaidTotal (CPE) = USSGL(4801 + 480110 + 4831 + 4881) for the same TAS/
--- Disaster Emergency Fund Code (DEFC) combination where PYA = "X". This applies to the program activity and
--- object class level.
+-- ObligationsUndeliveredOrdersUnpaidTotal (CPE) = USSGL(4801 + 480110 + 4831 + 4881) for the unique combination
+-- defined in Rule B19 where PYA = "X".
 SELECT
     row_number,
     prior_year_adjustment,
