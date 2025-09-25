@@ -5,77 +5,78 @@ from datetime import date, datetime
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 
-# AWSGlue
 from pyspark.sql import SparkSession
+from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
+                               DecimalType, NullType, TimeStampType)
 from delta.tables import DeltaTable
 from delta import *
 
-# pyHive
 import subprocess
 import sys
 from sqlalchemy import *
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import *
 
-class ColumnType(ABC):
-    @abstractmethod
-    def __init__(self):
-        pass
+# class ColumnType(ABC):
+#     @abstractmethod
+#     def __init__(self):
+#         pass
 
+# class Text(ColumnType):
+#     def __init__(self):
+#         self.default = ''
+#         self.type = str
+#
+# class Integer(ColumnType):
+#     def __init__(self):
+#         self.default = 0
+#         self.type = int
+#
+# class Double(ColumnType):
+#     def __init__(self):
+#         self.default = 0.0
+#         self.type = float
+#
+# class Boolean(ColumnType):
+#     def __init__(self):
+#         self.default = False
+#         self.type = bool
+#
+# class Array(ColumnType):
+#     def __init__(self, type):
+#         self.item_type = type
+#         self.default = []
+#         self.type = list
+#
+# class Date(ColumnType):
+#     def __init__(self, type):
+#         self.default = date(1970, 1, 1)
+#         self.type = date
+#
+# class DateTime(ColumnType):
+#     def __init__(self, type):
+#         self.default = datetime(1970, 1, 1, 0, 0, 0)
+#         self.type = datetime
+#
+# class Column():
+#     def __init__(self, column_type: ColumnType, default=None, nullable: bool = True, unique: bool = False):
+#         self.column_type = column_type
+#         if default is not None and not self.column_type.validate(default):
+#             raise ValueError(f'Invalid default: {default}')
+#         elif (default is not None) or nullable:
+#             self.column_type.default = default
+#         self.unique = unique
+#
+#     def validate(self, value):
+#         # TODO: uniqueness check
+#         return isinstance(value, self.column_type.type)
 
-class Text(ColumnType):
-    def __init__(self):
-        self.default = ''
-        self.type = str
+class
 
-class Integer(ColumnType):
-    def __init__(self):
-        self.default = 0
-        self.type = int
-
-class Double(ColumnType):
-    def __init__(self):
-        self.default = 0.0
-        self.type = float
-
-class Boolean(ColumnType):
-    def __init__(self):
-        self.default = False
-        self.type = bool
-
-class Array(ColumnType):
-    def __init__(self, type):
-        self.item_type = type
-        self.default = []
-        self.type = list
-
-class Date(ColumnType):
-    def __init__(self, type):
-        self.default = date(1970, 1, 1)
-        self.type = date
-
-class DateTime(ColumnType):
-    def __init__(self, type):
-        self.default = datetime(1970, 1, 1, 0, 0, 0)
-        self.type = datetime
-
-class Column():
-    def __init__(self, column_type: ColumnType, default=None, nullable: bool = True, unique: bool = False):
-        self.column_type = column_type
-        if default is not None and not self.column_type.validate(default):
-            raise ValueError(f'Invalid default: {default}')
-        elif (default is not None) or nullable:
-            self.column_type.default = default
-        self.unique = unique
-
-    def validate(self, value):
-        # TODO: uniqueness check
-        return isinstance(value, self.column_type.type)
-
-
-class DeltaModel(ABC):
+class DeltaModel(DeltaTable):
     def __init__(self, spark):
         self.spark = spark
+        super().__init__(spark)
 
     @property
     def bucket(self):
@@ -91,34 +92,41 @@ class DeltaModel(ABC):
     def table_name(self):
         pass
 
-    @abstractmethod
-    def to_dataframe(self):
-        pass
-
-    def create(self):
-        self.spark.createDataFrame()
-
-    def append(self, df):
-        df.write.format("delta").mode("append").option("mergeSchema", "true").save(self.table_path)
-
-    def overwrite(self, df):
-        df.write.format("delta").mode("overwrite").option("mergeSchema", "true").save(self.table_path)
-
+    def initialize_table(self):
+        return self.createIfNotExists(self.spark)\
+            .tableName(self.table_name)\
+            .location(self.table_path)\
+            .addColumns(self.schema)
 
 class DEFCDelta(DeltaModel):
     @property
     def table_name(self):
         return 'defc'
 
-    defc_id = Column(Integer)
-    code = Column(Text, nullable=False, unique=True)
-    public_laws = Column(Array(Text))
-    public_law_short_titles = Column(Array(Text))
-    group = Column(Text)
-    urls = Column(Array(Text))
-    is_valid = Column(Boolean, nullable=False)
-    earliest_pl_action_date = Column(DateTime)
+    # defc_id = Column(Integer)
+    # code = Column(Text, nullable=False, unique=True)
+    # public_laws = Column(Array(Text))
+    # public_law_short_titles = Column(Array(Text))
+    # group = Column(Text)
+    # urls = Column(Array(Text))
+    # is_valid = Column(Boolean, nullable=False)
+    # earliest_pl_action_date = Column(DateTime)
 
+    @property
+    def unique_constraints(self):
+        return [('code')]
+
+    @property
+    def schema(self):
+        return StructType([
+            StructField("defc_id", IntegerType(), True),
+            StructField("code", StringType(), False),
+            StructField("public_laws", ArrayType(StringType()), True),
+            StructField("group", StringType(), True),
+            StructField("urls", ArrayType(StringType()), False),
+            StructField("is_valid", BooleanType(), True),
+            StructField("is_valid", TimeStampType(), True),
+        ])
 
 def setup_spark():
     # Initialize SparkSession for AWS Glue
@@ -131,7 +139,7 @@ def setup_spark():
 
 
 if __name__ == "__main__":
-    # spark = setup_spark()
+    spark = setup_spark()
 
     # setup hive connection with SQLAlchemy
     # engine = create_engine('hive://localhost:10000/default')
@@ -139,9 +147,9 @@ if __name__ == "__main__":
     # get a dataframe from the existing postgres as sample data
     sess = GlobalDB.db().session
     defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
-    print(defc_df)
 
     # print('create delta table')
+    defc_delta_table = DEFCDelta(spark=spark).initialize_table()
 
     # print('populating it with two rows')
     # employees_data = spark.createDataFrame([(101, "Alice", "alice@example.com", "IT")],
