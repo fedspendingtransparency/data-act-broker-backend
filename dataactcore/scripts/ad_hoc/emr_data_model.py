@@ -74,7 +74,7 @@ from sqlalchemy.schema import *
 class DeltaModel(DeltaTable):
     def __init__(self, spark):
         self.spark = spark
-        super().__init__(spark)
+        super().__init__(spark, self.table_path)
 
     @property
     def s3_bucket(self):
