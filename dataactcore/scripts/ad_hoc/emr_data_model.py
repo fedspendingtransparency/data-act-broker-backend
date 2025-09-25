@@ -137,7 +137,7 @@ class DEFCDelta(DeltaModel):
             StructField("group", StringType(), True),
             StructField("urls", ArrayType(StringType()), False),
             StructField("is_valid", BooleanType(), True),
-            StructField("is_valid", TimestampType(), True),
+            StructField("earliest_pl_action_date", TimestampType(), True),
         ])
 
 def setup_spark():
