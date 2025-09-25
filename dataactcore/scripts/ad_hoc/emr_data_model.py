@@ -7,7 +7,7 @@ from dataactcore.models.domainModels import DEFC
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
-                               DecimalType, NullType, TimeStampType)
+                               DecimalType, NullType, TimestampType)
 from delta.tables import DeltaTable
 from delta import *
 
@@ -136,7 +136,7 @@ class DEFCDelta(DeltaModel):
             StructField("group", StringType(), True),
             StructField("urls", ArrayType(StringType()), False),
             StructField("is_valid", BooleanType(), True),
-            StructField("is_valid", TimeStampType(), True),
+            StructField("is_valid", TimestampType(), True),
         ])
 
 def setup_spark():
