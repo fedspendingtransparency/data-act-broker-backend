@@ -71,21 +71,24 @@ from sqlalchemy.schema import *
 #         # TODO: uniqueness check
 #         return isinstance(value, self.column_type.type)
 
-class
-
 class DeltaModel(DeltaTable):
     def __init__(self, spark):
         self.spark = spark
         super().__init__(spark)
 
     @property
-    def bucket(self):
+    def s3_bucket(self):
         env = 'qat'
         return f'dti-broker-emr-{env}'
 
     @property
     def table_path(self):
-        return f's3://{self.bucket}/{self.schema}/{self.table_name}'
+        return f's3://{self.s3_bucket}/{self.bucket}/{self.schema}/{self.table_name}'
+
+    @property
+    @abstractmethod
+    def schema(self):
+        pass
 
     @property
     @abstractmethod
@@ -96,9 +99,17 @@ class DeltaModel(DeltaTable):
         return self.createIfNotExists(self.spark)\
             .tableName(self.table_name)\
             .location(self.table_path)\
-            .addColumns(self.schema)
+            .addColumns(self.structure)
 
 class DEFCDelta(DeltaModel):
+    @property
+    def bucket(self):
+        return 'reference'
+
+    @property
+    def schema(self):
+        return 'int'
+
     @property
     def table_name(self):
         return 'defc'
@@ -117,7 +128,7 @@ class DEFCDelta(DeltaModel):
         return [('code')]
 
     @property
-    def schema(self):
+    def structure(self):
         return StructType([
             StructField("defc_id", IntegerType(), True),
             StructField("code", StringType(), False),
