@@ -99,7 +99,8 @@ class DeltaModel(DeltaTable):
         return self.createIfNotExists(self.spark)\
             .tableName(self.table_name)\
             .location(self.table_path)\
-            .addColumns(self.structure)
+            .addColumns(self.structure)\
+            .execute()
 
 class DEFCDelta(DeltaModel):
     @property
