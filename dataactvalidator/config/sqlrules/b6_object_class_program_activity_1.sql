@@ -1,5 +1,5 @@
--- GrossOutlaysUndeliveredOrdersPrepaidTotal (FYB) = USSGL 4802 for the same TAS/DEFC combination where PYA = "X".
--- This applies to the program activity and object class level.
+-- GrossOutlaysUndeliveredOrdersPrepaidTotal (FYB) = USSGL 4802 for the unique combination defined in Rule B19 where
+-- PYA = "X". Note for FYB values, only 4802 is expected to have a balance other than zero.
 SELECT
     row_number,
     prior_year_adjustment,
