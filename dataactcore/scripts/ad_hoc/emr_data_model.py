@@ -144,11 +144,16 @@ def setup_spark():
     # Initialize SparkSession for AWS Glue
     spark = SparkSession.builder \
         .appName("GlueDeltaLakeJob") \
+        .enableHiveSupport() \
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
         .getOrCreate()
     return spark
 
+
+# TODO: DUCK DB POPULATION
+
+# TODO: POLARS POPULATION
 
 if __name__ == "__main__":
     spark = setup_spark()
