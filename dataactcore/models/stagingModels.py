@@ -1677,6 +1677,10 @@ class DetachedAwardProcurement(Base):
     source_selection_process = Column(Text)
     idv_type_of_set_aside = Column(Text)
     idv_number_of_offers_recie = Column(Text)
+    small_business_joint_venture = Column(Boolean)
+    ser_disabvet_own_bus_join_ven = Column(Boolean)
+    sba_cert_women_own_small_bus = Column(Boolean)
+    sba_cert_econ_disadv_wosb = Column(Boolean)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

@@ -1113,3 +1113,7 @@ class DetachedAwardProcurementFactory(factory.Factory):
     high_comp_officer4_amount = fuzzy.FuzzyText()
     high_comp_officer5_full_na = fuzzy.FuzzyText()
     high_comp_officer5_amount = fuzzy.FuzzyText()
+    small_business_joint_venture = fuzzy.FuzzyChoice([True, False])
+    ser_disabvet_own_bus_join_ven = fuzzy.FuzzyChoice([True, False])
+    sba_cert_women_own_small_bus = fuzzy.FuzzyChoice([True, False])
+    sba_cert_econ_disadv_wosb = fuzzy.FuzzyChoice([True, False])
