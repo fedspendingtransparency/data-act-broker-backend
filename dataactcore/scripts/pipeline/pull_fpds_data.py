@@ -970,11 +970,24 @@ def transaction_information_values(data, obj):
 
 def generic_values(data, obj):
     """Get values from the genericTags level of the xml"""
+    # genericStrings
     generic_strings_value_map = {"genericString01": "solicitation_date", "genericString06": "source_selection_process"}
 
     for key, value in generic_strings_value_map.items():
         try:
             obj[value] = extract_text(data["genericStrings"][key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # genericBooleans
+    generic_booleans_value_map = {"genericBoolean01": "small_business_joint_venture",
+                                 "genericBoolean02": "ser_disabvet_own_bus_join_ven",
+                                 "genericBoolean03": "sba_cert_women_own_small_bus",
+                                 "genericBoolean04": "sba_cert_econ_disadv_wosb"}
+
+    for key, value in generic_booleans_value_map.items():
+        try:
+            obj[value] = extract_text(data["genericBooleans"][key])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -1477,6 +1490,10 @@ def process_data(
         "other_not_for_profit_organ",
         "us_local_government",
         "self_cert_hub_zone_joint",
+        "small_business_joint_venture",
+        "ser_disabvet_own_bus_join_ven",
+        "sba_cert_women_own_small_bus",
+        "sba_cert_econ_disadv_wosb"
     ]
     for field in boolean_fields:
         if obj[field]:
