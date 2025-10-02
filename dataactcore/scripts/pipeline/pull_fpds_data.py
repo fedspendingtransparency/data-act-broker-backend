@@ -980,10 +980,12 @@ def generic_values(data, obj):
             obj[value] = None
 
     # genericBooleans
-    generic_booleans_value_map = {"genericBoolean01": "small_business_joint_venture",
-                                 "genericBoolean02": "ser_disabvet_own_bus_join_ven",
-                                 "genericBoolean03": "sba_cert_women_own_small_bus",
-                                 "genericBoolean04": "sba_cert_econ_disadv_wosb"}
+    generic_booleans_value_map = {
+        "genericBoolean01": "small_business_joint_venture",
+        "genericBoolean02": "ser_disabvet_own_bus_join_ven",
+        "genericBoolean03": "sba_cert_women_own_small_bus",
+        "genericBoolean04": "sba_cert_econ_disadv_wosb",
+    }
 
     for key, value in generic_booleans_value_map.items():
         try:
@@ -1493,7 +1495,7 @@ def process_data(
         "small_business_joint_venture",
         "ser_disabvet_own_bus_join_ven",
         "sba_cert_women_own_small_bus",
-        "sba_cert_econ_disadv_wosb"
+        "sba_cert_econ_disadv_wosb",
     ]
     for field in boolean_fields:
         if obj[field]:
