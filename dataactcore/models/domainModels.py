@@ -293,7 +293,7 @@ class SF133(Base):
     main_account_code = Column(Text, nullable=False)
     sub_account_code = Column(Text, nullable=False)
     tas = Column(Text, nullable=False, default=concat_tas, index=True)
-    display_tas = Column(Text, default=concat_display_tas)
+    display_tas = Column(Text, default=concat_display_tas, index=True)
     fiscal_year = Column(Integer, nullable=False, index=True)
     period = Column(Integer, nullable=False, index=True)
     line = Column(Integer, nullable=False)
