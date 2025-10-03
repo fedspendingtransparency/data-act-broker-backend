@@ -172,8 +172,9 @@ if __name__ == "__main__":
 
     # Creating the table with just deltalake
     s3_path = DEFCDelta.table_path
+    print(s3_path)
     write_deltalake(
-        s3_path,
+        DEFCDelta,
         defc_df,
         mode="append",  # or "overwrite"
     )
