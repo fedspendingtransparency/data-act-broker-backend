@@ -19,6 +19,8 @@ from sqlalchemy.schema import *
 
 from deltalake.writer import write_deltalake
 
+import polars as pl
+
 # class ColumnType(ABC):
 #     @abstractmethod
 #     def __init__(self):
@@ -164,17 +166,18 @@ if __name__ == "__main__":
 
     spark = setup_spark()
     defc_delta_table = DEFCDelta(spark=spark)
-    print('create delta table')
 
+    print('create delta table')
     # Creating the table with spark
     # TODO: Breaks due to AWS Glue
     # defc_delta_table.initialize_table()
 
     # Creating the table with just deltalake
     s3_path = DEFCDelta.table_path
+    defc_polars = pl.from_pandas(defc_df)
     write_deltalake(
         str(s3_path),
-        defc_df,
+        table_or_record_batch=defc_polars,
         mode="append",  # or "overwrite"
     )
 

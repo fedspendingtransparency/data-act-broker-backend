@@ -30,6 +30,7 @@ opentelemetry-instrumentation-wsgi==0.47b0
 opentelemetry-instrumentation-threading==0.47b0
 # Keeping pandas before 2.2.0 which requires SQLAlchemy to be 2.0.0
 pandas==2.1.4
+polars==1.34.0
 psutil==5.9.8
 pyhive[hive_pure_sasl]
 pyspark==4.0.0
