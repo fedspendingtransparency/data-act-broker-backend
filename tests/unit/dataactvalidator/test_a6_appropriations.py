@@ -27,7 +27,7 @@ def test_success(database):
 
     sf = SF133(
         line=1910,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -35,7 +35,7 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, total_budgetary_resources_cpe=1)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, total_budgetary_resources_cpe=1)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
@@ -44,7 +44,7 @@ def test_success(database):
 
     sf_1 = SF133(
         line=1910,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -55,7 +55,7 @@ def test_success(database):
     )
     sf_2 = SF133(
         line=1910,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=4,
@@ -64,7 +64,7 @@ def test_success(database):
         sub_account_code="000",
         disaster_emergency_fund_code="o",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, total_budgetary_resources_cpe=5)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, total_budgetary_resources_cpe=5)
 
     assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap]) == 0
 
@@ -77,7 +77,7 @@ def test_failure(database):
 
     sf = SF133(
         line=1910,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -85,6 +85,6 @@ def test_failure(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, total_budgetary_resources_cpe=0)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, total_budgetary_resources_cpe=0)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 1

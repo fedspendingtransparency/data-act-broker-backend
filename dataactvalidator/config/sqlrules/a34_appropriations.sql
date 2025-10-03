@@ -3,7 +3,6 @@
 WITH appropriation_a34_{0} AS
     (SELECT row_number,
         budget_authority_unobligat_fyb,
-        tas,
         display_tas,
         submission_id
     FROM appropriation
@@ -16,7 +15,7 @@ SELECT
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a34_{0} AS approp
     JOIN sf_133 AS sf
-        ON approp.tas = sf.tas
+        ON approp.display_tas = sf.display_tas
     JOIN submission AS sub
         ON approp.submission_id = sub.submission_id
         AND sf.period = 12

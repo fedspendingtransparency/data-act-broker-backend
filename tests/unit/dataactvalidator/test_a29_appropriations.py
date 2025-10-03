@@ -27,7 +27,7 @@ def test_success(database):
 
     sf_1 = SF133(
         line=1021,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -37,7 +37,7 @@ def test_success(database):
     )
     sf_2 = SF133(
         line=1033,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -45,7 +45,7 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, deobligations_recoveries_r_cpe=2)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, deobligations_recoveries_r_cpe=2)
 
     models = [sf_1, sf_2, ap]
 
@@ -60,7 +60,7 @@ def test_failure(database):
 
     sf_1 = SF133(
         line=1021,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -70,7 +70,7 @@ def test_failure(database):
     )
     sf_2 = SF133(
         line=1033,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -78,7 +78,7 @@ def test_failure(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, deobligations_recoveries_r_cpe=1)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, deobligations_recoveries_r_cpe=1)
 
     models = [sf_1, sf_2, ap]
 

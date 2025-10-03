@@ -2,7 +2,6 @@
 WITH appropriation_a9_{0} AS
     (SELECT row_number,
         contract_authority_amount_cpe,
-        tas,
         display_tas,
         submission_id
     FROM appropriation
@@ -15,7 +14,7 @@ SELECT
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a9_{0} AS approp
     INNER JOIN sf_133 AS sf
-        ON approp.tas = sf.tas
+        ON approp.display_tas = sf.display_tas
     INNER JOIN submission AS sub
         ON approp.submission_id = sub.submission_id
         AND sf.period = sub.reporting_fiscal_period
