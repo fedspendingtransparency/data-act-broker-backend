@@ -43,7 +43,7 @@ def test_success(database):
     # This uses the default submission created in utils for 10/2015 which is period 1 of FY 2016
     sf = SF133(
         line=2004,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=-15,
@@ -56,7 +56,7 @@ def test_success(database):
     op = ObjectClassProgramActivity(
         job_id=1,
         row_number=1,
-        tas=tas,
+        display_tas=tas,
         by_direct_reimbursable_fun="d",
         ussgl480100_undelivered_or_cpe=1,
         ussgl480100_undelivered_or_fyb=1,
@@ -78,7 +78,7 @@ def test_success(database):
     op2 = ObjectClassProgramActivity(
         job_id=1,
         row_number=2,
-        tas=tas,
+        display_tas=tas,
         by_direct_reimbursable_fun="d",
         ussgl480100_undelivered_or_cpe=2,
         ussgl480100_undelivered_or_fyb=2,
@@ -100,7 +100,7 @@ def test_success(database):
     op3 = ObjectClassProgramActivity(
         job_id=1,
         row_number=3,
-        tas=tas,
+        display_tas=tas,
         by_direct_reimbursable_fun="d",
         ussgl480100_undelivered_or_cpe=2,
         ussgl480100_undelivered_or_fyb=2,
@@ -129,7 +129,7 @@ def test_failure(database):
     tas = "".join([_TAS, "_failure"])
     sf = SF133(
         line=2004,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=5,
@@ -142,7 +142,7 @@ def test_failure(database):
     op = ObjectClassProgramActivity(
         job_id=1,
         row_number=1,
-        tas=tas,
+        display_tas=tas,
         by_direct_reimbursable_fun="d",
         ussgl480100_undelivered_or_cpe=1,
         ussgl480100_undelivered_or_fyb=1,
@@ -164,7 +164,7 @@ def test_failure(database):
     op2 = ObjectClassProgramActivity(
         job_id=1,
         row_number=2,
-        tas=tas,
+        display_tas=tas,
         by_direct_reimbursable_fun="d",
         ussgl480100_undelivered_or_cpe=2,
         ussgl480100_undelivered_or_fyb=2,
