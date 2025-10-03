@@ -17,6 +17,8 @@ from sqlalchemy import *
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import *
 
+from deltalake.writer import write_deltalake
+
 # class ColumnType(ABC):
 #     @abstractmethod
 #     def __init__(self):
@@ -156,17 +158,29 @@ def setup_spark():
 # TODO: POLARS POPULATION
 
 if __name__ == "__main__":
-    spark = setup_spark()
-
-    # setup hive connection with SQLAlchemy
-    # engine = create_engine('hive://localhost:10000/default')
-
     # get a dataframe from the existing postgres as sample data
     sess = GlobalDB.db().session
     defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
 
-    # print('create delta table')
-    defc_delta_table = DEFCDelta(spark=spark).initialize_table()
+    spark = setup_spark()
+    defc_delta_table = DEFCDelta(spark=spark)
+    print('create delta table')
+
+    # Creating the table with spark
+    # TODO: Breaks due to AWS Glue
+    # defc_delta_table.initialize_table()
+
+    # Creating the table with just deltalake
+    s3_path = DEFCDelta.table_path
+    write_deltalake(
+        s3_path,
+        defc_df,
+        mode="append",  # or "overwrite"
+    )
+
+
+    # setup hive connection with SQLAlchemy
+    # engine = create_engine('hive://localhost:10000/default')
 
     # print('populating it with two rows')
     # employees_data = spark.createDataFrame([(101, "Alice", "alice@example.com", "IT")],
