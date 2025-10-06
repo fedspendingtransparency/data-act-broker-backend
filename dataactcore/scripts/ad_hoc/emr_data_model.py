@@ -159,12 +159,17 @@ def setup_spark():
 
 # TODO: POLARS POPULATION
 
+# MINIO locally
+
+# Focus on streaming data instead of large memory
+
 if __name__ == "__main__":
     # get a dataframe from the existing postgres as sample data
     sess = GlobalDB.db().session
     defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
 
-    spark = setup_spark()
+    # spark = setup_spark()
+    spark = None
     defc_delta_table = DEFCDelta(spark=spark)
 
     print('create delta table')
@@ -180,7 +185,6 @@ if __name__ == "__main__":
         table_or_record_batch=defc_polars,
         mode="append",  # or "overwrite"
     )
-
 
     # setup hive connection with SQLAlchemy
     # engine = create_engine('hive://localhost:10000/default')

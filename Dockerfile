@@ -1,10 +1,11 @@
 FROM python:3.12
 
 RUN apt-get -y update
-RUN apt-get install -y gcc libpq-dev
+RUN apt-get install -y libpq-dev
 RUN apt-get install -y postgresql-client
 RUN apt-get install -y netcat-openbsd
 RUN apt-get install -y libsqlite3-dev
+RUN apt-get install -y build-essential
 
 RUN pip install unittest-xml-reporting setuptools==68.1.2
 
