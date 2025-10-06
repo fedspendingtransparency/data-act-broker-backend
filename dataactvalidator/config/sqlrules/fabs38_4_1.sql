@@ -12,7 +12,7 @@ WHERE submission_id = {0}
         SELECT 1
         FROM office
         WHERE UPPER(office.office_code) = UPPER(fabs.awarding_office_code)
-            AND office.financial_assistance_awards_office = TRUE
+            AND office.financial_assistance_awards_office IS TRUE
             AND office.effective_start_date <= cast_as_date(fabs.action_date)
 		    AND COALESCE(office.effective_end_date, NOW() + INTERVAL '1 year') > cast_as_date(fabs.action_date)
     )
