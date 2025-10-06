@@ -14,9 +14,9 @@ def test_success(database):
     """Test cases with different combinations of fain, uri, and piid"""
 
     # Test with only one present
-    award_fin_fain = AwardFinancialFactory(uri=None, piid='')
-    award_fin_uri = AwardFinancialFactory(fain='', piid=None)
-    award_fin_piid = AwardFinancialFactory(fain=None, uri='')
+    award_fin_fain = AwardFinancialFactory(uri=None, piid="")
+    award_fin_uri = AwardFinancialFactory(fain="", piid=None)
+    award_fin_piid = AwardFinancialFactory(fain=None, uri="")
     # Test with all three
     award_fin = AwardFinancialFactory()
     # Test with one missing
@@ -44,6 +44,6 @@ def test_success(database):
 
 def test_failure(database):
     """Test with fain, uri, and piid all absent"""
-    award_fin = AwardFinancialFactory(fain=None, uri='', piid=None)
+    award_fin = AwardFinancialFactory(fain=None, uri="", piid=None)
 
     assert number_of_errors(_FILE, database, models=[award_fin]) == 1
