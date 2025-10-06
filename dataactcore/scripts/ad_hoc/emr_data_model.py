@@ -87,7 +87,7 @@ class DeltaModel(DeltaTable):
 
     @property
     def table_path(self):
-        return f's3://{self.s3_bucket}/{self.bucket}/{self.schema}/{self.table_name}'
+        return f's3://{self.s3_bucket}/{self.bucket}/{self.schema}/{self.table_name}/'
 
     @property
     @abstractmethod
@@ -180,6 +180,8 @@ if __name__ == "__main__":
     # Creating the table with just deltalake
     s3_path = DEFCDelta.table_path
     defc_polars = pl.from_pandas(defc_df)
+    print(str(s3_path))
+    print(defc_polars)
     write_deltalake(
         str(s3_path),
         defc_polars,
