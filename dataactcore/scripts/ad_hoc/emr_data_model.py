@@ -186,13 +186,22 @@ if __name__ == "__main__":
     # print(defc_polars)
 
     # confirming we have aws access
-    s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
-    s3_resource.Object('dti-broker-emr-qat', 'test_file.txt').put(Body='test_file')
+    # s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
+    # s3_resource.Object('dti-broker-emr-qat', 'test_file.txt').put(Body='test_file')
+
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    # To get a "frozen" set of credentials (useful for passing to other clients)
+    frozen_credentials = credentials.get_frozen_credentials()
+    access_key = frozen_credentials.access_key
+    secret_key = frozen_credentials.secret_key
 
     write_deltalake(
         str(s3_path),
         defc_polars,
         mode="append",  # or "overwrite"
+        # We *have* AWS access, yet somehow they need the credentials again here
+        storage_options={"AWS_ACCESS_KEY_ID": access_key, "AWS_SECRET_ACCESS_KEY": secret_key}
     )
 
     # setup hive connection with SQLAlchemy
