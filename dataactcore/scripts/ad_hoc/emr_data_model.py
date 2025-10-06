@@ -1,3 +1,5 @@
+import boto3
+
 from abc import ABC, abstractmethod
 import pandas as pd
 from datetime import date, datetime
@@ -181,7 +183,12 @@ if __name__ == "__main__":
     s3_path = defc_delta_table.table_path
     defc_polars = pl.from_pandas(defc_df)
     print(str(s3_path))
-    print(defc_polars)
+    # print(defc_polars)
+
+    # confirming we have aws access
+    s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
+    s3_resource.Object('dti-broker-emr-qat', 'test_file.txt').put(Body='test_file')
+
     write_deltalake(
         str(s3_path),
         defc_polars,
