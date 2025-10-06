@@ -182,7 +182,7 @@ if __name__ == "__main__":
     defc_polars = pl.from_pandas(defc_df)
     write_deltalake(
         str(s3_path),
-        table_or_record_batch=defc_polars,
+        defc_df,
         mode="append",  # or "overwrite"
     )
 
