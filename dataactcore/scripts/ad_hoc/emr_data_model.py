@@ -201,7 +201,7 @@ if __name__ == "__main__":
         defc_polars,
         mode="append",  # or "overwrite"
         # We *have* AWS access, yet somehow they need the credentials again here
-        storage_options={"AWS_ACCESS_KEY_ID": access_key, "AWS_SECRET_ACCESS_KEY": secret_key}
+        storage_options={"AWS_ACCESS_KEY_ID": access_key, "AWS_SECRET_ACCESS_KEY": secret_key, "AWS_REGION": "us-gov-west-1"}
     )
 
     # setup hive connection with SQLAlchemy
