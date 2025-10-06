@@ -178,7 +178,7 @@ if __name__ == "__main__":
     # defc_delta_table.initialize_table()
 
     # Creating the table with just deltalake
-    s3_path = DEFCDelta.table_path
+    s3_path = defc_delta_table.table_path
     defc_polars = pl.from_pandas(defc_df)
     print(str(s3_path))
     print(defc_polars)
