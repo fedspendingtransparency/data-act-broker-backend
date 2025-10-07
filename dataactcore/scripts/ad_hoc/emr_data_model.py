@@ -155,6 +155,8 @@ class DEFCDelta(DeltaModel):
     @property
     def structure(self):
         # SQLAlchemy
+        # created_at = Column(DateTime)
+        # updated_at = Column(DateTime)
         # defc_id = Column(Integer)
         # code = Column(Text, nullable=False, unique=True)
         # public_laws = Column(Array(Text))
@@ -166,9 +168,12 @@ class DEFCDelta(DeltaModel):
 
         # Spark
         # return StructType([
+        #     StructField("created_at", TimestampType(), True),
+        #     StructField("updated_at", TimestampType(), True),
         #     StructField("defc_id", IntegerType(), True),
         #     StructField("code", StringType(), False),
         #     StructField("public_laws", ArrayType(StringType()), True),
+        #     StructField("public_law_short_titles", ArrayType(StringType()), True),
         #     StructField("group", StringType(), True),
         #     StructField("urls", ArrayType(StringType()), False),
         #     StructField("is_valid", BooleanType(), True),
@@ -177,9 +182,12 @@ class DEFCDelta(DeltaModel):
 
         # pandas
         # return {
+        #     'created_at': 'datetime64[ns]',
+        #     'updated_at': 'datetime64[ns]',
         #     'defc_id': int,
         #     'code': str,
         #     'public_laws': object, # pandas converts arrays to object
+        #     'public_law_short_titles': object, # pandas converts arrays to object
         #     'group': str,
         #     'urls': object, # pandas converts arrays to object
         #     'is_valid': bool,
@@ -188,9 +196,12 @@ class DEFCDelta(DeltaModel):
 
         # polars
         return {
+            'created_at': pl.Datetime,
+            'updated_at': pl.Datetime,
             'defc_id': pl.Int64,
             'code': pl.Utf8,
             'public_laws': pl.List(pl.Utf8),
+            'public_law_short_titles': pl.List(pl.Utf8),
             'group': pl.Utf8,
             'urls': pl.List(pl.Utf8),
             'is_valid': pl.Boolean,
