@@ -80,7 +80,7 @@ logger = logging.getLogger(__name__)
 class DeltaModel(DeltaTable):
     def __init__(self, spark=None):
         self.spark = spark
-        super().__init__(spark, self.table_path)
+        super().__init__(self.table_path, storage_options=get_storage_options())
 
     @property
     def s3_bucket(self):
@@ -115,8 +115,7 @@ class DeltaModel(DeltaTable):
             write_deltalake(
                 str(self.table_path),
                 empty_df,
-                mode="overwrite",
-                storage_options=storage_options
+                mode="overwrite"
             )
 
     def append(self, df: [pd.DataFrame, pl.DataFrame]):
@@ -129,7 +128,6 @@ class DeltaModel(DeltaTable):
             str(self.table_path),
             df,
             mode="append",
-            storage_options=storage_options
         )
 
 class DEFCDelta(DeltaModel):
@@ -239,7 +237,6 @@ def get_storage_options():
 
 if __name__ == "__main__":
     sess = GlobalDB.db().session
-    storage_options = get_storage_options()
     # spark = setup_spark()
     spark = None
 
