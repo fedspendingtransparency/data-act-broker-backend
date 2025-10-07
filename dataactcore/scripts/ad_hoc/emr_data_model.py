@@ -110,7 +110,7 @@ class DeltaModel(DeltaTable):
                 .addColumns(self.structure)\
                 .execute()
         else:
-            empty_df = pd.DataFrame({col: pd.Series(dtype=dtype) for col, dtype in self.structure.items()})
+            empty_df = pl.DataFrame(schema=self.structure)
             write_deltalake(
                 str(self.s3_path),
                 pl.from_pandas(empty_df),
@@ -154,6 +154,7 @@ class DEFCDelta(DeltaModel):
 
     @property
     def structure(self):
+        # SQLAlchemy
         # defc_id = Column(Integer)
         # code = Column(Text, nullable=False, unique=True)
         # public_laws = Column(Array(Text))
@@ -163,6 +164,7 @@ class DEFCDelta(DeltaModel):
         # is_valid = Column(Boolean, nullable=False)
         # earliest_pl_action_date = Column(DateTime)
 
+        # Spark
         # return StructType([
         #     StructField("defc_id", IntegerType(), True),
         #     StructField("code", StringType(), False),
@@ -173,14 +175,26 @@ class DEFCDelta(DeltaModel):
         #     StructField("earliest_pl_action_date", TimestampType(), True),
         # ])
 
+        # pandas
+        # return {
+        #     'defc_id': int,
+        #     'code': str,
+        #     'public_laws': object, # pandas converts arrays to object
+        #     'group': str,
+        #     'urls': object, # pandas converts arrays to object
+        #     'is_valid': bool,
+        #     'earliest_pl_action_date': 'datetime64[ns]'
+        # }
+
+        # polars
         return {
-            'defc_id': int,
-            'code': str,
-            'public_laws': pd.arrays.StringArray,
-            'group': str,
-            'urls': pd.arrays.StringArray,
-            'is_valid': bool,
-            'earliest_pl_action_date': 'datetime64[ns]'
+            'defc_id': pl.Int64,
+            'code': pl.Utf8,
+            'public_laws': pl.List(pl.Utf8),
+            'group': pl.Utf8,
+            'urls': pl.List(pl.Utf8),
+            'is_valid': pl.Boolean,
+            'earliest_pl_action_date': pl.Datetime
         }
 
 def setup_spark():
@@ -235,7 +249,8 @@ if __name__ == "__main__":
     # data = spark.read.csv("s3://your-s3-bucket/input_data.csv", header=True, inferSchema=True)
     # print(data)
     pulled_df = defc_delta_table.to_pyarrow_table()
-    df = pulled_df.to_pandas()
+    pulled_df_pandas = pulled_df.to_pandas()
+    print(pulled_df_pandas)
 
     # logger.info('updating a value')
     # deltaTable = DeltaTable.replace(spark).tableName("testTable").addColumns(df.schema).execute()
