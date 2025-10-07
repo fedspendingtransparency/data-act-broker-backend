@@ -77,7 +77,7 @@ logger = logging.getLogger(__name__)
 #         return isinstance(value, self.column_type.type)
 
 class DeltaModel(DeltaTable):
-    def __init__(self, spark):
+    def __init__(self, spark=None):
         self.spark = spark
         super().__init__(spark, self.table_path)
 
@@ -132,10 +132,6 @@ class DeltaModel(DeltaTable):
         )
 
 class DEFCDelta(DeltaModel):
-    def __init__(self, spark=None):
-        self.spark = spark
-        super().__init__()
-
     @property
     def bucket(self):
         return 'reference'
