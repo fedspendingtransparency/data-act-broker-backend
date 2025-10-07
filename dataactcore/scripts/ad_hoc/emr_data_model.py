@@ -89,11 +89,11 @@ class DeltaModel(DeltaTable):
 
     @property
     def table_path(self):
-        return f's3://{self.s3_bucket}/{self.bucket}/{self.schema}/{self.table_name}/'
+        return f's3://{self.s3_bucket}/{self.bucket}/{self.bucket_schema}/{self.table_name}/'
 
     @property
     @abstractmethod
-    def schema(self):
+    def bucket_schema(self):
         pass
 
     @property
