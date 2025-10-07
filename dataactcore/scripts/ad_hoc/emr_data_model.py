@@ -112,7 +112,7 @@ class DeltaModel(DeltaTable):
         else:
             empty_df = pl.DataFrame(schema=self.structure)
             write_deltalake(
-                str(self.s3_path),
+                str(self.table_path),
                 pl.from_pandas(empty_df),
                 mode="overwrite",
                 storage_options=storage_options
@@ -125,7 +125,7 @@ class DeltaModel(DeltaTable):
         # TODO: Check for dups
 
         write_deltalake(
-            str(self.s3_path),
+            str(self.table_path),
             df,
             mode="merge",
             storage_options=storage_options
@@ -238,7 +238,6 @@ if __name__ == "__main__":
     defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
 
     defc_delta_table = DEFCDelta()
-    s3_path = defc_delta_table
 
     defc_delta_table.initialize_table()
 
