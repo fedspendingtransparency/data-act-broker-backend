@@ -113,7 +113,7 @@ class DeltaModel(DeltaTable):
             empty_df = pl.DataFrame(schema=self.structure)
             write_deltalake(
                 str(self.table_path),
-                pl.from_pandas(empty_df),
+                empty_df,
                 mode="overwrite",
                 storage_options=storage_options
             )
