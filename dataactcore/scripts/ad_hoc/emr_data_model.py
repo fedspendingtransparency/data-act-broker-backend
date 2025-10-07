@@ -1,7 +1,8 @@
 import boto3
-
-from abc import ABC, abstractmethod
+import logging
 import pandas as pd
+import polars as pl
+from abc import ABC, abstractmethod
 from datetime import date, datetime
 
 from dataactcore.interfaces.db import GlobalDB
@@ -10,18 +11,16 @@ from dataactcore.models.domainModels import DEFC
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
                                DecimalType, NullType, TimestampType)
-from delta.tables import DeltaTable
-from delta import *
 
-import subprocess
-import sys
+from delta import *
+from delta.tables import DeltaTable
+from deltalake.writer import write_deltalake
+
 from sqlalchemy import *
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import *
 
-from deltalake.writer import write_deltalake
-
-import polars as pl
+logger = logging.getLogger(__name__)
 
 # class ColumnType(ABC):
 #     @abstractmethod
@@ -102,13 +101,41 @@ class DeltaModel(DeltaTable):
         pass
 
     def initialize_table(self):
-        return self.createIfNotExists(self.spark)\
-            .tableName(self.table_name)\
-            .location(self.table_path)\
-            .addColumns(self.structure)\
-            .execute()
+        logger.info(f'Initializing {self.table_path}')
+        if self.spark:
+            # TODO: Breaks due to AWS Glue
+            return self.createIfNotExists(self.spark)\
+                .tableName(self.table_name)\
+                .location(self.table_path)\
+                .addColumns(self.structure)\
+                .execute()
+        else:
+            empty_df = pd.DataFrame({col: pd.Series(dtype=dtype) for col, dtype in self.structure.items()})
+            write_deltalake(
+                str(self.s3_path),
+                pl.from_pandas(empty_df),
+                mode="overwrite",
+                storage_options=storage_options
+            )
+
+    def merge(self, df: [pd.DataFrame, pl.DataFrame]):
+        if isinstance(df, pd.DataFrame):
+            df = pl.from_pandas(df)
+
+        # TODO: Check for dups
+
+        write_deltalake(
+            str(self.s3_path),
+            df,
+            mode="merge",
+            storage_options=storage_options
+        )
 
 class DEFCDelta(DeltaModel):
+    def __init__(self, spark=None):
+        self.spark = spark
+        super().__init__()
+
     @property
     def bucket(self):
         return 'reference'
@@ -121,30 +148,44 @@ class DEFCDelta(DeltaModel):
     def table_name(self):
         return 'defc'
 
-    # defc_id = Column(Integer)
-    # code = Column(Text, nullable=False, unique=True)
-    # public_laws = Column(Array(Text))
-    # public_law_short_titles = Column(Array(Text))
-    # group = Column(Text)
-    # urls = Column(Array(Text))
-    # is_valid = Column(Boolean, nullable=False)
-    # earliest_pl_action_date = Column(DateTime)
-
     @property
     def unique_constraints(self):
         return [('code')]
 
     @property
+    def null_constraints(self):
+        return ['code', 'urls']
+
+    @property
     def structure(self):
-        return StructType([
-            StructField("defc_id", IntegerType(), True),
-            StructField("code", StringType(), False),
-            StructField("public_laws", ArrayType(StringType()), True),
-            StructField("group", StringType(), True),
-            StructField("urls", ArrayType(StringType()), False),
-            StructField("is_valid", BooleanType(), True),
-            StructField("earliest_pl_action_date", TimestampType(), True),
-        ])
+        # defc_id = Column(Integer)
+        # code = Column(Text, nullable=False, unique=True)
+        # public_laws = Column(Array(Text))
+        # public_law_short_titles = Column(Array(Text))
+        # group = Column(Text)
+        # urls = Column(Array(Text))
+        # is_valid = Column(Boolean, nullable=False)
+        # earliest_pl_action_date = Column(DateTime)
+
+        # return StructType([
+        #     StructField("defc_id", IntegerType(), True),
+        #     StructField("code", StringType(), False),
+        #     StructField("public_laws", ArrayType(StringType()), True),
+        #     StructField("group", StringType(), True),
+        #     StructField("urls", ArrayType(StringType()), False),
+        #     StructField("is_valid", BooleanType(), True),
+        #     StructField("earliest_pl_action_date", TimestampType(), True),
+        # ])
+
+        return {
+            'defc_id': int,
+            'code': str,
+            'public_laws': pd.arrays.StringArray,
+            'group': str,
+            'urls': pd.arrays.StringArray,
+            'is_valid': bool,
+            'earliest_pl_action_date': 'datetime64[ns]'
+        }
 
 def setup_spark():
     # Initialize SparkSession for AWS Glue
@@ -156,76 +197,54 @@ def setup_spark():
         .getOrCreate()
     return spark
 
-
-# TODO: DUCK DB POPULATION
-
-# TODO: POLARS POPULATION
-
-# MINIO locally
-
-# Focus on streaming data instead of large memory
-
-if __name__ == "__main__":
-    # get a dataframe from the existing postgres as sample data
-    sess = GlobalDB.db().session
-    defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
-
-    # spark = setup_spark()
-    spark = None
-    defc_delta_table = DEFCDelta(spark=spark)
-
-    print('create delta table')
-    # Creating the table with spark
-    # TODO: Breaks due to AWS Glue
-    # defc_delta_table.initialize_table()
-
-    # Creating the table with just deltalake
-    s3_path = defc_delta_table.table_path
-    defc_polars = pl.from_pandas(defc_df)
-    print(str(s3_path))
-    # print(defc_polars)
-
-    # confirming we have aws access
-    # s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
-    # s3_resource.Object('dti-broker-emr-qat', 'test_file.txt').put(Body='test_file')
-
+def get_storage_options():
+    """ DeltaLake library doesn't use boto3 and doesn't pull the aws creds the same way. """
     session = boto3.Session()
     credentials = session.get_credentials()
     # To get a "frozen" set of credentials (useful for passing to other clients)
     frozen_credentials = credentials.get_frozen_credentials()
-    access_key = frozen_credentials.access_key
-    secret_key = frozen_credentials.secret_key
-    session_token = frozen_credentials.token
-
-    write_deltalake(
-        str(s3_path),
-        defc_polars,
-        mode="append",  # or "overwrite"
-        # We *have* AWS access, yet somehow they need the credentials again here
-        storage_options={
-            "AWS_ACCESS_KEY_ID": access_key,
-            "AWS_SECRET_ACCESS_KEY": secret_key,
+    return {
+            "AWS_ACCESS_KEY_ID": frozen_credentials.access_key,
+            "AWS_SECRET_ACCESS_KEY": frozen_credentials.secret_key,
             "AWS_REGION": "us-gov-west-1",
-            "AWS_SESSION_TOKEN": session_token
-        }
-    )
+            "AWS_SESSION_TOKEN": frozen_credentials.token
+    }
+
+# TODO: DUCK DB POPULATION
+# TODO: POLARS POPULATION
+# MINIO locally
+# Focus on streaming data instead of large memory
+
+if __name__ == "__main__":
+    sess = GlobalDB.db().session
+    storage_options = get_storage_options()
+    # spark = setup_spark()
+    spark = None
 
     # setup hive connection with SQLAlchemy
     # engine = create_engine('hive://localhost:10000/default')
 
-    # print('populating it with two rows')
-    # employees_data = spark.createDataFrame([(101, "Alice", "alice@example.com", "IT")],
-    #                                        ["id", "name", "email", "department"])
-    # df = spark.createDataFrame([('a', 1), ('b', 2), ('c', 3)], ["key", "value"])
-    #
-    # print('querying it')
+    # get a dataframe from the existing postgres as sample data
+    defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
+
+    defc_delta_table = DEFCDelta()
+    s3_path = defc_delta_table
+
+    defc_delta_table.initialize_table()
+
+    logger.info('populating it with data')
+    defc_delta_table.merge(defc_df)
+
+    logger.info('querying it')
     # data = spark.read.csv("s3://your-s3-bucket/input_data.csv", header=True, inferSchema=True)
-    #
-    #
-    # print('updating a value')
-    # deltaTable.update("id = 1", {"value": "'new_value'"})
+    # print(data)
+    pulled_df = defc_delta_table.to_pyarrow_table()
+    df = pulled_df.to_pandas()
+
+    # logger.info('updating a value')
     # deltaTable = DeltaTable.replace(spark).tableName("testTable").addColumns(df.schema).execute()
-    #
+    # defc_delta_table.update("id = 1", {"value": "'new_value'"})
+
     # deltaTable.update(
     #     condition = "status = 'pending'",
     #     set = { "status": "'processed'" }
