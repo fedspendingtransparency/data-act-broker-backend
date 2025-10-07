@@ -12,8 +12,9 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
                                DecimalType, NullType, TimestampType)
 
-from delta import *
-from delta.tables import DeltaTable
+# from delta import *
+# from delta.tables import DeltaTable
+from deltalake import DeltaTable
 from deltalake.writer import write_deltalake
 
 from sqlalchemy import *
