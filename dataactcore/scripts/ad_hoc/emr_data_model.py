@@ -118,7 +118,7 @@ class DeltaModel(DeltaTable):
                 storage_options=storage_options
             )
 
-    def merge(self, df: [pd.DataFrame, pl.DataFrame]):
+    def append(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
             df = pl.from_pandas(df)
 
@@ -127,7 +127,7 @@ class DeltaModel(DeltaTable):
         write_deltalake(
             str(self.table_path),
             df,
-            mode="merge",
+            mode="append",
             storage_options=storage_options
         )
 
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     defc_delta_table.initialize_table()
 
     logger.info('populating it with data')
-    defc_delta_table.merge(defc_df)
+    defc_delta_table.append(defc_df)
 
     logger.info('querying it')
     # data = spark.read.csv("s3://your-s3-bucket/input_data.csv", header=True, inferSchema=True)
