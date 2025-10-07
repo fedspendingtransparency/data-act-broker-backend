@@ -195,13 +195,19 @@ if __name__ == "__main__":
     frozen_credentials = credentials.get_frozen_credentials()
     access_key = frozen_credentials.access_key
     secret_key = frozen_credentials.secret_key
+    session_token = frozen_credentials.token
 
     write_deltalake(
         str(s3_path),
         defc_polars,
         mode="append",  # or "overwrite"
         # We *have* AWS access, yet somehow they need the credentials again here
-        storage_options={"AWS_ACCESS_KEY_ID": access_key, "AWS_SECRET_ACCESS_KEY": secret_key, "AWS_REGION": "us-gov-west-1"}
+        storage_options={
+            "AWS_ACCESS_KEY_ID": access_key,
+            "AWS_SECRET_ACCESS_KEY": secret_key,
+            "AWS_REGION": "us-gov-west-1",
+            "AWS_SESSION_TOKEN": session_token
+        }
     )
 
     # setup hive connection with SQLAlchemy
