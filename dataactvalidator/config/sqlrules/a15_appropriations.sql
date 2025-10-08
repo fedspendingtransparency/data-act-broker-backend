@@ -3,7 +3,6 @@ WITH appropriation_a15_{0} AS
     (SELECT submission_id,
         row_number,
         unobligated_balance_cpe,
-        tas,
         display_tas
     FROM appropriation
     WHERE submission_id = {0})
@@ -15,7 +14,7 @@ SELECT
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a15_{0} AS approp
     INNER JOIN sf_133 AS sf
-        ON approp.tas = sf.tas
+        ON approp.display_tas = sf.display_tas
     INNER JOIN submission AS sub
         ON approp.submission_id = sub.submission_id
         AND sf.period = sub.reporting_fiscal_period
