@@ -78,7 +78,13 @@ logger = logging.getLogger(__name__)
 #         # TODO: uniqueness check
 #         return isinstance(value, self.column_type.type)
 
-class DeltaModel:
+class DeltaModel(ABC):
+    bucket_schema: str
+    table_name: str
+    pk: str
+    unique_constraints: [(str,)]
+    null_constraints: [str]
+
     def __init__(self, spark=None):
         self.spark = spark
 
@@ -97,13 +103,7 @@ class DeltaModel:
         return f's3://{self.s3_bucket}/{self.bucket}/{self.bucket_schema}/{self.table_name}/'
 
     @property
-    @abstractmethod
-    def bucket_schema(self):
-        pass
-
-    @property
-    @abstractmethod
-    def table_name(self):
+    def structure(self):
         pass
 
     def initialize_table(self):
@@ -116,7 +116,6 @@ class DeltaModel:
                 .addColumns(self.structure)\
                 .execute()
         else:
-            empty_df = pl.DataFrame(schema=self.structure)
             self.dt = DeltaTable.create(
                 table_uri=str(self.table_path),
                 name=self.table_name,
@@ -124,44 +123,41 @@ class DeltaModel:
                 mode='overwrite',
                 storage_options=get_storage_options(),
             )
-            write_deltalake(
-                str(self.table_path),
-                empty_df,
-                mode="overwrite"
-            )
+            # empty_df = pl.DataFrame(schema=self.structure)
+            # write_deltalake(
+            #     str(self.table_path),
+            #     empty_df,
+            #     mode="overwrite"
+            # )
 
-    def append(self, df: [pd.DataFrame, pl.DataFrame]):
+    def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
             df = pl.from_pandas(df)
 
-        # TODO: Check for dups
+        if not self.dt:
+            raise Exception('Table not instantiated')
 
-        write_deltalake(
-            str(self.table_path),
-            df,
-            mode="append",
-        )
+        self.dt.merge(
+            source=df,
+            predicate=f"s.{self.pk} = t.{self.pk}",
+            source_alias="s",
+            target_alias="t"
+        ).execute()
+
+        # TODO: Check for dups
+        # write_deltalake(
+        #     str(self.table_path),
+        #     df,
+        #     mode="append",
+        # )
 
 class DEFCDelta(DeltaModel):
-    @property
-    def bucket(self):
-        return 'reference'
-
-    @property
-    def schema(self):
-        return 'int'
-
-    @property
-    def table_name(self):
-        return 'defc'
-
-    @property
-    def unique_constraints(self):
-        return [('code')]
-
-    @property
-    def null_constraints(self):
-        return ['code', 'urls']
+    bucket = 'reference'
+    bucket_schema = 'int'
+    table_name = 'defc'
+    pk = ['defc_id']
+    unique_constraints = [('code')]
+    null_constraints = ['code', 'urls']
 
     @property
     def structure(self):
