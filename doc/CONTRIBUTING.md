@@ -6,17 +6,17 @@ _Follow the development process and checks below in order to promote candidate c
 
 We use three main branches:
 
+* `qat` - Code in development that is released to `staging` at the close of each sprint
 * `staging` - Stable code deployed to a staging version of the data broker
-* `development` - Code in development that is released to `staging` at the close of each sprint
 * `master` - Code on the production site. Code gets merged to this branch by the product owner once it has been tested on staging.
 
-Only non-breaking, stable code is merged into `development` and promoted to higher branches in order to prevent disruptions to users and team members.
+Only non-breaking, stable code is merged into `qat` and promoted to higher branches in order to prevent disruptions to users and team members.
 
-All code to be merged should be submitted to the `development` branch via a GitHub pull request. The pull request template is available [here](/.github/pull_request_template.md "Pull Request Template"), and faciliates code reviews and quality checks.
+All code to be merged should be submitted to the `qat` branch via a GitHub pull request. The pull request template is available [here](/.github/pull_request_template.md "Pull Request Template"), and faciliates code reviews and quality checks.
 
 ### Continuous Integration
 
-Pull requests must pass all GitHub checks on the PR, including Travis CI tests. See the [Travis configuration file](/.travis.yml "Travis Configuration").
+Pull requests must pass all GitHub checks on the PR, including Github Actions tests.
 
 To run tests locally, see documentation for each app:
 
@@ -25,7 +25,7 @@ To run tests locally, see documentation for each app:
 
 ### Concluding a Sprint
 
-At the conclusion of a sprint, new code merged into the `development` as part of approved PRs is merged into `staging`. It is then tested and merged in to `master` when ready, as part of its release to production.
+At the conclusion of a sprint, new code merged into `qat` as part of approved PRs is merged into `staging`. It is then tested and merged in to `master` when ready, as part of its release to production.
 
 The Data Broker contains several individual components. The section below walks through the process of getting the entire code base up and running.
 
@@ -51,7 +51,7 @@ _Setup python on your host machine to work with the source code and its dependen
 Ensure the following dependencies are installed and working prior to continuing:
 
 - [`python3`](https://docs.python-guide.org/starting/installation/#python-3-installation-guides)
-- [`pyenv`](https://github.com/pyenv/pyenv/#installation) using Python 3.5.x
+- [`pyenv`](https://github.com/pyenv/pyenv/#installation) using Python 3.12.x
   - _NOTE: Read full install. `brew install` needs to be followed by additional steps to modify and source your `~/.bash_profile`_
 - `Bash` or another Unix Shell equivalent
   - Bash is available on Windows as [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
@@ -65,11 +65,11 @@ Navigate to the base directory for the Broker backend source code repositories
 $ cd data-act-broker-backend
 ```
 
-Create and activate the virtual environment using `venv`, and ensure the right version of Python 3.5.x is being used (the latest RHEL package available for `python35u`, currently 3.5.5)
+Create and activate the virtual environment using `venv`, and ensure the right version of Python 3.12.x is being used (the latest RHEL package available for `python35u`, currently 3.12.8)
 
 ```bash
-$ pyenv install 3.5.5
-$ pyenv local 3.5.5
+$ pyenv install 3.12.8
+$ pyenv local 3.12.8
 $ python -m venv .venv/broker-backend
 $ source .venv/broker-backend/bin/activate
 ```
