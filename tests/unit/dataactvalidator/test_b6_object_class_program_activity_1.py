@@ -38,7 +38,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """Test Object Class Program Activity gross_outlays_undelivered_fyb doesnt' equal
+    """Test Object Class Program Activity gross_outlays_undelivered_fyb doesn't equal
     ussgl480200_undelivered_or_fyb
     """
 

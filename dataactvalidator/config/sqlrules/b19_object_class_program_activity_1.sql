@@ -23,8 +23,6 @@ FROM (
         op.program_activity_code,
         UPPER(op.program_activity_name) AS program_activity_name,
         UPPER(op.by_direct_reimbursable_fun) AS by_direct_reimbursable_fun,
-        op.submission_id,
-        op.tas,
         op.display_tas,
         UPPER(op.disaster_emergency_fund_code) AS disaster_emergency_fund_code,
         prior_year_adjustment,

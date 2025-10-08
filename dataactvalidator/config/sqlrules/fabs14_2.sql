@@ -7,6 +7,5 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND UPPER(legal_entity_country_code) <> 'USA'
-    AND legal_entity_zip_last4 <> ''
-    AND legal_entity_zip_last4 IS NOT NULL
+    AND COALESCE(legal_entity_zip_last4, '') <> ''
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

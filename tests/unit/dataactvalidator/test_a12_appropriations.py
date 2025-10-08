@@ -27,7 +27,7 @@ def test_success(database):
 
     sf_1 = SF133(
         line=1020,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -37,7 +37,7 @@ def test_success(database):
     )
     sf_2 = SF133(
         line=1030,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -47,7 +47,7 @@ def test_success(database):
     )
     sf_3 = SF133(
         line=1040,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -58,7 +58,7 @@ def test_success(database):
     # This line should be ignored because it's before 2021
     sf_4 = SF133(
         line=1060,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=10,
@@ -66,7 +66,7 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, adjustments_to_unobligated_cpe=3)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, adjustments_to_unobligated_cpe=3)
 
     models = [sf_1, sf_2, sf_3, sf_4, ap]
 
@@ -81,7 +81,7 @@ def test_success_post_2020(database):
 
     sf_1 = SF133(
         line=1020,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2021,
         amount=1,
@@ -91,7 +91,7 @@ def test_success_post_2020(database):
     )
     sf_2 = SF133(
         line=1030,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2021,
         amount=1,
@@ -101,7 +101,7 @@ def test_success_post_2020(database):
     )
     sf_3 = SF133(
         line=1040,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2021,
         amount=1,
@@ -111,7 +111,7 @@ def test_success_post_2020(database):
     )
     sf_4 = SF133(
         line=1067,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2021,
         amount=1,
@@ -119,7 +119,7 @@ def test_success_post_2020(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, adjustments_to_unobligated_cpe=4)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, adjustments_to_unobligated_cpe=4)
 
     models = [sf_1, sf_2, sf_3, sf_4, ap]
 
@@ -134,7 +134,7 @@ def test_failure(database):
 
     sf_1 = SF133(
         line=1020,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -144,7 +144,7 @@ def test_failure(database):
     )
     sf_2 = SF133(
         line=1030,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -154,7 +154,7 @@ def test_failure(database):
     )
     sf_3 = SF133(
         line=1040,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -162,7 +162,7 @@ def test_failure(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, adjustments_to_unobligated_cpe=1)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, adjustments_to_unobligated_cpe=1)
 
     models = [sf_1, sf_2, sf_3, ap]
 

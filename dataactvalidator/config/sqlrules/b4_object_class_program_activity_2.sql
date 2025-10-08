@@ -1,5 +1,5 @@
--- ObligationsDeliveredOrdersUnpaidTotal (CPE) = USSGL(4901 + 490110 + 4931 + 4981) for the same TAS/DEFC combination
--- where PYA = "X". This applies to the program activity and object class level.
+-- ObligationsDeliveredOrdersUnpaidTotal (CPE) = USSGL(4901 + 490110 + 4931 + 4981) for the unique combination defined
+-- in Rule B19 where PYA = "X".
 SELECT
     row_number,
     prior_year_adjustment,
