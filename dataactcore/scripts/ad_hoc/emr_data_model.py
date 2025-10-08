@@ -16,6 +16,7 @@ from pyspark.sql.types import (StructType, StructField, StringType, IntegerType,
 # from delta.tables import DeltaTable
 from deltalake import DeltaTable
 from deltalake.writer import write_deltalake
+from deltalake.exceptions import TableNotFoundError
 
 from sqlalchemy import *
 from sqlalchemy.engine import create_engine
@@ -77,10 +78,14 @@ logger = logging.getLogger(__name__)
 #         # TODO: uniqueness check
 #         return isinstance(value, self.column_type.type)
 
-class DeltaModel(DeltaTable):
+class DeltaModel:
     def __init__(self, spark=None):
         self.spark = spark
-        super().__init__(self.table_path, storage_options=get_storage_options())
+
+        try:
+            self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
+        except TableNotFoundError:
+            self.dt = None
 
     @property
     def s3_bucket(self):
@@ -112,6 +117,13 @@ class DeltaModel(DeltaTable):
                 .execute()
         else:
             empty_df = pl.DataFrame(schema=self.structure)
+            self.dt = DeltaTable.create(
+                table_uri=str(self.table_path),
+                name=self.table_name,
+                schema=self.structure,
+                mode='overwrite',
+                storage_options=get_storage_options(),
+            )
             write_deltalake(
                 str(self.table_path),
                 empty_df,
