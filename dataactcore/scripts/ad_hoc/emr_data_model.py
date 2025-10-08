@@ -8,13 +8,15 @@ from datetime import date, datetime
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 
+from arro3.core import DateType, Schema
+
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
                                DecimalType, NullType, TimestampType)
 
 # from delta import *
 # from delta.tables import DeltaTable
-from deltalake import DeltaTable
+from deltalake import DeltaTable, Field
 from deltalake.writer import write_deltalake
 from deltalake.exceptions import TableNotFoundError
 
@@ -83,7 +85,7 @@ class DeltaModel(ABC):
     table_name: str
     pk: str
     unique_constraints: [(str,)]
-    null_constraints: [str]
+    # null_constraints: [str]
 
     def __init__(self, spark=None):
         self.spark = spark
@@ -157,7 +159,7 @@ class DEFCDelta(DeltaModel):
     table_name = 'defc'
     pk = ['defc_id']
     unique_constraints = [('code')]
-    null_constraints = ['code', 'urls']
+    # null_constraints = ['code', 'is_valid']
 
     @property
     def structure(self):
@@ -182,8 +184,8 @@ class DEFCDelta(DeltaModel):
         #     StructField("public_laws", ArrayType(StringType()), True),
         #     StructField("public_law_short_titles", ArrayType(StringType()), True),
         #     StructField("group", StringType(), True),
-        #     StructField("urls", ArrayType(StringType()), False),
-        #     StructField("is_valid", BooleanType(), True),
+        #     StructField("urls", ArrayType(StringType()), True),
+        #     StructField("is_valid", BooleanType(), False),
         #     StructField("earliest_pl_action_date", TimestampType(), True),
         # ])
 
@@ -202,18 +204,50 @@ class DEFCDelta(DeltaModel):
         # }
 
         # polars
-        return {
-            'created_at': pl.Datetime,
-            'updated_at': pl.Datetime,
-            'defc_id': pl.Int64,
-            'code': pl.Utf8,
-            'public_laws': pl.List(pl.Utf8),
-            'public_law_short_titles': pl.List(pl.Utf8),
-            'group': pl.Utf8,
-            'urls': pl.List(pl.Utf8),
-            'is_valid': pl.Boolean,
-            'earliest_pl_action_date': pl.Datetime
-        }
+        # return {
+        #     'created_at': pl.Datetime,
+        #     'updated_at': pl.Datetime,
+        #     'defc_id': pl.Int64,
+        #     'code': pl.Utf8,
+        #     'public_laws': pl.List(pl.Utf8),
+        #     'public_law_short_titles': pl.List(pl.Utf8),
+        #     'group': pl.Utf8,
+        #     'urls': pl.List(pl.Utf8),
+        #     'is_valid': pl.Boolean,
+        #     'earliest_pl_action_date': pl.Datetime
+        # }
+
+        # polars with JSON?
+        # return Schema.from_json('''{
+        #     "type": "struct",
+        #     "fields": [
+        #         {"name": "created_at", "type": "datetime", "nullable": true, "metadata": {}},
+        #         {"name": "updated_at", "type": "datetime", "nullable": true, "metadata": {}},
+        #         {"name": "defc_id", "type": "integer", "nullable": false, "metadata": {}},
+        #         {"name": "code", "type": "string", "nullable": false, "metadata": {}},
+        #         {"name": "public_laws", "type": "array", , "elementType": "string", "nullable": true, "metadata": {}},
+        #         {"name": "public_law_short_titles", "type": "array", , "elementType": "string", "nullable": true, "metadata": {}},
+        #         {"name": "group", "type": "string", "nullable": true, "metadata": {}},
+        #         {"name": "urls", "type": "array", "elementType": "string", "nullable": true, "metadata": {}},
+        #         {"name": "is_valid", "type": "boolean", "nullable": false, "metadata": {}},
+        #         {"name": "earliest_pl_action_date", "type": "datetime", "nullable": true, "metadata": {}},
+        #     ]
+        # }''')
+
+        # polars with Schema
+        return Schema([
+            Field('created_at', "timestamp", nullable=True),
+            Field('updated_at', "timestamp", nullable=True),
+            Field('defc_id', "integer", nullable=False),
+            Field('code', "string", nullable=False),
+            Field('public_laws', "array[string]", nullable=True),
+            Field('public_law_short_titles', "array[string]", nullable=True),
+            Field('group', "string", nullable=True),
+            Field('urls', "array[string]", nullable=True),
+            Field('is_valid', "boolean", nullable=False),
+            Field('earliest_pl_action_date', "datetime", nullable=True),
+        ])
+
 
 def setup_spark():
     # Initialize SparkSession for AWS Glue
@@ -238,10 +272,20 @@ def get_storage_options():
             "AWS_SESSION_TOKEN": frozen_credentials.token
     }
 
+# Spark - initialize model and schema, hive
 # TODO: DUCK DB POPULATION
 # TODO: POLARS POPULATION
+# AWS Glue? via Boto3?
 # MINIO locally
 # Focus on streaming data instead of large memory
+
+# What the model looks like base, example table, script used to create table, make schema changes/evolution
+# Metastore piece
+    # Spark
+    # AWS Glue
+    # another option hive and glue
+# Compare with USAspending Delta Models
+# Migrate to Shared Repo
 
 if __name__ == "__main__":
     sess = GlobalDB.db().session
