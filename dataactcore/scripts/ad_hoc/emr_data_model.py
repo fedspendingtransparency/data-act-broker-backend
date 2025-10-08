@@ -8,15 +8,13 @@ from datetime import date, datetime
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 
-from arro3.core import DateType, Schema
-
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
                                DecimalType, NullType, TimestampType)
 
 # from delta import *
 # from delta.tables import DeltaTable
-from deltalake import DeltaTable, Field
+from deltalake import DeltaTable, Field, schema
 from deltalake.writer import write_deltalake
 from deltalake.exceptions import TableNotFoundError
 
@@ -235,15 +233,15 @@ class DEFCDelta(DeltaModel):
         # }''')
 
         # polars with Schema
-        return Schema([
+        return schema.Schema([
             Field('created_at', "timestamp", nullable=True),
             Field('updated_at', "timestamp", nullable=True),
             Field('defc_id', "integer", nullable=False),
             Field('code', "string", nullable=False),
-            Field('public_laws', "array[string]", nullable=True),
-            Field('public_law_short_titles', "array[string]", nullable=True),
+            Field('public_laws', ArrayType('string'), nullable=True),
+            Field('public_law_short_titles', ArrayType("string"), nullable=True),
             Field('group', "string", nullable=True),
-            Field('urls', "array[string]", nullable=True),
+            Field('urls', ArrayType('string'), nullable=True),
             Field('is_valid', "boolean", nullable=False),
             Field('earliest_pl_action_date', "datetime", nullable=True),
         ])
