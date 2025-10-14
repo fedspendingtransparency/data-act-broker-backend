@@ -244,7 +244,7 @@ class DEFCDelta(DeltaModel):
             Field('group', "string", nullable=True),
             Field('urls', ArrayType(PrimitiveType('string')), nullable=True),
             Field('is_valid', "boolean", nullable=False),
-            Field('earliest_pl_action_date', "datetime", nullable=True),
+            Field('earliest_pl_action_date', "timestamp", nullable=True),
         ])
 
 
