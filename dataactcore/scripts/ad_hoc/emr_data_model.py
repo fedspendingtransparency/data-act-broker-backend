@@ -140,7 +140,7 @@ class DeltaModel(ABC):
 
         self.dt.merge(
             source=df,
-            predicate="s.defc_id = t.defc_id",
+            predicate=f"s.{self.pk} = t.{self.pk}",
             source_alias="s",
             target_alias="t"
         ).execute()
@@ -156,7 +156,7 @@ class DEFCDelta(DeltaModel):
     bucket = 'reference'
     bucket_schema = 'int'
     table_name = 'defc'
-    pk = ['defc_id']
+    pk = 'defc_id'
     unique_constraints = [('code')]
     # null_constraints = ['code', 'is_valid']
 
