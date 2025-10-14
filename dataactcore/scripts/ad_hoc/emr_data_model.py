@@ -140,7 +140,7 @@ class DeltaModel(ABC):
 
         self.dt.merge(
             source=df,
-            predicate=f"s[{self.pk}] = t[{self.pk}]",
+            predicate=f"{self.pk} = {self.pk}",
             source_alias="s",
             target_alias="t"
         ).execute()
