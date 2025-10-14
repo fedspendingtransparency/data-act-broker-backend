@@ -9,11 +9,12 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 
 from pyspark.sql import SparkSession
-from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
-                               DecimalType, NullType, TimestampType)
+# from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
+#                                DecimalType, NullType, TimestampType)
 
 # from delta import *
 # from delta.tables import DeltaTable
+from deltalake.schema import ArrayType, PrimitiveType
 from deltalake import DeltaTable, Field, schema
 from deltalake.writer import write_deltalake
 from deltalake.exceptions import TableNotFoundError
@@ -238,10 +239,10 @@ class DEFCDelta(DeltaModel):
             Field('updated_at', "timestamp", nullable=True),
             Field('defc_id', "integer", nullable=False),
             Field('code', "string", nullable=False),
-            Field('public_laws', ArrayType('string'), nullable=True),
-            Field('public_law_short_titles', ArrayType("string"), nullable=True),
+            Field('public_laws', ArrayType(PrimitiveType('string')), nullable=True),
+            Field('public_law_short_titles', ArrayType(PrimitiveType("string")), nullable=True),
             Field('group', "string", nullable=True),
-            Field('urls', ArrayType('string'), nullable=True),
+            Field('urls', ArrayType(PrimitiveType('string')), nullable=True),
             Field('is_valid', "boolean", nullable=False),
             Field('earliest_pl_action_date', "datetime", nullable=True),
         ])
