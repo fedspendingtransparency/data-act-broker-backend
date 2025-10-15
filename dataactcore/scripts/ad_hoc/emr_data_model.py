@@ -143,13 +143,11 @@ class DeltaModel(ABC):
         input_format = 'string'
         output_format = 'string'
         serde_info = {
-            'SerdeInfo': {
-                'Name': 'string',
-                'SerializationLibrary': 'string',
-                'Parameters': {
-                    'string': 'string'
-                }
-            },
+            'Name': 'string',
+            'SerializationLibrary': 'string',
+            'Parameters': {
+                'string': 'string'
+            }
         }
         try:
             response = glue_client.create_table(
