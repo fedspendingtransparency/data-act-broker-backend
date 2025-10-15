@@ -132,9 +132,53 @@ class DeltaModel(ABC):
                     mode='overwrite',
                     storage_options=get_storage_options(),
                 )
-                _create_table_glue(self.dt)
+                self._create_table_glue()
         else:
             logger.info(f'{self.table_path} already initialized')
+
+    def _create_table_glue(self):
+        glue_client = boto3.client('glue', region_name='us-gov-west-1')
+        database_name = 'data_broker'
+        input_format = 'string'
+        output_format = 'string'
+        serde_info = {
+            'SerdeInfo': {
+                'Name': 'string',
+                'SerializationLibrary': 'string',
+                'Parameters': {
+                    'string': 'string'
+                }
+            },
+        }
+        try:
+            response = glue_client.create_table(
+                DatabaseName=database_name,
+                TableInput={
+                    'Name': self.table_ref,
+                    'StorageDescriptor': {
+                        'Columns': self.columns,
+                        'Location': self.table_path,
+                        'InputFormat': input_format,
+                        'OutputFormat': output_format,
+                        'SerdeInfo': serde_info,
+                        'Compressed': False,
+                        'Parameters': {
+                            'classification': 'parquet'
+                        }
+                    },
+                    'TableType': 'EXTERNAL_TABLE',
+                    'Parameters': {
+                        'EXTERNAL': 'TRUE'
+                    }
+                }
+            )
+            print(f"Table '{self.table_name}' created successfully in database '{database_name}'.")
+            print(response)
+
+        except glue_client.exceptions.AlreadyExistsException:
+            print(f"Table '{self.table_name}' already exists in database '{database_name}'.")
+        except Exception as e:
+            print(f"Error creating table: {e}")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
@@ -278,50 +322,6 @@ def get_storage_options():
             "AWS_SESSION_TOKEN": frozen_credentials.token
     }
 
-def _create_table_glue(dt):
-    glue_client = boto3.client('glue', region_name='us-gov-west-1')
-    database_name = 'data_broker'
-    input_format = 'string'
-    output_format = 'string'
-    serde_info = {
-        'SerdeInfo': {
-            'Name': 'string',
-            'SerializationLibrary': 'string',
-            'Parameters': {
-                'string': 'string'
-            }
-        },
-    }
-    try:
-        response = glue_client.create_table(
-            DatabaseName=database_name,
-            TableInput={
-                'Name': dt.table_ref,
-                'StorageDescriptor': {
-                    'Columns': dt.columns,
-                    'Location': dt.table_path,
-                    'InputFormat': input_format,
-                    'OutputFormat': output_format,
-                    'SerdeInfo': serde_info,
-                    'Compressed': False,
-                    'Parameters': {
-                        'classification': 'parquet'
-                    }
-                },
-                'TableType': 'EXTERNAL_TABLE',
-                'Parameters': {
-                    'EXTERNAL': 'TRUE'
-                }
-            }
-        )
-        print(f"Table '{dt.table_name}' created successfully in database '{database_name}'.")
-        print(response)
-
-    except glue_client.exceptions.AlreadyExistsException:
-        print(f"Table '{dt.table_name}' already exists in database '{database_name}'.")
-    except Exception as e:
-        print(f"Error creating table: {e}")
-
 # Spark - initialize model and schema, hive
 # TODO: DUCK DB POPULATION
 # TODO: POLARS POPULATION
@@ -355,7 +355,7 @@ if __name__ == "__main__":
     logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
 
-    _create_table_glue(defc_delta_table.dt)
+    defc_delta_table._create_table_glue()
 
     logger.info('populating it with data')
     defc_delta_table.merge(defc_df)
