@@ -15,7 +15,7 @@ from pyspark.sql import SparkSession
 # from delta import *
 # from delta.tables import DeltaTable
 from deltalake.schema import ArrayType, PrimitiveType
-from deltalake import DeltaTable, Field, schema
+from deltalake import DeltaTable, QueryBuilder, Field, schema
 from deltalake.writer import write_deltalake
 from deltalake.exceptions import TableNotFoundError
 
@@ -124,12 +124,6 @@ class DeltaModel(ABC):
                 mode='overwrite',
                 storage_options=get_storage_options(),
             )
-            # empty_df = pl.DataFrame(schema=self.structure)
-            # write_deltalake(
-            #     str(self.table_path),
-            #     empty_df,
-            #     mode="overwrite"
-            # )
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
@@ -148,12 +142,11 @@ class DeltaModel(ABC):
             .when_not_matched_insert_all() \
             .execute()
 
-        # TODO: Check for dups
-        # write_deltalake(
-        #     str(self.table_path),
-        #     df,
-        #     mode="append",
-        # )
+    def to_pandas_df(self):
+        return self.df.to_pyarrow_table().to_pandas()
+
+    def to_polars_df(self):
+        return pl.from_arrow(self.df.to_pyarrow_table())
 
 class DEFCDelta(DeltaModel):
     bucket = 'reference'
@@ -302,6 +295,7 @@ if __name__ == "__main__":
 
     defc_delta_table = DEFCDelta()
 
+    logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
 
     logger.info('populating it with data')
@@ -310,9 +304,17 @@ if __name__ == "__main__":
     logger.info('querying it')
     # data = spark.read.csv("s3://your-s3-bucket/input_data.csv", header=True, inferSchema=True)
     # print(data)
-    pulled_df = defc_delta_table.dt.to_pyarrow_table()
-    pulled_df_pandas = pulled_df.to_pandas()
+    pulled_df_pandas = defc_delta_table.to_pandas_df()
     print(pulled_df_pandas)
+    pulled_df_polars = defc_delta_table.to_polars_df()
+    print(pulled_df_polars)
+
+    defc_aaa = QueryBuilder().execute(f"""
+        SELECT public_laws
+        FROM {defc_delta_table.table_name}
+        WHERE code = 'AAA'
+    """).read_all()
+    print(defc_aaa)
 
     # logger.info('updating a value')
     # deltaTable = DeltaTable.replace(spark).tableName("testTable").addColumns(df.schema).execute()
