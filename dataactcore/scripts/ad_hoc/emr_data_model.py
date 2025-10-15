@@ -113,14 +113,15 @@ class DeltaModel(ABC):
 
     @property
     def columns(self):
-        cols_dict = []
+        cols = []
         for field in self.structure.fields:
-            cols_dict['Name'] = field.name
+            col_dict = {'Name': field.name}
             if isinstance(field.type, PrimitiveType):
-                cols_dict['Type'] = field.type.type
+                col_dict['Type'] = field.type.type
             elif isinstance(field.type, ArrayType):
-                cols_dict['Type'] = 'array'
-        return cols_dict
+                col_dict['Type'] = 'array'
+            cols.append(col_dict)
+        return cols
 
     def initialize_table(self):
         logger.info(f'Initializing {self.table_path}')
