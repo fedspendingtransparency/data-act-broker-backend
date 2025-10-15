@@ -111,6 +111,7 @@ class DeltaModel(ABC):
     def structure(self):
         pass
 
+    @property
     def columns(self):
         return [{'Name': field.name, 'Type': field.type} for field in self.structure.fields]
 
