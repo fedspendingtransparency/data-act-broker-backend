@@ -143,7 +143,10 @@ class DeltaModel(ABC):
             predicate=f"s.{self.pk} = t.{self.pk}",
             source_alias="s",
             target_alias="t"
-        ).execute()
+        ) \
+            .when_matched_update_all() \
+            .when_not_matched_insert_all() \
+            .execute()
 
         # TODO: Check for dups
         # write_deltalake(
