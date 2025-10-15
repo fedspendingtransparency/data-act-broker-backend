@@ -105,7 +105,7 @@ class DeltaModel(ABC):
 
     @property
     def table_ref(self):
-        return f'{self.bucket_schema}/{self.table_name}'
+        return f'{self.bucket_schema}.{self.table_name}'
 
     @property
     def structure(self):
