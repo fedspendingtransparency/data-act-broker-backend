@@ -113,7 +113,14 @@ class DeltaModel(ABC):
 
     @property
     def columns(self):
-        return [{'Name': field.name, 'Type': field.type} for field in self.structure.fields]
+        cols_dict = []
+        for field in self.structure.fields:
+            cols_dict['Name'] = field.name
+            if isinstance(field.type, PrimitiveType):
+                cols_dict['Type'] = field.type.type
+            elif isinstance(field.type, ArrayType):
+                cols_dict['Type'] = 'array'
+        return cols_dict
 
     def initialize_table(self):
         logger.info(f'Initializing {self.table_path}')
@@ -140,14 +147,11 @@ class DeltaModel(ABC):
     def _create_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
         database_name = 'data_broker'
-        input_format = 'string'
-        output_format = 'string'
+        input_format = 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
+        output_format = 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
         serde_info = {
-            'Name': 'string',
-            'SerializationLibrary': 'string',
-            'Parameters': {
-                'string': 'string'
-            }
+            'Name': 'Parquet',
+            'SerializationLibrary': 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe',
         }
         try:
             response = glue_client.create_table(
