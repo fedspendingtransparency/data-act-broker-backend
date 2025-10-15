@@ -109,21 +109,24 @@ class DeltaModel(ABC):
 
     def initialize_table(self):
         logger.info(f'Initializing {self.table_path}')
-        if self.spark:
-            # TODO: Breaks due to AWS Glue
-            return self.createIfNotExists(self.spark)\
-                .tableName(self.table_name)\
-                .location(self.table_path)\
-                .addColumns(self.structure)\
-                .execute()
+        if not self.dt:
+            if self.spark:
+                # TODO: Breaks due to AWS Glue
+                return self.createIfNotExists(self.spark)\
+                    .tableName(self.table_name)\
+                    .location(self.table_path)\
+                    .addColumns(self.structure)\
+                    .execute()
+            else:
+                self.dt = DeltaTable.create(
+                    table_uri=str(self.table_path),
+                    name=self.table_name,
+                    schema=self.structure,
+                    mode='overwrite',
+                    storage_options=get_storage_options(),
+                )
         else:
-            self.dt = DeltaTable.create(
-                table_uri=str(self.table_path),
-                name=self.table_name,
-                schema=self.structure,
-                mode='overwrite',
-                storage_options=get_storage_options(),
-            )
+            logger.info(f'{self.table_path} already initialized')
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
@@ -143,10 +146,10 @@ class DeltaModel(ABC):
             .execute()
 
     def to_pandas_df(self):
-        return self.df.to_pyarrow_table().to_pandas()
+        return self.dt.to_pyarrow_table().to_pandas()
 
     def to_polars_df(self):
-        return pl.from_arrow(self.df.to_pyarrow_table())
+        return pl.from_arrow(self.dt.to_pyarrow_table())
 
 class DEFCDelta(DeltaModel):
     bucket = 'reference'
@@ -299,6 +302,8 @@ if __name__ == "__main__":
     defc_delta_table.initialize_table()
 
     logger.info('populating it with data')
+    defc_delta_table.merge(defc_df)
+    logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
     defc_delta_table.merge(defc_df)
 
     logger.info('querying it')
