@@ -104,6 +104,10 @@ class DeltaModel(ABC):
         return f's3://{self.s3_bucket}/{self.bucket}/{self.bucket_schema}/{self.table_name}/'
 
     @property
+    def hadoop_path(self):
+        return f's3a://{self.s3_bucket}/{self.bucket}/{self.bucket_schema}/{self.table_name}/'
+
+    @property
     def table_ref(self):
         return f'{self.bucket_schema}.{self.table_name}'
 
@@ -379,7 +383,7 @@ if __name__ == "__main__":
 
     defc_aaa = QueryBuilder().execute(f"""
         SELECT public_laws
-        FROM 's3:\\{defc_delta_table.table_path}'
+        FROM delta.`{defc_delta_table.hadoop_path}`
         WHERE code = 'AAA'
     """).read_all()
     print(defc_aaa)
