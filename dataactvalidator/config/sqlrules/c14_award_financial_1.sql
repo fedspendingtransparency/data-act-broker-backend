@@ -7,6 +7,6 @@ SELECT
     display_tas AS "uniqueid_TAS"
 FROM award_financial
 WHERE submission_id = {0}
-    AND fain IS NULL
-    AND uri IS NULL
-    AND piid IS NULL;
+    AND COALESCE(fain, '') = ''
+    AND COALESCE(uri, '') = ''
+    AND COALESCE(piid, '') = '';

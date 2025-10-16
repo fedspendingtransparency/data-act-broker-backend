@@ -36,7 +36,7 @@ FROM limited_lines_sf_133_b21_{0} AS sf
 WHERE NOT EXISTS (
         SELECT 1
         FROM object_class_program_activity AS op
-        WHERE sf.tas IS NOT DISTINCT FROM op.tas
+        WHERE sf.display_tas IS NOT DISTINCT FROM op.display_tas
             AND COALESCE(sf.disaster_emergency_fund_code, '') = UPPER(op.disaster_emergency_fund_code)
             AND UPPER(op.prior_year_adjustment) = 'X'
             AND op.submission_id = {0}

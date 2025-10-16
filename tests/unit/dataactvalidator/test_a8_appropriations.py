@@ -28,7 +28,7 @@ def test_success(database):
 
     sf_1 = SF133(
         line=1160,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -38,7 +38,7 @@ def test_success(database):
     )
     sf_2 = SF133(
         line=1180,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -48,7 +48,7 @@ def test_success(database):
     )
     sf_3 = SF133(
         line=1260,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -58,7 +58,7 @@ def test_success(database):
     )
     sf_4 = SF133(
         line=1280,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -66,7 +66,7 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, budget_authority_appropria_cpe=4)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, budget_authority_appropria_cpe=4)
 
     models = [sf_1, sf_2, sf_3, sf_4, ap]
 
@@ -81,7 +81,7 @@ def test_failure(database):
 
     sf_1 = SF133(
         line=1160,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -91,7 +91,7 @@ def test_failure(database):
     )
     sf_2 = SF133(
         line=1180,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -101,7 +101,7 @@ def test_failure(database):
     )
     sf_3 = SF133(
         line=1260,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -111,7 +111,7 @@ def test_failure(database):
     )
     sf_4 = SF133(
         line=1280,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -119,7 +119,7 @@ def test_failure(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, budget_authority_appropria_cpe=1)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, budget_authority_appropria_cpe=1)
 
     models = [sf_1, sf_2, sf_3, sf_4, ap]
 
