@@ -377,7 +377,7 @@ if __name__ == "__main__":
     pulled_df_polars = defc_delta_table.to_polars_df()
     print(pulled_df_polars)
 
-    defc_aaa = QueryBuilder().register(defc_delta_table.table_ref, defc_delta_table.dt).execute(f"""
+    defc_aaa = QueryBuilder().execute(f"""
         SELECT public_laws
         FROM 's3:\\{defc_delta_table.table_path}'
         WHERE code = 'AAA'
