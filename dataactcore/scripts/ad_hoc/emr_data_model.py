@@ -332,6 +332,10 @@ def get_storage_options():
 # AWS Glue? via Boto3?
 # MINIO locally
 # Focus on streaming data instead of large memory
+# Verbose documentation
+# Defensive to prevent malicious or data loss
+# Validation
+# Schema Evolution - Log of history of changes
 
 # What the model looks like base, example table, script used to create table, make schema changes/evolution
 # Metastore piece
@@ -346,8 +350,6 @@ if __name__ == "__main__":
     # spark = setup_spark()
     spark = None
 
-    # creating aws glue database
-
     # setup hive connection with SQLAlchemy
     # engine = create_engine('hive://localhost:10000/default')
 
@@ -359,7 +361,8 @@ if __name__ == "__main__":
     logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
 
-    defc_delta_table._create_table_glue()
+    # creating aws glue database
+    # defc_delta_table._create_table_glue()
 
     logger.info('populating it with data')
     defc_delta_table.merge(defc_df)
@@ -376,7 +379,7 @@ if __name__ == "__main__":
 
     defc_aaa = QueryBuilder().register(defc_delta_table.table_ref, defc_delta_table.dt).execute(f"""
         SELECT public_laws
-        FROM {defc_delta_table.table_ref}
+        FROM 's3:\\{defc_delta_table.table_path}'
         WHERE code = 'AAA'
     """).read_all()
     print(defc_aaa)
