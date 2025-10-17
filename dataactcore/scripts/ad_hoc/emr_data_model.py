@@ -358,7 +358,7 @@ def get_storage_options():
 # Migrate to Shared Repo
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 2:
         raise Exception('Expected args: hive_connection_str')
     else:
         hive_connection_str = sys.argv[1]
@@ -419,6 +419,14 @@ if __name__ == "__main__":
     #     WHERE code = 'AAA'
     # """).read_all()
     # print(defc_aaa)
+
+    with hive_engine.connect() as connection:
+        result = connection.execute("""
+            SELECT public_laws
+            FROM `{defc_delta_table.table_ref}`
+            WHERE code = 'AAA'
+        """)
+        print(result)
 
     # logger.info('updating a value')
     # deltaTable = DeltaTable.replace(spark).tableName("testTable").addColumns(df.schema).execute()
