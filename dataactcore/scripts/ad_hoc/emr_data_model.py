@@ -1,3 +1,4 @@
+import sys
 import boto3
 import logging
 import pandas as pd
@@ -22,6 +23,8 @@ from deltalake.exceptions import TableNotFoundError
 from sqlalchemy import *
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import *
+
+from pyhive import hive
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +89,9 @@ class DeltaModel(ABC):
     unique_constraints: [(str,)]
     # null_constraints: [str]
 
-    def __init__(self, spark=None):
+    def __init__(self, spark=None, hive=None):
         self.spark = spark
+        self.hive = hive
 
         try:
             self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
@@ -149,7 +153,7 @@ class DeltaModel(ABC):
         else:
             logger.info(f'{self.table_path} already initialized')
 
-    def _create_table_glue(self):
+    def _register_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
         database_name = 'data_broker'
         input_format = 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
@@ -187,6 +191,10 @@ class DeltaModel(ABC):
             print(f"Table '{self.table_name}' already exists in database '{database_name}'.")
         except Exception as e:
             print(f"Error creating table: {e}")
+
+    def _register_table_hive(self):
+        with self.hive.connect() as connection:
+            connection.execute(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION {self.table_path};")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
@@ -350,12 +358,32 @@ def get_storage_options():
 # Migrate to Shared Repo
 
 if __name__ == "__main__":
+    if len(sys.argv) < 4:
+        raise Exception('Expected args: hive_connection_str')
+    else:
+        hive_connection_str = sys.argv[1]
+
     sess = GlobalDB.db().session
+
+    # setup spark
     # spark = setup_spark()
     spark = None
 
-    # setup hive connection with SQLAlchemy
-    # engine = create_engine('hive://localhost:10000/default')
+    # setup hive connections
+    # sqlalchemy
+    hive_engine = create_engine(hive_connection_str)
+    # making the schema db
+    with hive_engine.connect() as connection:
+        connection.execute("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
+
+    # pyhive
+    # conn = hive.Connection(host='your_hive_host', port=10000, username='your_username')
+    # cursor = conn.cursor()
+    # cursor.execute('SELECT * FROM my_delta_table LIMIT 10')
+    # results = cursor.fetchall()
+    # print(results)
+    # cursor.close()
+    # conn.close()
 
     # get a dataframe from the existing postgres as sample data
     defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
@@ -365,8 +393,11 @@ if __name__ == "__main__":
     logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
 
-    # creating aws glue database
-    # defc_delta_table._create_table_glue()
+    # registering it to aws glue database
+    # defc_delta_table._register_table_glue()
+
+    # registering it to hive metastore
+    defc_delta_table._register_table_hive()
 
     logger.info('populating it with data')
     defc_delta_table.merge(defc_df)
@@ -381,12 +412,13 @@ if __name__ == "__main__":
     pulled_df_polars = defc_delta_table.to_polars_df()
     print(pulled_df_polars)
 
-    defc_aaa = QueryBuilder().execute(f"""
-        SELECT public_laws
-        FROM delta.`{defc_delta_table.hadoop_path}`
-        WHERE code = 'AAA'
-    """).read_all()
-    print(defc_aaa)
+    # delta talbe querybuilder - requires registration first
+    # defc_aaa = QueryBuilder().execute(f"""
+    #     SELECT public_laws
+    #     FROM delta.`{defc_delta_table.hadoop_path}`
+    #     WHERE code = 'AAA'
+    # """).read_all()
+    # print(defc_aaa)
 
     # logger.info('updating a value')
     # deltaTable = DeltaTable.replace(spark).tableName("testTable").addColumns(df.schema).execute()
