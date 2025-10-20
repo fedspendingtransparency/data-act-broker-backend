@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
     # jaydebee
     driver_class = "org.postgresql.Driver"
-    jar_file = os.path.join(os.path.abspath(__file__), 'postgresql-42.7.8.jar')
+    jar_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'postgresql-42.7.8.jar')
     print(jar_file)
     conn = jaydebeapi.connect(
         driver_class,
