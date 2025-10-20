@@ -1,3 +1,4 @@
+import os
 import sys
 import boto3
 import logging
@@ -25,6 +26,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import *
 
 from pyhive import hive
+import jaydebeapi
 
 logger = logging.getLogger(__name__)
 
@@ -358,10 +360,12 @@ def get_storage_options():
 # Migrate to Shared Repo
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 4:
         raise Exception('Expected args: hive_connection_str')
     else:
         hive_connection_str = sys.argv[1]
+        username = sys.argv[2]
+        password = sys.argv[3]
 
     sess = GlobalDB.db().session
 
@@ -370,11 +374,26 @@ if __name__ == "__main__":
     spark = None
 
     # setup hive connections
+
     # sqlalchemy
-    hive_engine = create_engine(hive_connection_str)
+    # hive_engine = create_engine(hive_connection_str)
+
+    # jaydebee
+    driver_class = "org.postgresql.Driver"
+    jar_file = os.path.join(os.path.abspath(__file__), 'postgresql-42.7.8.jar')
+    conn = jaydebeapi.connect(
+        driver_class,
+        hive_connection_str,
+        [username, password],
+        jar_file
+    )
+    with conn.cursor() as cursor:
+        cursor.execute("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
+
     # making the schema db
-    with hive_engine.connect() as connection:
-        connection.execute("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
+    # with hive_engine.connect() as connection:
+    #     connection.execute("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
+
 
     # pyhive
     # conn = hive.Connection(host='your_hive_host', port=10000, username='your_username')
