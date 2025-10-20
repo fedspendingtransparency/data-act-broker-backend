@@ -28,6 +28,8 @@ from sqlalchemy.schema import *
 from pyhive import hive
 import jaydebeapi
 
+from dataactcore.config import CONFIG_BROKER
+
 logger = logging.getLogger(__name__)
 
 # class ColumnType(ABC):
@@ -360,12 +362,12 @@ def get_storage_options():
 # Migrate to Shared Repo
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        raise Exception('Expected args: hive_connection_str')
-    else:
-        hive_connection_str = sys.argv[1]
-        username = sys.argv[2]
-        password = sys.argv[3]
+    host = CONFIG_BROKER['hive']['host']
+    port = CONFIG_BROKER['hive']['port']
+    table = 'broker'
+    hive_url = f'jdbc:postgresql://{host}:{port}/{table}'
+    username = CONFIG_BROKER['hive']['username']
+    password = CONFIG_BROKER['hive']['password']
 
     sess = GlobalDB.db().session
 
@@ -383,7 +385,7 @@ if __name__ == "__main__":
     jar_file = os.path.join(os.path.abspath(__file__), 'postgresql-42.7.8.jar')
     conn = jaydebeapi.connect(
         driver_class,
-        hive_connection_str,
+        hive_url,
         [username, password],
         jar_file
     )
