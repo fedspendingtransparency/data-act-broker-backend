@@ -7,6 +7,13 @@ RUN apt-get install -y netcat-openbsd
 RUN apt-get install -y libsqlite3-dev
 RUN apt-get install -y build-essential
 
+# Install Java
+RUN wget -qO - https://apt.corretto.aws/corretto.key | gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | tee /etc/apt/sources.list.d/corretto.list
+RUN apt update && \
+    apt install -y java-1.8.0-amazon-corretto-jdk
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-amazon-corretto
+
 RUN pip install unittest-xml-reporting setuptools==68.1.2
 
 COPY requirements.txt /data-act/backend/requirements.txt
