@@ -14,6 +14,23 @@ RUN apt update && \
     apt install -y java-1.8.0-amazon-corretto-jdk
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-amazon-corretto
 
+ARG HADOOP_VERSION=3.3.4
+ARG SPARK_VERSION=3.5.0
+
+RUN wget --quiet https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz \
+    && tar xzf hadoop-${HADOOP_VERSION}.tar.gz \
+    && ln -sfn /usr/local/hadoop-${HADOOP_VERSION} /usr/local/hadoop \
+    && wget --quiet https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz \
+    && tar xzf spark-${SPARK_VERSION}-bin-without-hadoop.tgz \
+    && ln -sfn /usr/local/spark-${SPARK_VERSION}-bin-without-hadoop /usr/local/spark \
+    && echo "Installed $(/usr/local/hadoop/bin/hadoop version)"
+ENV HADOOP_HOME=/usr/local/hadoop
+ENV SPARK_HOME=/usr/local/spark
+# Cannot set ENV var = command-result, [i.e. doing: ENV SPARK_DIST_CLASSPATH=$(${HADOOP_HOME}/bin/hadoop classpath)], so interpolating the hadoop classpath the long way
+ENV SPARK_DIST_CLASSPATH="$HADOOP_HOME/etc/hadoop/*:$HADOOP_HOME/share/hadoop/common/lib/*:$HADOOP_HOME/share/hadoop/common/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/hdfs/lib/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/yarn/lib/*:$HADOOP_HOME/share/hadoop/yarn/*:$HADOOP_HOME/share/hadoop/mapreduce/lib/*:$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_HOME/share/hadoop/tools/lib/*"
+ENV PATH=${SPARK_HOME}/bin:${HADOOP_HOME}/bin:${JAVA_HOME}/bin:${PATH}
+RUN echo "Installed Spark" && echo "$(${SPARK_HOME}/bin/pyspark --version)"
+
 RUN pip install unittest-xml-reporting setuptools==68.1.2
 
 COPY requirements.txt /data-act/backend/requirements.txt
