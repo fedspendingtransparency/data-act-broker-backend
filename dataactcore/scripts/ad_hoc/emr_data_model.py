@@ -197,8 +197,7 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
-        with self.hive.connect() as connection:
-            connection.execute(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION {self.table_path};")
+        self.spark.sql(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION {self.table_path};")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
@@ -319,13 +318,14 @@ class DEFCDelta(DeltaModel):
         ])
 
 
-def setup_spark():
+def setup_spark(hive_connection_str):
     # Initialize SparkSession for AWS Glue
     spark = SparkSession.builder \
-        .appName("GlueDeltaLakeJob") \
+        .appName("DeltaLakeJob") \
         .enableHiveSupport() \
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+        .config('spark.hadoop.javax.jdo.option.ConnectionURL', hive_connection_str) \
         .getOrCreate()
     return spark
 
@@ -372,8 +372,9 @@ if __name__ == "__main__":
     sess = GlobalDB.db().session
 
     # setup spark
-    # spark = setup_spark()
-    spark = None
+    spark = setup_spark(hive_url)
+
+    # spark = None
 
     # setup hive connections
 
@@ -383,7 +384,6 @@ if __name__ == "__main__":
     # jaydebee
     driver_class = "org.postgresql.Driver"
     jar_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'postgresql-42.7.8.jar')
-    print(jar_file)
     conn = jaydebeapi.connect(
         driver_class,
         hive_url,
@@ -391,7 +391,12 @@ if __name__ == "__main__":
         jar_file
     )
     with conn.cursor() as cursor:
-        cursor.execute("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
+        # cursor.execute("SELECT * FROM ;")
+        pass
+
+
+
+
 
     # making the schema db
     # with hive_engine.connect() as connection:
@@ -410,7 +415,7 @@ if __name__ == "__main__":
     # get a dataframe from the existing postgres as sample data
     defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
 
-    defc_delta_table = DEFCDelta()
+    defc_delta_table = DEFCDelta(spark=spark)
 
     logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
@@ -430,9 +435,7 @@ if __name__ == "__main__":
     # data = spark.read.csv("s3://your-s3-bucket/input_data.csv", header=True, inferSchema=True)
     # print(data)
     pulled_df_pandas = defc_delta_table.to_pandas_df()
-    print(pulled_df_pandas)
     pulled_df_polars = defc_delta_table.to_polars_df()
-    print(pulled_df_polars)
 
     # delta talbe querybuilder - requires registration first
     # defc_aaa = QueryBuilder().execute(f"""
@@ -442,13 +445,20 @@ if __name__ == "__main__":
     # """).read_all()
     # print(defc_aaa)
 
-    with hive_engine.connect() as connection:
-        result = connection.execute("""
-            SELECT public_laws
-            FROM `{defc_delta_table.table_ref}`
-            WHERE code = 'AAA'
-        """)
-        print(result)
+    # with hive_engine.connect() as connection:
+    #     result = connection.execute("""
+    #         SELECT public_laws
+    #         FROM `{defc_delta_table.table_ref}`
+    #         WHERE code = 'AAA'
+    #     """)
+    #     print(result)
+
+    results = spark.sql(f"""
+        SELECT public_laws
+        FROM `{defc_delta_table.table_ref}`
+        WHERE code = 'AAA'
+    """)
+    print(results)
 
     # logger.info('updating a value')
     # deltaTable = DeltaTable.replace(spark).tableName("testTable").addColumns(df.schema).execute()
