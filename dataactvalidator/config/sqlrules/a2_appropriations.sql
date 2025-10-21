@@ -9,7 +9,6 @@ WITH appropriation_a2_{0} AS
         budget_authority_unobligat_fyb,
         adjustments_to_unobligated_cpe,
         other_budgetary_resources_cpe,
-        tas,
         display_tas
     FROM appropriation
     WHERE submission_id = {0})
@@ -31,7 +30,7 @@ FROM appropriation_a2_{0} AS approp
     INNER JOIN submission AS sub
         ON approp.submission_id = sub.submission_id
     LEFT OUTER JOIN sf_133 AS sf
-        ON approp.tas = sf.tas
+        ON approp.display_tas = sf.display_tas
         AND sf.period = sub.reporting_fiscal_period
         AND sf.fiscal_year = sub.reporting_fiscal_year
         AND sf.line = 1902

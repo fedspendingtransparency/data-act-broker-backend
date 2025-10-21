@@ -31,12 +31,15 @@ def test_success(database):
     submission = SubmissionFactory(
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
-    sf_1 = SF133Factory(line=1021, tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N")
-    sf_2 = SF133Factory(line=1033, tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code="N")
+    sf_1 = SF133Factory(
+        line=1021, display_tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N"
+    )
+    sf_2 = SF133Factory(
+        line=1033, display_tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code="N"
+    )
     op = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=1,
-        tas=tas,
         display_tas=tas,
         deobligations_recov_by_pro_cpe=3,
         disaster_emergency_fund_code="n",
@@ -56,12 +59,15 @@ def test_success_multiple_rows(database):
     submission = SubmissionFactory(
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
-    sf_1 = SF133Factory(line=1021, tas=tas, period=period, fiscal_year=year, amount=3, disaster_emergency_fund_code="N")
-    sf_2 = SF133Factory(line=1033, tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code="N")
+    sf_1 = SF133Factory(
+        line=1021, display_tas=tas, period=period, fiscal_year=year, amount=3, disaster_emergency_fund_code="N"
+    )
+    sf_2 = SF133Factory(
+        line=1033, display_tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code="N"
+    )
     op_1 = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=1,
-        tas=tas,
         display_tas=tas,
         deobligations_recov_by_pro_cpe=1,
         disaster_emergency_fund_code="n",
@@ -70,7 +76,6 @@ def test_success_multiple_rows(database):
     op_2 = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=2,
-        tas=tas,
         display_tas=tas,
         deobligations_recov_by_pro_cpe=4,
         disaster_emergency_fund_code="n",
@@ -91,14 +96,21 @@ def test_non_matching_defc(database):
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
 
-    sf_1 = SF133Factory(line=1021, tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N")
-    sf_2 = SF133Factory(line=1033, tas=tas, period=period, fiscal_year=year, amount=0, disaster_emergency_fund_code="N")
-    sf_3 = SF133Factory(line=1021, tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code="M")
-    sf_4 = SF133Factory(line=1033, tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="M")
+    sf_1 = SF133Factory(
+        line=1021, display_tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N"
+    )
+    sf_2 = SF133Factory(
+        line=1033, display_tas=tas, period=period, fiscal_year=year, amount=0, disaster_emergency_fund_code="N"
+    )
+    sf_3 = SF133Factory(
+        line=1021, display_tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code="M"
+    )
+    sf_4 = SF133Factory(
+        line=1033, display_tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="M"
+    )
     op = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=1,
-        tas=tas,
         display_tas=tas,
         deobligations_recov_by_pro_cpe=1,
         disaster_emergency_fund_code="n",
@@ -118,12 +130,15 @@ def test_different_pya(database):
     submission = SubmissionFactory(
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
-    sf_1 = SF133Factory(line=1021, tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N")
-    sf_2 = SF133Factory(line=1033, tas=tas, period=period, fiscal_year=year, amount=0, disaster_emergency_fund_code="N")
+    sf_1 = SF133Factory(
+        line=1021, display_tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N"
+    )
+    sf_2 = SF133Factory(
+        line=1033, display_tas=tas, period=period, fiscal_year=year, amount=0, disaster_emergency_fund_code="N"
+    )
     op = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=1,
-        tas=tas,
         display_tas=tas,
         deobligations_recov_by_pro_cpe=0,
         disaster_emergency_fund_code="n",
@@ -143,12 +158,15 @@ def test_failure(database):
     submission = SubmissionFactory(
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
-    sf_1 = SF133Factory(line=1021, tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N")
-    sf_2 = SF133Factory(line=1033, tas=tas, period=period, fiscal_year=year, amount=0, disaster_emergency_fund_code="N")
+    sf_1 = SF133Factory(
+        line=1021, display_tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N"
+    )
+    sf_2 = SF133Factory(
+        line=1033, display_tas=tas, period=period, fiscal_year=year, amount=0, disaster_emergency_fund_code="N"
+    )
     op = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=1,
-        tas=tas,
         display_tas=tas,
         deobligations_recov_by_pro_cpe=0,
         disaster_emergency_fund_code="n",

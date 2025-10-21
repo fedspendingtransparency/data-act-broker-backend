@@ -4,7 +4,6 @@ WITH object_class_program_activity_b25_{0} AS
     (SELECT submission_id,
         row_number,
         obligations_incurred_by_pr_cpe,
-        tas,
         display_tas,
         disaster_emergency_fund_code,
         prior_year_adjustment
@@ -21,7 +20,7 @@ SELECT
     UPPER(op.disaster_emergency_fund_code) AS "uniqueid_DisasterEmergencyFundCode"
 FROM object_class_program_activity_b25_{0} AS op
     INNER JOIN sf_133 AS sf
-        ON op.tas = sf.tas
+        ON op.display_tas = sf.display_tas
         AND UPPER(op.disaster_emergency_fund_code) = COALESCE(sf.disaster_emergency_fund_code, '')
     INNER JOIN submission AS sub
         ON op.submission_id = sub.submission_id

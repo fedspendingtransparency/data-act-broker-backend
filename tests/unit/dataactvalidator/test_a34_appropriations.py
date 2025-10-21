@@ -24,8 +24,8 @@ def test_success_fy2015(database):
     budget_authority_unobligat_fyb
     """
 
-    sf = SF133Factory(line=2490, tas=_TAS, period=12, fiscal_year=2015, amount=1)
-    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=1)
+    sf = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=1)
+    ap = AppropriationFactory(display_tas=_TAS, budget_authority_unobligat_fyb=1)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
@@ -34,8 +34,8 @@ def test_success_fy2016(database):
     """If data for the end of the last fiscal year isn't present, the validation should still pass since it only looks
     for a specific fiscal year and period when executing the SQL
     """
-    sf = SF133Factory(line=2490, tas=_TAS, period=12, fiscal_year=2016, amount=1)
-    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=0)
+    sf = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2016, amount=1)
+    ap = AppropriationFactory(display_tas=_TAS, budget_authority_unobligat_fyb=0)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
@@ -43,9 +43,9 @@ def test_success_fy2016(database):
 def test_success_multi_line(database):
     """Tests that the validation is still successful if there are multiple SF-133 lines because of DEFC splits."""
 
-    sf_1 = SF133Factory(line=2490, tas=_TAS, period=12, fiscal_year=2015, amount=1)
-    sf_2 = SF133Factory(line=2490, tas=_TAS, period=12, fiscal_year=2015, amount=4)
-    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=5)
+    sf_1 = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=1)
+    sf_2 = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=4)
+    ap = AppropriationFactory(display_tas=_TAS, budget_authority_unobligat_fyb=5)
 
     assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap]) == 0
 
@@ -55,8 +55,8 @@ def test_failure(database):
     budget_authority_unobligat_fyb
     """
 
-    sf = SF133Factory(line=2490, tas=_TAS, period=12, fiscal_year=2015, amount=1)
-    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=0)
+    sf = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=1)
+    ap = AppropriationFactory(display_tas=_TAS, budget_authority_unobligat_fyb=0)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 1
 
@@ -66,7 +66,7 @@ def test_failure_null(database):
     budget_authority_unobligat_fyb when budget_authority_unobligat_fyb is null
     """
 
-    sf = SF133Factory(line=2490, tas=_TAS, period=12, fiscal_year=2015, amount=1)
-    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=None)
+    sf = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=1)
+    ap = AppropriationFactory(display_tas=_TAS, budget_authority_unobligat_fyb=None)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 1
