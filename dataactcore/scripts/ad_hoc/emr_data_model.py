@@ -382,26 +382,20 @@ if __name__ == "__main__":
     # hive_engine = create_engine(hive_connection_str)
 
     # jaydebee
-    driver_class = "org.postgresql.Driver"
-    jar_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'postgresql-42.7.8.jar')
-    conn = jaydebeapi.connect(
-        driver_class,
-        hive_url,
-        [username, password],
-        jar_file
-    )
-    with conn.cursor() as cursor:
-        # cursor.execute("SELECT * FROM ;")
-        pass
-
-
-
-
+    # driver_class = "org.postgresql.Driver"
+    # jar_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'postgresql-42.7.8.jar')
+    # conn = jaydebeapi.connect(
+    #     driver_class,
+    #     hive_url,
+    #     [username, password],
+    #     jar_file
+    # )
+    # with conn.cursor() as cursor:
+    #     # cursor.execute("SELECT * FROM ;")
+    #     pass
 
     # making the schema db
-    # with hive_engine.connect() as connection:
-    #     connection.execute("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
-
+    spark.sql("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
 
     # pyhive
     # conn = hive.Connection(host='your_hive_host', port=10000, username='your_username')
