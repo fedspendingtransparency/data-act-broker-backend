@@ -228,11 +228,11 @@ def test_only_fill_missing(database, monkeypatch):
     sess.commit()
 
     incoming_tas_data = pd.DataFrame(
-        columns=("account_num",) + TAS_COMPONENTS + tuple(blank_tas_fields),
+        columns=("account_num", "internal_start_date") + TAS_COMPONENTS + tuple(blank_tas_fields),
         data=[
-            [111] + ["444"] * len(TAS_COMPONENTS) + ["populated-111"] * len(blank_tas_fields),
-            [222] + ["555"] * len(TAS_COMPONENTS) + ["populated-222"] * len(blank_tas_fields),
-            [333] + ["666"] * len(TAS_COMPONENTS) + ["populated-333"] * len(blank_tas_fields),
+            [111, "01/01/2000"] + ["444"] * len(TAS_COMPONENTS) + ["populated-111"] * len(blank_tas_fields),
+            [222, "01/01/2000"] + ["555"] * len(TAS_COMPONENTS) + ["populated-222"] * len(blank_tas_fields),
+            [333, "01/01/2000"] + ["666"] * len(TAS_COMPONENTS) + ["populated-333"] * len(blank_tas_fields),
         ],
     )
     monkeypatch.setattr(load_tas, "clean_tas", Mock(return_value=incoming_tas_data))
@@ -242,10 +242,17 @@ def test_only_fill_missing(database, monkeypatch):
 
     load_tas.update_tas_lookups(sess, "file-name-ignored-due-to-mock", update_missing=[222])
 
-    # Post-"import" state
+    # Post-"import" state (one insert and an update)
     results = sess.query(TASLookup).order_by(TASLookup.account_num).all()
-    assert len(results) == 2
-    t222, t333 = results
+    assert len(results) == 3
+    t111, t222, t333 = results
+
+    assert t111.account_num == 111
+    assert t111.agency_identifier == "444"
+    assert t111.tas == "444444444444444444444"
+    assert t111.display_tas == "444-444-444-444-444"
+    for tas_field in blank_tas_fields:
+        assert getattr(t111, tas_field) == "populated-111"
 
     assert t222.account_num == 222
     assert t222.agency_identifier == "222"
