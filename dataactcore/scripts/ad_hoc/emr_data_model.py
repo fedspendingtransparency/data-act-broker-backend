@@ -26,7 +26,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import *
 
 from pyhive import hive
-import jaydebeapi
+# import jaydebeapi
 
 from dataactcore.config import CONFIG_BROKER
 
