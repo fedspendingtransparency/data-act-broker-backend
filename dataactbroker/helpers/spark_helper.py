@@ -24,9 +24,9 @@ from pyspark.java_gateway import launch_gateway
 from pyspark.serializers import read_int, UTF8Deserializer
 from pyspark.sql import SparkSession
 
-from dataactbroker.helpers.aws_helpers import is_aws, get_aws_credentials
-from dataactbroker.helpers.uri_helper import parse_pg_uri, parse_http_url
-from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+from dataactbroker.helpers.aws_helpers import get_aws_credentials
+from dataactbroker.helpers.uri_helper import parse_pg_uri
+from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 from dataactcore.interfaces.db import db_uri
 
 logger = logging.getLogger(__name__)
@@ -370,7 +370,7 @@ def get_jdbc_url_from_pg_uri(pg_uri: str) -> str:
 
 
 def get_usas_jdbc_url():
-    return get_jdbc_url_from_pg_uri(db_uri())
+    return get_jdbc_url_from_pg_uri(db_uri(CONFIG_DB["db_name"]))
 
 
 def get_hive_url():

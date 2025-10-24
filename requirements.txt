@@ -33,6 +33,7 @@ opentelemetry-instrumentation-threading==0.47b0
 pandas==2.1.4
 polars==1.34.0
 psutil==5.9.8
+# Keeping pyarrow at this earlier version as pip doesn't seem to store the compiled packages for higher versions
 pyarrow==15.0.1
 pyhive[hive_pure_sasl]==0.7.0
 pyspark==4.0.0
