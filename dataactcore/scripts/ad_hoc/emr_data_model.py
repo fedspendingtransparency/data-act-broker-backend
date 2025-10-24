@@ -9,6 +9,7 @@ from datetime import date, datetime
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
+from dataactbroker.helpers.aws_helpers import get_aws_credentials
 
 from dataactbroker.helpers.spark_helper import configure_spark_session, get_active_spark_session
 
@@ -337,6 +338,16 @@ class DEFCDelta(DeltaModel):
     # another option hive and glue
 # Compare with USAspending Delta Models
 # Migrate to Shared Repo
+
+def get_storage_options():
+    """ DeltaLake library doesn't use boto3 and doesn't pull the aws creds the same way. """
+    aws_creds = get_aws_credentials()
+    return {
+            "AWS_ACCESS_KEY_ID": aws_creds.access_key,
+            "AWS_SECRET_ACCESS_KEY": aws_creds.secret_key,
+            "AWS_REGION": "us-gov-west-1",
+            "AWS_SESSION_TOKEN": aws_creds.token
+    }
 
 if __name__ == "__main__":
     sess = GlobalDB.db().session
