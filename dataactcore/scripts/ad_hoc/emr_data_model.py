@@ -143,7 +143,7 @@ class DeltaModel(ABC):
         if not self.dt:
             if self.spark:
                 # TODO: Breaks due to AWS Glue
-                return self.createIfNotExists(self.spark)\
+                return self.dt.createIfNotExists(self.spark)\
                     .tableName(self.table_name)\
                     .location(self.table_path)\
                     .addColumns(self.structure)\
