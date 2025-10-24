@@ -227,7 +227,7 @@ class DeltaModel(ABC):
 
 class DEFCDelta(DeltaModel):
     bucket = 'reference'
-    bucket_schema = 'int'
+    bucket_schema = 'data_broker'
     table_name = 'defc'
     pk = 'defc_id'
     unique_constraints = [('code')]
