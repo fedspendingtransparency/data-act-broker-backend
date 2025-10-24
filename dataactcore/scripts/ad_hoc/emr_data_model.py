@@ -339,13 +339,6 @@ class DEFCDelta(DeltaModel):
 # Migrate to Shared Repo
 
 if __name__ == "__main__":
-    host = CONFIG_BROKER['hive']['host']
-    port = CONFIG_BROKER['hive']['port']
-    table = 'broker'
-    hive_url = f'jdbc:postgresql://{host}:{port}/{table}'
-    username = CONFIG_BROKER['hive']['username']
-    password = CONFIG_BROKER['hive']['password']
-
     sess = GlobalDB.db().session
 
     # setup spark

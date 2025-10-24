@@ -193,10 +193,8 @@ def configure_spark_session(
         spark_warehouse_dir = os.path.join(CONFIG_BROKER["path"], "spark-warehouse")
         spark_hive_metastore_derby_dir = os.path.join(CONFIG_BROKER["path"], "spark-warehouse", "metastore_db")
         conf.set("spark.sql.warehouse.dir", spark_warehouse_dir)
-        conf.set(
-            "spark.hadoop.javax.jdo.option.ConnectionURL",
-            f"jdbc:derby:;databaseName={spark_hive_metastore_derby_dir};create=true",
-        )
+
+        conf.set("spark.hadoop.javax.jdo.option.ConnectionURL", get_hive_url())
 
     # Set AWS credentials in the Spark config
     # Hint: If connecting to AWS resources when executing program from a local env, and you usually authenticate with
@@ -373,6 +371,16 @@ def get_jdbc_url_from_pg_uri(pg_uri: str) -> str:
 
 def get_usas_jdbc_url():
     return get_jdbc_url_from_pg_uri(db_uri())
+
+
+def get_hive_url():
+    host = CONFIG_BROKER['hive']['host']
+    port = CONFIG_BROKER['hive']['port']
+    # username = CONFIG_BROKER['hive']['username']
+    # password = CONFIG_BROKER['hive']['password']
+    table = 'broker'
+    hive_url = f'jdbc:postgresql://{host}:{port}/{table}'
+    return hive_url
 
 def get_jvm_logger(spark: SparkSession, logger_name=None):
     """
