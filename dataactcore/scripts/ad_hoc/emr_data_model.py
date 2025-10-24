@@ -10,7 +10,9 @@ from datetime import date, datetime
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 
-from pyspark.sql import SparkSession
+from dataactbroker.helpers.spark_helper import configure_spark_session, get_active_spark_session
+
+
 # from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
 #                                DecimalType, NullType, TimestampType)
 
@@ -317,31 +319,6 @@ class DEFCDelta(DeltaModel):
             Field('earliest_pl_action_date', "timestamp", nullable=True),
         ])
 
-
-def setup_spark(hive_connection_str):
-    # Initialize SparkSession for AWS Glue
-    spark = SparkSession.builder \
-        .appName("DeltaLakeJob") \
-        .enableHiveSupport() \
-        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
-        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
-        .config('spark.hadoop.javax.jdo.option.ConnectionURL', hive_connection_str) \
-        .getOrCreate()
-    return spark
-
-def get_storage_options():
-    """ DeltaLake library doesn't use boto3 and doesn't pull the aws creds the same way. """
-    session = boto3.Session()
-    credentials = session.get_credentials()
-    # To get a "frozen" set of credentials (useful for passing to other clients)
-    frozen_credentials = credentials.get_frozen_credentials()
-    return {
-            "AWS_ACCESS_KEY_ID": frozen_credentials.access_key,
-            "AWS_SECRET_ACCESS_KEY": frozen_credentials.secret_key,
-            "AWS_REGION": "us-gov-west-1",
-            "AWS_SESSION_TOKEN": frozen_credentials.token
-    }
-
 # Spark - initialize model and schema, hive
 # TODO: DUCK DB POPULATION
 # TODO: POLARS POPULATION
@@ -372,7 +349,23 @@ if __name__ == "__main__":
     sess = GlobalDB.db().session
 
     # setup spark
-    spark = setup_spark(hive_url)
+    # spark = setup_spark(hive_url)
+
+    extra_conf = {
+        # Config for Delta Lake tables and SQL. Need these to keep Dela table metadata in the metastore
+        "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
+        "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        # See comment below about old date and time values cannot parsed without these
+        "spark.sql.legacy.parquet.datetimeRebaseModeInWrite": "LEGACY",  # for dates at/before 1900
+        "spark.sql.legacy.parquet.int96RebaseModeInWrite": "LEGACY",  # for timestamps at/before 1900
+        "spark.sql.jsonGenerator.ignoreNullFields": "false",  # keep nulls in our json
+    }
+
+    spark = get_active_spark_session()
+    spark_created_by_script = False
+    if not spark:
+        spark_created_by_script = True
+        spark = configure_spark_session(**extra_conf, spark_context=spark)
 
     # spark = None
 
@@ -478,3 +471,6 @@ if __name__ == "__main__":
     # deltaTable.delete("id = 123")
     #
     # print('deleting the table')
+
+    if spark_created_by_script:
+        spark.stop()

@@ -3,6 +3,7 @@ import requests
 import tempfile
 import urllib
 from dataactcore.config import CONFIG_BROKER
+from urllib.parse import ParseResult, urlparse, parse_qs
 
 VALID_SCHEMES = ("http", "https", "s3", "file", "")
 supported_schemes = ", ".join(["{}://".format(s) for s in VALID_SCHEMES if s])
@@ -13,6 +14,34 @@ SCHEMA_HELP_TEXT = """
     """.format(
     supported_schemes
 )
+
+def parse_http_url(http_url) -> (ParseResult, str, str):
+    """Use the urlparse lib to parse out parts of an HTTP(s) URL string
+
+    Supports ``username:password`` format or if ``?username=...&password=...`` format
+
+    Returns: A three-tuple of the URL Parts ParseResult, the username (or None), and the password (or None)
+    """
+    url_parts = urlparse(http_url)
+    user = (
+        url_parts.username if url_parts.username else parse_qs(url_parts.query)["user"][0] if url_parts.query else None
+    )
+    password = (
+        url_parts.password
+        if url_parts.password
+        else parse_qs(url_parts.query)["password"][0] if url_parts.query else None
+    )
+    return url_parts, user, password
+
+
+def parse_pg_uri(pg_uri) -> (ParseResult, str, str):
+    """Use the urlparse lib to parse out parts of a PostgreSQL URI connection string
+
+    Supports ``username:password`` format or if ``?username=...&password=...`` format
+
+    Returns: A three-tuple of the URL Parts ParseResult, the username (or None), and the password (or None)
+    """
+    return parse_http_url(pg_uri)
 
 
 class RetrieveFileFromUri:
