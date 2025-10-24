@@ -392,7 +392,7 @@ if __name__ == "__main__":
     #     pass
 
     # making the schema db
-    spark.sql("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
+    # spark.sql("CREATE SCHEMA data_broker LOCATION 's3://dti-broker-emr-qat/';")
 
     # pyhive
     # conn = hive.Connection(host='your_hive_host', port=10000, username='your_username')
