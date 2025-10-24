@@ -33,9 +33,7 @@ opentelemetry-instrumentation-threading==0.47b0
 pandas==2.1.4
 polars==1.34.0
 psutil==5.9.8
-# pyarrow==21.0.0
-# the precompiled pyarrow libraries aren't on the latest pip repo yet?
-https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pyarrow
+pyarrow==15.0.1
 pyhive[hive_pure_sasl]==0.7.0
 pyspark==4.0.0
 pytest==8.0.2
