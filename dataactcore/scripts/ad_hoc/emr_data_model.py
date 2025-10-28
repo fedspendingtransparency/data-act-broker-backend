@@ -216,7 +216,6 @@ class DeltaModel(ABC):
     def _register_table_hive(self):
         self.spark.sql(rf"""
             CREATE DATABASE IF NOT EXISTS {self.database}
-            USING DELTA
             LOCATION '{self.database_path_hadoop}'
         """)
         self.spark.sql(rf"""
