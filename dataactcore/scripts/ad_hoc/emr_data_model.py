@@ -11,7 +11,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 from dataactbroker.helpers.aws_helpers import get_aws_credentials
 
-from dataactbroker.helpers.spark_helper import configure_spark_session, get_active_spark_session
+from dataactbroker.helpers.spark_helper import configure_spark_session, get_active_spark_session, get_jvm_logger
 
 
 # from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
@@ -39,12 +39,9 @@ from pyhive import hive
 
 from dataactcore.config import CONFIG_BROKER
 
-from pyspark.logger import PySparkLogger
 import pyspark.sql.functions as sf
 
-logger = PySparkLogger.getLogger()
-
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # class ColumnType(ABC):
 #     @abstractmethod
@@ -381,6 +378,7 @@ if __name__ == "__main__":
     }
 
     spark = get_active_spark_session()
+    logger = get_jvm_logger(spark)
     spark_created_by_script = False
     if not spark:
         spark_created_by_script = True
