@@ -142,11 +142,12 @@ class DeltaModel(ABC):
         logger.info(f'Initializing {self.table_path}')
         if not self.dt:
             if self.spark:
-                return self.dt.createIfNotExists(self.spark)\
+                DeltaTable.createIfNotExists(self.spark)\
                     .tableName(self.table_name)\
                     .location(self.table_path)\
                     .addColumns(self.structure)\
                     .execute()
+                self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
             else:
                 self.dt = DeltaTable.create(
                     table_uri=str(self.table_path),
@@ -199,7 +200,7 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
-        self.spark.sql(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION \'{self.hadoop_path}\';")
+        self.spark.sql(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
@@ -226,7 +227,7 @@ class DeltaModel(ABC):
 
 class DEFCDelta(DeltaModel):
     bucket = 'reference'
-    bucket_schema = 'data_broker'
+    bucket_schema = 'int'
     table_name = 'defc'
     pk = 'defc_id'
     unique_constraints = [('code')]
