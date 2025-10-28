@@ -447,9 +447,6 @@ if __name__ == "__main__":
     #     """)
     #     print(result)
 
-    logger.info(spark.range(1).select(sf.current_schema()).show())
-    logger.info(spark.range(1).select(sf.current_database()).show())
-
     results = spark.sql(f"""
         SELECT public_laws
         FROM `{defc_delta_table.table_ref}`
