@@ -17,8 +17,14 @@ from dataactbroker.helpers.spark_helper import configure_spark_session, get_acti
 # from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
 #                                DecimalType, NullType, TimestampType)
 
+
+# Note: Both delta-spark and deltalake libraries have their own DeltaTable class. Try not to mix them up.
+
+# delta.io / delta-spark package
 # from delta import *
 # from delta.tables import DeltaTable
+
+# deltalake package
 from deltalake.schema import ArrayType, PrimitiveType
 from deltalake import DeltaTable, QueryBuilder, Field, schema
 from deltalake.writer import write_deltalake
@@ -90,7 +96,8 @@ logger = logging.getLogger(__name__)
 #         return isinstance(value, self.column_type.type)
 
 class DeltaModel(ABC):
-    bucket_schema: str
+    s3_bucket: str
+    database: str
     table_name: str
     pk: str
     unique_constraints: [(str,)]
@@ -106,21 +113,16 @@ class DeltaModel(ABC):
             self.dt = None
 
     @property
-    def s3_bucket(self):
-        env = 'qat'
-        return f'dti-broker-emr-{env}'
-
-    @property
     def table_path(self):
-        return f's3://{self.s3_bucket}/{self.bucket}/{self.bucket_schema}/{self.table_name}/'
+        return f's3://{self.s3_bucket}/data/delta/{self.database}/{self.table_name}'
 
     @property
     def hadoop_path(self):
-        return f's3a://{self.s3_bucket}/{self.bucket}/{self.bucket_schema}/{self.table_name}/'
+        return f's3a://{self.s3_bucket}/data/delta/{self.database}/{self.table_name}'
 
     @property
     def table_ref(self):
-        return f'{self.bucket_schema}.{self.table_name}'
+        return f'{self.database}.{self.table_name}'
 
     @property
     def structure(self):
@@ -141,22 +143,23 @@ class DeltaModel(ABC):
     def initialize_table(self):
         logger.info(f'Initializing {self.table_path}')
         if not self.dt:
-            if self.spark:
-                DeltaTable.createIfNotExists(self.spark)\
-                    .tableName(self.table_name)\
-                    .location(self.table_path)\
-                    .addColumns(self.structure)\
-                    .execute()
-                self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
-            else:
-                self.dt = DeltaTable.create(
-                    table_uri=str(self.table_path),
-                    name=self.table_name,
-                    schema=self.structure,
-                    mode='overwrite',
-                    storage_options=get_storage_options(),
-                )
-                self._create_table_glue()
+            # if self.spark:
+                # DeltaTable.createIfNotExists(self.spark)\
+                #     .tableName(self.table_name)\
+                #     .location(self.table_path)\
+                #     .addColumns(self.structure)\
+                #     .execute()
+                # self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
+            # else:
+            self.dt = DeltaTable.create(
+                table_uri=str(self.table_path),
+                name=self.table_name,
+                schema=self.structure,
+                mode='overwrite',
+                storage_options=get_storage_options(),
+            )
+            self._register_table_hive()
+            # self._create_table_glue()
         else:
             logger.info(f'{self.table_path} already initialized')
 
@@ -200,7 +203,11 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
-        logger.info(f"CREATE TABLE IF NOT EXISTS {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
+        self.spark.sql(rf"""
+            CREATE OR REPLACE TABLE {self.table_ref}
+            USING DELTA
+            LOCATION '{self.hadoop_path}'
+        """)
         self.spark.sql(f"CREATE TABLE IF NOT EXISTS {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
@@ -227,8 +234,8 @@ class DeltaModel(ABC):
         return pl.from_arrow(self.dt.to_pyarrow_table())
 
 class DEFCDelta(DeltaModel):
-    bucket = 'reference'
-    bucket_schema = 'int'
+    s3_bucket = 'dti-broker-emr-qat'  # TODO: broker-external, broker-submissions, usas, analytics, etc.
+    database = 'int'
     table_name = 'defc'
     pk = 'defc_id'
     unique_constraints = [('code')]
@@ -392,10 +399,6 @@ if __name__ == "__main__":
     #     # cursor.execute("SELECT * FROM ;")
     #     pass
 
-    # making the schema db
-    spark.sql("DROP SCHEMA int_test;")
-    spark.sql("CREATE SCHEMA int_test LOCATION 's3://dti-broker-emr-qat/reference/int_test/';")
-
     # pyhive
     # conn = hive.Connection(host='your_hive_host', port=10000, username='your_username')
     # cursor = conn.cursor()
@@ -412,12 +415,6 @@ if __name__ == "__main__":
 
     logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
-
-    # registering it to aws glue database
-    # defc_delta_table._register_table_glue()
-
-    # registering it to hive metastore
-    defc_delta_table._register_table_hive()
 
     logger.info('populating it with data')
     defc_delta_table.merge(defc_df)
