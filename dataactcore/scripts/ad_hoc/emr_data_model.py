@@ -206,7 +206,7 @@ class DeltaModel(ABC):
 
     def _register_table_hive(self):
         # TODO: For testing purposes, clearing out the table beforehand
-        self.spark.sql(f"DROP TABLE IF EXISTS {self.table_ref};")
+        # self.spark.sql(f"DROP TABLE IF EXISTS {self.table_ref};")
         self.spark.sql(rf"""
             CREATE OR REPLACE TABLE {self.table_ref}
             USING DELTA
