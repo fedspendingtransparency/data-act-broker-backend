@@ -244,7 +244,7 @@ class DeltaModel(ABC):
             if isinstance(field.type, ArrayType):
                 element_type = field.type.element_type.type.upper()
                 if element_type in type_mappings:
-                    element_type = type_mappings[col_type]
+                    element_type = type_mappings[element_type]
                 col_type = f'ARRAY<{element_type}>'
             else:
                 col_type = field.type.type.upper()
