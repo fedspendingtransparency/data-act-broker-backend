@@ -378,11 +378,10 @@ if __name__ == "__main__":
     }
 
     spark = get_active_spark_session()
-    logger = get_jvm_logger(spark)
     spark_created_by_script = False
     if not spark:
         spark_created_by_script = True
-        spark = configure_spark_session(**extra_conf, spark_context=spark)
+        spark = configure_spark_session(**extra_conf, log_level=logging.INFO, spark_context=spark)
 
     # spark = None
 
