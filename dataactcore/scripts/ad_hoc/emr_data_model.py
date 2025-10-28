@@ -200,6 +200,7 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
+        logger.info(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';)
         self.spark.sql(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
@@ -392,7 +393,7 @@ if __name__ == "__main__":
     #     pass
 
     # making the schema db
-    spark.sql("CREATE SCHEMA int LOCATION 's3://dti-broker-emr-qat/reference/int';")
+    spark.sql("CREATE SCHEMA int_test LOCATION 's3://dti-broker-emr-qat/reference/int_test';")
 
     # pyhive
     # conn = hive.Connection(host='your_hive_host', port=10000, username='your_username')
