@@ -39,7 +39,12 @@ from pyhive import hive
 
 from dataactcore.config import CONFIG_BROKER
 
-logger = logging.getLogger(__name__)
+from pyspark.logger import PySparkLogger
+import pyspark.sql.functions as sf
+
+logger = PySparkLogger.getLogger()
+
+# logger = logging.getLogger(__name__)
 
 # class ColumnType(ABC):
 #     @abstractmethod
@@ -204,7 +209,7 @@ class DeltaModel(ABC):
 
     def _register_table_hive(self):
         # TODO: For testing purposes, clearing out the table beforehand
-        self.spark.sql(f"DROP TABLE NOT EXISTS {self.table_ref};")
+        self.spark.sql(f"DROP TABLE IF EXISTS {self.table_ref};")
         self.spark.sql(rf"""
             CREATE OR REPLACE TABLE {self.table_ref}
             USING DELTA
@@ -444,6 +449,9 @@ if __name__ == "__main__":
     #         WHERE code = 'AAA'
     #     """)
     #     print(result)
+
+    logger.info(spark.range(1).select(sf.current_schema()).show())
+    logger.info(spark.range(1).select(sf.current_database()).show())
 
     results = spark.sql(f"""
         SELECT public_laws
