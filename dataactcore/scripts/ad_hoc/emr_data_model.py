@@ -393,6 +393,7 @@ if __name__ == "__main__":
     #     pass
 
     # making the schema db
+    spark.sql("DROP SCHEMA int_test;")
     spark.sql("CREATE SCHEMA int_test LOCATION 's3://dti-broker-emr-qat/reference/int_test/';")
 
     # pyhive
