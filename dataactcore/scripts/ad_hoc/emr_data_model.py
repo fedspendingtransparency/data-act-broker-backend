@@ -1,25 +1,15 @@
-import os
-import sys
 import boto3
 import logging
 import pandas as pd
 import polars as pl
-from abc import ABC, abstractmethod
-from datetime import date, datetime
+from abc import ABC
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 from dataactbroker.helpers.aws_helpers import get_aws_credentials
-
-from dataactbroker.helpers.spark_helper import configure_spark_session, get_active_spark_session, get_jvm_logger
-
-
-# from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
-#                                DecimalType, NullType, TimestampType)
-
+from dataactbroker.helpers.spark_helper import configure_spark_session, get_active_spark_session
 
 # Note: Both delta-spark and deltalake libraries have their own DeltaTable class. Try not to mix them up.
-
 # delta.io / delta-spark package
 # from delta import *
 # from delta.tables import DeltaTable
@@ -39,7 +29,10 @@ from pyhive import hive
 
 from dataactcore.config import CONFIG_BROKER
 
-import pyspark.sql.functions as sf
+# import pyspark.sql.functions as sf
+# from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
+#                                DecimalType, NullType, TimestampType)
+
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +212,7 @@ class DeltaModel(ABC):
             LOCATION '{self.database_path_hadoop}'
         """)
         self.spark.sql(rf"""
-            CREATE OR REPLACE TABLE {self.table_ref}
+            CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql})
             USING DELTA
             LOCATION '{self.table_path_hadoop}'
         """)
@@ -240,6 +233,25 @@ class DeltaModel(ABC):
             .when_matched_update_all() \
             .when_not_matched_insert_all() \
             .execute()
+
+    def _structure_to_sql(self):
+        col_list = []
+        type_mappings = {
+            'STRING': 'TEXT',
+            'LONG': 'BIGINT',
+        }
+        for field in self.structure.fields:
+            if isinstance(field.type, ArrayType):
+                element_type = field.type.element_type.type.upper()
+                if element_type in type_mappings:
+                    element_type = type_mappings[col_type]
+                col_type = f'ARRAY<{element_type}>'
+            else:
+                col_type = field.type.type.upper()
+                if col_type in type_mappings:
+                    col_type = type_mappings[col_type]
+            col_list.append((field.name, col_type))
+        return ', '.join(f'{col_name} {col_type}' for col_name, col_type in col_list)
 
     def to_pandas_df(self):
         return self.dt.to_pyarrow_table().to_pandas()
