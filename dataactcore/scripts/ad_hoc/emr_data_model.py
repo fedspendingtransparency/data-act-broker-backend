@@ -115,11 +115,19 @@ class DeltaModel(ABC):
             self.dt = None
 
     @property
+    def database_path(self):
+        return f's3://{self.s3_bucket}/data/delta/{self.database}'
+
+    @property
+    def database_path_hadoop(self):
+        return f's3://{self.s3_bucket}/data/delta/{self.database}'
+
+    @property
     def table_path(self):
         return f's3://{self.s3_bucket}/data/delta/{self.database}/{self.table_name}'
 
     @property
-    def hadoop_path(self):
+    def table_path_hadoop(self):
         return f's3a://{self.s3_bucket}/data/delta/{self.database}/{self.table_name}'
 
     @property
@@ -160,10 +168,11 @@ class DeltaModel(ABC):
                 mode='overwrite',
                 storage_options=get_storage_options(),
             )
-            self._register_table_hive()
             # self._create_table_glue()
         else:
             logger.info(f'{self.table_path} already initialized')
+
+        self._register_table_hive()
 
     def _register_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
@@ -205,14 +214,16 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
-        # TODO: For testing purposes, clearing out the table beforehand
-        # self.spark.sql(f"DROP TABLE IF EXISTS {self.table_ref};")
+        self.spark.sql(rf"""
+            CREATE DATABASE IF NOT EXISTS {self.database}
+            USING DELTA
+            LOCATION '{self.database_path_hadoop}'
+        """)
         self.spark.sql(rf"""
             CREATE OR REPLACE TABLE {self.table_ref}
             USING DELTA
-            LOCATION '{self.hadoop_path}'
+            LOCATION '{self.table_path_hadoop}'
         """)
-        # self.spark.sql(f"CREATE TABLE IF NOT EXISTS {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
