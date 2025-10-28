@@ -236,20 +236,20 @@ class DeltaModel(ABC):
 
     def _structure_to_sql(self):
         col_list = []
-        type_mappings = {
-            'STRING': 'TEXT',
-            'LONG': 'BIGINT',
-        }
+        # type_mappings = {
+        #     'STRING': 'TEXT',
+        #     'LONG': 'BIGINT',
+        # }
         for field in self.structure.fields:
             if isinstance(field.type, ArrayType):
                 element_type = field.type.element_type.type.upper()
-                if element_type in type_mappings:
-                    element_type = type_mappings[element_type]
+                # if element_type in type_mappings:
+                #     element_type = type_mappings[element_type]
                 col_type = f'ARRAY<{element_type}>'
             else:
                 col_type = field.type.type.upper()
-                if col_type in type_mappings:
-                    col_type = type_mappings[col_type]
+                # if col_type in type_mappings:
+                #     col_type = type_mappings[col_type]
             col_list.append((field.name, col_type))
         return ', '.join(f'{col_name} {col_type}' for col_name, col_type in col_list)
 
