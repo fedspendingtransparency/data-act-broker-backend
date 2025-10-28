@@ -200,7 +200,7 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
-        logger.info(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';)
+        logger.info(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
         self.spark.sql(f"CREATE TABLE {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
