@@ -212,7 +212,7 @@ class DeltaModel(ABC):
             LOCATION '{self.database_path_hadoop}'
         """)
         self.spark.sql(rf"""
-            CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql})
+            CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql()})
             USING DELTA
             LOCATION '{self.table_path_hadoop}'
         """)
