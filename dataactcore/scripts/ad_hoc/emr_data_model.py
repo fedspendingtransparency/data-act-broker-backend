@@ -203,12 +203,14 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
+        # TODO: For testing purposes, clearing out the table beforehand
+        self.spark.sql(f"DROP TABLE NOT EXISTS {self.table_ref};")
         self.spark.sql(rf"""
             CREATE OR REPLACE TABLE {self.table_ref}
             USING DELTA
             LOCATION '{self.hadoop_path}'
         """)
-        self.spark.sql(f"CREATE TABLE IF NOT EXISTS {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
+        # self.spark.sql(f"CREATE TABLE IF NOT EXISTS {self.table_ref} USING DELTA LOCATION \'{self.table_path}\';")
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
