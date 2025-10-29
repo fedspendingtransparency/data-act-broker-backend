@@ -84,6 +84,7 @@ class DeltaModel(ABC):
 
     def initialize_table(self):
         logger.info(f'Initializing {self.table_path}')
+        self._register_table_hive()
         if not self.dt:
             # if self.spark:
                 # DeltaTable.createIfNotExists(self.spark)\
@@ -93,18 +94,18 @@ class DeltaModel(ABC):
                 #     .execute()
                 # self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
             # else:
-            self.dt = DeltaTable.create(
-                table_uri=str(self.table_path),
-                name=self.table_name,
-                schema=self.structure,
-                mode='overwrite',
-                storage_options=get_storage_options(),
-            )
+            # Wanted to do this first but the hive registration "modifies the metadata"
+            # self.dt = DeltaTable.create(
+            #     table_uri=str(self.table_path),
+            #     name=self.table_name,
+            #     schema=self.structure,
+            #     mode='overwrite',
+            #     storage_options=get_storage_options(),
+            # )
             # self._create_table_glue()
+            self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
         else:
             logger.info(f'{self.table_path} already initialized')
-
-        self._register_table_hive()
 
     def _register_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
