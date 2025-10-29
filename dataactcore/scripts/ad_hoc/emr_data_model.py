@@ -250,8 +250,9 @@ class DeltaModel(ABC):
                 col_type = field.type.type.upper()
                 # if col_type in type_mappings:
                 #     col_type = type_mappings[col_type]
-            col_list.append((field.name, col_type))
-        return ', '.join(f'{col_name} {col_type}' for col_name, col_type in col_list)
+            nullable = 'NULL' if field.nullable else 'NOT NULL'
+            col_list.append((field.name, col_type, nullable))
+        return ', '.join(f'{col_name} {col_type} {nullable}' for col_name, col_type, nullable in col_list)
 
     def to_pandas_df(self):
         return self.dt.to_pyarrow_table().to_pandas()
