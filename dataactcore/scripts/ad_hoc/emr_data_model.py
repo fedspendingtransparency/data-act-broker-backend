@@ -336,10 +336,10 @@ if __name__ == "__main__":
     #     """)
     #     print(result)
 
-    databases = [db.databaseName for db in spark.sql("SHOW DATABASES").collect()]
-    for db_name in databases:
-        print(f"Tables in database: {db_name}")
-        spark.sql(f"SHOW TABLES IN {db_name}").show()
+    databases = spark.catalog.listDatabases()
+    for db in databases:
+        print(f"Tables in database: {db.name}")
+        spark.sql(f"SHOW TABLES IN {db.name}").show()
 
     results = spark.sql(f"""
         SELECT public_laws
