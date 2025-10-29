@@ -311,10 +311,10 @@ if __name__ == "__main__":
     logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
 
-    # logger.info('populating it with data')
-    # defc_delta_table.merge(defc_df)
-    # logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
-    # defc_delta_table.merge(defc_df)
+    logger.info('populating it with data')
+    defc_delta_table.merge(defc_df)
+    logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
+    defc_delta_table.merge(defc_df)
 
     logger.info('querying it')
     # data = spark.read.csv("s3://your-s3-bucket/input_data.csv", header=True, inferSchema=True)
