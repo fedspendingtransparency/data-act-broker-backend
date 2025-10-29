@@ -88,22 +88,21 @@ class DeltaModel(ABC):
     def initialize_table(self):
         logger.info(f'Initializing {self.table_path}')
         if not self.dt:
-            if self.spark:
-                DeltaTable.createIfNotExists(self.spark)\
-                    .tableName(self.table_name)\
-                    .location(self.table_path)\
-                    .addColumns(self.structure)\
-                    .execute()
-                self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
+            # if self.spark:
+            #     DeltaTable.createIfNotExists(self.spark)\
+            #         .tableName(self.table_name)\
+            #         .location(self.table_path)\
+            #         .addColumns(self.structure)\
+            #         .execute()
+            #     self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
             # else:
-            # Wanted to do this first but the hive registration "modifies the metadata"
-            # self.dt = DeltaTable.create(
-            #     table_uri=str(self.table_path),
-            #     name=self.table_name,
-            #     schema=self.structure,
-            #     mode='overwrite',
-            #     storage_options=get_storage_options(),
-            # )
+            self.dt = DeltaTable.create(
+                table_uri=str(self.table_path),
+                name=self.table_name,
+                schema=self.structure,
+                mode='overwrite',
+                storage_options=get_storage_options(),
+            )
             # self._create_table_glue()
         else:
             logger.info(f'{self.table_path} already initialized')
