@@ -250,7 +250,7 @@ class DeltaModel(ABC):
                 col_type = field.type.type.upper()
                 # if col_type in type_mappings:
                 #     col_type = type_mappings[col_type]
-            nullable = 'NULL' if field.nullable else 'NOT NULL'
+            nullable = '' if field.nullable else 'NOT NULL'
             col_list.append((field.name, col_type, nullable))
         return ', '.join(f'{col_name} {col_type} {nullable}' for col_name, col_type, nullable in col_list)
 
