@@ -4,6 +4,7 @@ import pandas as pd
 import polars as pl
 from abc import ABC
 
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 from dataactbroker.helpers.aws_helpers import get_aws_credentials
@@ -20,75 +21,14 @@ from deltalake import DeltaTable, QueryBuilder, Field, schema
 from deltalake.writer import write_deltalake
 from deltalake.exceptions import TableNotFoundError
 
-from sqlalchemy import *
-from sqlalchemy.engine import create_engine
-from sqlalchemy.schema import *
+# from sqlalchemy import *
+# from sqlalchemy.engine import create_engine
+# from sqlalchemy.schema import *
 
 from pyhive import hive
 # import jaydebeapi
 
-from dataactcore.config import CONFIG_BROKER
-
-# import pyspark.sql.functions as sf
-# from pyspark.sql.types import (StructType, StructField, StringType, IntegerType, ArrayType, BooleanType, DateType,
-#                                DecimalType, NullType, TimestampType)
-
-
 logger = logging.getLogger(__name__)
-
-# class ColumnType(ABC):
-#     @abstractmethod
-#     def __init__(self):
-#         pass
-
-# class Text(ColumnType):
-#     def __init__(self):
-#         self.default = ''
-#         self.type = str
-#
-# class Integer(ColumnType):
-#     def __init__(self):
-#         self.default = 0
-#         self.type = int
-#
-# class Double(ColumnType):
-#     def __init__(self):
-#         self.default = 0.0
-#         self.type = float
-#
-# class Boolean(ColumnType):
-#     def __init__(self):
-#         self.default = False
-#         self.type = bool
-#
-# class Array(ColumnType):
-#     def __init__(self, type):
-#         self.item_type = type
-#         self.default = []
-#         self.type = list
-#
-# class Date(ColumnType):
-#     def __init__(self, type):
-#         self.default = date(1970, 1, 1)
-#         self.type = date
-#
-# class DateTime(ColumnType):
-#     def __init__(self, type):
-#         self.default = datetime(1970, 1, 1, 0, 0, 0)
-#         self.type = datetime
-#
-# class Column():
-#     def __init__(self, column_type: ColumnType, default=None, nullable: bool = True, unique: bool = False):
-#         self.column_type = column_type
-#         if default is not None and not self.column_type.validate(default):
-#             raise ValueError(f'Invalid default: {default}')
-#         elif (default is not None) or nullable:
-#             self.column_type.default = default
-#         self.unique = unique
-#
-#     def validate(self, value):
-#         # TODO: uniqueness check
-#         return isinstance(value, self.column_type.type)
 
 class DeltaModel(ABC):
     s3_bucket: str
@@ -96,7 +36,6 @@ class DeltaModel(ABC):
     table_name: str
     pk: str
     unique_constraints: [(str,)]
-    # null_constraints: [str]
 
     def __init__(self, spark=None, hive=None):
         self.spark = spark
@@ -266,82 +205,9 @@ class DEFCDelta(DeltaModel):
     table_name = 'defc'
     pk = 'defc_id'
     unique_constraints = [('code')]
-    # null_constraints = ['code', 'is_valid']
 
     @property
     def structure(self):
-        # SQLAlchemy
-        # created_at = Column(DateTime)
-        # updated_at = Column(DateTime)
-        # defc_id = Column(Integer)
-        # code = Column(Text, nullable=False, unique=True)
-        # public_laws = Column(Array(Text))
-        # public_law_short_titles = Column(Array(Text))
-        # group = Column(Text)
-        # urls = Column(Array(Text))
-        # is_valid = Column(Boolean, nullable=False)
-        # earliest_pl_action_date = Column(DateTime)
-
-        # Spark
-        # return StructType([
-        #     StructField("created_at", TimestampType(), True),
-        #     StructField("updated_at", TimestampType(), True),
-        #     StructField("defc_id", IntegerType(), True),
-        #     StructField("code", StringType(), False),
-        #     StructField("public_laws", ArrayType(StringType()), True),
-        #     StructField("public_law_short_titles", ArrayType(StringType()), True),
-        #     StructField("group", StringType(), True),
-        #     StructField("urls", ArrayType(StringType()), True),
-        #     StructField("is_valid", BooleanType(), False),
-        #     StructField("earliest_pl_action_date", TimestampType(), True),
-        # ])
-
-        # pandas
-        # return {
-        #     'created_at': 'datetime64[ns]',
-        #     'updated_at': 'datetime64[ns]',
-        #     'defc_id': int,
-        #     'code': str,
-        #     'public_laws': object, # pandas converts arrays to object
-        #     'public_law_short_titles': object, # pandas converts arrays to object
-        #     'group': str,
-        #     'urls': object, # pandas converts arrays to object
-        #     'is_valid': bool,
-        #     'earliest_pl_action_date': 'datetime64[ns]'
-        # }
-
-        # polars
-        # return {
-        #     'created_at': pl.Datetime,
-        #     'updated_at': pl.Datetime,
-        #     'defc_id': pl.Int64,
-        #     'code': pl.Utf8,
-        #     'public_laws': pl.List(pl.Utf8),
-        #     'public_law_short_titles': pl.List(pl.Utf8),
-        #     'group': pl.Utf8,
-        #     'urls': pl.List(pl.Utf8),
-        #     'is_valid': pl.Boolean,
-        #     'earliest_pl_action_date': pl.Datetime
-        # }
-
-        # polars with JSON?
-        # return Schema.from_json('''{
-        #     "type": "struct",
-        #     "fields": [
-        #         {"name": "created_at", "type": "datetime", "nullable": true, "metadata": {}},
-        #         {"name": "updated_at", "type": "datetime", "nullable": true, "metadata": {}},
-        #         {"name": "defc_id", "type": "integer", "nullable": false, "metadata": {}},
-        #         {"name": "code", "type": "string", "nullable": false, "metadata": {}},
-        #         {"name": "public_laws", "type": "array", , "elementType": "string", "nullable": true, "metadata": {}},
-        #         {"name": "public_law_short_titles", "type": "array", , "elementType": "string", "nullable": true, "metadata": {}},
-        #         {"name": "group", "type": "string", "nullable": true, "metadata": {}},
-        #         {"name": "urls", "type": "array", "elementType": "string", "nullable": true, "metadata": {}},
-        #         {"name": "is_valid", "type": "boolean", "nullable": false, "metadata": {}},
-        #         {"name": "earliest_pl_action_date", "type": "datetime", "nullable": true, "metadata": {}},
-        #     ]
-        # }''')
-
-        # polars with Schema
         return schema.Schema([
             Field('created_at', "timestamp", nullable=True),
             Field('updated_at', "timestamp", nullable=True),
@@ -469,6 +335,12 @@ if __name__ == "__main__":
     #         WHERE code = 'AAA'
     #     """)
     #     print(result)
+
+    results = spark.sql(f"""
+        SELECT current_schema();
+    """)
+    print(results)
+    logger.info(results)
 
     results = spark.sql(f"""
         SELECT public_laws
