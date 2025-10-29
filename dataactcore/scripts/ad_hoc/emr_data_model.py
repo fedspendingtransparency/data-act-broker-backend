@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class DeltaModel(ABC):
     s3_bucket: str
+    metastore_database: str
     database: str
     table_name: str
     pk: str
@@ -40,6 +41,9 @@ class DeltaModel(ABC):
     def __init__(self, spark=None, hive=None):
         self.spark = spark
         self.hive = hive
+
+        if spark:
+            spark.catalog.setCurrentDatabase(self.metastore_database)
 
         try:
             self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
@@ -336,10 +340,11 @@ if __name__ == "__main__":
     #     """)
     #     print(result)
 
-    databases = spark.catalog.listDatabases()
-    for db in databases:
-        print(f"Tables in database: {db.name}")
-        spark.sql(f"SHOW TABLES IN {db.name}").show()
+
+    # databases = spark.catalog.listDatabases()
+    # for db in databases:
+    #     print(f"Tables in database: {db.name}")
+    #     spark.sql(f"SHOW TABLES IN {db.name}").show()
 
     results = spark.sql(f"""
         SELECT public_laws
