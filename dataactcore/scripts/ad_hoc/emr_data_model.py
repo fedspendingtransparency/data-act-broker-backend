@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 
 class DeltaModel(ABC):
     s3_bucket: str
-    metastore_database: str
     database: str
     table_name: str
     pk: str
@@ -43,7 +42,7 @@ class DeltaModel(ABC):
         self.hive = hive
 
         if spark:
-            spark.catalog.setCurrentDatabase(self.metastore_database)
+            spark.catalog.setCurrentDatabase(self.database)
 
         try:
             self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
@@ -205,7 +204,6 @@ class DeltaModel(ABC):
 
 class DEFCDelta(DeltaModel):
     s3_bucket = 'dti-broker-emr-qat'  # TODO: broker-external, broker-submissions, usas, analytics, etc.
-    metastore_database = 'data_broker'
     database = 'int'
     table_name = 'defc'
     pk = 'defc_id'
@@ -349,7 +347,7 @@ if __name__ == "__main__":
 
     results = spark.sql(f"""
         SELECT public_laws
-        FROM `data_broker.{defc_delta_table.table_ref}`
+        FROM `{defc_delta_table.table_ref}`
         WHERE code = 'AAA'
     """)
     print(results)
