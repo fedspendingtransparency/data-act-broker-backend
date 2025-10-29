@@ -349,7 +349,7 @@ if __name__ == "__main__":
 
     results = spark.sql(f"""
         SELECT public_laws
-        FROM `{defc_delta_table.table_ref}`
+        FROM `data_broker.{defc_delta_table.table_ref}`
         WHERE code = 'AAA'
     """)
     print(results)
