@@ -336,12 +336,10 @@ if __name__ == "__main__":
     #     """)
     #     print(result)
 
-    results = spark.sql(f"""
-        SELECT current_schema();
-    """)
-    print('a', results)
-    results.show()
-    logger.info(f'a {str(list(results.collect()))}')
+    databases = [db.databaseName for db in spark.sql("SHOW DATABASES").collect()]
+    for db_name in databases:
+        print(f"Tables in database: {db_name}")
+        spark.sql(f"SHOW TABLES IN {db_name}").show()
 
     results = spark.sql(f"""
         SELECT public_laws
