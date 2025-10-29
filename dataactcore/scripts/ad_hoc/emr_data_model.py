@@ -346,11 +346,10 @@ if __name__ == "__main__":
     #     spark.sql(f"SHOW TABLES IN {db.name}").show()
 
     results = spark.sql(f"""
-        SELECT public_laws
+        SELECT *
         FROM {defc_delta_table.table_ref}
         WHERE code = 'AAA'
-    """)
-    print(results)
+    """).show()
 
     # logger.info('updating a value')
     # deltaTable = DeltaTable.replace(spark).tableName("testTable").addColumns(df.schema).execute()
