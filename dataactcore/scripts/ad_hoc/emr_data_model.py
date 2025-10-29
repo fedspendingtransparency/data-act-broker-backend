@@ -107,7 +107,7 @@ class DeltaModel(ABC):
             # self._create_table_glue()
         else:
             logger.info(f'{self.table_path} already initialized')
-        # self._register_table_hive()
+        self._register_table_hive()
 
     def _register_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
