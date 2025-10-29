@@ -205,6 +205,7 @@ class DeltaModel(ABC):
 
 class DEFCDelta(DeltaModel):
     s3_bucket = 'dti-broker-emr-qat'  # TODO: broker-external, broker-submissions, usas, analytics, etc.
+    metastore_database = 'data_broker'
     database = 'int'
     table_name = 'defc'
     pk = 'defc_id'
