@@ -41,8 +41,8 @@ class DeltaModel(ABC):
         self.spark = spark
         self.hive = hive
 
-        if spark:
-            spark.catalog.setCurrentDatabase(self.database)
+        # if spark:
+        #     spark.catalog.setCurrentDatabase(self.database)
 
         try:
             self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
