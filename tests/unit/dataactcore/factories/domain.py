@@ -177,7 +177,7 @@ class AssistanceListingFactory(factory.Factory):
         model = domainModels.AssistanceListing
 
     assistance_listing_id = None
-    program_number = fuzzy.FuzzyDecimal(0, 99, 3)
+    program_number = fuzzy.FuzzyText()
     program_title = fuzzy.FuzzyText()
     popular_name = fuzzy.FuzzyText()
     federal_agency = fuzzy.FuzzyText()

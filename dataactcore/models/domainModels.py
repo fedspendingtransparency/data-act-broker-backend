@@ -512,7 +512,7 @@ Index("ix_historic_duns_uei_upper", sa.func.upper(HistoricDUNS.uei))
 class AssistanceListing(Base):
     __tablename__ = "assistance_listing"
     assistance_listing_id = Column(Integer, primary_key=True)
-    program_number = Column(Float, nullable=False, index=True, unique=True)
+    program_number = Column(Text, nullable=False, index=True, unique=True)
     program_title = Column(Text)
     popular_name = Column(Text)
     federal_agency = Column(Text)
