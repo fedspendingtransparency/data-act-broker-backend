@@ -84,15 +84,14 @@ class DeltaModel(ABC):
 
     def initialize_table(self):
         logger.info(f'Initializing {self.table_path}')
-        self._register_table_hive()
         if not self.dt:
-            # if self.spark:
-                # DeltaTable.createIfNotExists(self.spark)\
-                #     .tableName(self.table_name)\
-                #     .location(self.table_path)\
-                #     .addColumns(self.structure)\
-                #     .execute()
-                # self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
+            if self.spark:
+                DeltaTable.createIfNotExists(self.spark)\
+                    .tableName(self.table_name)\
+                    .location(self.table_path)\
+                    .addColumns(self.structure)\
+                    .execute()
+                self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
             # else:
             # Wanted to do this first but the hive registration "modifies the metadata"
             # self.dt = DeltaTable.create(
@@ -103,9 +102,9 @@ class DeltaModel(ABC):
             #     storage_options=get_storage_options(),
             # )
             # self._create_table_glue()
-            self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
         else:
             logger.info(f'{self.table_path} already initialized')
+        # self._register_table_hive()
 
     def _register_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
@@ -310,10 +309,10 @@ if __name__ == "__main__":
     logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
 
-    logger.info('populating it with data')
-    defc_delta_table.merge(defc_df)
-    logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
-    defc_delta_table.merge(defc_df)
+    # logger.info('populating it with data')
+    # defc_delta_table.merge(defc_df)
+    # logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
+    # defc_delta_table.merge(defc_df)
 
     logger.info('querying it')
     # data = spark.read.csv("s3://your-s3-bucket/input_data.csv", header=True, inferSchema=True)
