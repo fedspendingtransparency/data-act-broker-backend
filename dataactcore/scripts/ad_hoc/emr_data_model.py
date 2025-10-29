@@ -340,8 +340,9 @@ if __name__ == "__main__":
     results = spark.sql(f"""
         SELECT current_schema();
     """)
-    print(results)
-    logger.info(results)
+    print('a', results)
+    results.show()
+    logger.info(f'a {str(list(results.collect()))}')
 
     results = spark.sql(f"""
         SELECT public_laws
