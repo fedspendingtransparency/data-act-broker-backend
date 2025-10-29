@@ -512,7 +512,7 @@ Index("ix_historic_duns_uei_upper", sa.func.upper(HistoricDUNS.uei))
 class AssistanceListing(Base):
     __tablename__ = "assistance_listing"
     assistance_listing_id = Column(Integer, primary_key=True)
-    program_number = Column(Text, nullable=False, index=True, unique=True)
+    program_number = Column(Text, nullable=False)
     program_title = Column(Text)
     popular_name = Column(Text)
     federal_agency = Column(Text)
@@ -552,6 +552,8 @@ class AssistanceListing(Base):
     omb_bureau_code = Column(Text)
     published_date = Column(Text, index=True)
     archived_date = Column(Text, index=True)
+
+Index("ix_assistance_listing_program_number_upper", sa.func.upper(AssistanceListing.program_number), unique=True)
 
 
 class Zips(Base):
