@@ -3,7 +3,7 @@
 WITH fabs37_3_{0} AS
     (SELECT submission_id,
         row_number,
-        assistance_listing_number,
+        UPPER(assistance_listing_number) AS assistance_listing_number,
         correction_delete_indicatr,
         afa_generated_unique
     FROM fabs
@@ -17,6 +17,6 @@ WHERE fabs.row_number NOT IN (
         SELECT DISTINCT sub_fabs.row_number
         FROM fabs37_3_{0} AS sub_fabs
             JOIN assistance_listing AS al
-                ON sub_fabs.assistance_listing_number = to_char(al.program_number, 'FM00.000')
+                ON sub_fabs.assistance_listing_number = UPPER(al.program_number)
     )
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

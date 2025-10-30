@@ -24,7 +24,7 @@ def test_pubished_date_success(database):
     Active date: publish_date <= action_date <= archive_date (Fails validation if active).
     """
 
-    assistance_listing = AssistanceListing(program_number=12.340, published_date="20130427", archived_date="")
+    assistance_listing = AssistanceListing(program_number='12.340', published_date="20130427", archived_date="")
     fabs_1 = FABSFactory(
         assistance_listing_number="12.340", action_date="20140528", action_type="b", correction_delete_indicatr="B"
     )
@@ -41,15 +41,15 @@ def test_pubished_date_success(database):
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, assistance_listing])
     assert errors == 0
 
-    assistance_listing = AssistanceListing(program_number=12.350, published_date="20130427", archived_date="20140427")
+    assistance_listing = AssistanceListing(program_number='aB.350', published_date="20130427", archived_date="20140427")
     fabs_1 = FABSFactory(
-        assistance_listing_number="12.350", action_date="20130528", action_type="b", correction_delete_indicatr="B"
+        assistance_listing_number="Ab.350", action_date="20130528", action_type="b", correction_delete_indicatr="B"
     )
     fabs_2 = FABSFactory(
-        assistance_listing_number="12.350", action_date="20130428", action_type="C", correction_delete_indicatr=""
+        assistance_listing_number="AB.350", action_date="20130428", action_type="C", correction_delete_indicatr=""
     )
     fabs_3 = FABSFactory(
-        assistance_listing_number="12.350", action_date="20130428", action_type="d", correction_delete_indicatr=None
+        assistance_listing_number="ab.350", action_date="20130428", action_type="d", correction_delete_indicatr=None
     )
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, assistance_listing])
     assert errors == 0
@@ -62,7 +62,7 @@ def test_pubished_date_failure(database):
     If action date is < published_date, should trigger a warning.
     """
 
-    assistance_listing = AssistanceListing(program_number=12.340, published_date="20130427", archived_date="")
+    assistance_listing = AssistanceListing(program_number='12.340', published_date="20130427", archived_date="")
     fabs_1 = FABSFactory(
         assistance_listing_number="12.340", action_date="20120528", action_type="b", correction_delete_indicatr="B"
     )
@@ -75,7 +75,7 @@ def test_pubished_date_failure(database):
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, assistance_listing])
     assert errors == 3
 
-    assistance_listing = AssistanceListing(program_number=12.350, published_date="20130427", archived_date="20140528")
+    assistance_listing = AssistanceListing(program_number='12.350', published_date="20130427", archived_date="20140528")
     fabs_1 = FABSFactory(
         assistance_listing_number="12.350", action_date="20120528", action_type="B", correction_delete_indicatr="B"
     )
