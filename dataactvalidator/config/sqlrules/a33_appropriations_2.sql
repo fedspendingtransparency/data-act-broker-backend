@@ -11,7 +11,6 @@ WITH appropriation_a33_2_{0} AS
         approp.main_account_code,
         approp.sub_account_code,
         approp.submission_id,
-        approp.tas,
         approp.display_tas,
         approp.adjustments_to_unobligated_cpe,
         approp.budget_authority_appropria_cpe,
@@ -47,7 +46,7 @@ FROM appropriation_a33_2_{0} AS approp
     AND NOT EXISTS (
         SELECT 1
         FROM sf_133 AS sf
-        WHERE approp.tas = sf.tas
+        WHERE approp.display_tas = sf.display_tas
             AND sf.period = sub.reporting_fiscal_period
             AND sf.fiscal_year = sub.reporting_fiscal_year
     )

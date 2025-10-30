@@ -32,7 +32,7 @@ def test_success_populated_ata(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=code,
@@ -49,7 +49,7 @@ def test_success_populated_ata(database):
         is_quarter_format=False,
     )
     op = ObjectClassProgramActivityFactory(
-        tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="x"
+        display_tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="x"
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
@@ -62,7 +62,7 @@ def test_success_null_ata(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=None,
@@ -79,7 +79,7 @@ def test_success_null_ata(database):
         is_quarter_format=False,
     )
     op = ObjectClassProgramActivityFactory(
-        tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="X"
+        display_tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="X"
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
@@ -92,7 +92,7 @@ def test_success_ignore_lines(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=code,
@@ -103,7 +103,7 @@ def test_success_ignore_lines(database):
     )
     # Invalid line number
     sf2 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=code,
@@ -114,7 +114,7 @@ def test_success_ignore_lines(database):
     )
     # amount of 0
     sf3 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=code,
@@ -131,11 +131,11 @@ def test_success_ignore_lines(database):
         is_quarter_format=False,
     )
     op = ObjectClassProgramActivityFactory(
-        tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="X"
+        display_tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="X"
     )
     # Different PYA
     op2 = ObjectClassProgramActivityFactory(
-        tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="A"
+        display_tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="A"
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, sf2, sf3, op, op2], submission=submission)
@@ -148,7 +148,7 @@ def test_failure_populated_ata(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=code,
@@ -165,7 +165,10 @@ def test_failure_populated_ata(database):
         is_quarter_format=False,
     )
     op = ObjectClassProgramActivityFactory(
-        tas="a-different-tas", submission_id=submission_id, disaster_emergency_fund_code="n", prior_year_adjustment="x"
+        display_tas="a-different-tas",
+        submission_id=submission_id,
+        disaster_emergency_fund_code="n",
+        prior_year_adjustment="x",
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
@@ -178,7 +181,7 @@ def test_failure_null_ata(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=None,
@@ -195,7 +198,10 @@ def test_failure_null_ata(database):
         is_quarter_format=False,
     )
     op = ObjectClassProgramActivityFactory(
-        tas="a-different-tas", submission_id=submission_id, disaster_emergency_fund_code="n", prior_year_adjustment="X"
+        display_tas="a-different-tas",
+        submission_id=submission_id,
+        disaster_emergency_fund_code="n",
+        prior_year_adjustment="X",
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
@@ -267,7 +273,7 @@ def test_ignore_quarterly_submissions(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=code,
@@ -284,7 +290,10 @@ def test_ignore_quarterly_submissions(database):
         is_quarter_format=True,
     )
     op = ObjectClassProgramActivityFactory(
-        tas="a-different-tas", submission_id=submission_id, disaster_emergency_fund_code="n", prior_year_adjustment="X"
+        display_tas="a-different-tas",
+        submission_id=submission_id,
+        disaster_emergency_fund_code="n",
+        prior_year_adjustment="X",
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
@@ -297,7 +306,7 @@ def test_non_matching_defc(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=code,
@@ -314,7 +323,7 @@ def test_non_matching_defc(database):
         is_quarter_format=False,
     )
     op = ObjectClassProgramActivityFactory(
-        tas=tas, disaster_emergency_fund_code="m", submission_id=submission_id, prior_year_adjustment="x"
+        display_tas=tas, disaster_emergency_fund_code="m", submission_id=submission_id, prior_year_adjustment="x"
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)

@@ -6,7 +6,6 @@ SELECT
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs
 WHERE submission_id = {0}
-    AND (assistance_type = '07' OR assistance_type = '08')
-    AND non_federal_funding_amount IS NOT NULL
-    AND non_federal_funding_amount <> 0
+    AND assistance_type IN ('07', '08')
+    AND COALESCE(non_federal_funding_amount, 0) <> 0
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

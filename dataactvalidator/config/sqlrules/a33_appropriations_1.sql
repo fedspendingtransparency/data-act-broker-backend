@@ -78,7 +78,7 @@ FROM sf_133 AS sf
 WHERE NOT EXISTS (
         SELECT 1
         FROM appropriation AS approp
-        WHERE sf.tas IS NOT DISTINCT FROM approp.tas
+        WHERE sf.display_tas IS NOT DISTINCT FROM approp.display_tas
             AND approp.submission_id = {0}
     )
     AND COALESCE(UPPER(tl.financial_indicator2), '') <> 'F';

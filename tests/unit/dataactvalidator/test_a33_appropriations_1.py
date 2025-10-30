@@ -30,7 +30,11 @@ def test_success_populated_ata_cgac(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code, agency_identifier="some-other-code"
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        allocation_transfer_agency=code,
+        agency_identifier="some-other-code",
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -39,7 +43,7 @@ def test_success_populated_ata_cgac(database):
         cgac_code=code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
+    ap = AppropriationFactory(display_tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf1, ap], submission=submission) == []
 
@@ -48,7 +52,11 @@ def test_success_populated_ata_cgac(database):
     tas, period, year, code = "some-tas", 2, 2002, "097"
 
     sf1 = SF133Factory(
-        tas=tas, period=period, fiscal_year=year, allocation_transfer_agency="021", agency_identifier="some-other-code"
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        allocation_transfer_agency="021",
+        agency_identifier="some-other-code",
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -57,7 +65,7 @@ def test_success_populated_ata_cgac(database):
         cgac_code=code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
+    ap = AppropriationFactory(display_tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf1, ap], submission=submission) == []
 
@@ -68,7 +76,7 @@ def test_failure_populated_ata_cgac(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code, agency_identifier=code
+        display_tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code, agency_identifier=code
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -77,7 +85,7 @@ def test_failure_populated_ata_cgac(database):
         cgac_code=code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 1
@@ -87,7 +95,11 @@ def test_failure_populated_ata_cgac(database):
     tas, period, year, code = "some-tas", 2, 2002, "097"
 
     sf1 = SF133Factory(
-        tas=tas, period=period, fiscal_year=year, allocation_transfer_agency="021", agency_identifier="some-other-code"
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        allocation_transfer_agency="021",
+        agency_identifier="some-other-code",
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -96,7 +108,7 @@ def test_failure_populated_ata_cgac(database):
         cgac_code=code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 1
@@ -111,7 +123,7 @@ def test_success_populated_ata_frec(database):
     tas, period, year, cgac_code, frec_code = "some-tas", 2, 2002, "016", "1601"
 
     sf = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=cgac_code,
@@ -124,7 +136,7 @@ def test_success_populated_ata_frec(database):
         cgac_code=None,
         frec_code=frec_code,
     )
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
+    ap = AppropriationFactory(display_tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf, ap], submission=submission) == []
 
@@ -132,7 +144,7 @@ def test_success_populated_ata_frec(database):
     tas, period, year, cgac_code, frec_code = "some-tas", 2, 2002, "011", "1125"
 
     sf = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=cgac_code,
@@ -145,7 +157,7 @@ def test_success_populated_ata_frec(database):
         cgac_code=None,
         frec_code=frec_code,
     )
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
+    ap = AppropriationFactory(display_tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf, ap], submission=submission) == []
 
@@ -154,7 +166,7 @@ def test_success_populated_ata_frec(database):
     tas, period, year, cgac_code, frec_code = "some-tas", 2, 2002, "011", "1124"
 
     sf = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=cgac_code,
@@ -167,7 +179,7 @@ def test_success_populated_ata_frec(database):
         cgac_code=None,
         frec_code=frec_code,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf, ap], submission=submission) == []
 
@@ -181,7 +193,7 @@ def test_failure_populated_ata_frec(database):
     tas, period, year, cgac_code, frec_code = "some-tas", 2, 2002, "016", "1601"
 
     sf = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=cgac_code,
@@ -194,7 +206,7 @@ def test_failure_populated_ata_frec(database):
         cgac_code=None,
         frec_code=frec_code,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf, ap], submission=submission)
     assert errors == 1
@@ -203,7 +215,7 @@ def test_failure_populated_ata_frec(database):
     tas, period, year, cgac_code, frec_code = "some-tas", 2, 2002, "011", "1125"
 
     sf = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=cgac_code,
@@ -216,7 +228,7 @@ def test_failure_populated_ata_frec(database):
         cgac_code=None,
         frec_code=frec_code,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf, ap], submission=submission)
     assert errors == 1
@@ -228,7 +240,7 @@ def test_success_populated_aid_cgac(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None, agency_identifier=code
+        display_tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None, agency_identifier=code
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -237,7 +249,7 @@ def test_success_populated_aid_cgac(database):
         cgac_code=code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
+    ap = AppropriationFactory(display_tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf1, ap], submission=submission) == []
 
@@ -246,7 +258,7 @@ def test_success_populated_aid_cgac(database):
     tas, period, year, code = "some-tas", 2, 2002, "097"
 
     sf1 = SF133Factory(
-        tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None, agency_identifier="017"
+        display_tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None, agency_identifier="017"
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -255,7 +267,7 @@ def test_success_populated_aid_cgac(database):
         cgac_code=code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
+    ap = AppropriationFactory(display_tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf1, ap], submission=submission) == []
 
@@ -266,7 +278,7 @@ def test_failure_populated_aid_cgac(database):
     tas, period, year, code = "some-tas", 2, 2002, "some-code"
 
     sf1 = SF133Factory(
-        tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None, agency_identifier=code
+        display_tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None, agency_identifier=code
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -275,7 +287,7 @@ def test_failure_populated_aid_cgac(database):
         cgac_code=code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 1
@@ -285,7 +297,7 @@ def test_failure_populated_aid_cgac(database):
     tas, period, year, code = "some-tas", 2, 2002, "097"
 
     sf1 = SF133Factory(
-        tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None, agency_identifier="017"
+        display_tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None, agency_identifier="017"
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -294,7 +306,7 @@ def test_failure_populated_aid_cgac(database):
         cgac_code=code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 1
@@ -306,7 +318,7 @@ def test_success_populated_aid_fr_entity_frec(database):
     tas, account_num, period, year, cgac_code, frec_code = "some-tas", 1, 2, 2002, "some-cgac-code", "some-frec-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=None,
@@ -321,7 +333,7 @@ def test_success_populated_aid_fr_entity_frec(database):
         cgac_code=None,
         frec_code=frec_code,
     )
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
+    ap = AppropriationFactory(display_tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[sf1, ts1, ap], submission=submission) == []
 
@@ -332,7 +344,7 @@ def test_failure_populated_aid_fr_entity_frec(database):
     tas, account_num, period, year, cgac_code, frec_code = "some-tas", 1, 2, 2002, "some-cgac-code", "some-frec-code"
 
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=None,
@@ -347,7 +359,7 @@ def test_failure_populated_aid_fr_entity_frec(database):
         cgac_code=None,
         frec_code=frec_code,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ts1, ap], submission=submission)
     assert errors == 1
@@ -361,7 +373,7 @@ def test_success_populated_011_fr_entity_cgac(database):
     cgac = CGACFactory(cgac_code=cgac_code)
     frec = FRECFactory(cgac=cgac, frec_code=frec_code)
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=None,
@@ -376,7 +388,7 @@ def test_success_populated_011_fr_entity_cgac(database):
         cgac_code=cgac_code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
+    ap = AppropriationFactory(display_tas=tas, submission_id=submission_id)
 
     assert error_rows(_FILE, database, models=[cgac, frec, sf1, ts1, ap], submission=submission) == []
 
@@ -389,7 +401,7 @@ def test_failure_populated_011_fr_entity_cgac(database):
     cgac = CGACFactory(cgac_code=cgac_code)
     frec = FRECFactory(cgac=cgac, frec_code=frec_code)
     sf1 = SF133Factory(
-        tas=tas,
+        display_tas=tas,
         period=period,
         fiscal_year=year,
         allocation_transfer_agency=None,
@@ -404,7 +416,7 @@ def test_failure_populated_011_fr_entity_cgac(database):
         cgac_code=cgac_code,
         frec_code=None,
     )
-    ap = AppropriationFactory(tas="a-different-tas", submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="a-different-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[cgac, frec, sf1, ts1, ap], submission=submission)
     assert errors == 1

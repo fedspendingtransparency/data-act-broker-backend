@@ -4,7 +4,6 @@
 -- where PYA = "X".
 WITH object_class_program_activity_b14_{0} AS
     (SELECT submission_id,
-        tas,
         display_tas,
         disaster_emergency_fund_code,
         prior_year_adjustment,
@@ -57,7 +56,7 @@ SELECT DISTINCT
     UPPER(op.disaster_emergency_fund_code) AS "uniqueid_DisasterEmergencyFundCode"
 FROM object_class_program_activity_b14_{0} AS op
     INNER JOIN sf_133 AS sf
-        ON op.tas = sf.tas
+        ON op.display_tas = sf.display_tas
         AND UPPER(op.disaster_emergency_fund_code) = COALESCE(sf.disaster_emergency_fund_code, '')
     INNER JOIN submission AS sub
         ON op.submission_id = sub.submission_id
@@ -65,8 +64,7 @@ FROM object_class_program_activity_b14_{0} AS op
         AND sf.fiscal_year = sub.reporting_fiscal_year
 WHERE sf.line = 2004
     AND UPPER(op.by_direct_reimbursable_fun) = 'D'
-GROUP BY op.tas,
-    UPPER(op.disaster_emergency_fund_code),
+GROUP BY UPPER(op.disaster_emergency_fund_code),
     sf.amount,
     op.display_tas,
     UPPER(prior_year_adjustment)

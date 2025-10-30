@@ -10,7 +10,5 @@ FROM fabs
 WHERE submission_id = {0}
     AND UPPER(legal_entity_country_code) <> 'USA'
     AND record_type IN (2, 3)
-    AND (legal_entity_foreign_city IS NULL
-        OR legal_entity_foreign_city = ''
-    )
+    AND COALESCE(legal_entity_foreign_city, '') = ''
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

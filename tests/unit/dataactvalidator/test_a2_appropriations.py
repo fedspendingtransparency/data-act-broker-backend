@@ -33,7 +33,7 @@ def test_success(database):
         budget_authority_unobligat_fyb=200,
         adjustments_to_unobligated_cpe=300,
         other_budgetary_resources_cpe=400,
-        tas=tas_1,
+        display_tas=tas_1,
     )
     ap_null = AppropriationFactory(
         total_budgetary_resources_cpe=700,
@@ -41,16 +41,16 @@ def test_success(database):
         budget_authority_unobligat_fyb=200,
         adjustments_to_unobligated_cpe=300,
         other_budgetary_resources_cpe=None,
-        tas=tas_1,
+        display_tas=tas_1,
     )
     # Test with single SF133 line
-    sf_1 = SF133Factory(line=1902, tas=tas_1, period=1, fiscal_year=2016, amount=100)
+    sf_1 = SF133Factory(line=1902, display_tas=tas_1, period=1, fiscal_year=2016, amount=100)
 
     # unrelated tas doesn't affect it
-    sf_2 = SF133Factory(line=1902, tas="bcda", period=1, fiscal_year=2016, amount=200)
+    sf_2 = SF133Factory(line=1902, display_tas="bcda", period=1, fiscal_year=2016, amount=200)
 
     # Different line in same TAS doesn't affect it
-    sf_3 = SF133Factory(line=1900, tas=tas_1, period=1, fiscal_year=2016, amount=200)
+    sf_3 = SF133Factory(line=1900, display_tas=tas_1, period=1, fiscal_year=2016, amount=200)
 
     errors = number_of_errors(_FILE, database, models=[ap_1, ap_null, sf_1, sf_2, sf_3])
     assert errors == 0
@@ -63,11 +63,11 @@ def test_success(database):
         budget_authority_unobligat_fyb=200,
         adjustments_to_unobligated_cpe=300,
         other_budgetary_resources_cpe=400,
-        tas=tas_2,
+        display_tas=tas_2,
     )
 
-    sf_4 = SF133Factory(line=1902, tas=tas_2, period=1, fiscal_year=2016, amount=100)
-    sf_5 = SF133Factory(line=1902, tas=tas_2, period=1, fiscal_year=2016, amount=100)
+    sf_4 = SF133Factory(line=1902, display_tas=tas_2, period=1, fiscal_year=2016, amount=100)
+    sf_5 = SF133Factory(line=1902, display_tas=tas_2, period=1, fiscal_year=2016, amount=100)
 
     assert number_of_errors(_FILE, database, models=[sf_4, sf_5, ap_2]) == 0
 
@@ -84,7 +84,7 @@ def test_failure(database):
         budget_authority_unobligat_fyb=200,
         adjustments_to_unobligated_cpe=300,
         other_budgetary_resources_cpe=400,
-        tas="abcd",
+        display_tas="abcd",
     )
     approp_null = AppropriationFactory(
         total_budgetary_resources_cpe=800,
@@ -92,7 +92,7 @@ def test_failure(database):
         budget_authority_unobligat_fyb=200,
         adjustments_to_unobligated_cpe=300,
         other_budgetary_resources_cpe=None,
-        tas="abcd",
+        display_tas="abcd",
     )
     approp_wrong_tas = AppropriationFactory(
         total_budgetary_resources_cpe=1000,
@@ -100,11 +100,11 @@ def test_failure(database):
         budget_authority_unobligat_fyb=200,
         adjustments_to_unobligated_cpe=300,
         other_budgetary_resources_cpe=400,
-        tas="bcda",
+        display_tas="bcda",
     )
 
     # approp_wrong
-    sf_1 = SF133Factory(line=1902, tas="bcda", period=1, fiscal_year=2016, amount=100)
+    sf_1 = SF133Factory(line=1902, display_tas="bcda", period=1, fiscal_year=2016, amount=100)
 
     errors = number_of_errors(_FILE, database, models=[approp, approp_null, approp_wrong_tas, sf_1])
     assert errors == 3

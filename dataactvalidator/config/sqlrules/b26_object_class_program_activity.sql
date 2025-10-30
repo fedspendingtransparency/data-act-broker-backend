@@ -3,7 +3,6 @@
 WITH object_class_program_activity_b26_{0} AS
     (SELECT submission_id,
         SUM(COALESCE(deobligations_recov_by_pro_cpe, 0)) AS "deobligations_recov_by_pro_cpe_sum",
-        tas,
         display_tas,
         disaster_emergency_fund_code,
         UPPER(prior_year_adjustment) AS "prior_year_adjustment"
@@ -11,7 +10,6 @@ WITH object_class_program_activity_b26_{0} AS
     WHERE submission_id = {0}
         AND UPPER(prior_year_adjustment) = 'X'
     GROUP BY submission_id,
-        tas,
         display_tas,
         disaster_emergency_fund_code,
         UPPER(prior_year_adjustment))
@@ -25,7 +23,7 @@ SELECT
     UPPER(op.disaster_emergency_fund_code) AS "uniqueid_DisasterEmergencyFundCode"
 FROM object_class_program_activity_b26_{0} AS op
     INNER JOIN sf_133 AS sf
-        ON op.tas = sf.tas
+        ON op.display_tas = sf.display_tas
         AND UPPER(op.disaster_emergency_fund_code) = COALESCE(sf.disaster_emergency_fund_code, '')
     INNER JOIN submission AS sub
         ON op.submission_id = sub.submission_id

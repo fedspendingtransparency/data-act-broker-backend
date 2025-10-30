@@ -970,11 +970,26 @@ def transaction_information_values(data, obj):
 
 def generic_values(data, obj):
     """Get values from the genericTags level of the xml"""
+    # genericStrings
     generic_strings_value_map = {"genericString01": "solicitation_date", "genericString06": "source_selection_process"}
 
     for key, value in generic_strings_value_map.items():
         try:
             obj[value] = extract_text(data["genericStrings"][key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # genericBooleans
+    generic_booleans_value_map = {
+        "genericBoolean01": "small_business_joint_venture",
+        "genericBoolean02": "ser_disabvet_own_bus_join_ven",
+        "genericBoolean03": "sba_cert_women_own_small_bus",
+        "genericBoolean04": "sba_cert_econ_disadv_wosb",
+    }
+
+    for key, value in generic_booleans_value_map.items():
+        try:
+            obj[value] = extract_text(data["genericBooleans"][key])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -1477,6 +1492,10 @@ def process_data(
         "other_not_for_profit_organ",
         "us_local_government",
         "self_cert_hub_zone_joint",
+        "small_business_joint_venture",
+        "ser_disabvet_own_bus_join_ven",
+        "sba_cert_women_own_small_bus",
+        "sba_cert_econ_disadv_wosb",
     ]
     for field in boolean_fields:
         if obj[field]:
@@ -2178,7 +2197,7 @@ def main():
         "-da",
         "--dates",
         help="Used in conjunction with -l to specify dates to gather updates from."
-        "Should have 2 arguments, first and last day, formatted YYYY/mm/dd",
+        "Should have 2 arguments, first and last day, formatted YYYY-mm-dd",
         nargs=2,
         type=str,
     )
@@ -2187,7 +2206,7 @@ def main():
         "--delete",
         help='Used to only run the delete feed. First argument must be "both", '
         '"idv", or "award". The second and third arguments must be the first '
-        "and last day to run the feeds for, formatted YYYY/mm/dd",
+        "and last day to run the feeds for, formatted YYYY-mm-dd",
         nargs=3,
         type=str,
     )
@@ -2295,8 +2314,8 @@ def main():
         end_date = None
 
         if args.dates:
-            start_date = args.dates[0]
-            end_date = args.dates[1]
+            start_date = args.dates[0].replace("-", "/")
+            end_date = args.dates[1].replace("-", "/")
 
         for award_type in award_types_idv:
             get_data(
@@ -2357,10 +2376,13 @@ def main():
             logger.error('Delete argument must be "idv", "award", or "both"')
             raise ValueError('Delete argument must be "idv", "award", or "both"')
 
+        del_start = args.delete[1].replace("-", "/")
+        del_end = args.delete[2].replace("-", "/")
+
         if del_idvs:
-            get_delete_data("IDV", now, sess, now, args.delete[1], args.delete[2], metrics=metrics_json)
+            get_delete_data("IDV", now, sess, now, del_start, del_end, metrics=metrics_json)
         if del_awards:
-            get_delete_data("award", now, sess, now, args.delete[1], args.delete[2], metrics=metrics_json)
+            get_delete_data("award", now, sess, now, del_start, del_end, metrics=metrics_json)
         sess.commit()
 
     metrics_json["duration"] = str(datetime.datetime.now() - now)

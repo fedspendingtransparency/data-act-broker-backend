@@ -27,12 +27,12 @@ def test_success(database):
     """Tests that TAS for File A are present in SF-133"""
     tas = "".join([_TAS, "_success"])
 
-    ap1 = AppropriationFactory(job_id=1, row_number=1, tas=tas)
-    ap2 = AppropriationFactory(job_id=1, row_number=2, tas=tas)
+    ap1 = AppropriationFactory(job_id=1, row_number=1, display_tas=tas)
+    ap2 = AppropriationFactory(job_id=1, row_number=2, display_tas=tas)
 
     sf = SF133Factory(
         line=1021,
-        tas=tas,
+        display_tas=tas,
         period=1,
         fiscal_year=2016,
         amount=1,
@@ -49,12 +49,12 @@ def test_failure_with_rule_exception(database):
     except when all monetary amounts are zero for the TAS"""
     tas = "".join([_TAS, "_failure"])
 
-    ap1 = AppropriationFactory(job_id=1, row_number=1, tas=tas, adjustments_to_unobligated_cpe=1)
-    ap2 = AppropriationFactory(job_id=1, row_number=2, tas=tas, budget_authority_appropria_cpe=2)
+    ap1 = AppropriationFactory(job_id=1, row_number=1, display_tas=tas, adjustments_to_unobligated_cpe=1)
+    ap2 = AppropriationFactory(job_id=1, row_number=2, display_tas=tas, budget_authority_appropria_cpe=2)
     ap3 = AppropriationFactory(
         job_id=1,
         row_number=3,
-        tas=tas,
+        display_tas=tas,
         adjustments_to_unobligated_cpe=0,
         budget_authority_appropria_cpe=0,
         borrowing_authority_amount_cpe=0,
@@ -71,7 +71,7 @@ def test_failure_with_rule_exception(database):
 
     sf = SF133Factory(
         line=1021,
-        tas="1",
+        display_tas="1",
         period=1,
         fiscal_year=2016,
         amount=1,
