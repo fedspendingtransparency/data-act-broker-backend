@@ -119,7 +119,7 @@ if __name__ == "__main__":
         "--min_date",
         type=str,
         nargs=1,
-        help="Load all data from a minimum date" " (mm/dd/yyyy) using 'updated_at'",
+        help="Load all data from a minimum date" " (YYYY-mm-dd) using 'updated_at'",
     )
     method.add_argument(
         "-i",
@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
         min_date = None
         if args.min_date:
-            min_date = datetime.datetime.strptime(args.min_date[0], "%m/%d/%Y")
+            min_date = datetime.datetime.strptime(args.min_date[0], "%Y-%m-%d")
 
         records_inserted = 0
         data_types = ["contract", "assistance"] if args.data_type == "both" else [args.data_type]
