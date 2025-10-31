@@ -169,13 +169,13 @@ class DeltaModel(ABC):
                 .saveAsTable(self.table_ref)
         )
         # Allows one to run ALTER commands on said table, i.e. migrations
-        self.spark.sql(f"""
-            ALTER TABLE {self.table_ref} SET TBLPROPERTIES (
-              'delta.minReaderVersion' = '3',
-              'delta.minWriterVersion' = '5',
-              'delta.columnMapping.mode' = 'name'
-            )
-        """)
+        # self.spark.sql(f"""
+        #     ALTER TABLE {self.table_ref} SET TBLPROPERTIES (
+        #       'delta.minReaderVersion' = '3',
+        #       'delta.minWriterVersion' = '7',
+        #       'delta.columnMapping.mode' = 'name'
+        #     )
+        # """)
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
         if isinstance(df, pd.DataFrame):
