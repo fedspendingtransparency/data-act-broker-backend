@@ -71,7 +71,7 @@ class DeltaModel(ABC):
         return f's3://{self.s3_bucket}/data/delta/{self.database}/{self.table_name}'
 
     @property
-    def table_path(self):
+    def table_path_hadoop(self):
         return f's3a://{self.s3_bucket}/data/delta/{self.database}/{self.table_name}'
 
     @property
