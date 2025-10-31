@@ -198,11 +198,9 @@ def configure_spark_session(
 
     # If the directories don't already exist, Spark will make placeholder "[name]_$folder$" files
     # Update the hadoop configuration to prevent these lingering directories.
-    sc = SparkContext()
-    hadoop_conf = sc._jsc.hadoopConfiguration()
-    hadoop_conf.set("fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+    conf.set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     # To prevent these and the SUCCESS files mentioned above
-    # hadoop_conf.set("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
+    # conf.set("spark.hadoop.mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
 
     # Set AWS credentials in the Spark config
     # Hint: If connecting to AWS resources when executing program from a local env, and you usually authenticate with
