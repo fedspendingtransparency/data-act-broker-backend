@@ -247,20 +247,18 @@ class DEFCDelta(DeltaModel):
         # ])
 
         # Spark
-        return StructType(
-            [
-                StructType('created_at', TimestampType(), True),
-                StructType('updated_at', TimestampType(), True),
-                StructType('defc_id', IntegerType, False),
-                StructType('code', "string", False),
-                StructType('public_laws',  ArrayType(StringType(), containsNull=True)),
-                StructType('public_law_short_titles', ArrayType(StringType(), containsNull=True)),
-                StructType('group', StringType, True),
-                StructType('urls',  ArrayType(StringType(), containsNull=True)),
-                StructType('is_valid', BooleanType, False),
-                StructType('earliest_pl_action_date', TimestampType(), True),
-            ]
-        )
+        return StructType([
+            StructType('created_at', TimestampType(), True),
+            StructType('updated_at', TimestampType(), True),
+            StructType('defc_id', IntegerType(), False),
+            StructType('code', StringType(), False),
+            StructType('public_laws',  ArrayType(StringType(), containsNull=True)),
+            StructType('public_law_short_titles', ArrayType(StringType(), containsNull=True)),
+            StructType('group', StringType(), True),
+            StructType('urls',  ArrayType(StringType(), containsNull=True)),
+            StructType('is_valid', BooleanType(), False),
+            StructType('earliest_pl_action_date', TimestampType(), True),
+        ])
 
 
 
