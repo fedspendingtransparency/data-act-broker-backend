@@ -171,7 +171,7 @@ class DeltaModel(ABC):
         # Allows one to run ALTER commands on said table, i.e. migrations
         self.spark.sql(f"""
             ALTER TABLE {self.table_ref} SET TBLPROPERTIES (
-              'delta.minReaderVersion' = '2',
+              'delta.minReaderVersion' = '3',
               'delta.minWriterVersion' = '5',
               'delta.columnMapping.mode' = 'name'
             )
