@@ -153,7 +153,7 @@ class DeltaModel(ABC):
     def _register_table_hive(self):
         self.spark.sql(rf"""
             CREATE DATABASE IF NOT EXISTS {self.database}
-            LOCATION '{self.database_path_hadoop}'
+            LOCATION '{self.database_path}'
         """)
         # self.spark.sql(rf"""
         #     CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql()})
@@ -164,7 +164,7 @@ class DeltaModel(ABC):
         (
             df.write.format("delta")
                 .mode("overwrite")
-                .option("path", self.table_path_hadoop)
+                .option("path", self.table_path)
                 .option("overwriteSchema", "true")
                 .saveAsTable(self.table_ref)
         )
