@@ -1,3 +1,4 @@
+import os
 import boto3
 import logging
 import pandas as pd
@@ -18,15 +19,21 @@ from dataactbroker.helpers.spark_helper import configure_spark_session, get_acti
 # deltalake package
 from deltalake.schema import ArrayType, PrimitiveType
 from deltalake import DeltaTable, QueryBuilder, Field, schema
-from deltalake.writer import write_deltalake
 from deltalake.exceptions import TableNotFoundError
-
-# from sqlalchemy import *
-# from sqlalchemy.engine import create_engine
-# from sqlalchemy.schema import *
 
 from pyhive import hive
 # import jaydebeapi
+
+from pyspark.sql.types import (
+    BooleanType,
+    DateType,
+    DecimalType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +43,7 @@ class DeltaModel(ABC):
     table_name: str
     pk: str
     unique_constraints: [(str,)]
+    migration_history: [str]
 
     def __init__(self, spark=None, hive=None):
         self.spark = spark
@@ -85,28 +93,22 @@ class DeltaModel(ABC):
             cols.append(col_dict)
         return cols
 
+    def migrate(self, start=0):
+        """
+        start (int): starting index of the migration list to run
+            0 - all migrations
+            -1 - last migration
+        """
+        for migration in self.migration_history[start:]:
+            self.spark.sql(os.path.join('.', 'migrations', f'{migration}.sql'))
+
     def initialize_table(self):
         logger.info(f'Initializing {self.table_path}')
+        self._register_table_hive()
         if not self.dt:
-            # if self.spark:
-            #     DeltaTable.createIfNotExists(self.spark)\
-            #         .tableName(self.table_name)\
-            #         .location(self.table_path)\
-            #         .addColumns(self.structure)\
-            #         .execute()
-            #     self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
-            # else:
-            self.dt = DeltaTable.create(
-                table_uri=str(self.table_path),
-                name=self.table_name,
-                schema=self.structure,
-                mode='overwrite',
-                storage_options=get_storage_options(),
-            )
-            # self._create_table_glue()
+            self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
         else:
             logger.info(f'{self.table_path} already initialized')
-        self._register_table_hive()
 
     def _register_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
@@ -148,14 +150,30 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
-        self.spark.sql(rf"""
-            CREATE DATABASE IF NOT EXISTS {self.database}
-            LOCATION '{self.database_path_hadoop}'
-        """)
-        self.spark.sql(rf"""
-            CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql()})
-            USING DELTA
-            LOCATION '{self.table_path_hadoop}'
+        # self.spark.sql(rf"""
+        #     CREATE DATABASE IF NOT EXISTS {self.database}
+        #     LOCATION '{self.database_path_hadoop}'
+        # """)
+        # self.spark.sql(rf"""
+        #     CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql()})
+        #     USING DELTA
+        #     LOCATION '{self.table_path_hadoop}'
+        # """)
+        df = spark.createDataFrame([], self.structure)
+        (
+            df.write.format("delta")
+                .mode("overwrite")
+                .option("path", self.table_path_hadoop)
+                .option("overwriteSchema", "true")
+                .saveAsTable(self.table_ref)
+        )
+        # Allows one to run ALTER commands on said table, i.e. migrations
+        self.spark.sql(f"""
+            ALTER TABLE {self.table_ref} SET TBLPROPERTIES (
+              'delta.minReaderVersion' = '2',
+              'delta.minWriterVersion' = '5',
+              'delta.columnMapping.mode' = 'name'
+            )
         """)
 
     def merge(self, df: [pd.DataFrame, pl.DataFrame]):
@@ -175,25 +193,25 @@ class DeltaModel(ABC):
             .when_not_matched_insert_all() \
             .execute()
 
-    def _structure_to_sql(self):
-        col_list = []
-        # type_mappings = {
-        #     'STRING': 'TEXT',
-        #     'LONG': 'BIGINT',
-        # }
-        for field in self.structure.fields:
-            if isinstance(field.type, ArrayType):
-                element_type = field.type.element_type.type.upper()
-                # if element_type in type_mappings:
-                #     element_type = type_mappings[element_type]
-                col_type = f'ARRAY<{element_type}>'
-            else:
-                col_type = field.type.type.upper()
-                # if col_type in type_mappings:
-                #     col_type = type_mappings[col_type]
-            nullable = '' if field.nullable else 'NOT NULL'
-            col_list.append((field.name, col_type, nullable))
-        return ', '.join(f'{col_name} {col_type} {nullable}' for col_name, col_type, nullable in col_list)
+    # def _structure_to_sql(self):
+    #     col_list = []
+    #     # type_mappings = {
+    #     #     'STRING': 'TEXT',
+    #     #     'LONG': 'BIGINT',
+    #     # }
+    #     for field in self.structure.fields:
+    #         if isinstance(field.type, ArrayType):
+    #             element_type = field.type.element_type.type.upper()
+    #             # if element_type in type_mappings:
+    #             #     element_type = type_mappings[element_type]
+    #             col_type = f'ARRAY<{element_type}>'
+    #         else:
+    #             col_type = field.type.type.upper()
+    #             # if col_type in type_mappings:
+    #             #     col_type = type_mappings[col_type]
+    #         nullable = '' if field.nullable else 'NOT NULL'
+    #         col_list.append((field.name, col_type, nullable))
+    #     return ', '.join(f'{col_name} {col_type} {nullable}' for col_name, col_type, nullable in col_list)
 
     def to_pandas_df(self):
         return self.dt.to_pyarrow_table().to_pandas()
@@ -207,21 +225,44 @@ class DEFCDelta(DeltaModel):
     table_name = 'defc'
     pk = 'defc_id'
     unique_constraints = [('code')]
+    migration_history = [
+        'add_test_column',
+        'drop_test_column'
+    ]
 
     @property
     def structure(self):
-        return schema.Schema([
-            Field('created_at', "timestamp", nullable=True),
-            Field('updated_at', "timestamp", nullable=True),
-            Field('defc_id', "integer", nullable=False),
-            Field('code', "string", nullable=False),
-            Field('public_laws', ArrayType(PrimitiveType('string')), nullable=True),
-            Field('public_law_short_titles', ArrayType(PrimitiveType("string")), nullable=True),
-            Field('group', "string", nullable=True),
-            Field('urls', ArrayType(PrimitiveType('string')), nullable=True),
-            Field('is_valid', "boolean", nullable=False),
-            Field('earliest_pl_action_date', "timestamp", nullable=True),
-        ])
+        # DeltaLake
+        # return schema.Schema([
+        #     Field('created_at', "timestamp", nullable=True),
+        #     Field('updated_at', "timestamp", nullable=True),
+        #     Field('defc_id', "integer", nullable=False),
+        #     Field('code', "string", nullable=False),
+        #     Field('public_laws', ArrayType(PrimitiveType('string')), nullable=True),
+        #     Field('public_law_short_titles', ArrayType(PrimitiveType("string")), nullable=True),
+        #     Field('group', "string", nullable=True),
+        #     Field('urls', ArrayType(PrimitiveType('string')), nullable=True),
+        #     Field('is_valid', "boolean", nullable=False),
+        #     Field('earliest_pl_action_date', "timestamp", nullable=True),
+        # ])
+
+        # Spark
+        return StructType(
+            [
+                StructType('created_at', TimestampType(), nullable=True),
+                StructType('updated_at', TimestampType(), nullable=True),
+                StructType('defc_id', IntegerType, nullable=False),
+                StructType('code', "string", nullable=False),
+                StructType('public_laws',  ArrayType(StringType(), containsNull=True)),
+                StructType('public_law_short_titles', ArrayType(StringType(), containsNull=True)),
+                StructType('group', StringType, nullable=True),
+                StructType('urls',  ArrayType(StringType(), containsNull=True)),
+                StructType('is_valid', BooleanType, nullable=False),
+                StructType('earliest_pl_action_date', TimestampType(), nullable=True),
+            ]
+        )
+
+
 
 # Spark - initialize model and schema, hive
 # TODO: DUCK DB POPULATION
@@ -241,6 +282,12 @@ class DEFCDelta(DeltaModel):
     # another option hive and glue
 # Compare with USAspending Delta Models
 # Migrate to Shared Repo
+
+# Explore USAS's StructTypes automation
+# Testing migration
+# See if you can register with hive and deltalake using only spark
+# Individual scripts to initialize/create table
+#
 
 def get_storage_options():
     """ DeltaLake library doesn't use boto3 and doesn't pull the aws creds the same way. """
@@ -311,7 +358,8 @@ if __name__ == "__main__":
     logger.info('create/initialize the table')
     defc_delta_table.initialize_table()
 
-    logger.info('populating it with data')
+    # TODO: Merging with data already in it -> "Metadata changed since last commit...."?
+    # logger.info('populating it with data')
     defc_delta_table.merge(defc_df)
     logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
     defc_delta_table.merge(defc_df)
