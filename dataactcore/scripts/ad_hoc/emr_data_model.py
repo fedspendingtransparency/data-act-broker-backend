@@ -252,10 +252,10 @@ class DEFCDelta(DeltaModel):
             StructField('updated_at', TimestampType(), True),
             StructField('defc_id', IntegerType(), False),
             StructField('code', StringType(), False),
-            StructField('public_laws',  ArrayType(StringType(), containsNull=True)),
-            StructField('public_law_short_titles', ArrayType(StringType(), containsNull=True)),
+            StructField('public_laws',  ArrayType(StringType(), True)),
+            StructField('public_law_short_titles', ArrayType(StringType(), True)),
             StructField('group', StringType(), True),
-            StructField('urls',  ArrayType(StringType(), containsNull=True)),
+            StructField('urls',  ArrayType(StringType(), True)),
             StructField('is_valid', BooleanType(), False),
             StructField('earliest_pl_action_date', TimestampType(), True),
         ])
