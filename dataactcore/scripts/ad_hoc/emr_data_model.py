@@ -104,12 +104,12 @@ class DeltaModel(ABC):
             self.spark.sql(os.path.join('.', 'migrations', f'{migration}.sql'))
 
     def initialize_table(self):
-        logger.info(f'Initializing {self.table_path}')
+        logger.info(f'Initializing {self.table_path_hadoop}')
         self._register_table_hive()
         if not self.dt:
-            self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
+            self.dt = DeltaTable(self.table_path_hadoop, storage_options=get_storage_options())
         else:
-            logger.info(f'{self.table_path} already initialized')
+            logger.info(f'{self.table_path_hadoop} already initialized')
 
     def _register_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
@@ -153,7 +153,7 @@ class DeltaModel(ABC):
     def _register_table_hive(self):
         self.spark.sql(rf"""
             CREATE DATABASE IF NOT EXISTS {self.database}
-            LOCATION '{self.database_path}'
+            LOCATION '{self.database_path_hadoop}'
         """)
         # self.spark.sql(rf"""
         #     CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql()})
@@ -164,7 +164,7 @@ class DeltaModel(ABC):
         (
             df.write.format("delta")
                 .mode("overwrite")
-                .option("path", self.table_path)
+                .option("path", self.table_path_hadoop)
                 .option("overwriteSchema", "true")
                 .saveAsTable(self.table_ref)
         )

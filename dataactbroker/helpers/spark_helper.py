@@ -198,6 +198,7 @@ def configure_spark_session(
 
     # If the directories don't already exist, Spark will make placeholder "[name]_$folder$" files
     # Update the hadoop configuration to prevent these lingering directories.
+    conf.set("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     conf.set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     # To prevent these and the SUCCESS files mentioned above
     # conf.set("spark.hadoop.mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
