@@ -151,10 +151,10 @@ class DeltaModel(ABC):
             print(f"Error creating table: {e}")
 
     def _register_table_hive(self):
-        # self.spark.sql(rf"""
-        #     CREATE DATABASE IF NOT EXISTS {self.database}
-        #     LOCATION '{self.database_path_hadoop}'
-        # """)
+        self.spark.sql(rf"""
+            CREATE DATABASE IF NOT EXISTS {self.database}
+            LOCATION '{self.database_path_hadoop}'
+        """)
         # self.spark.sql(rf"""
         #     CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql()})
         #     USING DELTA
