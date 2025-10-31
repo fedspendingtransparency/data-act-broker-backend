@@ -43,6 +43,7 @@ class DeltaModel(ABC):
     table_name: str
     pk: str
     unique_constraints: [(str,)]
+    null_constraints: [str]
     migration_history: [str]
 
     def __init__(self, spark=None, hive=None):
@@ -225,6 +226,7 @@ class DEFCDelta(DeltaModel):
     table_name = 'defc'
     pk = 'defc_id'
     unique_constraints = [('code')]
+    null_constraints = ['defc_id', 'code', 'group', 'is_valid']
     migration_history = [
         'add_test_column',
         'drop_test_column'
@@ -248,16 +250,16 @@ class DEFCDelta(DeltaModel):
 
         # Spark
         return StructType([
-            StructType('created_at', TimestampType(), True),
-            StructType('updated_at', TimestampType(), True),
-            StructType('defc_id', IntegerType(), False),
-            StructType('code', StringType(), False),
+            StructType('created_at', TimestampType()),
+            StructType('updated_at', TimestampType()),
+            StructType('defc_id', IntegerType()),
+            StructType('code', StringType()),
             StructType('public_laws',  ArrayType(StringType(), containsNull=True)),
             StructType('public_law_short_titles', ArrayType(StringType(), containsNull=True)),
-            StructType('group', StringType(), True),
+            StructType('group', StringType()),
             StructType('urls',  ArrayType(StringType(), containsNull=True)),
-            StructType('is_valid', BooleanType(), False),
-            StructType('earliest_pl_action_date', TimestampType(), True),
+            StructType('is_valid', BooleanType()),
+            StructType('earliest_pl_action_date', TimestampType()),
         ])
 
 
