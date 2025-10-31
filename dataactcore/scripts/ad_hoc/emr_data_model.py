@@ -54,7 +54,7 @@ class DeltaModel(ABC):
         #     spark.catalog.setCurrentDatabase(self.database)
 
         try:
-            self.dt = DeltaTable(self.table_path_hadoop, storage_options=get_storage_options())
+            self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
         except TableNotFoundError:
             self.dt = None
 
@@ -71,7 +71,7 @@ class DeltaModel(ABC):
         return f's3://{self.s3_bucket}/data/delta/{self.database}/{self.table_name}'
 
     @property
-    def table_path_hadoop(self):
+    def table_path(self):
         return f's3a://{self.s3_bucket}/data/delta/{self.database}/{self.table_name}'
 
     @property
@@ -104,12 +104,12 @@ class DeltaModel(ABC):
             self.spark.sql(os.path.join('.', 'migrations', f'{migration}.sql'))
 
     def initialize_table(self):
-        logger.info(f'Initializing {self.table_path_hadoop}')
+        logger.info(f'Initializing {self.table_path}')
         self._register_table_hive()
         if not self.dt:
-            self.dt = DeltaTable(self.table_path_hadoop, storage_options=get_storage_options())
+            self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
         else:
-            logger.info(f'{self.table_path_hadoop} already initialized')
+            logger.info(f'{self.table_path} already initialized')
 
     def _register_table_glue(self):
         glue_client = boto3.client('glue', region_name='us-gov-west-1')
@@ -158,13 +158,13 @@ class DeltaModel(ABC):
         # self.spark.sql(rf"""
         #     CREATE OR REPLACE TABLE {self.table_ref} ({self._structure_to_sql()})
         #     USING DELTA
-        #     LOCATION '{self.table_path_hadoop}'
+        #     LOCATION '{self.table_path}'
         # """)
         df = spark.createDataFrame([], self.structure)
         (
             df.write.format("delta")
                 .mode("overwrite")
-                .option("path", self.table_path_hadoop)
+                .option("path", self.table_path)
                 .option("overwriteSchema", "true")
                 .saveAsTable(self.table_ref)
         )
