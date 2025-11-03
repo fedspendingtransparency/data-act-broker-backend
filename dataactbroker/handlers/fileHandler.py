@@ -961,7 +961,7 @@ class FileHandler:
                 CREATE INDEX ix_tmp_fabs_{submission_id}_funding_sub_tier_upper ON
                     tmp_fabs_{submission_id} (UPPER(funding_sub_tier_agency_co));
                 CREATE INDEX ix_tmp_fabs_{submission_id}_assistance_listing_num ON
-                    tmp_fabs_{submission_id} (assistance_listing_number);
+                    tmp_fabs_{submission_id} (UPPER(assistance_listing_number));
                 CREATE INDEX ix_tmp_fabs_{submission_id}_awardee_unique ON
                     tmp_fabs_{submission_id} (awardee_or_recipient_uniqu);
                 CREATE INDEX ix_tmp_fabs_{submission_id}_assistance_type_upper ON
