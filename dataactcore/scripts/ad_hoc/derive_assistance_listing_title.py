@@ -23,9 +23,9 @@ def update_assistance_listing(sess):
     logger.info("Gathering assistance listing numbers with null titles")
 
     # Grabs list of all assistance_listing_numbers
-    update_list = sess.query(func.upper(PublishedFABS.assistance_listing_number).label('assistance_listing_number')).filter(
-        PublishedFABS.assistance_listing_title.is_(None)
-    )
+    update_list = sess.query(
+        func.upper(PublishedFABS.assistance_listing_number).label("assistance_listing_number")
+    ).filter(PublishedFABS.assistance_listing_title.is_(None))
 
     count = update_list.count()
     total = count

@@ -553,6 +553,7 @@ class AssistanceListing(Base):
     published_date = Column(Text, index=True)
     archived_date = Column(Text, index=True)
 
+
 Index("ix_assistance_listing_program_number_upper", sa.func.upper(AssistanceListing.program_number), unique=True)
 
 

@@ -14,7 +14,7 @@ def test_column_headers(database):
 def test_success(database):
     """Test that no errors occur when the AssistanceListingNumber exists."""
 
-    assistance_listing = AssistanceListing(program_number='1a.340')
+    assistance_listing = AssistanceListing(program_number="1a.340")
     fabs_1 = FABSFactory(assistance_listing_number="1A.340", correction_delete_indicatr="")
     # Ignore correction delete indicator of D
     fabs_2 = FABSFactory(assistance_listing_number="AB.CDE", correction_delete_indicatr="d")
@@ -27,7 +27,7 @@ def test_failure(database):
     """Test that its fails when AssistanceListingNumber does not exists."""
 
     # test for assistance_listing_number that doesn't exist in the table
-    assistance_listing = AssistanceListing(program_number='12.340')
+    assistance_listing = AssistanceListing(program_number="12.340")
     fabs_1 = FABSFactory(assistance_listing_number="54.321", correction_delete_indicatr="")
     fabs_2 = FABSFactory(assistance_listing_number="AB.CDE", correction_delete_indicatr="c")
     fabs_3 = FABSFactory(assistance_listing_number="11.111", correction_delete_indicatr=None)

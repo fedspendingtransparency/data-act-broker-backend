@@ -171,7 +171,7 @@ def initialize_db_values(db):
         high_comp_officer5_amount=None,
     )
     # Assistance Listing
-    assistance_listing = AssistanceListingFactory(program_number='12.c45', program_title="Assistance Listing Title")
+    assistance_listing = AssistanceListingFactory(program_number="12.c45", program_title="Assistance Listing Title")
     # Agencies
     cgac_1 = CGACFactory(cgac_code="000", agency_name="Test CGAC Agency")
     cgac_2 = CGACFactory(cgac_code="111", agency_name="Test CGAC Agency 2")

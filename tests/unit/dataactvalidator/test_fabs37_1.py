@@ -24,7 +24,7 @@ def test_success(database):
     (those with CorrectionDeleteIndicator = C and delete records).
     """
 
-    assistance_listing = AssistanceListing(program_number='12.340', published_date="20130427", archived_date="")
+    assistance_listing = AssistanceListing(program_number="12.340", published_date="20130427", archived_date="")
     fabs_1 = FABSFactory(
         assistance_listing_number="12.340", action_date="20140111", action_type="a", correction_delete_indicatr="B"
     )
@@ -50,7 +50,7 @@ def test_success(database):
     )
     assert errors == 0
 
-    assistance_listing = AssistanceListing(program_number='12.35d', published_date="20130427", archived_date="20150427")
+    assistance_listing = AssistanceListing(program_number="12.35d", published_date="20130427", archived_date="20150427")
     fabs_1 = FABSFactory(
         assistance_listing_number="12.35D", action_date="20140111", action_type="E", correction_delete_indicatr="B"
     )
@@ -77,7 +77,7 @@ def test_failure(database):
     (those with CorrectionDeleteIndicator = C and delete records).
     """
 
-    assistance_listing = AssistanceListing(program_number='12.340', published_date="20130427", archived_date="")
+    assistance_listing = AssistanceListing(program_number="12.340", published_date="20130427", archived_date="")
     fabs_1 = FABSFactory(
         assistance_listing_number="12.340", action_date="20120111", action_type="e", correction_delete_indicatr="B"
     )
