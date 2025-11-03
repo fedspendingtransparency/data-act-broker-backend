@@ -54,9 +54,9 @@ if __name__ == "__main__":
     migrate = args.migrate
     if migrate and not table_exists:
         raise ValueError('Migration provided but table doesn\'t exist.')
-    elif migrate > 0:
+    elif migrate and migrate > 0:
         raise ValueError('Migration provided but not a negative value.')
-    elif -1 * migrate > len(model.migrations):
+    elif migrate and (-1 * migrate > len(model.migrations)):
         raise ValueError('Migration exceeds the amount of table migrations available.')
 
     if table_exists and migrate:
