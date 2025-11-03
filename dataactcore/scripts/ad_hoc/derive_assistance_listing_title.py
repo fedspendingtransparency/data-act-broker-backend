@@ -1,5 +1,7 @@
 import logging
 import datetime
+from sqlalchemy.sql import func
+
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission  # noqa
@@ -16,12 +18,12 @@ def update_assistance_listing(sess):
     assistance_listing = sess.query(AssistanceListing).all()
     assistance_listing_list = {}
     for item in assistance_listing:
-        assistance_listing_list[str("%.3f" % item.program_number)] = item.program_title
+        assistance_listing_list[item.program_number.upper()] = item.program_title
 
     logger.info("Gathering assistance listing numbers with null titles")
 
     # Grabs list of all assistance_listing_numbers
-    update_list = sess.query(PublishedFABS.assistance_listing_number).filter(
+    update_list = sess.query(func.upper(PublishedFABS.assistance_listing_number).label('assistance_listing_number')).filter(
         PublishedFABS.assistance_listing_title.is_(None)
     )
 
@@ -39,7 +41,7 @@ def update_assistance_listing(sess):
         current_assistance_listing = row.assistance_listing_number
         assistance_listing_query = sess.query(PublishedFABS).filter(
             PublishedFABS.assistance_listing_title.is_(None),
-            PublishedFABS.assistance_listing_number == row.assistance_listing_number,
+            func.upper(PublishedFABS.assistance_listing_number) == row.assistance_listing_number,
         )
         if len(current_assistance_listing.split(".")) < 2:
             logger.info(
