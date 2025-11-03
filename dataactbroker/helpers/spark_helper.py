@@ -276,7 +276,7 @@ def configure_spark_session(
     es_auth = ""
     logger.info(
         f"Running Job with:\n"
-        f"\tDB = {get_usas_jdbc_url().rsplit('=', 1)[0] + '=********'}"
+        f"\tDB = {get_broker_jdbc_url().rsplit('=', 1)[0] + '=********'}"
         f"\n\tS3 = {conf.get('spark.hadoop.fs.s3a.endpoint')} with "
         f"spark.hadoop.fs.s3a.access.key='{conf.get('spark.hadoop.fs.s3a.access.key')}' and "
         f"spark.hadoop.fs.s3a.secret.key='{'********' if conf.get('spark.hadoop.fs.s3a.secret.key') else ''}'"
@@ -376,7 +376,7 @@ def get_jdbc_url_from_pg_uri(pg_uri: str) -> str:
     return f"jdbc:{pg_uri}"
 
 
-def get_usas_jdbc_url():
+def get_broker_jdbc_url():
     return get_jdbc_url_from_pg_uri(db_uri(CONFIG_DB["db_name"]))
 
 
