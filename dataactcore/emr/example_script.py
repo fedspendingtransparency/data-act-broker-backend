@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 
 from dataactbroker.helpers.spark_helper import configure_spark_session, get_active_spark_session
+from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 from dataactcore.emr.models.reference import DEFCDelta
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
@@ -39,6 +40,8 @@ if __name__ == "__main__":
     defc_delta_table.merge(defc_df)
     logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
     defc_delta_table.merge(defc_df)
+
+    print('use_aws', CONFIG_BROKER["use_aws"])
 
     # databases = spark.catalog.listDatabases()
     # for db in databases:
