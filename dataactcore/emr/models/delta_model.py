@@ -78,10 +78,7 @@ class DeltaModel(ABC):
     def to_polars_df(self):
         return pl.from_arrow(self.dt.to_pyarrow_table())
 
-    def initialize_table(self, recreate=False):
-        """
-        Can be a string or returning a callable, dataframe
-        """
+    def initialize(self, recreate=False):
         logger.info(f'Initializing {self.table_path_hadoop}')
         self._register_table_hive(recreate=recreate)
         if not self.dt:
@@ -90,9 +87,6 @@ class DeltaModel(ABC):
             logger.info(f'{self.table_path_hadoop} already initialized')
 
     def _register_table_hive(self, recreate=False):
-        """
-        Can be a string or returning a callable, dataframe
-        """
         self.spark.sql(rf"""
             CREATE DATABASE IF NOT EXISTS {self.database}
             LOCATION '{self.database_path_hadoop}'
