@@ -17,7 +17,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--incremental", "-i",
-        type=str,
         required=False,
         action="store_true",
         help="Whether to incrementally add to the table or repopulate entirely",

@@ -18,7 +18,6 @@ if __name__ == "__main__":
     behavior = parser.add_mutually_exclusive_group(required=False)
     behavior.add_argument(
         "--recreate", "-r",
-        type=bool,
         action="store_true",
         required=False,
         help="If the table already exists, recreate it as a way of updating it to the latest. "
