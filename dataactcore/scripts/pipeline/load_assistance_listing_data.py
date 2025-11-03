@@ -4,7 +4,6 @@ import requests
 import pandas as pd
 import time
 import sys
-import math
 from datetime import datetime
 import json
 

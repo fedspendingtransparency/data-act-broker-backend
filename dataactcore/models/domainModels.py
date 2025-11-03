@@ -13,7 +13,6 @@ from sqlalchemy import (
     BigInteger,
     Numeric,
     Text,
-    Float,
     UniqueConstraint,
     Boolean,
     ARRAY,
