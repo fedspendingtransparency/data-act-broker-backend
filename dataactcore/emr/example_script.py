@@ -26,35 +26,6 @@ if __name__ == "__main__":
         spark_created_by_command = True
         spark = configure_spark_session(**extra_conf, spark_context=spark)
 
-    # spark = None
-
-    # setup hive connections
-
-    # sqlalchemy
-    # hive_engine = create_engine(hive_connection_str)
-
-    # jaydebee
-    # driver_class = "org.postgresql.Driver"
-    # jar_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'postgresql-42.7.8.jar')
-    # conn = jaydebeapi.connect(
-    #     driver_class,
-    #     hive_url,
-    #     [username, password],
-    #     jar_file
-    # )
-    # with conn.cursor() as cursor:
-    #     # cursor.execute("SELECT * FROM ;")
-    #     pass
-
-    # pyhive
-    # conn = hive.Connection(host='your_hive_host', port=10000, username='your_username')
-    # cursor = conn.cursor()
-    # cursor.execute('SELECT * FROM my_delta_table LIMIT 10')
-    # results = cursor.fetchall()
-    # print(results)
-    # cursor.close()
-    # conn.close()
-
     # get a dataframe from the existing postgres as sample data
     defc_df = pd.read_sql_table(DEFC.__table__.name, sess.connection())
 
@@ -69,29 +40,6 @@ if __name__ == "__main__":
     logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
     defc_delta_table.merge(defc_df)
 
-    logger.info('querying it')
-    # data = spark.read.csv("s3://your-s3-bucket/input_data.csv", header=True, inferSchema=True)
-    # print(data)
-    pulled_df_pandas = defc_delta_table.to_pandas_df()
-    pulled_df_polars = defc_delta_table.to_polars_df()
-
-    # delta talbe querybuilder - requires registration first
-    # defc_aaa = QueryBuilder().execute(f"""
-    #     SELECT public_laws
-    #     FROM delta.`{defc_delta_table.hadoop_path}`
-    #     WHERE code = 'AAA'
-    # """).read_all()
-    # print(defc_aaa)
-
-    # with hive_engine.connect() as connection:
-    #     result = connection.execute("""
-    #         SELECT public_laws
-    #         FROM `{defc_delta_table.table_ref}`
-    #         WHERE code = 'AAA'
-    #     """)
-    #     print(result)
-
-
     # databases = spark.catalog.listDatabases()
     # for db in databases:
     #     print(f"Tables in database: {db.name}")
@@ -102,29 +50,6 @@ if __name__ == "__main__":
         FROM {defc_delta_table.table_ref}
         WHERE code = 'AAA'
     """).show()
-
-    # logger.info('updating a value')
-    # deltaTable = DeltaTable.replace(spark).tableName("testTable").addColumns(df.schema).execute()
-    # defc_delta_table.update("id = 1", {"value": "'new_value'"})
-
-    # deltaTable.update(
-    #     condition = "status = 'pending'",
-    #     set = { "status": "'processed'" }
-    # )
-    #
-    # print('renaming a col')
-    # deltaTable = DeltaTable.create(spark)
-    #     .tableName("testTable")
-    #     .addColumn("c1", dataType="INT", nullable=False)
-    #     .addColumn("c2", dataType=IntegerType(), generatedAlwaysAs="c1 + 1")
-    #     .partitionedBy("c1")
-    #     .execute()
-    #
-    # print('deleting a record')
-    # deltaTable.delete("id = 123")
-    #
-    # print('clearing the table')
-    # deltaTable.delete("id = 123")
 
     if spark_created_by_command:
         spark.stop()
