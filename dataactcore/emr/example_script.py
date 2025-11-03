@@ -41,8 +41,6 @@ if __name__ == "__main__":
     logger.info('Doing it twice to ensure nothing gets duplicated and just updated')
     defc_delta_table.merge(defc_df)
 
-    print('use_aws', CONFIG_BROKER["use_aws"])
-
     # databases = spark.catalog.listDatabases()
     # for db in databases:
     #     print(f"Tables in database: {db.name}")
