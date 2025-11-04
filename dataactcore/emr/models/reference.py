@@ -19,7 +19,7 @@ class DEFCDelta(DeltaModel):
     unique_constraints = [('code')]
     migration_history = [
         'add_test_column',
-        # 'drop_test_column'
+        'drop_test_column'
     ]
 
     @property
