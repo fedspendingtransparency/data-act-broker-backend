@@ -79,12 +79,12 @@ class DeltaModel(ABC):
         return pl.from_arrow(self.dt.to_pyarrow_table())
 
     def initialize(self, recreate=False):
-        logger.info(f'Initializing {self.table_path_hadoop}')
+        logger.info(f'Initializing {self.table_ref}')
         self._register_table_hive(recreate=recreate)
-        if not self.dt:
-            self.dt = DeltaTable(self.table_path_hadoop, storage_options=get_storage_options())
-        else:
-            logger.info(f'{self.table_path_hadoop} already initialized')
+        # if not self.dt:
+        #     self.dt = DeltaTable(self.table_path, storage_options=get_storage_options())
+        # else:
+        #     logger.info(f'{self.table_path} already initialized')
 
     def _register_table_hive(self, recreate=False):
         self.spark.sql(rf"""
