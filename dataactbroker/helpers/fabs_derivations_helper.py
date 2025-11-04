@@ -67,7 +67,7 @@ def derive_assistance_listing(sess, submission_id):
         UPDATE tmp_fabs_{submission_id} AS pf
         SET assistance_listing_title = al.program_title
         FROM assistance_listing AS al
-        WHERE pf.assistance_listing_number = to_char(al.program_number, 'FM00.000');
+        WHERE UPPER(pf.assistance_listing_number) = UPPER(al.program_number);
     """
     res = sess.execute(query.format(submission_id=submission_id))
 
