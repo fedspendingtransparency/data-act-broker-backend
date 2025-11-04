@@ -125,6 +125,7 @@ class DeltaModel(ABC):
         """
         migrations_dir = os.path.join(CONFIG_BROKER["path"], 'dataactcore', 'emr', 'migrations')
         for migration in self.migration_history[start:]:
+            logger.info(f'Running migration {migration} on {self.table_ref}')
             self.spark.sql(os.path.join(migrations_dir, f'{migration}.sql'))
 
     @property
