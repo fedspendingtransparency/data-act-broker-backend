@@ -125,8 +125,18 @@ class DeltaModel(ABC):
         """
         migrations_dir = os.path.join(CONFIG_BROKER["path"], 'dataactcore', 'emr', 'migrations')
         for migration in self.migration_history[start:]:
-            logger.info(f'Running migration {migration} on {self.table_ref}')
-            self.spark.sql(os.path.join(migrations_dir, f'{migration}.sql'))
+            path = os.path.join(migrations_dir, f'{migration}.sql')
+            logger.info(f'Running migration {path} on {self.table_ref}')
+            if not os.path.exists(path):
+                raise FileNotFoundError(f'Migration {migration} not found.')
+            with open(path, "r") as f:
+                spark_sql = f.read()
+            if spark_sql:
+                self.spark.sql(spark_sql)
+            else:
+                logger.info(f'No SQL found in {path}.')
+
+
 
     @property
     def repopulate_query(self):
