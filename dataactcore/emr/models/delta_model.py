@@ -108,11 +108,12 @@ class DeltaModel(ABC):
                 .option("path", self.table_path_hadoop)
                 .saveAsTable(self.table_ref)
             )
-        # Allows one to run ALTER commands on said table, i.e. migrations
+        # TODO: This *should* allow one to run `ALTER TABLE DROP COLUMN ...` commands
+        #       but we ran into issues when trying it.
         # self.spark.sql(f"""
         #     ALTER TABLE {self.table_ref} SET TBLPROPERTIES (
-        #       'delta.minReaderVersion' = '3',
-        #       'delta.minWriterVersion' = '7',
+        #       'delta.minReaderVersion' = '2',
+        #       'delta.minWriterVersion' = '5',
         #       'delta.columnMapping.mode' = 'name'
         #     )
         # """)
