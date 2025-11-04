@@ -12,6 +12,7 @@ from deltalake.exceptions import TableNotFoundError
 from pyspark.sql import DataFrame, SparkSession
 
 from dataactbroker.helpers.aws_helpers import get_aws_credentials
+from dataactcore.config import CONFIG_BROKER
 
 
 logger = logging.getLogger(__name__)
@@ -122,8 +123,9 @@ class DeltaModel(ABC):
             0 - all migrations
             -1 - last migration
         """
+        migrations_dir = os.path.join(CONFIG_BROKER["path"], 'dataactcore', 'emr', 'migrations')
         for migration in self.migration_history[start:]:
-            self.spark.sql(os.path.join('../../scripts/ad_hoc', 'migrations', f'{migration}.sql'))
+            self.spark.sql(os.path.join(migrations_dir, f'{migration}.sql'))
 
     @property
     def repopulate_query(self):
