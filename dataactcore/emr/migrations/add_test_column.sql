@@ -1,2 +1,2 @@
-ALTER int.defc
+ALTER raw.defc
 ADD COLUMNS (test_column STRING);

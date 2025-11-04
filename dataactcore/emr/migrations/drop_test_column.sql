@@ -1,2 +1,2 @@
-ALTER int.defc
+ALTER raw.defc
 DROP COLUMN test_column;
