@@ -33,7 +33,7 @@ if __name__ == "__main__":
     defc_delta_table = DEFCDelta(spark=spark)
 
     logger.info('create/initialize the table')
-    defc_delta_table.initialize_table()
+    defc_delta_table.initialize()
 
     # TODO: Merging with data already in it -> "Metadata changed since last commit...."?
     logger.info('populating it with data')
