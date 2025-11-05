@@ -4,7 +4,6 @@ import requests
 import pandas as pd
 import time
 import sys
-import math
 from datetime import datetime
 import json
 
@@ -88,11 +87,6 @@ def load_assistance_listing(base_path, load_local=False, local_file_name="assist
 
     metrics_json = {"script_name": "load_assistance_listing_data.py", "start_time": str(local_now), "new_records": 0}
 
-    def fix_program_number(row, decimals=3):
-        multiplier = 10**decimals
-        value = math.floor(row["program_number"] * multiplier + 0.5) / multiplier
-        return str(value).ljust(6, "0")
-
     with create_app().app_context():
         configure_logging()
         sess = GlobalDB.db().session
@@ -108,7 +102,6 @@ def load_assistance_listing(base_path, load_local=False, local_file_name="assist
             model,
             ["assistance_listing_id"],
             ["program_number"],
-            lambda_funcs=[("program_number", fix_program_number)],
         )
         if new_data:
             # insert to db

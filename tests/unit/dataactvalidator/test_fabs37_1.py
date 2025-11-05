@@ -24,7 +24,7 @@ def test_success(database):
     (those with CorrectionDeleteIndicator = C and delete records).
     """
 
-    assistance_listing = AssistanceListing(program_number=12.340, published_date="20130427", archived_date="")
+    assistance_listing = AssistanceListing(program_number="12.340", published_date="20130427", archived_date="")
     fabs_1 = FABSFactory(
         assistance_listing_number="12.340", action_date="20140111", action_type="a", correction_delete_indicatr="B"
     )
@@ -50,21 +50,21 @@ def test_success(database):
     )
     assert errors == 0
 
-    assistance_listing = AssistanceListing(program_number=12.350, published_date="20130427", archived_date="20150427")
+    assistance_listing = AssistanceListing(program_number="12.35d", published_date="20130427", archived_date="20150427")
     fabs_1 = FABSFactory(
-        assistance_listing_number="12.350", action_date="20140111", action_type="E", correction_delete_indicatr="B"
+        assistance_listing_number="12.35D", action_date="20140111", action_type="E", correction_delete_indicatr="B"
     )
     fabs_2 = FABSFactory(
-        assistance_listing_number="12.350", action_date="20140111", action_type="a", correction_delete_indicatr=None
+        assistance_listing_number="12.35d", action_date="20140111", action_type="a", correction_delete_indicatr=None
     )
     fabs_3 = FABSFactory(
-        assistance_listing_number="12.350", action_date="20130427", action_type="A", correction_delete_indicatr="B"
+        assistance_listing_number="12.35d", action_date="20130427", action_type="A", correction_delete_indicatr="B"
     )
     fabs_4 = FABSFactory(
-        assistance_listing_number="12.350", action_date="20110111", action_type="B", correction_delete_indicatr="B"
+        assistance_listing_number="12.35D", action_date="20110111", action_type="B", correction_delete_indicatr="B"
     )
     fabs_5 = FABSFactory(
-        assistance_listing_number="12.350", action_date="20110111", action_type="e", correction_delete_indicatr="C"
+        assistance_listing_number="12.35d", action_date="20110111", action_type="e", correction_delete_indicatr="C"
     )
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, assistance_listing])
@@ -77,7 +77,7 @@ def test_failure(database):
     (those with CorrectionDeleteIndicator = C and delete records).
     """
 
-    assistance_listing = AssistanceListing(program_number=12.340, published_date="20130427", archived_date="")
+    assistance_listing = AssistanceListing(program_number="12.340", published_date="20130427", archived_date="")
     fabs_1 = FABSFactory(
         assistance_listing_number="12.340", action_date="20120111", action_type="e", correction_delete_indicatr="B"
     )

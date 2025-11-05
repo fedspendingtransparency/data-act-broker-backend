@@ -216,13 +216,13 @@ def main():
     parser = argparse.ArgumentParser(description="Pull")
     parser.add_argument(
         "--start_date",
-        help="Specify start date in mm/dd/yyyy format to compare to mod date. Overrides --auto option.",
+        help="Specify start date in YYYY-MM-DD format to compare to mod date. Overrides --auto option.",
         nargs=1,
         type=str,
     )
     parser.add_argument(
         "--end_date",
-        help="Specify end date in mm/dd/yyyy format to compare to mod date. Inclusive. " + "Overrides --auto option.",
+        help="Specify end date in YYYY-MM-DD format to compare to mod date. Inclusive. " + "Overrides --auto option.",
         nargs=1,
         type=str,
     )
@@ -240,7 +240,9 @@ def main():
         "start_date": "",
     }
 
-    start_date, end_date = validate_load_dates(args.start_date, args.end_date, args.auto, load_type="fabs_extract")
+    start_date, end_date = validate_load_dates(
+        args.start_date, args.end_date, args.auto, load_type="fabs_extract", arg_date_format="%Y-%m-%d"
+    )
     if end_date:
         # Adding an extra day to be inclusive
         end_date = datetime.strptime(end_date, "%m/%d/%Y") + relativedelta(days=1)

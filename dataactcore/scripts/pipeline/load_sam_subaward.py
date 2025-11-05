@@ -350,13 +350,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--start_date",
-        help="Specify start date in mm/dd/yyyy format to compare to reportUpdatedDate." " Overrides --auto option.",
+        help="Specify start date in YYYY-mm-dd format to compare to reportUpdatedDate." " Overrides --auto option.",
         nargs=1,
         type=str,
     )
     parser.add_argument(
         "--end_date",
-        help="Specify end date in mm/dd/yyyy format to compare to reportUpdatedDate. Inclusive. "
+        help="Specify end date in YYYY-mm-dd format to compare to reportUpdatedDate. Inclusive. "
         + "Overrides --auto option.",
         nargs=1,
         type=str,
@@ -377,7 +377,7 @@ if __name__ == "__main__":
         }
 
         start_date, end_date = validate_load_dates(
-            args.start_date, args.end_date, args.auto, "subaward", "%m/%d/%Y", "%Y-%m-%d"
+            args.start_date, args.end_date, args.auto, "subaward", "%Y-%m-%d", "%Y-%m-%d"
         )
         if args.auto:
             yesterday = get_utc_now().date() - relativedelta(days=1)

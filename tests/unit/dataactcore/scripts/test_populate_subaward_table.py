@@ -40,8 +40,8 @@ def reference_data(sess):
         "dom_county_zip5": CountyCodeFactory(county_number="543", county_name="DOM COUNTY ZIP5", state_code="VA"),
         "dom_county_zip9": CountyCodeFactory(county_number="987", county_name="DOM COUNTY ZIP9", state_code="VA"),
         "int_country": CountryCodeFactory(country_code="INT", country_code_2_char="IT", country_name="INTERNATIONAL"),
-        "assistance_listing_1": AssistanceListingFactory(program_number="10.000", program_title="TEST NUMBER 1"),
-        "assistance_listing_2": AssistanceListingFactory(program_number="20.000", program_title="TEST NUMBER 2"),
+        "assistance_listing_1": AssistanceListingFactory(program_number="1b.000", program_title="TEST NUMBER 1"),
+        "assistance_listing_2": AssistanceListingFactory(program_number="20.0a0", program_title="TEST NUMBER 2"),
     }
     sess.add_all(list(reference_data_dict.values()))
     return reference_data_dict
@@ -493,9 +493,9 @@ def compare_grant_results(
     normal_compare = attr.items() <= sub.__dict__.items()
 
     array_attrs = {
-        "assistance_listing_numbers": fabs_grouped["assistance_listing_num"],
+        "assistance_listing_numbers": fabs_grouped["assistance_listing_num"].upper(),
         "assistance_listing_titles": fabs_grouped["assistance_listing_title"],
-        "sub_assistance_listing_numbers": fabs_grouped["assistance_listing_num"],
+        "sub_assistance_listing_numbers": fabs_grouped["assistance_listing_num"].upper(),
     }
     array_compare = True
     for ar_name, ar_value in array_attrs.items():
