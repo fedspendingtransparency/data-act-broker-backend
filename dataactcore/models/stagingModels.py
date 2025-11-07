@@ -1730,7 +1730,7 @@ class FABS(Base):
     award_modification_amendme = Column(Text)
     business_funds_indicator = Column(Text)
     business_types = Column(Text)
-    assistance_listing_number = Column(Text, index=True)
+    assistance_listing_number = Column(Text)
     correction_delete_indicatr = Column(Text, index=True)
     face_value_loan_guarantee = Column(Numeric)
     fain = Column(Text, index=True)
@@ -1775,6 +1775,7 @@ class FABS(Base):
 
 Index("ix_fabs_afa_generated_unique_upper", func.upper(FABS.afa_generated_unique))
 Index("ix_fabs_uei_upper", func.upper(FABS.uei))
+Index("ix_fabs_assistance_listing_number_upper", func.upper(FABS.assistance_listing_number))
 
 
 class PublishedFABS(Base):
@@ -1804,7 +1805,7 @@ class PublishedFABS(Base):
     business_types = Column(Text)
     business_types_desc = Column(Text)
     business_categories = Column(ARRAY(Text))
-    assistance_listing_number = Column(Text, index=True)
+    assistance_listing_number = Column(Text)
     assistance_listing_title = Column(Text)
     correction_delete_indicatr = Column(Text, index=True)
     correction_delete_ind_desc = Column(Text)
@@ -1928,3 +1929,4 @@ Index("ix_published_fabs_uri_upper", func.upper(PublishedFABS.uri))
 Index("ix_published_fabs_awarding_subtier_c_upper", func.upper(PublishedFABS.awarding_sub_tier_agency_c))
 Index("ix_published_fabs_afa_generated_unique_upper", func.upper(PublishedFABS.afa_generated_unique))
 Index("ix_published_fabs_uei_upper", func.upper(PublishedFABS.uei))
+Index("ix_published_fabs_assistance_listing_number_upper", func.upper(PublishedFABS.assistance_listing_number))
