@@ -3,10 +3,16 @@ import pandas as pd
 
 from brus_backend_common.helpers.spark_helper import SparkScriptSession
 from brus_backend_common.models.reference import DEFCDelta
+from brus_backend_common.config import set_brus_config
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import DEFC
 
 logger = logging.getLogger(__name__)
+
+set_brus_config({
+    'IS_LOCAL': not CONFIG_BROKER["use_aws"],
+})
 
 if __name__ == "__main__":
     # get a dataframe from the existing postgres as sample data
