@@ -9,10 +9,14 @@ wrapper scripts around their functionality.
 from brus_backend_common.config import set_brus_config
 from brus_backend_common.scripts.load_query_to_delta import setup_parser, main
 
+from dataactcore.config import CONFIG_BROKER
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Populate a delta table with its designated query.")
     parser = setup_parser(parser)
     args = parser.parse_args()
 
-    # set_brus_config()
+    set_brus_config({
+        'IS_LOCAL': not CONFIG_BROKER["use_aws"],
+    })
     main(args.table, args.incremental)
