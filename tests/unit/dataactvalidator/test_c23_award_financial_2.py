@@ -139,15 +139,23 @@ def test_failure(database):
 
     piid = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
-    # Basic sum, row 3 is ignored in this sum because it doesn't have a paid
+    # Basic sum, row 3 is ignored in this sum because it doesn't have a paid and 4 is ignored because the ATA/AID don't
+    # match
     af_1_row_1 = AwardFinancialFactory(
         transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid_1, allocation_transfer_agency=None
     )
     af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid_1.lower(), allocation_transfer_agency=None
+        transaction_obligated_amou=9, piid=piid, parent_award_id=paid_1.lower(), allocation_transfer_agency=None
     )
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=None, allocation_transfer_agency=None
+        transaction_obligated_amou=1, piid=piid.upper(), parent_award_id=None, allocation_transfer_agency=None
+    )
+    af_1_row_4 = AwardFinancialFactory(
+        transaction_obligated_amou=1,
+        piid=piid,
+        parent_award_id=paid_1.upper(),
+        allocation_transfer_agency="good",
+        agency_identifier="bad",
     )
     # Same ATA/AID or no ATA sum
     af_2_row_1 = AwardFinancialFactory(
@@ -185,6 +193,7 @@ def test_failure(database):
             af_1_row_1,
             af_1_row_2,
             af_1_row_3,
+            af_1_row_4,
             af_2_row_1,
             af_2_row_2,
             af_3,
