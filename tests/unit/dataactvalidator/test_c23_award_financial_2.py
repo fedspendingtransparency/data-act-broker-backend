@@ -51,6 +51,14 @@ def test_success(database):
     af_1_row_4 = AwardFinancialFactory(
         transaction_obligated_amou=11, piid="", parent_award_id=paid_1.upper(), allocation_transfer_agency=None
     )
+    # row ignored because it has an ata that doesn't match the aid, but the rest of the entry should match
+    af_1_row_5 = AwardFinancialFactory(
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid_1.upper(),
+        allocation_transfer_agency="good",
+        agency_identifier="bad",
+    )
 
     # Two entries that aren't ignored because they have matching ATA/AID or no ATA
     af_2_row_1 = AwardFinancialFactory(
@@ -103,6 +111,7 @@ def test_success(database):
             af_1_row_2,
             af_1_row_3,
             af_1_row_4,
+            af_1_row_5,
             af_2_row_1,
             af_2_row_2,
             af_3,
