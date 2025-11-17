@@ -1,7 +1,9 @@
--- For each unique FAIN for financial assistance in File C (award financial), the sum of each TransactionObligatedAmount
--- submitted in the reporting period should match (in inverse) the sum of the FederalActionObligation and
--- OriginalLoanSubsidyCost amounts reported in D2 (award financial assistance) for the same timeframe, regardless of
--- modifications. This rule does not apply if the ATA field is populated and is different from the Agency ID.
+-- For each unique FAIN in File C (award financial), the sum of each TransactionObligatedAmount should match (but with
+-- opposite signs) the sum of the FederalActionObligation and OriginalLoanSubsidyCost amounts reported in
+-- D2 (award financial assistance). This rule does not apply for rows where the AllocationTransferAgencyIdentifier (ATA)
+-- field is populated and is different from the AgencyIdentifier (AID) field, it only applies when the ATA and AID are
+-- the same, or for the rows without an ATA. Note that this only compares award identifiers when the
+-- TransactionObligatedAmount is not null.
 -- gather the grouped sum for award financial data
 WITH award_financial_c23_3_{0} AS
     (SELECT UPPER(fain) AS fain,
