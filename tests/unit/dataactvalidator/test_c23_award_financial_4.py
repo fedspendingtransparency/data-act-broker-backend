@@ -125,9 +125,7 @@ def test_failure(database):
 
     # Simple addition that doesn't add up right
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, uri=uri_1, allocation_transfer_agency=None)
-    af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=9, uri=uri_1.lower(), allocation_transfer_agency=None
-    )
+    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=9, uri=uri_1.lower(), allocation_transfer_agency=None)
     # Ignore row that would make it add up right if it was counted because of non-matching ATA/AID
     af_1_row_3 = AwardFinancialFactory(
         transaction_obligated_amou=1, uri=uri_1.lower(), allocation_transfer_agency="good", agency_identifier="bad"
