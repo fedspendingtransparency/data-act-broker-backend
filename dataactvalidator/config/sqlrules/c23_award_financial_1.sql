@@ -3,6 +3,7 @@
 -- apply for rows where the AllocationTransferAgencyIdentifier (ATA) field is populated and is different from the
 -- AgencyIdentifier (AID) field, it only applies when the ATA and AID are the same, or for the rows without an ATA.
 -- Note that this only compares award identifiers when the TransactionObligatedAmount is not null.
+-- gather the grouped sum for award financial data
 WITH award_financial_c23_1_{0} AS
     (SELECT UPPER(piid) AS piid,
         SUM(transaction_obligated_amou) AS sum_ob_amount
