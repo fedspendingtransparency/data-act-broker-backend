@@ -6,7 +6,7 @@ scripts out of it directly without needing to go through the Broker or USAspendi
 wrapper scripts around their functionality.
 
 """
-import argpase
+import argparse
 
 from brus_backend_common.config import set_brus_config
 from brus_backend_common.scripts.load_query_to_delta import setup_parser, main
