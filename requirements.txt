@@ -102,4 +102,4 @@ WebTest==3.0.0
 botocore @ git+https://github.com/fedspendingtransparency/botocore-python39-md5.git@md5-fix-1-34-58#egg=botocore
 
 # shared repo with usaspending-api
-brus_backend_common @ git+https://github.com/fedspendingtransparency/brus-backend-common.git@mod/mod/dev-12160-defc-loader-emr#egg=brus_backend_common
+brus_backend_common @ git+https://github.com/fedspendingtransparency/brus-backend-common.git@mod/dev-12160-defc-loader-emr#egg=brus_backend_common
