@@ -20,11 +20,12 @@ WHERE submission_id = {0}
         is_zero(obligations_undelivered_or_cpe) + is_zero(obligations_undelivered_or_fyb) +
         is_zero(ussgl480100_undelivered_or_cpe) + is_zero(ussgl480100_undelivered_or_fyb) +
         is_zero(ussgl480200_undelivered_or_cpe) + is_zero(ussgl480200_undelivered_or_fyb) +
-        is_zero(ussgl483100_undelivered_or_cpe) + is_zero(ussgl483200_undelivered_or_cpe) +
-        is_zero(ussgl487100_downward_adjus_cpe) + is_zero(ussgl487200_downward_adjus_cpe) +
-        is_zero(ussgl488100_upward_adjustm_cpe) + is_zero(ussgl488200_upward_adjustm_cpe) +
-        is_zero(ussgl490100_delivered_orde_cpe) + is_zero(ussgl490100_delivered_orde_fyb) +
-        is_zero(ussgl490200_delivered_orde_cpe) + is_zero(ussgl490800_authority_outl_cpe) +
-        is_zero(ussgl490800_authority_outl_fyb) + is_zero(ussgl493100_delivered_orde_cpe) +
-        is_zero(ussgl497100_downward_adjus_cpe) + is_zero(ussgl497200_downward_adjus_cpe) +
+        is_zero(ussgl480210_rein_undel_obs_cpe) + is_zero(ussgl483100_undelivered_or_cpe) +
+        is_zero(ussgl483200_undelivered_or_cpe) + is_zero(ussgl487100_downward_adjus_cpe) +
+        is_zero(ussgl487200_downward_adjus_cpe) + is_zero(ussgl488100_upward_adjustm_cpe) +
+        is_zero(ussgl488200_upward_adjustm_cpe) + is_zero(ussgl490100_delivered_orde_cpe) +
+        is_zero(ussgl490100_delivered_orde_fyb) + is_zero(ussgl490200_delivered_orde_cpe) +
+        is_zero(ussgl490800_authority_outl_cpe) + is_zero(ussgl490800_authority_outl_fyb) +
+        is_zero(ussgl493100_delivered_orde_cpe) + is_zero(ussgl497100_downward_adjus_cpe) +
+        is_zero(ussgl497200_downward_adjus_cpe) + is_zero(ussgl497210_down_adj_refun_cpe) +
         is_zero(ussgl498100_upward_adjustm_cpe) + is_zero(ussgl498200_upward_adjustm_cpe) <> 0;

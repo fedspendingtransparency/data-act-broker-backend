@@ -26,6 +26,7 @@ SELECT NULL AS "source_row_number",
     obligations_delivered_orde_cpe_sum_c AS "source_value_obligations_delivered_orde_cpe_sum_c",
     ussgl480200_undelivered_or_fyb_sum_c AS "source_value_ussgl480200_undelivered_or_fyb_sum_c",
     ussgl480200_undelivered_or_cpe_sum_c AS "source_value_ussgl480200_undelivered_or_cpe_sum_c",
+    ussgl480210_rein_undel_obs_cpe_sum_c AS "source_value_ussgl480210_rein_undel_obs_cpe_sum_c",
     ussgl483200_undelivered_or_cpe_sum_c AS "source_value_ussgl483200_undelivered_or_cpe_sum_c",
     ussgl488200_upward_adjustm_cpe_sum_c AS "source_value_ussgl488200_upward_adjustm_cpe_sum_c",
     gross_outlays_undelivered_fyb_sum_c AS "source_value_gross_outlays_undelivered_fyb_sum_c",
@@ -43,6 +44,7 @@ SELECT NULL AS "source_row_number",
     ussgl497100_downward_adjus_cpe_sum_c AS "source_value_ussgl497100_downward_adjus_cpe_sum_c",
     ussgl487200_downward_adjus_cpe_sum_c AS "source_value_ussgl487200_downward_adjus_cpe_sum_c",
     ussgl497200_downward_adjus_cpe_sum_c AS "source_value_ussgl497200_downward_adjus_cpe_sum_c",
+    ussgl497210_down_adj_refun_cpe_sum_c AS "source_value_ussgl497210_down_adj_refun_cpe_sum_c",
     deobligations_recov_by_awa_cpe_sum_c AS "source_value_deobligations_recov_by_awa_cpe_sum_c",
     ussgl480100_undelivered_or_fyb_sum_b AS "target_value_ussgl480100_undelivered_or_fyb_sum_b",
     ussgl480100_undelivered_or_cpe_sum_b AS "target_value_ussgl480100_undelivered_or_cpe_sum_b",
@@ -60,6 +62,7 @@ SELECT NULL AS "source_row_number",
     obligations_delivered_orde_cpe_sum_b AS "target_value_obligations_delivered_orde_cpe_sum_b",
     ussgl480200_undelivered_or_fyb_sum_b AS "target_value_ussgl480200_undelivered_or_fyb_sum_b",
     ussgl480200_undelivered_or_cpe_sum_b AS "target_value_ussgl480200_undelivered_or_cpe_sum_b",
+    ussgl480210_rein_undel_obs_cpe_sum_b AS "target_value_ussgl480210_rein_undel_obs_cpe_sum_b",
     ussgl483200_undelivered_or_cpe_sum_b AS "target_value_ussgl483200_undelivered_or_cpe_sum_b",
     ussgl488200_upward_adjustm_cpe_sum_b AS "target_value_ussgl488200_upward_adjustm_cpe_sum_b",
     gross_outlays_undelivered_fyb_sum_b AS "target_value_gross_outlays_undelivered_fyb_sum_b",
@@ -77,6 +80,7 @@ SELECT NULL AS "source_row_number",
     ussgl497100_downward_adjus_cpe_sum_b AS "target_value_ussgl497100_downward_adjus_cpe_sum_b",
     ussgl487200_downward_adjus_cpe_sum_b AS "target_value_ussgl487200_downward_adjus_cpe_sum_b",
     ussgl497200_downward_adjus_cpe_sum_b AS "target_value_ussgl497200_downward_adjus_cpe_sum_b",
+    ussgl497210_down_adj_refun_cpe_sum_b AS "target_value_ussgl497210_down_adj_refun_cpe_sum_b",
     deobligations_recov_by_pro_cpe_sum_b AS "target_value_deobligations_recov_by_pro_cpe_sum_b",
     CONCAT_WS(', ',
         CASE WHEN ussgl480100_undelivered_or_fyb_sum_c < ussgl480100_undelivered_or_fyb_sum_b
@@ -157,6 +161,11 @@ SELECT NULL AS "source_row_number",
         CASE WHEN ussgl480200_undelivered_or_cpe_sum_c < ussgl480200_undelivered_or_cpe_sum_b
                 AND COALESCE(ussgl480200_undelivered_or_cpe_sum_c - ussgl480200_undelivered_or_cpe_sum_b, 0) != 0
             THEN 'ussgl480200_undelivered_or_cpe_sum: ' || (ussgl480200_undelivered_or_cpe_sum_c - ussgl480200_undelivered_or_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl480210_rein_undel_obs_cpe_sum_c < ussgl480210_rein_undel_obs_cpe_sum_b
+                AND COALESCE(ussgl480210_rein_undel_obs_cpe_sum_c - ussgl480210_rein_undel_obs_cpe_sum_b, 0) != 0
+            THEN 'ussgl480210_rein_undel_obs_cpe_sum: ' || (ussgl480210_rein_undel_obs_cpe_sum_c - ussgl480210_rein_undel_obs_cpe_sum_b)
             ELSE NULL
             END,
         CASE WHEN ussgl483200_undelivered_or_cpe_sum_c < ussgl483200_undelivered_or_cpe_sum_b
@@ -244,6 +253,11 @@ SELECT NULL AS "source_row_number",
             THEN 'ussgl497200_downward_adjus_cpe_sum: ' || (ussgl497200_downward_adjus_cpe_sum_c - ussgl497200_downward_adjus_cpe_sum_b)
             ELSE NULL
             END,
+        CASE WHEN ussgl497210_down_adj_refun_cpe_sum_c > ussgl497210_down_adj_refun_cpe_sum_b
+                AND COALESCE(ussgl497210_down_adj_refun_cpe_sum_c - ussgl497210_down_adj_refun_cpe_sum_b, 0) != 0
+            THEN 'ussgl497210_down_adj_refun_cpe_sum: ' || (ussgl497210_down_adj_refun_cpe_sum_c - ussgl497210_down_adj_refun_cpe_sum_b)
+            ELSE NULL
+            END,
         CASE WHEN deobligations_recov_by_awa_cpe_sum_c > deobligations_recov_by_pro_cpe_sum_b
                 AND COALESCE(deobligations_recov_by_awa_cpe_sum_c - deobligations_recov_by_pro_cpe_sum_b, 0) != 0
             THEN 'deobligations_recov_by_awa_cpe_sum: ' || (deobligations_recov_by_awa_cpe_sum_c - deobligations_recov_by_pro_cpe_sum_b)
@@ -270,6 +284,7 @@ FROM (
         SUM(af.obligations_delivered_orde_cpe) AS obligations_delivered_orde_cpe_sum_c,
         SUM(af.ussgl480200_undelivered_or_fyb) AS ussgl480200_undelivered_or_fyb_sum_c,
         SUM(af.ussgl480200_undelivered_or_cpe) AS ussgl480200_undelivered_or_cpe_sum_c,
+        SUM(af.ussgl480210_rein_undel_obs_cpe) AS ussgl480210_rein_undel_obs_cpe_sum_c,
         SUM(af.ussgl483200_undelivered_or_cpe) AS ussgl483200_undelivered_or_cpe_sum_c,
         SUM(af.ussgl488200_upward_adjustm_cpe) AS ussgl488200_upward_adjustm_cpe_sum_c,
         SUM(af.gross_outlays_undelivered_fyb) AS gross_outlays_undelivered_fyb_sum_c,
@@ -287,6 +302,7 @@ FROM (
         SUM(af.ussgl497100_downward_adjus_cpe) AS ussgl497100_downward_adjus_cpe_sum_c,
         SUM(af.ussgl487200_downward_adjus_cpe) AS ussgl487200_downward_adjus_cpe_sum_c,
         SUM(af.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_c,
+        SUM(af.ussgl497210_down_adj_refun_cpe) AS ussgl497210_down_adj_refun_cpe_sum_c,
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
         af.program_activity_code,
@@ -325,6 +341,7 @@ FULL OUTER JOIN (
         SUM(op.obligations_delivered_orde_cpe) AS obligations_delivered_orde_cpe_sum_b,
         SUM(op.ussgl480200_undelivered_or_fyb) AS ussgl480200_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480200_undelivered_or_cpe) AS ussgl480200_undelivered_or_cpe_sum_b,
+        SUM(op.ussgl480210_rein_undel_obs_cpe) AS ussgl480210_rein_undel_obs_cpe_sum_b,
         SUM(op.ussgl483200_undelivered_or_cpe) AS ussgl483200_undelivered_or_cpe_sum_b,
         SUM(op.ussgl488200_upward_adjustm_cpe) AS ussgl488200_upward_adjustm_cpe_sum_b,
         SUM(op.gross_outlays_undelivered_fyb) AS gross_outlays_undelivered_fyb_sum_b,
@@ -342,6 +359,7 @@ FULL OUTER JOIN (
         SUM(op.ussgl497100_downward_adjus_cpe) AS ussgl497100_downward_adjus_cpe_sum_b,
         SUM(op.ussgl487200_downward_adjus_cpe) AS ussgl487200_downward_adjus_cpe_sum_b,
         SUM(op.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_b,
+        SUM(op.ussgl497210_down_adj_refun_cpe) AS ussgl497210_down_adj_refun_cpe_sum_b,
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
         op.program_activity_code,
@@ -382,6 +400,7 @@ WHERE ussgl480100_undelivered_or_fyb_sum_c < ussgl480100_undelivered_or_fyb_sum_
     OR obligations_delivered_orde_cpe_sum_c < obligations_delivered_orde_cpe_sum_b
     OR ussgl480200_undelivered_or_fyb_sum_c < ussgl480200_undelivered_or_fyb_sum_b
     OR ussgl480200_undelivered_or_cpe_sum_c < ussgl480200_undelivered_or_cpe_sum_b
+    OR ussgl480210_rein_undel_obs_cpe_sum_c < ussgl480210_rein_undel_obs_cpe_sum_b
     OR ussgl483200_undelivered_or_cpe_sum_c < ussgl483200_undelivered_or_cpe_sum_b
     OR ussgl488200_upward_adjustm_cpe_sum_c < ussgl488200_upward_adjustm_cpe_sum_b
     OR gross_outlays_undelivered_fyb_sum_c < gross_outlays_undelivered_fyb_sum_b
@@ -399,4 +418,5 @@ WHERE ussgl480100_undelivered_or_fyb_sum_c < ussgl480100_undelivered_or_fyb_sum_
     OR ussgl497100_downward_adjus_cpe_sum_c > ussgl497100_downward_adjus_cpe_sum_b
     OR ussgl487200_downward_adjus_cpe_sum_c > ussgl487200_downward_adjus_cpe_sum_b
     OR ussgl497200_downward_adjus_cpe_sum_c > ussgl497200_downward_adjus_cpe_sum_b
+    OR ussgl497210_down_adj_refun_cpe_sum_c > ussgl497210_down_adj_refun_cpe_sum_b
     OR deobligations_recov_by_awa_cpe_sum_c > deobligations_recov_by_pro_cpe_sum_b;

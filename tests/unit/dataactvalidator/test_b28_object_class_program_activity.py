@@ -60,6 +60,7 @@ def test_success(database):
         ussgl480110_rein_undel_ord_cpe=0,
         ussgl480200_undelivered_or_cpe=0,
         ussgl480200_undelivered_or_fyb=0,
+        ussgl480210_rein_undel_obs_cpe=0,
         ussgl483100_undelivered_or_cpe=0,
         ussgl483200_undelivered_or_cpe=0,
         ussgl487100_downward_adjus_cpe=0,
@@ -75,6 +76,7 @@ def test_success(database):
         ussgl493100_delivered_orde_cpe=0,
         ussgl497100_downward_adjus_cpe=0,
         ussgl497200_downward_adjus_cpe=0,
+        ussgl497210_down_adj_refun_cpe=0,
         ussgl498100_upward_adjustm_cpe=0,
         ussgl498200_upward_adjustm_cpe=0,
     )

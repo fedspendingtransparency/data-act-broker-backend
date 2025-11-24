@@ -14,6 +14,7 @@ WHERE submission_id = {0}
         OR COALESCE(ussgl480110_rein_undel_ord_cpe, 0) <> 0
         OR COALESCE(ussgl480200_undelivered_or_cpe, 0) <> 0
         OR COALESCE(ussgl480200_undelivered_or_fyb, 0) <> 0
+        OR COALESCE(ussgl480210_rein_undel_obs_cpe, 0) <> 0
         OR COALESCE(ussgl483100_undelivered_or_cpe, 0) <> 0
         OR COALESCE(ussgl483200_undelivered_or_cpe, 0) <> 0
         OR COALESCE(ussgl487100_downward_adjus_cpe, 0) <> 0
@@ -29,6 +30,7 @@ WHERE submission_id = {0}
         OR COALESCE(ussgl493100_delivered_orde_cpe, 0) <> 0
         OR COALESCE(ussgl497100_downward_adjus_cpe, 0) <> 0
         OR COALESCE(ussgl497200_downward_adjus_cpe, 0) <> 0
+        OR COALESCE(ussgl497210_down_adj_refun_cpe, 0) <> 0
         OR COALESCE(ussgl498100_upward_adjustm_cpe, 0) <> 0
         OR COALESCE(ussgl498200_upward_adjustm_cpe, 0) <> 0
     )

@@ -16,6 +16,7 @@ WHERE submission_id = {0}
         OR ussgl480100_undelivered_or_fyb IS NOT NULL
         OR ussgl480200_undelivered_or_cpe IS NOT NULL
         OR ussgl480200_undelivered_or_fyb IS NOT NULL
+        OR ussgl480210_rein_undel_obs_cpe IS NOT NULL
         OR ussgl483100_undelivered_or_cpe IS NOT NULL
         OR ussgl483200_undelivered_or_cpe IS NOT NULL
         OR ussgl487100_downward_adjus_cpe IS NOT NULL
@@ -30,6 +31,7 @@ WHERE submission_id = {0}
         OR ussgl493100_delivered_orde_cpe IS NOT NULL
         OR ussgl497100_downward_adjus_cpe IS NOT NULL
         OR ussgl497200_downward_adjus_cpe IS NOT NULL
+        OR ussgl497210_down_adj_refun_cpe IS NOT NULL
         OR ussgl498100_upward_adjustm_cpe IS NOT NULL
         OR ussgl498200_upward_adjustm_cpe IS NOT NULL
         OR gross_outlay_amount_by_awa_cpe IS NOT NULL

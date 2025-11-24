@@ -45,11 +45,12 @@ WHERE (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 
             is_zero(op.obligations_undelivered_or_cpe) + is_zero(op.obligations_undelivered_or_fyb) +
             is_zero(op.ussgl480100_undelivered_or_cpe) + is_zero(op.ussgl480100_undelivered_or_fyb) +
             is_zero(op.ussgl480200_undelivered_or_cpe) + is_zero(op.ussgl480200_undelivered_or_fyb) +
-            is_zero(op.ussgl483100_undelivered_or_cpe) + is_zero(op.ussgl483200_undelivered_or_cpe) +
-            is_zero(op.ussgl487100_downward_adjus_cpe) + is_zero(op.ussgl487200_downward_adjus_cpe) +
-            is_zero(op.ussgl488100_upward_adjustm_cpe) + is_zero(op.ussgl488200_upward_adjustm_cpe) +
-            is_zero(op.ussgl490100_delivered_orde_cpe) + is_zero(op.ussgl490100_delivered_orde_fyb) +
-            is_zero(op.ussgl490200_delivered_orde_cpe) + is_zero(op.ussgl490800_authority_outl_cpe) +
-            is_zero(op.ussgl490800_authority_outl_fyb) + is_zero(op.ussgl493100_delivered_orde_cpe) +
-            is_zero(op.ussgl497100_downward_adjus_cpe) + is_zero(op.ussgl497200_downward_adjus_cpe) +
+            is_zero(op.ussgl480210_rein_undel_obs_cpe) + is_zero(op.ussgl483100_undelivered_or_cpe) +
+            is_zero(op.ussgl483200_undelivered_or_cpe) + is_zero(op.ussgl487100_downward_adjus_cpe) +
+            is_zero(op.ussgl487200_downward_adjus_cpe) + is_zero(op.ussgl488100_upward_adjustm_cpe) +
+            is_zero(op.ussgl488200_upward_adjustm_cpe) + is_zero(op.ussgl490100_delivered_orde_cpe) +
+            is_zero(op.ussgl490100_delivered_orde_fyb) + is_zero(op.ussgl490200_delivered_orde_cpe) +
+            is_zero(op.ussgl490800_authority_outl_cpe) + is_zero(op.ussgl490800_authority_outl_fyb) +
+            is_zero(op.ussgl493100_delivered_orde_cpe) + is_zero(op.ussgl497100_downward_adjus_cpe) +
+            is_zero(op.ussgl497200_downward_adjus_cpe) + is_zero(op.ussgl497210_down_adj_refun_cpe) +
             is_zero(op.ussgl498100_upward_adjustm_cpe) + is_zero(op.ussgl498200_upward_adjustm_cpe)) <> 0);
