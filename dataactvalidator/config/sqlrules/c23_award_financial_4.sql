@@ -1,20 +1,18 @@
--- For each unique URI for financial assistance in File C (award financial), the sum of each TransactionObligatedAmount
--- submitted in the reporting period should match (in inverse) the sum of the FederalActionObligation and
--- OriginalLoanSubsidyCost amounts reported in D2 (award financial assistance) for the same timeframe, regardless of
--- modifications. This rule does not apply if the ATA field is populated and is different from the Agency ID.
+-- For each unique URI in File C (award financial), the sum of each TransactionObligatedAmount should match (but with
+-- opposite signs) the sum of the FederalActionObligation or OriginalLoanSubsidyCost amounts reported in D1 or D2
+-- (award financial assistance). This rule does not apply for rows where the AllocationTransferAgencyIdentifier (ATA)
+-- field is populated and is different from the AgencyIdentifier (AID) field, it only applies when the ATA and AID are
+-- the same, or for the rows without an ATA. Note that this only compares award identifiers when the
+-- TransactionObligatedAmount is not null.
+-- gather the grouped sum for award financial data
 WITH award_financial_c23_4_{0} AS
-    (SELECT transaction_obligated_amou,
-        UPPER(uri) AS uri,
-        allocation_transfer_agency,
-        agency_identifier
-    FROM award_financial
-    WHERE submission_id = {0}),
--- gather the grouped sum from the previous WITH (we need both so we can do the NOT EXISTS later)
-award_financial_grouped_c23_4_{0} AS
     (SELECT UPPER(uri) AS uri,
         SUM(transaction_obligated_amou) AS sum_ob_amount
-    FROM award_financial_c23_4_{0}
-    WHERE transaction_obligated_amou IS NOT NULL
+    FROM award_financial
+    WHERE submission_id = {0}
+        AND transaction_obligated_amou IS NOT NULL
+        AND (COALESCE(allocation_transfer_agency, '') = ''
+            OR allocation_transfer_agency = agency_identifier)
     GROUP BY UPPER(uri)),
 -- gather the grouped sum for award financial assistance data
 award_financial_assistance_c23_4_{0} AS
@@ -39,14 +37,7 @@ SELECT
     afa.sum_orig_loan_sub_amount AS "target_value_original_loan_subsidy_cost_sum",
     af.sum_ob_amount - (-1 * afa.sum_fed_act_ob_amount - afa.sum_orig_loan_sub_amount) AS "difference",
     af.uri AS "uniqueid_URI"
-FROM award_financial_grouped_c23_4_{0} AS af
+FROM award_financial_c23_4_{0} AS af
 JOIN award_financial_assistance_c23_4_{0} AS afa
     ON af.uri = afa.uri
-WHERE af.sum_ob_amount <> -1 * afa.sum_fed_act_ob_amount - afa.sum_orig_loan_sub_amount
-    AND NOT EXISTS (
-        SELECT 1
-        FROM award_financial_c23_4_{0} AS sub_af
-        WHERE sub_af.uri = af.uri
-            AND COALESCE(sub_af.allocation_transfer_agency, '') <> ''
-            AND sub_af.allocation_transfer_agency <> sub_af.agency_identifier
-    );
+WHERE af.sum_ob_amount <> -1 * afa.sum_fed_act_ob_amount - afa.sum_orig_loan_sub_amount;

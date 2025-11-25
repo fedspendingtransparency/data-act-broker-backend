@@ -42,6 +42,14 @@ def test_success(database):
     af_1_row_3 = AwardFinancialFactory(
         transaction_obligated_amou=11, piid=piid_1.upper(), parent_award_id="Test", allocation_transfer_agency=None
     )
+    # Ignored row because it has non-matching ATA/AID but the rest of the sum works
+    af_1_row_4 = AwardFinancialFactory(
+        transaction_obligated_amou=99,
+        piid=piid_1,
+        parent_award_id=None,
+        allocation_transfer_agency="good",
+        agency_identifier="bad",
+    )
 
     # Add a row for a different piid
     af_2_row_1 = AwardFinancialFactory(
@@ -64,16 +72,13 @@ def test_success(database):
         agency_identifier="123",
     )
 
-    # Third piid with all rows ignored because one has an ATA different from AID
-    af_3_row_1 = AwardFinancialFactory(
+    # Third ignored because it has an ATA different from AID
+    af_3 = AwardFinancialFactory(
         transaction_obligated_amou=8888,
         piid=piid_3.lower(),
         parent_award_id=None,
         allocation_transfer_agency="123",
         agency_identifier="345",
-    )
-    af_3_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=8888, piid=piid_3, parent_award_id=None, allocation_transfer_agency=None
     )
 
     # No TOA in File C, ignored
@@ -103,11 +108,11 @@ def test_success(database):
             af_1_row_1,
             af_1_row_2,
             af_1_row_3,
+            af_1_row_4,
             af_2_row_1,
             af_2_row_2,
             af_2_row_3,
-            af_3_row_1,
-            af_3_row_2,
+            af_3,
             af_4,
             ap_1_row_1,
             ap_1_row_2,
@@ -136,7 +141,15 @@ def test_failure(database):
         transaction_obligated_amou=1100, piid=piid_1, parent_award_id="", allocation_transfer_agency=None
     )
     af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid_1, parent_award_id=None, allocation_transfer_agency=None
+        transaction_obligated_amou=9, piid=piid_1, parent_award_id=None, allocation_transfer_agency=None
+    )
+    # Ignore row that would make it add up right if it was counted because of non-matching ATA/AID
+    af_1_row_3 = AwardFinancialFactory(
+        transaction_obligated_amou=1,
+        piid=piid_1.lower(),
+        parent_award_id="",
+        allocation_transfer_agency="good",
+        agency_identifier="bad",
     )
 
     # No ATA, not matching, one record, no paid
@@ -174,6 +187,8 @@ def test_failure(database):
     ap_4 = AwardProcurementFactory(piid=piid_4, parent_award_id=None, federal_action_obligation=1)
 
     errors = number_of_errors(
-        _FILE, database, models=[af_1_row_1, af_1_row_2, af_2, af_3, af_4, ap_1_row_1, ap_1_row_2, ap_2, ap_3, ap_4]
+        _FILE,
+        database,
+        models=[af_1_row_1, af_1_row_2, af_1_row_3, af_2, af_3, af_4, ap_1_row_1, ap_1_row_2, ap_2, ap_3, ap_4],
     )
     assert errors == 4
