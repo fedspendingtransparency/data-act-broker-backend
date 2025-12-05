@@ -265,6 +265,7 @@ class ListLatestPublishedFileTests(BaseTestAPI):
             {"id": 12, "label": "file_D1.csv", "filetype": "D1", "submission_id": self.dabs_sub_pub_twice},
             {"id": 14, "label": "file_E.csv", "filetype": "E", "submission_id": self.dabs_sub_pub_twice},
             {"id": 15, "label": "file_F.csv", "filetype": "F", "submission_id": self.dabs_sub_pub_twice},
+            {"id": 16, "label": "comments.csv", "filetype": "comments", "submission_id": self.dabs_sub_pub_twice},
         ]
         response = self.get_response(type="dabs", agency="111", year="2020", period=6)
         self.assertEqual(response.status_code, 200)
