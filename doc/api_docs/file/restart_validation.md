@@ -32,6 +32,8 @@ Possible HTTP Status Codes:
 - 400:
     - Submission does not exist
     - Missing `submission_id`
+    - `is_fabs` does not match submission 
     - Submission is revalidating or publishing
+    - Submission is an already published FABS submission
 - 401: Login required
 - 403: Permission denied, user does not have permission to edit this submission
