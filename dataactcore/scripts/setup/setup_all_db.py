@@ -22,7 +22,7 @@ def setup_all_db(db_name=None, no_data=False):
     if db_name:
         # Ensure the config is set to setup the specified db
         CONFIG_DB["db_name"] = db_name
-    create_database(CONFIG_DB["db_name"])
+    create_database(CONFIG_DB["db_name"], logger)
     logger.info("Created database (if not existing) {}".format(CONFIG_DB["db_name"]))
     logger.info("Running migrations in database {}".format(CONFIG_DB["db_name"]))
     run_migrations()

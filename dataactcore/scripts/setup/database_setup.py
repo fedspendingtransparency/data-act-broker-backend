@@ -7,9 +7,11 @@ from sqlalchemy.exc import ProgrammingError
 from dataactcore.interfaces.db import db_uri
 
 
-def create_database(db_name):
+def create_database(db_name, logger=None):
     """Create specified database if it doesn't exist."""
     connect_string = db_uri(db_name)
+    if logger:
+        logger.info(connect_string)
     if not sqlalchemy_utils.database_exists(connect_string):
         sqlalchemy_utils.create_database(connect_string)
 
