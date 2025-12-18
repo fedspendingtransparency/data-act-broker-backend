@@ -29,6 +29,7 @@ def test_failure(database):
         "ussgl480110_rein_undel_ord_cpe": None,
         "ussgl480200_undelivered_or_cpe": None,
         "ussgl480200_undelivered_or_fyb": None,
+        "ussgl480210_rein_undel_obs_cpe": None,
         "ussgl483100_undelivered_or_cpe": None,
         "ussgl483200_undelivered_or_cpe": None,
         "ussgl487100_downward_adjus_cpe": None,
@@ -44,6 +45,7 @@ def test_failure(database):
         "ussgl493100_delivered_orde_cpe": None,
         "ussgl497100_downward_adjus_cpe": None,
         "ussgl497200_downward_adjus_cpe": None,
+        "ussgl497210_down_adj_refun_cpe": None,
         "ussgl498100_upward_adjustm_cpe": None,
         "ussgl498200_upward_adjustm_cpe": None,
     }
