@@ -14,7 +14,7 @@ def test_column_headers(database):
 def test_success(database):
     """
     Should be a valid ProgramActivityReportingKey (PARK) for the corresponding funding TAS/TAFS, as defined in the
-    OMB’s Program Activity Mapping File. Ignore rule for $0 rows
+    OMB’s Program Activity Mapping File. Ignore rule for $0 rows IF PARK is 0 or 0000
     """
 
     park = ProgramActivityPARKFactory(
@@ -54,7 +54,7 @@ def test_success(database):
         allocation_transfer_agency=None,
         main_account_code="0002",
         sub_account_code="001",
-        program_activity_reporting_key="XYZ",
+        program_activity_reporting_key="0000",
         ussgl480100_undelivered_or_fyb=0,
         ussgl480100_undelivered_or_cpe=0,
         ussgl480110_rein_undel_ord_cpe=0,
@@ -94,7 +94,7 @@ def test_success(database):
 def test_failure(database):
     """
     Failure should be a valid ProgramActivityReportingKey (PARK) for the corresponding funding TAS/TAFS, as defined
-    in the OMB’s Program Activity Mapping File. Ignore rule for $0 rows
+    in the OMB’s Program Activity Mapping File. Ignore rule for $0 rows IF PARK is 0 or 0000
     """
 
     park = ProgramActivityPARKFactory(
@@ -135,5 +135,37 @@ def test_failure(database):
         sub_account_code="123",
         program_activity_reporting_key="ABCDE",
     )
+    # Non-matching 0 dollar value
+    op4 = ObjectClassProgramActivityFactory(
+        agency_identifier="123",
+        allocation_transfer_agency=None,
+        main_account_code="0002",
+        sub_account_code="001",
+        program_activity_reporting_key="XYZ",
+        ussgl480100_undelivered_or_fyb=0,
+        ussgl480100_undelivered_or_cpe=0,
+        ussgl480110_rein_undel_ord_cpe=0,
+        ussgl480200_undelivered_or_cpe=0,
+        ussgl480200_undelivered_or_fyb=0,
+        ussgl480210_rein_undel_obs_cpe=0,
+        ussgl483100_undelivered_or_cpe=0,
+        ussgl483200_undelivered_or_cpe=0,
+        ussgl487100_downward_adjus_cpe=0,
+        ussgl487200_downward_adjus_cpe=0,
+        ussgl488100_upward_adjustm_cpe=0,
+        ussgl488200_upward_adjustm_cpe=0,
+        ussgl490100_delivered_orde_fyb=0,
+        ussgl490100_delivered_orde_cpe=0,
+        ussgl490110_rein_deliv_ord_cpe=0,
+        ussgl490200_delivered_orde_cpe=0,
+        ussgl490800_authority_outl_fyb=0,
+        ussgl490800_authority_outl_cpe=0,
+        ussgl493100_delivered_orde_cpe=0,
+        ussgl497100_downward_adjus_cpe=0,
+        ussgl497200_downward_adjus_cpe=0,
+        ussgl497210_down_adj_refun_cpe=0,
+        ussgl498100_upward_adjustm_cpe=0,
+        ussgl498200_upward_adjustm_cpe=0,
+    )
 
-    assert number_of_errors(_FILE, database, models=[op1, op2, op3, park, park_sub]) == 3
+    assert number_of_errors(_FILE, database, models=[op1, op2, op3, op4, park, park_sub]) == 4
