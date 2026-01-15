@@ -55,4 +55,4 @@ WHERE submission_id = {0}
         AND COALESCE(ussgl497210_down_adj_refun_cpe, 0) = 0
         AND COALESCE(ussgl498100_upward_adjustm_cpe, 0) = 0
         AND COALESCE(ussgl498200_upward_adjustm_cpe, 0) = 0
-    ) ;
+    );
