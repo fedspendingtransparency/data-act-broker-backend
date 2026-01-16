@@ -332,7 +332,7 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/restart_validation/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms("writer", check_fabs="editfabs")
-    def restart_validation(submission, **kwargs):
+    def restart_validation(submission):
         return FileHandler.restart_validation(submission)
 
     @app.route("/v1/revert_submission/", methods=["POST"])
