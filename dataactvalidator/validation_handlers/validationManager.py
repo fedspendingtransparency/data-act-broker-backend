@@ -366,8 +366,8 @@ class ValidationManager:
             # Update submission to include action dates where applicable
             if self.is_fabs:
                 sess.query(FABS).filter(
-                    FABS.row_number.in_(error_rows_unique), FABS.submission_id == self.submission_id
-                ).update({"is_valid": False}, synchronize_session=False)
+                    FABS.row_number.notin_(error_rows_unique), FABS.submission_id == self.submission_id
+                ).update({"is_valid": True}, synchronize_session=False)
                 sess.commit()
                 min_action_date, max_action_date = get_action_dates(self.submission_id)
                 sess.query(Submission).filter(Submission.submission_id == self.submission_id).update(
@@ -895,7 +895,7 @@ class ValidationManager:
                 clean_numbers_vectorized(chunk_df[field])
 
             if self.is_fabs:
-                chunk_df["is_valid"] = True
+                chunk_df["is_valid"] = False
                 chunk_df["awarding_sub_tier_agency_c"] = chunk_df.apply(
                     lambda x: derive_fabs_awarding_sub_tier(x, office_list), axis=1
                 )

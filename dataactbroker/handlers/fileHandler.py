@@ -1196,12 +1196,11 @@ class FileHandler:
         return job_dict
 
     @staticmethod
-    def restart_validation(submission, fabs):
+    def restart_validation(submission):
         """Restart validations for a submission
 
         Args:
             submission: the submission to restart the validations for
-            fabs: a boolean to indicate whether the submission is a FABS or DABS submission (True for FABS)
 
         Returns:
             JsonResponse object with a "success" message
@@ -1209,15 +1208,9 @@ class FileHandler:
         if submission.publish_status_id in (PUBLISH_STATUS_DICT["publishing"], PUBLISH_STATUS_DICT["reverting"]):
             return JsonResponse.error(ValueError("Submission is certifying or reverting"), StatusCode.CLIENT_ERROR)
 
-        # TODO: Drop `is_fabs` from `restart_validation` request and instead use `submission.is_fabs` directly
-        if fabs and not submission.is_fabs:
-            return JsonResponse.error(ValueError("Submission is not a FABS submission"), StatusCode.CLIENT_ERROR)
-        elif not fabs and submission.is_fabs:
-            return JsonResponse.error(ValueError("Submission is not a DABS submission"), StatusCode.CLIENT_ERROR)
-
         sess = GlobalDB.db().session
         # Determine which job types to start
-        if not fabs:
+        if not submission.is_fabs:
             initial_file_types = [
                 FILE_TYPE_DICT["appropriations"],
                 FILE_TYPE_DICT["program_activity"],
@@ -1226,7 +1219,7 @@ class FileHandler:
         else:
             initial_file_types = [FILE_TYPE_DICT["fabs"]]
 
-        if fabs and submission.publish_status_id == PUBLISH_STATUS_DICT["published"]:
+        if submission.is_fabs and submission.publish_status_id == PUBLISH_STATUS_DICT["published"]:
             return JsonResponse.error(ValueError("Submission has already been published"), StatusCode.CLIENT_ERROR)
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()

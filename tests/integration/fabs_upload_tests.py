@@ -118,7 +118,7 @@ class FABSUploadTests(BaseTestAPI):
 
     def test_revalidation_already_published(self):
         """Test a revalidation failure because the FABS submission is already published"""
-        params = {"submission_id": self.published_submission, "is_fabs": True}
+        params = {"submission_id": self.published_submission}
         response = self.app.post_json(
             "/v1/restart_validation/", params, headers={"x-session-id": self.session_id}, expect_errors=True
         )
@@ -142,24 +142,6 @@ class FABSUploadTests(BaseTestAPI):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "Submission is not a FABS submission")
-
-    def test_revalidation_not_fabs(self):
-        """Test a revalidation failure because the submission is not FABS"""
-        params = {"submission_id": self.other_submission, "is_fabs": True}
-        response = self.app.post_json(
-            "/v1/restart_validation/", params, headers={"x-session-id": self.session_id}, expect_errors=True
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Submission is not a FABS submission")
-
-    def test_revalidation_not_dabs(self):
-        """Test a revalidation failure because the submission is not DABS"""
-        params = {"submission_id": self.fabs_submission, "is_fabs": False}
-        response = self.app.post_json(
-            "/v1/restart_validation/", params, headers={"x-session-id": self.session_id}, expect_errors=True
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Submission is not a DABS submission")
 
     def test_upload_fabs_file_wrong_permissions_wrong_user(self):
         self.login_user()
