@@ -41,7 +41,29 @@ def test_success(database):
     errors = number_of_errors(
         _FILE,
         database,
-        models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8, fabs_9, fabs_10, fabs_11, fabs_12, fabs_13, fabs_14, fabs_15, fabs_16, fabs_17, fabs_18, fabs_19, fabs_20, fabs_21],
+        models=[
+            fabs_1,
+            fabs_2,
+            fabs_3,
+            fabs_4,
+            fabs_5,
+            fabs_6,
+            fabs_7,
+            fabs_8,
+            fabs_9,
+            fabs_10,
+            fabs_11,
+            fabs_12,
+            fabs_13,
+            fabs_14,
+            fabs_15,
+            fabs_16,
+            fabs_17,
+            fabs_18,
+            fabs_19,
+            fabs_20,
+            fabs_21,
+        ],
     )
     assert errors == 0
 

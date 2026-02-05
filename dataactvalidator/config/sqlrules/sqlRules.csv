@@ -151,13 +151,13 @@ FABS23.2,"If both are submitted, AwardingSubTierAgencyCode and AwardingOfficeCod
 FABS23.3,"AwardingSubTierAgencyCode must be provided when AwardingOfficeCode is not provided.",n,fabs,fatal,,fabs23_3,"non-blank AwardingSubTierAgencyCode or AwardingOfficeCode","accuracy",n
 FABS24.1,"PrimaryPlaceOfPerformanceCountryCode must be blank for PII-redacted non-aggregate records (RecordType = 3).",n,fabs,fatal,,fabs24_1,"(blank)","accuracy",n
 FABS24.2,"PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC country code for aggregate or non-aggregate records (RecordType = 1 or 2). U.S. Territories and Freely Associated States must be submitted with country code = USA and their state/territory code; they cannot be submitted with their GENC country code. For a list of these territories and more information, see Appendix B of the GSDM Practices and Procedures.",n,fabs,fatal,,fabs24_2,"The authoritative source for these codes is the GENC Standard Version 3, Update 4.","completeness",n
-FABS26.1,"FederalActionObligation must be blank or 0 for loans (AssistanceType = 07 or 08).",n,fabs,fatal,,fabs26_1,"(blank) or 0","accuracy",n
-FABS26.2,"FederalActionObligation is required for non-loans (i.e., when AssistanceType is not 07 or 08).",n,fabs,fatal,,fabs26_2,"<>0","completeness",n
-FABS27,"NonFederalFundingAmount must be blank or 0 for loans (AssistanceType = 07 or 08).",n,fabs,fatal,,fabs27,"(blank) or 0","accuracy",n
-FABS28.1,"FaceValueOfDirectLoanOrLoanGuarantee is required for loans (AssistanceType = 07 or 08).",n,fabs,fatal,,fabs28_1,"<>0","completeness",n
-FABS28.2,"FaceValueOfDirectLoanOrLoanGuarantee must be blank or 0 for non-loans (i.e., when AssistanceType is not 07 or 08).",n,fabs,fatal,,fabs28_2,"(blank) or 0","accuracy",n
-FABS29.1,"OriginalLoanSubsidyCost is required for loans (AssistanceType = 07 or 08).",n,fabs,fatal,,fabs29_1,"<>0","completeness",n
-FABS29.2,"OriginalLoanSubsidyCost must be blank or 0 for non-loans (i.e., when AssistanceType is not 07 or 08).",n,fabs,fatal,,fabs29_2,"(blank) or 0","accuracy",n
+FABS26.1,"FederalActionObligation must be blank or 0 for loans (AssistanceType = 07, 08, F003, or F004).",n,fabs,fatal,,fabs26_1,"(blank) or 0","accuracy",n
+FABS26.2,"FederalActionObligation is required for non-loans (i.e., when AssistanceType is not 07, 08, F003, or F004).",n,fabs,fatal,,fabs26_2,"<>0","completeness",n
+FABS27,"NonFederalFundingAmount must be blank or 0 for loans (AssistanceType = 07, 08, F003, or F004).",n,fabs,fatal,,fabs27,"(blank) or 0","accuracy",n
+FABS28.1,"FaceValueOfDirectLoanOrLoanGuarantee is required for loans (AssistanceType = 07, 08, F003, or F004).",n,fabs,fatal,,fabs28_1,"<>0","completeness",n
+FABS28.2,"FaceValueOfDirectLoanOrLoanGuarantee must be blank or 0 for non-loans (i.e., when AssistanceType is not 07, 08, F003, or F004).",n,fabs,fatal,,fabs28_2,"(blank) or 0","accuracy",n
+FABS29.1,"OriginalLoanSubsidyCost is required for loans (AssistanceType = 07, 08, F003, or F004).",n,fabs,fatal,,fabs29_1,"<>0","completeness",n
+FABS29.2,"OriginalLoanSubsidyCost must be blank or 0 for non-loans (i.e., when AssistanceType is not 07, 08, F003, or F004).",n,fabs,fatal,,fabs29_2,"(blank) or 0","accuracy",n
 FABS30,"BusinessFundsIndicator must contain one of the following values: ""REC"" or ""NON"".",n,fabs,fatal,,fabs30,"""REC"" or ""NON""","completeness",n
 FABS31.1,"AwardeeOrRecipientUEI Field must be blank for aggregate and PII-redacted non-aggregate records (RecordType = 1 or 3, regardless of the BusinessTypes value) and individual recipients (BusinessTypes includes 'P', regardless of the RecordType value).",n,fabs,fatal,,fabs31_1,"(blank)","accuracy",n
 FABS31.2.1,"AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual (BusinessTypes includes 'P').",n,fabs,fatal,,fabs31_2_1,"AwardeeOrRecipientUEI is required.","completeness",n
