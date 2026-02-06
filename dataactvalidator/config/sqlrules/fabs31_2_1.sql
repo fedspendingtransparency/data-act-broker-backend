@@ -43,7 +43,8 @@ FROM fabs31_2_1_{0} AS fabs
 LEFT JOIN min_dates_{0} AS md
     ON fabs.unique_award_key = md.unique_award_key
 WHERE NOT (
-    COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11')
+    COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11', 'F003', 'F004', 'F005', 'F006', 'F007',
+                                      'F008', 'F009', 'F010')
     AND CASE WHEN md.min_date IS NOT NULL
          THEN min_date < CAST('10/01/2032' AS DATE)
          ELSE (CASE WHEN is_date(COALESCE(action_date, '0'))

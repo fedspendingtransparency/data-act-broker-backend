@@ -1,8 +1,8 @@
 -- AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record is an aggregate or
 -- PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
--- (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, or 11, if the base award (the earliest record
--- with the same unique award key) has an ActionDate prior to October 1, 2022, this will produce a warning rather than a
--- fatal error.
+-- (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, 11, F003, F004, F005, F006, F007, F008, F009, or
+-- F010 if the base award (the earliest record with the same unique award key) has an ActionDate prior to
+-- October 1, 2022, this will produce a warning rather than a fatal error.
 WITH fabs31_2_2_{0} AS
     (SELECT unique_award_key,
     	row_number,
@@ -44,7 +44,8 @@ FROM fabs31_2_2_{0} AS fabs
 LEFT JOIN min_dates_{0} AS md
     ON fabs.unique_award_key = md.unique_award_key
 WHERE (
-    COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11')
+    COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11', 'F003', 'F004', 'F005', 'F006', 'F007',
+                                      'F008', 'F009', 'F010')
     AND CASE WHEN md.min_date IS NOT NULL
          THEN min_date < CAST('10/01/2032' AS DATE)
          ELSE (CASE WHEN is_date(COALESCE(action_date, '0'))
