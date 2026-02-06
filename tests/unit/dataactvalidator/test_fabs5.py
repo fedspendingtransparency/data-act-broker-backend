@@ -12,7 +12,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """Tests success for when AssistanceType field is required and must be one of the allowed values:
-    '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', 'F001', 'F002', 'F003', 'F004', 'F005', 'F006', 'F007', 'F008', 'F009', 'F010'
+    '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', 'F001', 'F002', 'F003', 'F004', 'F005', 'F006', 'F007',
+    'F008', 'F009', 'F010'
     """
     fabs_1 = FABSFactory(assistance_type="02", correction_delete_indicatr="")
     fabs_2 = FABSFactory(assistance_type="03", correction_delete_indicatr=None)
@@ -70,7 +71,8 @@ def test_success(database):
 
 def test_failure(database):
     """Tests failure for when AssistanceType field is required and must be one of the allowed values:
-    '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', 'F001', 'F002', 'F003', 'F004', 'F005', 'F006', 'F007', 'F008', 'F009', 'F010'
+    '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', 'F001', 'F002', 'F003', 'F004', 'F005', 'F006', 'F007',
+    'F008', 'F009', 'F010'
     """
     fabs_1 = FABSFactory(assistance_type="", correction_delete_indicatr="")
     fabs_2 = FABSFactory(assistance_type=None, correction_delete_indicatr=None)

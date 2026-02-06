@@ -16,7 +16,8 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = 07, 08, F003, or F004)."""
+    """FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = 07, 08, F003, or
+    F004)."""
 
     fabs = FABSFactory(assistance_type="07", face_value_loan_guarantee=0, correction_delete_indicatr="")
     fabs_2 = FABSFactory(assistance_type="08", face_value_loan_guarantee=20, correction_delete_indicatr="c")
@@ -29,7 +30,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = 07, 08, F003, or F004)."""
+    """FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = 07, 08, F003, or
+    F004)."""
 
     fabs = FABSFactory(assistance_type="07", face_value_loan_guarantee=None, correction_delete_indicatr=None)
     fabs_2 = FABSFactory(assistance_type="F004", face_value_loan_guarantee=None, correction_delete_indicatr="C")

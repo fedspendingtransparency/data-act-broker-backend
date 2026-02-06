@@ -36,7 +36,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """Test failure IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, 09, F003, F004, and F005."""
+    """Test failure IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, 09, F003, F004, and
+    F005."""
 
     fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type="08")
     fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type="F004")
