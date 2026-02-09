@@ -299,6 +299,11 @@ class SF133(Base):
     amount = Column(Numeric, nullable=False, default=0, server_default="0")
     account_num = Column(Integer, nullable=True)
     disaster_emergency_fund_code = Column(Text, index=True)
+    bea_category = Column(Text)
+    budget_object_class = Column(Text)
+    by_direct_reimbursable_fun = Column(Text)
+    prior_year_adjustment = Column(Text)
+    program_activity_reporting_key = Column(Text)
 
 
 Index(

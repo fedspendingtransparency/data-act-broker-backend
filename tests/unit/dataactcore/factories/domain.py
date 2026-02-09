@@ -23,6 +23,11 @@ class SF133Factory(factory.Factory):
     fiscal_year = fuzzy.FuzzyInteger(2010, 2040)
     period = fuzzy.FuzzyInteger(1, 12)
     line = fuzzy.FuzzyInteger(1, 9999)
+    bea_category = fuzzy.FuzzyText()
+    budget_object_class = fuzzy.FuzzyText()
+    by_direct_reimbursable_fun = fuzzy.FuzzyText()
+    prior_year_adjustment = fuzzy.FuzzyText()
+    program_activity_reporting_key = fuzzy.FuzzyText()
     amount = 0
 
 
