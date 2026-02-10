@@ -313,6 +313,11 @@ Index(
     SF133.period,
     SF133.line,
     SF133.disaster_emergency_fund_code,
+    SF133.bea_category,
+    SF133.budget_object_class,
+    SF133.by_direct_reimbursable_fun,
+    SF133.prior_year_adjustment,
+    SF133.program_activity_reporting_key,
     unique=True,
 )
 
