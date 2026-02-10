@@ -70,7 +70,7 @@ def test_update_account_nums_fiscal_year(database):
     """Fiscal year math should be accurate when checking TAS entries"""
     sess = database.session
     tas = TASFactory(internal_start_date=date(2010, 1, 1), internal_end_date=date(2010, 8, 31))
-    sf_133 = SF133Factory(fiscal_year=2011, period=1, **tas.component_dict())
+    sf_133 = SF133Factory(fiscal_year=2011, period=1, **tas.component_dict(), tas=tas.tas)
     sess.add_all([tas, sf_133])
     sess.commit()
 
