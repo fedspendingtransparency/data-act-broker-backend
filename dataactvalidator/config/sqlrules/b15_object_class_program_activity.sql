@@ -68,7 +68,7 @@ WHERE sf.line = 2104
 GROUP BY UPPER(op.disaster_emergency_fund_code),
     sf.amount,
     op.display_tas,
-    UPPER(prior_year_adjustment)
+    UPPER(op.prior_year_adjustment)
 HAVING (UPPER(op.disaster_emergency_fund_code) IN ('Q', 'QQQ')
         AND (
             SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
