@@ -27,6 +27,11 @@ FINGERPRINT_COLS = [
     "tas",
     "display_tas",
     "disaster_emergency_fund_code",
+    "bea_category",
+    "budget_object_class",
+    "by_direct_reimbursable_fun",
+    "prior_year_adjustment",
+    "program_activity_reporting_key",
 ]
 
 
@@ -34,7 +39,7 @@ def test_fill_blank_sf133_lines_types():
     """Validate that floats aren't downgraded to ints in the pivot_table function (that'd be a regression)."""
     data = pd.DataFrame(
         # We'll only pay attention to two of these fields
-        [[1440, 3041046.31] + list("ABCDEFGHIJKLLQ")],
+        [[1440, 3041046.31] + list("ABCDEFGHIJKLLQBBBPP")],
         columns=["line", "amount"] + FINGERPRINT_COLS,
     )
     result = load_sf133.fill_blank_sf133_lines(data)
@@ -48,10 +53,10 @@ def test_fill_blank_sf133_lines():
         # FINGERPRINT1 has rows for line numbers 1 and 2, while FINGERPRINT2 has rows for line numbers 2 and 3.
         # We want both to have line numbers 1 through 3
         [
-            [1, 1] + list("FINGERPRINT11Q"),
-            [2, 2] + list("FINGERPRINT11Q"),
-            [2, 2] + list("FINGERPRINT22Q"),
-            [3, 3] + list("FINGERPRINT22Q"),
+            [1, 1] + list("FINGERPRINT11QBBBPP"),
+            [2, 2] + list("FINGERPRINT11QBBBPP"),
+            [2, 2] + list("FINGERPRINT22QBBBPP"),
+            [3, 3] + list("FINGERPRINT22QBBBPP"),
         ],
         columns=["line", "amount"] + FINGERPRINT_COLS,
     )
