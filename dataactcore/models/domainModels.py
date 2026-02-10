@@ -204,13 +204,7 @@ def matching_cars_subquery(sess, model_class, start_date, end_date, submission_i
     # TAS components (ATA, AI, etc.) from being valid at the same time. When
     # that happens (unlikely), we select the minimum (i.e. older) of the
     # potential TAS history entries.
-    subquery = sess.query(sa.func.min(TASLookup.account_num))
-
-    # Filter to matching TAS components, accounting for NULLs
-    for field_name in TAS_COMPONENTS:
-        tas_col = getattr(TASLookup, field_name)
-        model_col = getattr(model_class, field_name)
-        subquery = subquery.filter(sa.func.coalesce(tas_col, "") == sa.func.coalesce(model_col, ""))
+    subquery = sess.query(sa.func.min(TASLookup.account_num)).filter(TASLookup.tas == model_class.tas)
 
     day_after_end = end_date + timedelta(days=1)
     model_dates = sa.tuple_(start_date, end_date)
