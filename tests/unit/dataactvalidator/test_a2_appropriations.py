@@ -67,9 +67,23 @@ def test_success(database):
     )
 
     sf_4 = SF133Factory(line=1902, display_tas=tas_2, period=1, fiscal_year=2016, amount=100)
-    sf_5 = SF133Factory(line=1902, display_tas=tas_2, period=1, fiscal_year=2016, amount=100)
+    sf_5 = SF133Factory(line=1902, display_tas=tas_2, period=1, fiscal_year=2016, amount=40, bea_category="A")
+    sf_6 = SF133Factory(line=1902, display_tas=tas_2, period=1, fiscal_year=2016, amount=60, bea_category="B")
 
-    assert number_of_errors(_FILE, database, models=[sf_4, sf_5, ap_2]) == 0
+    assert number_of_errors(_FILE, database, models=[sf_4, sf_5, sf_6, ap_2]) == 0
+
+    # Test with no 1902 line associated (this means it's a 0-value row and not in our DB, the other calculations
+    # are good)
+    ap_3 = AppropriationFactory(
+        total_budgetary_resources_cpe=100,
+        budget_authority_appropria_cpe=100,
+        budget_authority_unobligat_fyb=0,
+        adjustments_to_unobligated_cpe=0,
+        other_budgetary_resources_cpe=0,
+        display_tas="tas_no_sf",
+    )
+
+    assert number_of_errors(_FILE, database, models=[ap_3]) == 0
 
 
 def test_failure(database):
