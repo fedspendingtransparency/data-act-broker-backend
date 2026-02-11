@@ -79,8 +79,9 @@ def test_success(database):
         bea_category="B",
     )
     ap = Appropriation(job_id=1, row_number=1, display_tas=tas, budget_authority_appropria_cpe=5)
+    ap_2 = Appropriation(job_id=1, row_number=1, display_tas="tas_no_sf", budget_authority_appropria_cpe=0)
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, sf_5, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, sf_5, ap, ap_2]) == 0
 
 
 def test_failure(database):

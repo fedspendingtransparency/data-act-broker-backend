@@ -1,5 +1,6 @@
 from dataactcore.models.stagingModels import Appropriation
 from dataactcore.models.domainModels import SF133
+from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
@@ -24,6 +25,7 @@ def test_success(database):
     for the specified fiscal year and period
     """
     tas = "".join([_TAS, "_success"])
+    sub = SubmissionFactory(submission_id=1, reporting_fiscal_year=2016, reporting_fiscal_period=1)
 
     sf_1 = SF133(
         line=1020,
@@ -54,9 +56,21 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
+        bea_category="a"
+    )
+    sf_4 = SF133(
+        line=1040,
+        display_tas=tas,
+        period=1,
+        fiscal_year=2016,
+        amount=1,
+        agency_identifier="sys",
+        main_account_code="000",
+        sub_account_code="000",
+        bea_category="b"
     )
     # This line should be ignored because it's before 2021
-    sf_4 = SF133(
+    sf_5 = SF133(
         line=1060,
         display_tas=tas,
         period=1,
@@ -66,11 +80,10 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, adjustments_to_unobligated_cpe=3)
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, adjustments_to_unobligated_cpe=4)
+    ap_2 = Appropriation(job_id=1, row_number=2, display_tas="tas_no_sf", adjustments_to_unobligated_cpe=0)
 
-    models = [sf_1, sf_2, sf_3, sf_4, ap]
-
-    assert number_of_errors(_FILE, database, models=models) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, sf_5, ap, ap_2], submission=sub) == 0
 
 
 def test_success_post_2020(database):
@@ -78,6 +91,7 @@ def test_success_post_2020(database):
     for the specified fiscal year and period if the year is over 2020
     """
     tas = "".join([_TAS, "_success"])
+    sub = SubmissionFactory(submission_id=2, reporting_fiscal_year=2021, reporting_fiscal_period=1)
 
     sf_1 = SF133(
         line=1020,
@@ -120,10 +134,9 @@ def test_success_post_2020(database):
         sub_account_code="000",
     )
     ap = Appropriation(job_id=1, row_number=1, display_tas=tas, adjustments_to_unobligated_cpe=4)
+    ap_2 = Appropriation(job_id=1, row_number=2, display_tas="tas_no_sf", adjustments_to_unobligated_cpe=0)
 
-    models = [sf_1, sf_2, sf_3, sf_4, ap]
-
-    assert number_of_errors(_FILE, database, models=models) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, ap, ap_2], submission=sub) == 0
 
 
 def test_failure(database):
@@ -163,7 +176,6 @@ def test_failure(database):
         sub_account_code="000",
     )
     ap = Appropriation(job_id=1, row_number=1, display_tas=tas, adjustments_to_unobligated_cpe=1)
+    ap_2 = Appropriation(job_id=1, row_number=1, display_tas="tas_no_sf", adjustments_to_unobligated_cpe=1)
 
-    models = [sf_1, sf_2, sf_3, ap]
-
-    assert number_of_errors(_FILE, database, models=models) == 1
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, ap, ap_2]) == 2

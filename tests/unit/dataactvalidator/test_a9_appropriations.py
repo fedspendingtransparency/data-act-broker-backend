@@ -80,8 +80,9 @@ def test_success(database):
     )
     ap_1 = Appropriation(job_id=1, row_number=1, display_tas=tas_1, contract_authority_amount_cpe=3)
     ap_2 = Appropriation(job_id=2, row_number=1, display_tas=tas_2, contract_authority_amount_cpe=None)
+    ap_3 = Appropriation(job_id=2, row_number=1, display_tas="tas_no_sf", contract_authority_amount_cpe=None)
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, sf_5, ap_1, ap_2]) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, sf_5, ap_1, ap_2, ap_3]) == 0
 
 
 def test_failure(database):
