@@ -44,10 +44,19 @@ def test_success_multi_line(database):
     """Tests that the validation is still successful if there are multiple SF-133 lines because of DEFC splits."""
 
     sf_1 = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=1)
-    sf_2 = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=4)
+    sf_2 = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=1, bea_category="a")
+    sf_3 = SF133Factory(line=2490, display_tas=_TAS, period=12, fiscal_year=2015, amount=3, bea_category="b")
     ap = AppropriationFactory(display_tas=_TAS, budget_authority_unobligat_fyb=5)
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, ap]) == 0
+
+
+def test_success_no_sf(database):
+    """Tests that the validation is still successful if there are no associated SF-133 lines."""
+
+    ap = AppropriationFactory(display_tas=_TAS, budget_authority_unobligat_fyb=0)
+
+    assert number_of_errors(_FILE, database, models=[ap]) == 0
 
 
 def test_failure(database):
@@ -70,3 +79,11 @@ def test_failure_null(database):
     ap = AppropriationFactory(display_tas=_TAS, budget_authority_unobligat_fyb=None)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 1
+
+
+def test_failure_no_sf(database):
+    """ Tests that it still fails correctly (implies 0 value row) when SF133 row isn't present """
+
+    ap = AppropriationFactory(display_tas="tas_no_sf", budget_authority_unobligat_fyb=5)
+
+    assert number_of_errors(_FILE, database, models=[ap]) == 1

@@ -44,12 +44,23 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
+        bea_category="a"
     )
-    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, deobligations_recoveries_r_cpe=2)
+    sf_3 = SF133(
+        line=1033,
+        display_tas=tas,
+        period=1,
+        fiscal_year=2016,
+        amount=1,
+        agency_identifier="sys",
+        main_account_code="000",
+        sub_account_code="000",
+        bea_category="b"
+    )
+    ap = Appropriation(job_id=1, row_number=1, display_tas=tas, deobligations_recoveries_r_cpe=3)
+    ap_2 = Appropriation(job_id=1, row_number=1, display_tas="tas_no_sf", deobligations_recoveries_r_cpe=0)
 
-    models = [sf_1, sf_2, ap]
-
-    assert number_of_errors(_FILE, database, models=models) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, ap, ap_2]) == 0
 
 
 def test_failure(database):
@@ -79,7 +90,6 @@ def test_failure(database):
         sub_account_code="000",
     )
     ap = Appropriation(job_id=1, row_number=1, display_tas=tas, deobligations_recoveries_r_cpe=1)
+    ap_2 = Appropriation(job_id=1, row_number=1, display_tas="tas_no_sf", deobligations_recoveries_r_cpe=1)
 
-    models = [sf_1, sf_2, ap]
-
-    assert number_of_errors(_FILE, database, models=models) == 1
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap, ap_2]) == 2
