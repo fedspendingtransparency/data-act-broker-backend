@@ -785,7 +785,7 @@ class ErrorWarningTests(BaseTestValidator):
                 "Unique ID": "TAS: 049-2014/2015-0100-000",
                 "Field Name": "budgetauthorityappropriatedamount_cpe",
                 "Rule Message": "BudgetAuthorityAppropriatedAmount_CPE= CPE aggregate value for GTAS SF-133 line #1160"
-                                " + #1180 + #1260 + #1280",
+                " + #1180 + #1260 + #1280",
                 "Value Provided": "budgetauthorityappropriatedamount_cpe: 0.01",
                 "Expected Value": "SUM of GTAS SF133 Lines 1160, 1180, 1260, 1280: 1.01",
                 "Difference": "-1.00",
