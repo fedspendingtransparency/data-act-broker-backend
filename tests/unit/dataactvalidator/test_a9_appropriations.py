@@ -45,8 +45,20 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
+        bea_category="a",
     )
     sf_3 = SF133(
+        line=1640,
+        display_tas=tas_1,
+        period=1,
+        fiscal_year=2016,
+        amount=1,
+        agency_identifier="sys",
+        main_account_code="000",
+        sub_account_code="000",
+        bea_category="B",
+    )
+    sf_4 = SF133(
         line=1540,
         display_tas=tas_2,
         period=1,
@@ -56,7 +68,7 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    sf_4 = SF133(
+    sf_5 = SF133(
         line=1640,
         display_tas=tas_2,
         period=1,
@@ -66,10 +78,11 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
     )
-    ap_1 = Appropriation(job_id=1, row_number=1, display_tas=tas_1, contract_authority_amount_cpe=2)
+    ap_1 = Appropriation(job_id=1, row_number=1, display_tas=tas_1, contract_authority_amount_cpe=3)
     ap_2 = Appropriation(job_id=2, row_number=1, display_tas=tas_2, contract_authority_amount_cpe=None)
+    ap_3 = Appropriation(job_id=2, row_number=1, display_tas="tas_no_sf", contract_authority_amount_cpe=None)
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, ap_1, ap_2]) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, sf_5, ap_1, ap_2, ap_3]) == 0
 
 
 def test_failure(database):
@@ -100,5 +113,6 @@ def test_failure(database):
     )
     ap_1 = Appropriation(job_id=1, row_number=1, display_tas=tas, contract_authority_amount_cpe=1)
     ap_2 = Appropriation(job_id=2, row_number=1, display_tas=tas, contract_authority_amount_cpe=None)
+    ap_3 = Appropriation(job_id=2, row_number=1, display_tas="tas_no_sf", contract_authority_amount_cpe=3)
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap_1, ap_2]) == 2
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap_1, ap_2, ap_3]) == 3

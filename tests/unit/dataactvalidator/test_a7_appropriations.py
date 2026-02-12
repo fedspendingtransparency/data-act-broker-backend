@@ -70,15 +70,33 @@ def test_success(database):
         display_tas=tas,
         period=1,
         fiscal_year=2016,
-        amount=4,
+        amount=3,
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
         disaster_emergency_fund_code="o",
+        bea_category="a",
+    )
+    sf_3 = SF133(
+        line=1000,
+        display_tas=tas,
+        period=1,
+        fiscal_year=2016,
+        amount=1,
+        agency_identifier="sys",
+        main_account_code="000",
+        sub_account_code="000",
+        disaster_emergency_fund_code="o",
+        bea_category="b",
     )
     ap = Appropriation(job_id=1, row_number=1, display_tas=tas, budget_authority_unobligat_fyb=5)
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, ap]) == 0
+
+    # Test with no SF133 lines
+    ap = Appropriation(job_id=1, row_number=1, display_tas="tas_no_sf", budget_authority_unobligat_fyb=0)
+
+    assert number_of_errors(_FILE, database, models=[ap]) == 0
 
 
 def test_failure(database):
@@ -99,5 +117,7 @@ def test_failure(database):
     )
     ap_1 = Appropriation(job_id=1, row_number=1, display_tas=tas, budget_authority_unobligat_fyb=0)
     ap_2 = Appropriation(job_id=2, row_number=1, display_tas=tas, budget_authority_unobligat_fyb=None)
+    # No associated TAS
+    ap_3 = Appropriation(job_id=2, row_number=1, display_tas="tas_no_sf", budget_authority_unobligat_fyb=10)
 
-    assert number_of_errors(_FILE, database, models=[sf, ap_1, ap_2]) == 2
+    assert number_of_errors(_FILE, database, models=[sf, ap_1, ap_2, ap_3]) == 3
