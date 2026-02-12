@@ -62,7 +62,7 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
         disaster_emergency_fund_code="o",
-        bea_category="a"
+        bea_category="a",
     )
     sf_3 = SF133(
         line=2500,
@@ -74,7 +74,7 @@ def test_success(database):
         main_account_code="000",
         sub_account_code="000",
         disaster_emergency_fund_code="o",
-        bea_category="b"
+        bea_category="b",
     )
     ap = Appropriation(job_id=1, row_number=1, display_tas=tas, status_of_budgetary_resour_cpe=5)
 

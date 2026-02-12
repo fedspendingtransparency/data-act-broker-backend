@@ -45,7 +45,7 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
-        bea_category="a"
+        bea_category="a",
     )
     sf_3 = SF133(
         line=1850,
@@ -56,7 +56,7 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
-        bea_category="b"
+        bea_category="b",
     )
     sf_4 = SF133(
         line=1750,

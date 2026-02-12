@@ -82,7 +82,7 @@ def test_failure_null(database):
 
 
 def test_failure_no_sf(database):
-    """ Tests that it still fails correctly (implies 0 value row) when SF133 row isn't present """
+    """Tests that it still fails correctly (implies 0 value row) when SF133 row isn't present"""
 
     ap = AppropriationFactory(display_tas="tas_no_sf", budget_authority_unobligat_fyb=5)
 

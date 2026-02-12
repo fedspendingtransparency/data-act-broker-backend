@@ -56,7 +56,7 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
-        bea_category="a"
+        bea_category="a",
     )
     sf_4 = SF133(
         line=1040,
@@ -67,7 +67,7 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
-        bea_category="b"
+        bea_category="b",
     )
     # This line should be ignored because it's before 2021
     sf_5 = SF133(

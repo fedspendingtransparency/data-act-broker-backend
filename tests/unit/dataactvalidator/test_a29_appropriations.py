@@ -44,7 +44,7 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
-        bea_category="a"
+        bea_category="a",
     )
     sf_3 = SF133(
         line=1033,
@@ -55,7 +55,7 @@ def test_success(database):
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
-        bea_category="b"
+        bea_category="b",
     )
     ap = Appropriation(job_id=1, row_number=1, display_tas=tas, deobligations_recoveries_r_cpe=3)
     ap_2 = Appropriation(job_id=1, row_number=1, display_tas="tas_no_sf", deobligations_recoveries_r_cpe=0)

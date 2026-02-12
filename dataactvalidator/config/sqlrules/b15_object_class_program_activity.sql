@@ -42,7 +42,7 @@ SELECT DISTINCT
     SUM(ussgl490800_authority_outl_fyb) AS ussgl490800_authority_outl_fyb_sum,
     SUM(ussgl498100_upward_adjustm_cpe) AS ussgl498100_upward_adjustm_cpe_sum,
     SUM(ussgl498200_upward_adjustm_cpe) AS ussgl498200_upward_adjustm_cpe_sum,
-    sf.amount AS "expected_value_GTAS SF133 Line 2104",
+    SUM(COALESCE(sf.amount, 0)) AS "expected_value_GTAS SF133 Line 2104",
     (SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
         SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
         SUM(ussgl488100_upward_adjustm_cpe) +
@@ -52,21 +52,20 @@ SELECT DISTINCT
         SUM(ussgl490800_authority_outl_cpe) - SUM(ussgl490800_authority_outl_fyb) +
         SUM(ussgl498100_upward_adjustm_cpe) +
         SUM(ussgl498200_upward_adjustm_cpe)
-    ) + sf.amount AS "difference",
+    ) + SUM(COALESCE(sf.amount, 0)) AS "difference",
     op.display_tas AS "uniqueid_TAS",
     UPPER(op.disaster_emergency_fund_code) AS "uniqueid_DisasterEmergencyFundCode"
 FROM object_class_program_activity_b15_{0} AS op
-    INNER JOIN sf_133 AS sf
-        ON op.display_tas = sf.display_tas
-        AND UPPER(op.disaster_emergency_fund_code) = COALESCE(sf.disaster_emergency_fund_code, '')
     INNER JOIN submission AS sub
         ON op.submission_id = sub.submission_id
+    LEFT OUTER JOIN sf_133 AS sf
+        ON op.display_tas = sf.display_tas
+        AND UPPER(op.disaster_emergency_fund_code) = COALESCE(sf.disaster_emergency_fund_code, '')
         AND sf.period = sub.reporting_fiscal_period
         AND sf.fiscal_year = sub.reporting_fiscal_year
-WHERE sf.line = 2104
-    AND UPPER(op.by_direct_reimbursable_fun) = 'R'
+        AND sf.line = 2104
+WHERE UPPER(op.by_direct_reimbursable_fun) = 'R'
 GROUP BY UPPER(op.disaster_emergency_fund_code),
-    sf.amount,
     op.display_tas,
     UPPER(op.prior_year_adjustment)
 HAVING (UPPER(op.disaster_emergency_fund_code) IN ('Q', 'QQQ')
@@ -80,7 +79,7 @@ HAVING (UPPER(op.disaster_emergency_fund_code) IN ('Q', 'QQQ')
             SUM(ussgl490800_authority_outl_cpe) - SUM(ussgl490800_authority_outl_fyb) +
             SUM(ussgl498100_upward_adjustm_cpe) +
             SUM(ussgl498200_upward_adjustm_cpe)
-        ) <> (-1 * sf.amount))
+        ) <> (-1 * SUM(COALESCE(sf.amount, 0))))
     OR (UPPER(op.disaster_emergency_fund_code) NOT IN ('Q', 'QQQ')
         AND (SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
             SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
