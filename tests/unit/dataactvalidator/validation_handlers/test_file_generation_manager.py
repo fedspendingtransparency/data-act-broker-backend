@@ -287,7 +287,12 @@ def test_generate_a(database, monkeypatch):
     sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1180, amount="2.00", **tas1_dict)
     sf3 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1000, amount="4.00", **tas2_dict)
     sf4 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1042, amount="4.00", **tas2_dict)
-    sf5 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1067, amount="4.00", **tas2_dict)
+    sf5 = SF133Factory(
+        period=6, fiscal_year=year, tas=tas2_str, line=1067, amount="2.00", bea_category="a", **tas2_dict
+    )
+    sf6 = SF133Factory(
+        period=6, fiscal_year=year, tas=tas2_str, line=1067, amount="2.00", bea_category="a", **tas2_dict
+    )
     tas1 = TASFactory(financial_indicator2=" ", **tas1_dict)
     tas2 = TASFactory(financial_indicator2=" ", **tas2_dict)
     job = JobFactory(
@@ -299,7 +304,7 @@ def test_generate_a(database, monkeypatch):
         end_date="03/31/2017",
         submission=None,
     )
-    sess.add_all([sf1, sf2, sf3, sf4, sf5, tas1, tas2, job])
+    sess.add_all([sf1, sf2, sf3, sf4, sf5, sf6, tas1, tas2, job])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER["local"], job=job)
