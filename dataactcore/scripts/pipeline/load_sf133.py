@@ -292,23 +292,17 @@ def clean_sf133_data(filename, sf133_data):
     data["amount"] = data["amount"].astype(float)
 
     # Grouping by a single column that contains a unique identifier to combine Q/QQQ dupe rows
-    data["group_by_col"] = (
-        data["tas"]
-        + "_"
-        + data["line"]
-        + "_"
-        + data["disaster_emergency_fund_code"]
-        + "_"
-        + data["bea_category"]
-        + "_"
-        + data["budget_object_class"]
-        + "_"
-        + data["by_direct_reimbursable_fun"]
-        + "_"
-        + data["prior_year_adjustment"]
-        + "_"
-        + data["program_activity_reporting_key"]
-    )
+    group_cols = [
+        "tas",
+        "line",
+        "disaster_emergency_fund_code",
+        "bea_category",
+        "budget_object_class",
+        "by_direct_reimbursable_fun",
+        "prior_year_adjustment",
+        "program_activity_reporting_key",
+    ]
+    data["group_by_col"] = data[group_cols].astype(str).agg("_".join, axis=1)
 
     data = data.groupby("group_by_col").agg(
         {

@@ -16,10 +16,10 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """Test IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, and 09."""
+    """Test IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, 09, F003, F004, and F005."""
 
     fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type="09")
-    fabs_2 = FABSFactory(indirect_federal_sharing=0, assistance_type="09")
+    fabs_2 = FABSFactory(indirect_federal_sharing=0, assistance_type="F005")
 
     # Doesn't care about other assistance types
     fabs_3 = FABSFactory(indirect_federal_sharing=123, assistance_type="02")
@@ -36,8 +36,10 @@ def test_success(database):
 
 
 def test_failure(database):
-    """Test failure IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, and 09."""
+    """Test failure IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, 09, F003, F004, and
+    F005."""
 
     fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type="08")
-    errors = number_of_errors(_FILE, database, models=[fabs_1])
-    assert errors == 1
+    fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type="F004")
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
+    assert errors == 2
