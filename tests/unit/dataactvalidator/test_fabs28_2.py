@@ -17,12 +17,12 @@ def test_column_headers(database):
 
 def test_success(database):
     """FaceValueOfDirectLoanOrLoanGuarantee must be blank or 0 for non-loans
-    (i.e., when AssistanceType is not 07 or 08).
+    (i.e., when AssistanceType is not 07, 08, F003, or F004).
     """
 
     fabs = FABSFactory(assistance_type="03", face_value_loan_guarantee=None, correction_delete_indicatr="")
     fabs_2 = FABSFactory(assistance_type="10", face_value_loan_guarantee=None, correction_delete_indicatr="c")
-    fabs_3 = FABSFactory(assistance_type="03", face_value_loan_guarantee=0, correction_delete_indicatr=None)
+    fabs_3 = FABSFactory(assistance_type="F001", face_value_loan_guarantee=0, correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
     fabs_4 = FABSFactory(assistance_type="11", face_value_loan_guarantee=20, correction_delete_indicatr="d")
 
@@ -32,7 +32,7 @@ def test_success(database):
 
 def test_failure(database):
     """FaceValueOfDirectLoanOrLoanGuarantee must be blank or 0 for non-loans
-    (i.e., when AssistanceType is not 07 or 08).
+    (i.e., when AssistanceType is not 07, 08, F003, or F004).
     """
 
     fabs = FABSFactory(assistance_type="11", face_value_loan_guarantee=20, correction_delete_indicatr="")

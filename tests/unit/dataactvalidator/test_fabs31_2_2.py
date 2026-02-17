@@ -21,13 +21,13 @@ def test_column_headers(database):
 def test_success(database):
     """Test success for AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record
     is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
-    (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, or 11, if the base award (the earliest
-    record with the same unique award key) has an ActionDate prior to October 1, 2022, this will produce a warning
-    rather than a fatal error.
+    (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, 11, F003, F004, F005, F006, F007, F008, F009,
+    or F010, if the base award (the earliest record with the same unique award key) has an ActionDate prior to
+    October 1, 2022, this will produce a warning rather than a fatal error.
     """
-    # Note: for FABS 31.2.2, we're setting assistance types to 06, 07, 08, 09, 10, or 11 and having the base
-    #       actiondate be less than October 1, 2032. This rule will not trigger if those *do* apply.
-    #       FABS 31.2.1 *will not* trigger when these apply.
+    # Note: for FABS 31.2.2, we're setting assistance types to 06, 07, 08, 09, 10, 11, F003, F004, F005, F006, F007,
+    #       F008, F009, or F010 and having the base actiondate be less than October 1, 2032. This rule will not trigger
+    #       if those *do* apply. FABS 31.2.1 *will not* trigger when these apply.
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key="before_key", action_date="20091001", is_active=True)
     pub_fabs_2 = PublishedFABSFactory(unique_award_key="after_key", action_date="20330404", is_active=True)
@@ -49,7 +49,7 @@ def test_success(database):
         business_types="aBc",
         uei="test",
         action_date="10/02/2010",
-        assistance_type="07",
+        assistance_type="F008",
         correction_delete_indicatr="c",
         unique_award_key="before_key",
     )
@@ -140,13 +140,13 @@ def test_success(database):
 def test_failure(database):
     """Test failure for AwardeeOrRecipientUEI is required where ActionDate is after October 1, 2010, unless the record
     is an aggregate or PII-redacted non-aggregate record (RecordType = 1 or 3) or the recipient is an individual
-    (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, or 11, if the base award (the earliest
-    record with the same unique award key) has an ActionDate prior to October 1, 2032, this will produce a warning
-    rather than a fatal error.
+    (BusinessTypes includes 'P'). For AssistanceType 06, 07, 08, 09, 10, 11, F003, F004, F005, F006, F007, F008, F009,
+    or F010, if the base award (the earliest record with the same unique award key) has an ActionDate prior to
+    October 1, 2032, this will produce a warning rather than a fatal error.
     """
-    # Note: for FABS 31.2.2, we're setting assistance types to 06, 07, 08, 09, 10, or 11 and having the base
-    #       actiondate be less than October 1, 2032. This rule will not trigger if those *do* apply.
-    #       FABS 31.2.1 *will not* trigger when these apply.
+    # Note: for FABS 31.2.2, we're setting assistance types to 06, 07, 08, 09, 10, 11, F003, F004, F005, F006, F007,
+    #       F008, F009, or F010 and having the base actiondate be less than October 1, 2032. This rule will not trigger
+    #       if those *do* apply. FABS 31.2.1 *will not* trigger when these apply.
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key="before_key", action_date="20091001", is_active=True)
     pub_fabs_2 = PublishedFABSFactory(unique_award_key="after_key", action_date="20230404", is_active=True)
@@ -167,7 +167,7 @@ def test_failure(database):
         business_types="aBc",
         uei=None,
         action_date="10/02/2010",
-        assistance_type="07",
+        assistance_type="F006",
         correction_delete_indicatr="C",
         unique_award_key="before_key",
     )
