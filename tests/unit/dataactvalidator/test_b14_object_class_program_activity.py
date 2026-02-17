@@ -46,11 +46,24 @@ def test_success(database):
         display_tas=tas,
         period=1,
         fiscal_year=2016,
-        amount=-15,
+        amount=-10,
         agency_identifier="sys",
         main_account_code="000",
         sub_account_code="000",
         disaster_emergency_fund_code="C",
+        bea_category="a",
+    )
+    sf2 = SF133(
+        line=2004,
+        display_tas=tas,
+        period=1,
+        fiscal_year=2016,
+        amount=-5,
+        agency_identifier="sys",
+        main_account_code="000",
+        sub_account_code="000",
+        disaster_emergency_fund_code="C",
+        bea_category="b",
     )
 
     op = ObjectClassProgramActivity(
@@ -119,7 +132,30 @@ def test_success(database):
         prior_year_adjustment="A",
     )
 
-    assert number_of_errors(_FILE, database, models=[sf, op, op2, op3]) == 0
+    # No SF133 associated
+    op4 = ObjectClassProgramActivity(
+        job_id=1,
+        row_number=5,
+        display_tas="tas_no_sf",
+        by_direct_reimbursable_fun="d",
+        ussgl480100_undelivered_or_cpe=0,
+        ussgl480100_undelivered_or_fyb=0,
+        ussgl480200_undelivered_or_cpe=0,
+        ussgl480200_undelivered_or_fyb=0,
+        ussgl488100_upward_adjustm_cpe=0,
+        ussgl488200_upward_adjustm_cpe=0,
+        ussgl490100_delivered_orde_cpe=0,
+        ussgl490100_delivered_orde_fyb=0,
+        ussgl490200_delivered_orde_cpe=0,
+        ussgl490800_authority_outl_cpe=0,
+        ussgl490800_authority_outl_fyb=0,
+        ussgl498100_upward_adjustm_cpe=0,
+        ussgl498200_upward_adjustm_cpe=0,
+        disaster_emergency_fund_code="c",
+        prior_year_adjustment="x",
+    )
+
+    assert number_of_errors(_FILE, database, models=[sf, sf2, op, op2, op3, op4]) == 0
 
 
 def test_failure(database):
@@ -183,4 +219,27 @@ def test_failure(database):
         prior_year_adjustment="X",
     )
 
-    assert number_of_errors(_FILE, database, models=[sf, op, op2]) == 1
+    # No associated SF133 values
+    op3 = ObjectClassProgramActivity(
+        job_id=1,
+        row_number=2,
+        display_tas="tas_no_sf",
+        by_direct_reimbursable_fun="d",
+        ussgl480100_undelivered_or_cpe=2,
+        ussgl480100_undelivered_or_fyb=2,
+        ussgl480200_undelivered_or_cpe=2,
+        ussgl480200_undelivered_or_fyb=2,
+        ussgl488100_upward_adjustm_cpe=2,
+        ussgl488200_upward_adjustm_cpe=2,
+        ussgl490100_delivered_orde_cpe=2,
+        ussgl490100_delivered_orde_fyb=2,
+        ussgl490200_delivered_orde_cpe=2,
+        ussgl490800_authority_outl_cpe=2,
+        ussgl490800_authority_outl_fyb=2,
+        ussgl498100_upward_adjustm_cpe=2,
+        ussgl498200_upward_adjustm_cpe=2,
+        disaster_emergency_fund_code="D",
+        prior_year_adjustment="X",
+    )
+
+    assert number_of_errors(_FILE, database, models=[sf, op, op2, op3]) == 2
