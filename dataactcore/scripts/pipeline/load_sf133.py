@@ -93,60 +93,6 @@ def load_all_sf133(
     logger.info("Script complete")
 
 
-def fill_blank_sf133_lines(data):
-    """Incoming .csv does not always include rows for zero-value SF-133 lines so we add those here because they're
-    needed for the SF-133 validations.
-    1. "pivot" the sf-133 dataset to explode it horizontally, creating one row for each tas/fiscal year/period/defc,
-        with columns for each SF-133 line.
-    2. Fill any SF-133 line number cells with a missing value for a specific tas/fiscal year/period/defc with a 0.0.
-       We don't do this in the "pivot" step because that'll downcast floats to ints
-    3. Once the zeroes are filled in, "melt" the pivoted data back to its normal format of one row per tas/fiscal
-       year/period/defc.
-    NOTE: fields used for the pivot in step #1 (i.e., items in pivot_idx) cannot have NULL values, else they will
-    be silently dropped by pandas :(
-
-    Args:
-        data: data read in from the files
-    """
-    pivot_idx = (
-        "created_at",
-        "updated_at",
-        "agency_identifier",
-        "allocation_transfer_agency",
-        "availability_type_code",
-        "beginning_period_of_availa",
-        "ending_period_of_availabil",
-        "main_account_code",
-        "sub_account_code",
-        "tas",
-        "fiscal_year",
-        "period",
-        "display_tas",
-        "disaster_emergency_fund_code",
-        "bea_category",
-        "budget_object_class",
-        "by_direct_reimbursable_fun",
-        "prior_year_adjustment",
-        "program_activity_reporting_key",
-    )
-
-    # The following columns are allowed to be null but still make each row unique
-    # For pandas sake, this needs to not be nan and so we're temporarily setting it to something and then fix it later
-    nullable_cols = "disaster_emergency_fund_code"
-    temp_value = "TEMP_NOT_NULL_VALUE"
-    data[nullable_cols] = data[nullable_cols].fillna(temp_value)
-
-    data = pd.pivot_table(data, values="amount", index=pivot_idx, columns=["line"]).reset_index()
-    data = data.fillna(value=0.0)
-    data = pd.melt(data, id_vars=pivot_idx, value_name="amount")
-
-    # Reverting the nullable cols back to their original state
-    # Setting to empty strings that will be converted to nulls
-    data[nullable_cols] = data[nullable_cols].replace(temp_value, "")
-
-    return data
-
-
 def update_account_num(fiscal_year, fiscal_period, only_broken_links=False):
     """Set the account_num on newly SF133 entries. We use raw SQL as sqlalchemy doesn't have operators like OVERLAPS
     and IS NOT DISTINCT FROM built in (resulting in a harder to understand query).
@@ -206,10 +152,9 @@ def load_sf133(sess, filename, fiscal_year, fiscal_period, force_sf133_load=Fals
 
     data = clean_sf133_data(filename, SF133)
 
-    # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones we don't actually
-    # use in the validations. Arguably, it would be better just to include everything, but that drastically
-    # increases the number of records we're inserting to the sf_133 table. If we ever decide that we need *all*
-    # SF 133 lines that are zero value, remove the next two lines.
+    # Get rid of the zero-value rows we don't actually use in the validations. Arguably, it would be better just to
+    # include everything, but that drastically increases the number of records we're inserting to the sf_133 table. If
+    # we ever decide that we need *all* SF 133 lines that are zero value, remove the next two lines.
     sf_133_validation_lines = [
         "1000",
         "1010",
@@ -259,7 +204,7 @@ def load_sf133(sess, filename, fiscal_year, fiscal_period, force_sf133_load=Fals
     data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
 
     # we didn't use the the 'keep_null' option when padding allocation transfer agency, because nulls in that column
-    # break the pivot (see above comments). so, replace the ata '000' with an empty value before inserting to db
+    # are treated as 'nan' in display_tas. so, replace the ata '000' with an empty value before inserting to db
     data["allocation_transfer_agency"] = data["allocation_transfer_agency"].str.replace("000", "")
     # make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
     # NULL in the db.
@@ -314,9 +259,8 @@ def clean_sf133_data(filename, sf133_data):
             "main_account_code": {"pad_to_length": 4},
             "sub_account_code": {"pad_to_length": 3},
             # next 3 lines handle the TAS fields that shouldn't be padded but should still be empty spaces rather than
-            # NULLs. this ensures that the downstream pivot & melt (which insert the missing 0-value SF-133 lines) will
-            # work as expected (values used in the pivot index cannot be NULL). the "pad_to_length: 0" works around the
-            # fact that sometimes the incoming data for these columns is a single space and sometimes it is blank/NULL.
+            # NULLs. the "pad_to_length: 0" works around the fact that sometimes the incoming data for these columns is
+            # a single space and sometimes it is blank/NULL for formatting the internal TASes
             "beginning_period_of_availa": {"pad_to_length": 0},
             "ending_period_of_availabil": {"pad_to_length": 0},
             "availability_type_code": {"pad_to_length": 0},
@@ -388,8 +332,6 @@ def clean_sf133_data(filename, sf133_data):
 
     # Need to round to 2 decimal places now that we've done a sum because floats are weird
     data["amount"] = round(data["amount"], 2)
-
-    data = fill_blank_sf133_lines(data)
 
     return data
 
