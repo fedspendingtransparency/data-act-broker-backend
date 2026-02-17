@@ -17,11 +17,11 @@ WITH award_financial_c23_3_{0} AS
 -- gather the grouped sum for award financial assistance data
 award_financial_assistance_c23_3_{0} AS
     (SELECT UPPER(fain) AS fain,
-        COALESCE(SUM(CASE WHEN COALESCE(assistance_type, '') IN ('07', '08')
+        COALESCE(SUM(CASE WHEN COALESCE(assistance_type, '') IN ('07', '08', 'F003', 'F004')
                         THEN original_loan_subsidy_cost::NUMERIC
                         ELSE 0
                     END), 0) AS sum_orig_loan_sub_amount,
-        COALESCE(SUM(CASE WHEN COALESCE(assistance_type, '') NOT IN ('07', '08')
+        COALESCE(SUM(CASE WHEN COALESCE(assistance_type, '') NOT IN ('07', '08', 'F003', 'F004')
                         THEN federal_action_obligation
                         ELSE 0
                     END), 0) AS sum_fed_act_ob_amount
