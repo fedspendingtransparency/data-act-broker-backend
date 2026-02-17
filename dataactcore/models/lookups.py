@@ -203,6 +203,16 @@ ASSISTANCE_TYPE = [
     LookupType(8, "09", "insurance (G)"),
     LookupType(9, "10", "direct payment with unrestricted use (retirement, pension, veterans benefits, etc.) (D)"),
     LookupType(10, "11", "other reimbursable, contingent, intangible, or indirect financial assistance"),
+    LookupType(11, "F001", "Grant"),
+    LookupType(12, "F002", "Cooperative Agreement"),
+    LookupType(13, "F003", "Direct Loan"),
+    LookupType(14, "F004", "Loan Guarantee"),
+    LookupType(15, "F005", "Indemnity/Insurance (non-loan)"),
+    LookupType(16, "F006", "Direct Payment for Specified Use"),
+    LookupType(17, "F007", "Direct Payment with Unrestricted Use"),
+    LookupType(18, "F008", "Asset Forfeiture/Equitable Sharing"),
+    LookupType(19, "F009", "Sale, Exchange, or Donation of Property and Goods"),
+    LookupType(20, "F010", "Other Financial Assistance"),
 ]
 ASSISTANCE_TYPE_DICT = {item.name: item.desc for item in ASSISTANCE_TYPE}
 
