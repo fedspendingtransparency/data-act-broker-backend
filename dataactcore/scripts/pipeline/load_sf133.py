@@ -27,7 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 def load_all_sf133(
-    sf133_path=None, force_sf133_load=False, aws_prefix="sf_133", fix_links=True, update_tas_fields=True
+    sf133_path=None,
+    force_sf133_load=False,
+    aws_prefix="sf_133",
+    fix_links=True,
+    update_tas_fields=True,
+    fiscal_year_period=None,
 ):
     """Load any SF-133 files that are not yet in the database and fix any broken links
 
@@ -37,6 +42,7 @@ def load_all_sf133(
         aws_prefix: prefix to filter which files to pull from AWS
         fix_links: fix any SF133 records not linked to TAS data
         update_tas_fields: rederive SF133 records if the associated TAS record has been updated
+        fiscal_year_period: Load only the FYP provided
     """
     now = datetime.now()
     metrics_json = {
@@ -57,6 +63,12 @@ def load_all_sf133(
             file_match = sf_re.match(sf133.file)
             if not file_match:
                 logger.info("Skipping SF 133 file with invalid name: %s", sf133.full_file)
+                continue
+            if fiscal_year_period and (
+                fiscal_year_period.split("/")[0] != file_match.group("year")
+                or fiscal_year_period.split("/")[1] != file_match.group("period")
+            ):
+                logger.info("Skipping SF 133 file with FYP that doesn't match provided one: %s", sf133.full_file)
                 continue
             logger.info("Starting %s...", sf133.full_file)
             load_sf133(
@@ -111,6 +123,11 @@ def fill_blank_sf133_lines(data):
         "period",
         "display_tas",
         "disaster_emergency_fund_code",
+        "bea_category",
+        "budget_object_class",
+        "by_direct_reimbursable_fun",
+        "prior_year_adjustment",
+        "program_activity_reporting_key",
     )
 
     # The following columns are allowed to be null but still make each row unique
@@ -285,6 +302,11 @@ def clean_sf133_data(filename, sf133_data):
             "line_num": "line",
             "amount_summed": "amount",
             "defc": "disaster_emergency_fund_code",
+            "bea_cat": "bea_category",
+            "boc": "budget_object_class",
+            "reib_flag": "by_direct_reimbursable_fun",
+            "pya": "prior_year_adjustment",
+            "park": "program_activity_reporting_key",
         },
         {
             "allocation_transfer_agency": {"pad_to_length": 3},
@@ -298,6 +320,11 @@ def clean_sf133_data(filename, sf133_data):
             "beginning_period_of_availa": {"pad_to_length": 0},
             "ending_period_of_availabil": {"pad_to_length": 0},
             "availability_type_code": {"pad_to_length": 0},
+            "bea_category": {"pad_to_length": 0},
+            "budget_object_class": {"pad_to_length": 0},
+            "by_direct_reimbursable_fun": {"pad_to_length": 0},
+            "prior_year_adjustment": {"pad_to_length": 0},
+            "program_activity_reporting_key": {"pad_to_length": 0},
             "amount": {"strip_commas": True},
         },
     )
@@ -321,7 +348,17 @@ def clean_sf133_data(filename, sf133_data):
     data["amount"] = data["amount"].astype(float)
 
     # Grouping by a single column that contains a unique identifier to combine Q/QQQ dupe rows
-    data["group_by_col"] = data["tas"] + "_" + data["line"] + "_" + data["disaster_emergency_fund_code"]
+    group_cols = [
+        "tas",
+        "line",
+        "disaster_emergency_fund_code",
+        "bea_category",
+        "budget_object_class",
+        "by_direct_reimbursable_fun",
+        "prior_year_adjustment",
+        "program_activity_reporting_key",
+    ]
+    data["group_by_col"] = data[group_cols].astype(str).agg("_".join, axis=1)
 
     data = data.groupby("group_by_col").agg(
         {
@@ -341,6 +378,11 @@ def clean_sf133_data(filename, sf133_data):
             "tas": "max",
             "display_tas": "max",
             "amount": "sum",
+            "bea_category": "max",
+            "budget_object_class": "max",
+            "by_direct_reimbursable_fun": "max",
+            "prior_year_adjustment": "max",
+            "program_activity_reporting_key": "max",
         }
     )
 
@@ -426,6 +468,13 @@ if __name__ == "__main__":
         "-f", "--force", help="Forces actions to occur in certain scripts regardless of checks", action="store_true"
     )
     parser.add_argument(
+        "-fyp",
+        "--fiscal_year_period",
+        help="Load a specific FYP instead of all of them. Format: YYYY/PP",
+        type=str,
+        required=False,
+    )
+    parser.add_argument(
         "-l", "--fix_links", help="Checks/updates any SF133 data that isn't linked to TAS", action="store_true"
     )
     parser.add_argument(
@@ -434,6 +483,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if not args.remote:
-        load_all_sf133(args.local_path, args.force, args.aws_prefix, args.fix_links, args.update_tas_fields)
+        load_all_sf133(
+            args.local_path,
+            args.force,
+            args.aws_prefix,
+            args.fix_links,
+            args.update_tas_fields,
+            args.fiscal_year_period,
+        )
     else:
-        load_all_sf133(None, args.force, args.aws_prefix, args.fix_links, args.update_tas_fields)
+        load_all_sf133(
+            None, args.force, args.aws_prefix, args.fix_links, args.update_tas_fields, args.fiscal_year_period
+        )

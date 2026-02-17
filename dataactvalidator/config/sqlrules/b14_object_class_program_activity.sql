@@ -67,7 +67,7 @@ WHERE sf.line = 2004
 GROUP BY UPPER(op.disaster_emergency_fund_code),
     sf.amount,
     op.display_tas,
-    UPPER(prior_year_adjustment)
+    UPPER(op.prior_year_adjustment)
 HAVING (
         SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
         SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
