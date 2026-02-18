@@ -27,13 +27,15 @@ def test_success(database):
     tas_2 = "".join([_TAS, "_success_2"])
 
     sf_1 = SF133Factory(line=1340, display_tas=tas_1, period=1, fiscal_year=2016, amount=1)
-    sf_2 = SF133Factory(line=1440, display_tas=tas_1, period=1, fiscal_year=2016, amount=1)
-    sf_3 = SF133Factory(line=1340, display_tas=tas_2, period=1, fiscal_year=2016, amount=0)
-    sf_4 = SF133Factory(line=1440, display_tas=tas_2, period=1, fiscal_year=2016, amount=0)
-    ap_1 = AppropriationFactory(display_tas=tas_1, borrowing_authority_amount_cpe=2)
+    sf_2 = SF133Factory(line=1440, display_tas=tas_1, period=1, fiscal_year=2016, amount=1, bea_category="a")
+    sf_3 = SF133Factory(line=1440, display_tas=tas_1, period=1, fiscal_year=2016, amount=1, bea_category="b")
+    sf_4 = SF133Factory(line=1340, display_tas=tas_2, period=1, fiscal_year=2016, amount=0)
+    sf_5 = SF133Factory(line=1440, display_tas=tas_2, period=1, fiscal_year=2016, amount=0)
+    ap_1 = AppropriationFactory(display_tas=tas_1, borrowing_authority_amount_cpe=3)
     ap_2 = AppropriationFactory(display_tas=tas_2, borrowing_authority_amount_cpe=None)
+    ap_3 = AppropriationFactory(display_tas="tas_no_sf", borrowing_authority_amount_cpe=None)
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, ap_1, ap_2]) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, sf_4, sf_5, ap_1, ap_2, ap_3]) == 0
 
 
 def test_failure(database):
@@ -46,5 +48,6 @@ def test_failure(database):
     sf_2 = SF133Factory(line=1440, display_tas=tas, period=1, fiscal_year=2016, amount=1)
     ap_1 = AppropriationFactory(display_tas=tas, borrowing_authority_amount_cpe=1)
     ap_2 = AppropriationFactory(display_tas=tas, borrowing_authority_amount_cpe=None)
+    ap_3 = AppropriationFactory(display_tas="tas_no_sf", borrowing_authority_amount_cpe=1)
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap_1, ap_2]) == 2
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap_1, ap_2, ap_3]) == 3

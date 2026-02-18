@@ -40,6 +40,18 @@ def test_success_populated_ata(database):
         disaster_emergency_fund_code="N",
         line=3020,
         amount=4,
+        bea_category="a",
+    )
+    sf2 = SF133Factory(
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        allocation_transfer_agency=code,
+        agency_identifier="some-other-code",
+        disaster_emergency_fund_code="N",
+        line=3020,
+        amount=4,
+        bea_category="b",
     )
     submission = SubmissionFactory(
         submission_id=submission_id,
@@ -52,7 +64,7 @@ def test_success_populated_ata(database):
         display_tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="x"
     )
 
-    errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
+    errors = number_of_errors(_FILE, database, models=[sf1, sf2, op], submission=submission)
     assert errors == 0
 
 
@@ -139,6 +151,26 @@ def test_success_ignore_lines(database):
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, sf2, sf3, op, op2], submission=submission)
+    assert errors == 0
+
+
+def test_success_no_sf(database):
+    """Tests that lines that don't have an sf133 (0-value) don't throw an error"""
+    submission_id = randint(1000, 10000)
+    tas, period, year, code = "tas-no-sf", 2, 2002, "some-code"
+
+    submission = SubmissionFactory(
+        submission_id=submission_id,
+        reporting_fiscal_period=period,
+        reporting_fiscal_year=year,
+        cgac_code=code,
+        is_quarter_format=False,
+    )
+    op = ObjectClassProgramActivityFactory(
+        display_tas=tas, disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="X"
+    )
+
+    errors = number_of_errors(_FILE, database, models=[op], submission=submission)
     assert errors == 0
 
 

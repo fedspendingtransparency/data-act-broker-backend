@@ -1,5 +1,6 @@
 -- IndirectCostFederalShareAmount is required for grants and cooperative agreements
--- (AssistanceType = 02, 03, 04, or 05). This only applies to award actions with ActionDate on or after April 4, 2022.
+-- (AssistanceType = 02, 03, 04, 05, F001, or F002). This only applies to award actions with ActionDate on or after
+-- April 4, 2022.
 SELECT
     row_number,
     indirect_federal_sharing,
@@ -9,7 +10,7 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND indirect_federal_sharing IS NULL
-    AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
+    AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05', 'F001', 'F002')
     AND (CASE
             WHEN is_date(COALESCE(action_date, '0'))
             THEN CAST(action_date AS DATE)

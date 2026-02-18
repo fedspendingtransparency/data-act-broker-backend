@@ -57,7 +57,22 @@ def test_success_multiple_rows(database):
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
     sf = SF133Factory(
-        line=3020, display_tas=tas, period=period, fiscal_year=year, amount=5, disaster_emergency_fund_code="N"
+        line=3020,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=4,
+        disaster_emergency_fund_code="N",
+        bea_category="a",
+    )
+    sf_2 = SF133Factory(
+        line=3020,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=1,
+        disaster_emergency_fund_code="N",
+        bea_category="b",
     )
     op_1 = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
@@ -76,7 +91,7 @@ def test_success_multiple_rows(database):
         prior_year_adjustment="X",
     )
 
-    assert number_of_errors(_FILE, database, models=[sf, op_1, op_2], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[sf, sf_2, op_1, op_2], submission=submission) == 0
 
 
 def test_non_matching_defc(database):
@@ -133,6 +148,28 @@ def test_different_pya(database):
     assert number_of_errors(_FILE, database, models=[sf, op], submission=submission) == 0
 
 
+def test_success_no_sf(database):
+    """GrossOutlayAmountByProgramObjectClass_CPE = value for GTAS SF 133 line #3020 for the same reporting period for
+    the TAS and DEFC combination where PYA = "X". Entries with no SF133 associated (implied 0-value)
+    """
+    submission_id = 1
+    tas, period, year = "some-tas", 2, 2002
+
+    submission = SubmissionFactory(
+        submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
+    )
+    op = ObjectClassProgramActivityFactory(
+        submission_id=submission_id,
+        row_number=1,
+        display_tas=tas,
+        gross_outlay_amount_by_pro_cpe=0,
+        disaster_emergency_fund_code="n",
+        prior_year_adjustment="x",
+    )
+
+    assert number_of_errors(_FILE, database, models=[op], submission=submission) == 0
+
+
 def test_failure(database):
     """Fail GrossOutlayAmountByProgramObjectClass_CPE = value for GTAS SF 133 line #3020 for the same reporting period
     for the TAS and DEFC combination where PYA = "X".
@@ -144,15 +181,39 @@ def test_failure(database):
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
     sf = SF133Factory(
-        line=3020, display_tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N"
+        line=3020,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=1,
+        disaster_emergency_fund_code="N",
+        bea_category="a",
+    )
+    sf_2 = SF133Factory(
+        line=3020,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=1,
+        disaster_emergency_fund_code="N",
+        bea_category="b",
     )
     op = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=1,
         display_tas=tas,
-        gross_outlay_amount_by_pro_cpe=0,
+        gross_outlay_amount_by_pro_cpe=1,
+        disaster_emergency_fund_code="n",
+        prior_year_adjustment="X",
+    )
+    # No SF133
+    op_2 = ObjectClassProgramActivityFactory(
+        submission_id=submission_id,
+        row_number=2,
+        display_tas="tas_no_sf",
+        gross_outlay_amount_by_pro_cpe=1,
         disaster_emergency_fund_code="n",
         prior_year_adjustment="X",
     )
 
-    assert number_of_errors(_FILE, database, models=[sf, op], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[sf, sf_2, op, op_2], submission=submission) == 2

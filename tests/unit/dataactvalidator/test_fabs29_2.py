@@ -16,11 +16,11 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """OriginalLoanSubsidyCost must be blank for non-loans (i.e., when AssistanceType is not 07 or 08)."""
+    """OriginalLoanSubsidyCost must be blank for non-loans (i.e., when AssistanceType is not 07, 08, F003, or F004)."""
 
     fabs = FABSFactory(assistance_type="03", original_loan_subsidy_cost=None, correction_delete_indicatr="")
     fabs_2 = FABSFactory(assistance_type="05", original_loan_subsidy_cost=None, correction_delete_indicatr="c")
-    fabs_3 = FABSFactory(assistance_type="03", original_loan_subsidy_cost=0, correction_delete_indicatr=None)
+    fabs_3 = FABSFactory(assistance_type="F010", original_loan_subsidy_cost=0, correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
     fabs_4 = FABSFactory(assistance_type="05", original_loan_subsidy_cost=20, correction_delete_indicatr="d")
 
@@ -29,9 +29,10 @@ def test_success(database):
 
 
 def test_failure(database):
-    """OriginalLoanSubsidyCost must be blank for non-loans (i.e., when AssistanceType is not 07 or 08)."""
+    """OriginalLoanSubsidyCost must be blank for non-loans (i.e., when AssistanceType is not 07, 08, F003, or F004)."""
 
     fabs = FABSFactory(assistance_type="05", original_loan_subsidy_cost=20, correction_delete_indicatr="C")
+    fabs_2 = FABSFactory(assistance_type="F009", original_loan_subsidy_cost=20, correction_delete_indicatr="C")
 
-    errors = number_of_errors(_FILE, database, models=[fabs])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[fabs, fabs_2])
+    assert errors == 2
