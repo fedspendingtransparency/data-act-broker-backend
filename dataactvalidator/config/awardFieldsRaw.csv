@@ -4,7 +4,7 @@ PrimeAwardUniqueKey,unique_award_key,optional,string,
 ActionDate,action_date,ASP: Required,string,8
 ActionType,action_type,ASP: Conditional per Validation Rule,string,1
 ActionTypeDescriptionTag,action_type_description,ASP: Optional,string,
-AssistanceType,assistance_type,ASP: Required,string,2
+AssistanceType,assistance_type,ASP: Required,string,4
 AssistanceTypeDescriptionTag,assistance_type_desc,ASP: Optional,string,
 AwardDescription,award_description,ASP: Conditional per Validation Rule,string,4000
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Required,string,120
