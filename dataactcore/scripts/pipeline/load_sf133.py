@@ -249,7 +249,7 @@ def clean_sf133_data(filename, sf133_data):
             "defc": "disaster_emergency_fund_code",
             "bea_cat": "bea_category",
             "boc": "budget_object_class",
-            "reib_flag": "by_direct_reimbursable_fun",
+            "reimb_flag": "by_direct_reimbursable_fun",
             "pya": "prior_year_adjustment",
             "park": "program_activity_reporting_key",
         },
