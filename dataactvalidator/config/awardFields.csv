@@ -4,7 +4,7 @@ PrimeAwardUniqueKey,primeawarduniquekey,unique_award_key,FALSE,str,,
 ActionDate,actiondate,action_date,TRUE,str,8,
 ActionType,actiontype,action_type,FALSE,str,1,
 ActionTypeDescriptionTag,actiontypedescriptiontag,action_type_description,FALSE,str,,
-AssistanceType,assistancetype,assistance_type,TRUE,str,4,TRUE
+AssistanceType,assistancetype,assistance_type,TRUE,str,4,
 AssistanceTypeDescriptionTag,assistancetypedescriptiontag,assistance_type_desc,FALSE,str,,
 AwardDescription,awarddescription,award_description,FALSE,str,4000,
 AwardeeOrRecipientLegalEntityName,awardeeorrecipientlegalentityname,awardee_or_recipient_legal,TRUE,str,120,
