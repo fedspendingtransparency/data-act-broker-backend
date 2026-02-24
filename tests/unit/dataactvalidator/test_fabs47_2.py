@@ -17,10 +17,10 @@ def test_column_headers(database):
 
 def test_success(database):
     """Test FundingOpportunityNumber is required for all grants and cooperative agreements
-    (AssistanceType = 02, 03, 04, or 05).
+    (AssistanceType = 02, 03, 04, 05, F001 or F002).
     """
     fabs_1 = FABSFactory(funding_opportunity_number="1234", assistance_type="02", correction_delete_indicatr="C")
-    fabs_2 = FABSFactory(funding_opportunity_number="abcG-2", assistance_type="05", correction_delete_indicatr=None)
+    fabs_2 = FABSFactory(funding_opportunity_number="abcG-2", assistance_type="F001", correction_delete_indicatr=None)
 
     # Ignored for other assistance types
     fabs_3 = FABSFactory(funding_opportunity_number="", assistance_type="08", correction_delete_indicatr="C")
@@ -34,10 +34,10 @@ def test_success(database):
 
 def test_failure(database):
     """Test failure FundingOpportunityNumber is required for all grants and cooperative agreements
-    (AssistanceType = 02, 03, 04, or 05).
+    (AssistanceType = 02, 03, 04, 05, F001 or F002).
     """
     fabs_1 = FABSFactory(funding_opportunity_number=None, assistance_type="02", correction_delete_indicatr="C")
-    fabs_2 = FABSFactory(funding_opportunity_number="", assistance_type="03", correction_delete_indicatr="C")
+    fabs_2 = FABSFactory(funding_opportunity_number="", assistance_type="F002", correction_delete_indicatr="C")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2

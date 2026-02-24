@@ -69,7 +69,7 @@ def test_success(database):
     afa_1_row_3 = AwardFinancialAssistanceFactory(
         fain=fain_1,
         original_loan_subsidy_cost=-1,
-        assistance_type="08",
+        assistance_type="F003",
         federal_action_obligation=None,
         record_type="2",
     )
