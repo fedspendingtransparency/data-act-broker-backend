@@ -86,12 +86,20 @@ def test_success_multiple_rows(database):
         submission_id=submission_id,
         row_number=2,
         display_tas=tas,
-        gross_outlay_amount_by_pro_cpe=4,
+        gross_outlay_amount_by_pro_cpe=3,
+        disaster_emergency_fund_code="n",
+        prior_year_adjustment="X",
+    )
+    op_3 = ObjectClassProgramActivityFactory(
+        submission_id=submission_id,
+        row_number=3,
+        display_tas=tas,
+        gross_outlay_amount_by_pro_cpe=1,
         disaster_emergency_fund_code="n",
         prior_year_adjustment="X",
     )
 
-    assert number_of_errors(_FILE, database, models=[sf, sf_2, op_1, op_2], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[sf, sf_2, op_1, op_2, op_3], submission=submission) == 0
 
 
 def test_non_matching_defc(database):
