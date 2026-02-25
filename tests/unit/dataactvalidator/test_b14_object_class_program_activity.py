@@ -1,6 +1,6 @@
 from dataactcore.models.stagingModels import ObjectClassProgramActivity
 from dataactcore.models.domainModels import SF133
-from tests.unit.dataactvalidator.utils import error_rows, number_of_errors, query_columns
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = "b14_object_class_program_activity"
@@ -166,8 +166,6 @@ def test_success(database):
         disaster_emergency_fund_code="c",
         prior_year_adjustment="x",
     )
-
-    print(error_rows(_FILE, database, models=[sf, sf2, sf3, op, op2, op3, op4]))
 
     assert number_of_errors(_FILE, database, models=[sf, sf2, sf3, op, op2, op3, op4]) == 0
 
