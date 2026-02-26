@@ -75,11 +75,20 @@ def test_success_multiple_rows(database):
         disaster_emergency_fund_code="N",
         bea_category="b",
     )
+    sf_3 = SF133Factory(
+        line=2190,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=1,
+        disaster_emergency_fund_code="N",
+        bea_category="c",
+    )
     op_1 = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=1,
         display_tas=tas,
-        obligations_incurred_by_pr_cpe=-1,
+        obligations_incurred_by_pr_cpe=-2,
         disaster_emergency_fund_code="n",
         prior_year_adjustment="x",
     )
@@ -92,7 +101,7 @@ def test_success_multiple_rows(database):
         prior_year_adjustment="X",
     )
 
-    assert number_of_errors(_FILE, database, models=[sf, sf_2, op_1, op_2], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[sf, sf_2, sf_3, op_1, op_2], submission=submission) == 0
 
 
 def test_non_matching_defc(database):
