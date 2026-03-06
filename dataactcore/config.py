@@ -18,6 +18,11 @@ if "env" in os.environ:
 else:
     env = "local"
 
+if "fapc" in os.environ:
+    fapc = os.environ["fapc"]
+else:
+    fapc = "false"
+
 ENV_PATH = os.path.join(dirname(abspath(__file__)), "{}_config.yml".format(env))
 path_list = [CONFIG_PATH, ENV_PATH]
 
@@ -44,7 +49,7 @@ for config_path in path_list:
 if CONFIG_BROKER["use_aws"] is True or CONFIG_BROKER["use_aws"] == "true":
     # Parameter Store
     env_group = "prod" if env == "prod" else "nonprod"
-    secrets_param_name = f"/{env_group}/broker/broker_{env}_secrets"
+    secrets_param_name = f"/{env_group}/broker/broker_{env}_secrets" if fapc == "true" else "/kc-dtas/brus/broker/secrets"
 
     ssm_client = boto3.client("ssm", region_name=CONFIG_BROKER["aws_region"])
     secrets_yaml_param = ssm_client.get_parameter(Name=secrets_param_name, WithDecryption=True)
