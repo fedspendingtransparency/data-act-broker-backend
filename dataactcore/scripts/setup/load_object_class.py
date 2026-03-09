@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-import requests
+import boto3
 import pandas as pd
 import datetime
 
@@ -33,13 +33,13 @@ def load_object_class(base_path):
     }
 
     filename = os.path.join(base_path, "object_class.csv")
-    try:
-        # Update file from public S3 bucket
-        object_class_url = "{}/object_class.csv".format(CONFIG_BROKER["usas_public_reference_url"])
-        r = requests.get(object_class_url, allow_redirects=True)
-        open(filename, "wb").write(r.content)
-    except Exception:
-        pass
+
+    # Update file from public S3 bucket
+    s3 = boto3.client("s3")
+    obj_class = s3.download_file(Bucket=CONFIG_BROKER["usas_public_reference_url"], Key="broker_reference_data/object_class.csv")
+    with open(filename, "wb") as f:
+        for chunk in obj_class["Body"].iter_chunks():
+            f.write(chunk)
 
     # Load object class lookup table
     logger.info("Loading Object Class File: object_class.csv")
