@@ -42,6 +42,7 @@ for config_path in path_list:
 if CONFIG_BROKER["use_aws"] is True or CONFIG_BROKER["use_aws"] == "true":
     # Parameter Store
     env_group = "prod" if env == "prod" else "nonprod"
+    # TODO: Post-FAPC Cleanup
     fapc_path = "/kc-dtas/brus/broker/secrets"
     non_fapc_path = f"/{env_group}/broker/broker_{env}_secrets"
     secrets_param_name = fapc_path if fapc == "true" else non_fapc_path
