@@ -6,7 +6,7 @@ RUN apt-get install -y postgresql-client
 RUN apt-get install -y netcat-openbsd
 RUN apt-get install -y libsqlite3-dev
 
-RUN pip install unittest-xml-reporting setuptools==68.1.2
+RUN pip install unittest-xml-reporting
 
 COPY requirements.txt /data-act/backend/requirements.txt
 COPY server_requirements.txt /data-act/backend/server_requirements.txt
