@@ -13,8 +13,8 @@ CONFIG_CATEGORIES = {"broker": CONFIG_BROKER, "services": CONFIG_SERVICES, "db":
 
 # set the location of the Data Broker config files
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), "config.yml")
-env = os.environ.get('env', 'local')
-fapc = os.environ.get('fapc', 'false')
+env = os.environ.get("env", "local")
+fapc = os.environ.get("fapc", "false")
 
 ENV_PATH = os.path.join(dirname(abspath(__file__)), "{}_config.yml".format(env))
 path_list = [CONFIG_PATH, ENV_PATH]
@@ -42,6 +42,7 @@ for config_path in path_list:
 if CONFIG_BROKER["use_aws"] is True or CONFIG_BROKER["use_aws"] == "true":
     # Parameter Store
     env_group = "prod" if env == "prod" else "nonprod"
+    # TODO: Post-FAPC Cleanup
     fapc_path = "/kc-dtas/brus/broker/secrets"
     non_fapc_path = f"/{env_group}/broker/broker_{env}_secrets"
     secrets_param_name = fapc_path if fapc == "true" else non_fapc_path
