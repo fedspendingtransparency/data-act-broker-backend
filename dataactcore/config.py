@@ -13,8 +13,8 @@ CONFIG_CATEGORIES = {"broker": CONFIG_BROKER, "services": CONFIG_SERVICES, "db":
 
 # set the location of the Data Broker config files
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), "config.yml")
-env = os.environ.get('env', 'local')
-fapc = os.environ.get('fapc', 'false')
+env = os.environ.get("env", "local")
+fapc = os.environ.get("fapc", "false")
 
 ENV_PATH = os.path.join(dirname(abspath(__file__)), "{}_config.yml".format(env))
 path_list = [CONFIG_PATH, ENV_PATH]
