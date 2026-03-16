@@ -47,7 +47,7 @@ def get_agency_file(base_path):
         s3 = boto3.client("s3")
         s3.download_file(
             Bucket=CONFIG_BROKER["usas_public_reference_url"],
-            Key="broker_reference_data/object_class.csv",
+            Key="broker_reference_data/agency_codes.csv",
             Filename=agency_codes_file,
         )
     else CONFIG_BROKER.get("usas_public_reference_url"):
