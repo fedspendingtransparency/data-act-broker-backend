@@ -85,7 +85,7 @@ def query_data(session, agency_code, period, year):
 
 
 def sum_published_file_b(session, submission_id):
-    """Sums the specified published file B to ignore PAC/PAN. Ignores BOC of 0, 00, 000, or 0000
+    """Sums the specified published file B to ignore PAC/PAN.
 
     Args:
         session: The current DB session
@@ -136,7 +136,6 @@ def sum_published_file_b(session, submission_id):
         .join(TASLookup, func.upper(TASLookup.display_tas) == func.upper(fileb_model.display_tas))
         .filter(
             fileb_model.submission_id == submission_id,
-            func.rpad(fileb_model.object_class, 4, "0") != "0000",
             func.coalesce(func.upper(TASLookup.financial_indicator2), "") != "F",
         )
         .group_by(
@@ -295,7 +294,7 @@ def ussgl_published_file_b_cte(session, ussgl_vals, model):
 
 
 def sum_gtas_boc(session, period, year, agency_code):
-    """Sums the GTAS BOC data for the given year/period/agency to ignore BOC of 999 or 9999
+    """Sums the GTAS BOC data for the given year/period/agency
 
     Args:
         session: The current DB session
@@ -346,7 +345,6 @@ def sum_gtas_boc(session, period, year, agency_code):
         .filter(
             boc_model.fiscal_year == year,
             boc_model.period == period,
-            func.coalesce(func.rpad(boc_model.budget_object_class, 4, "9"), "") != "9999",
             boc_model.ussgl_number.in_(ussgl_list),
             exists_query,
         )
