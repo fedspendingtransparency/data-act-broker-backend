@@ -2,6 +2,7 @@ import os
 import logging
 import requests
 import re
+import boto3
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -50,7 +51,8 @@ def get_agency_file(base_path):
             Key="broker_reference_data/agency_codes.csv",
             Filename=agency_codes_file,
         )
-    else CONFIG_BROKER.get("usas_public_reference_url"):
+    else:
+        CONFIG_BROKER.get("usas_public_reference_url"):
         os.remove(agency_codes_file)
         agency_codes_url = "{}/agency_codes.csv".format(CONFIG_BROKER["usas_public_reference_url"])
         logger.info("Loading agency codes file from {}".format(agency_codes_url))
