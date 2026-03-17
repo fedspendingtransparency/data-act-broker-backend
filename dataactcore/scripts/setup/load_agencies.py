@@ -52,7 +52,7 @@ def get_agency_file(base_path):
             Filename=agency_codes_file,
         )
     else:
-        CONFIG_BROKER.get("usas_public_reference_url"):
+        CONFIG_BROKER("usas_public_reference_url"):
         os.remove(agency_codes_file)
         agency_codes_url = "{}/agency_codes.csv".format(CONFIG_BROKER["usas_public_reference_url"])
         logger.info("Loading agency codes file from {}".format(agency_codes_url))
