@@ -1196,7 +1196,7 @@ def test_generate_boc(database, monkeypatch):
         prior_year_adjustment_code="X",
         **tas4_dict,
     )
-    # BOC of 999 should be ignored
+    # BOC of 999 should not be ignored
     boc10 = GTASBOCFactory(
         period=6,
         fiscal_year=year,
@@ -1282,7 +1282,7 @@ def test_generate_boc(database, monkeypatch):
         prior_year_adjustment="",
         **tas2_dict,
     )
-    # Object class of 000 should be ignored
+    # Object class of 000 should not be ignored
     pub_b4 = PublishedObjectClassProgramActivityFactory(
         submission_id=sub_id,
         display_tas=tas1_str,
@@ -1433,7 +1433,7 @@ def test_generate_boc(database, monkeypatch):
         + [boc8.budget_object_class, "D", "Q", "Y", boc8.begin_end, str(year), "6", boc8.ussgl_number, "-2", "0", "-2"]
     )
 
-    # TAS 1 but ignored because of BOC 999 or 000 (depending on the location)
+    # TAS 1 not ignored despite BOC 999 or 000 (depending on the location)
     expected6 = (
         [tas1_str]
         + list(tas1_dict.values())
@@ -1500,8 +1500,8 @@ def test_generate_boc(database, monkeypatch):
     assert expected3 in file_rows
     assert expected4 not in file_rows
     assert expected5 in file_rows
-    assert expected6 not in file_rows
-    assert expected7 not in file_rows
+    assert expected6 in file_rows
+    assert expected7 in file_rows
     assert expected8 not in file_rows
     assert expected9 not in file_rows
 
