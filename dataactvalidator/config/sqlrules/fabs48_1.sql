@@ -1,5 +1,5 @@
 -- FundingOpportunityGoalsText must be blank for non-grants/non-cooperative agreements
--- (AssistanceType = 06, 07, 08, 09, 10, or 11).
+-- (AssistanceType = 06, 07, 08, 09, 10, 11, F003, F004, F005, F006, F007, F008, F009, or F010).
 
 SELECT
     row_number,
@@ -9,5 +9,6 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(funding_opportunity_goals, '') <> ''
-    AND COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11')
+    AND COALESCE(assistance_type, '') IN ('06', '07', '08', '09', '10', '11', 'F003', 'F004', 'F005', 'F006', 'F007',
+                                          'F008', 'F009', 'F010')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

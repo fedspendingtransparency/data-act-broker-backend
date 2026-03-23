@@ -9,18 +9,18 @@ WITH appropriation_a10_{0} AS
 SELECT
     approp.row_number,
     approp.borrowing_authority_amount_cpe,
-    SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1340, 1440",
-    COALESCE(approp.borrowing_authority_amount_cpe, 0) - SUM(sf.amount) AS "difference",
+    SUM(COALESCE(sf.amount, 0)) AS "expected_value_SUM of GTAS SF133 Lines 1340, 1440",
+    COALESCE(approp.borrowing_authority_amount_cpe, 0) - SUM(COALESCE(sf.amount, 0)) AS "difference",
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a10_{0} AS approp
-    INNER JOIN sf_133 AS sf
-        ON approp.display_tas = sf.display_tas
     INNER JOIN submission AS sub
         ON approp.submission_id = sub.submission_id
+    LEFT OUTER JOIN sf_133 AS sf
+        ON approp.display_tas = sf.display_tas
         AND sf.period = sub.reporting_fiscal_period
         AND sf.fiscal_year = sub.reporting_fiscal_year
-WHERE sf.line IN (1340, 1440)
+        AND sf.line IN (1340, 1440)
 GROUP BY approp.row_number,
     approp.borrowing_authority_amount_cpe,
     approp.display_tas
-HAVING COALESCE(approp.borrowing_authority_amount_cpe, 0) <> SUM(sf.amount);
+HAVING COALESCE(approp.borrowing_authority_amount_cpe, 0) <> SUM(COALESCE(sf.amount, 0));

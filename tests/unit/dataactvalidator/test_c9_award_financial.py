@@ -255,7 +255,7 @@ def test_ignored_and_failed_original_loan_subsidy_cost_values(database):
         uri=None,
         federal_action_obligation=1,
         original_loan_subsidy_cost="-2.3",
-        assistance_type="09",
+        assistance_type="F001",
         record_type="2",
     )
     afa_3 = AwardFinancialAssistanceFactory(
@@ -281,7 +281,7 @@ def test_ignored_and_failed_original_loan_subsidy_cost_values(database):
         uri=None,
         federal_action_obligation=1,
         original_loan_subsidy_cost="0",
-        assistance_type="08",
+        assistance_type="F003",
         record_type="2",
     )
     afa_2 = AwardFinancialAssistanceFactory(

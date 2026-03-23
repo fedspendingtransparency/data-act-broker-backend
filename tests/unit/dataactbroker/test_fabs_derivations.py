@@ -171,7 +171,7 @@ def initialize_db_values(db):
         high_comp_officer5_amount=None,
     )
     # Assistance Listing
-    assistance_listing = AssistanceListingFactory(program_number=12.345, program_title="Assistance Listing Title")
+    assistance_listing = AssistanceListingFactory(program_number="12.c45", program_title="Assistance Listing Title")
     # Agencies
     cgac_1 = CGACFactory(cgac_code="000", agency_name="Test CGAC Agency")
     cgac_2 = CGACFactory(cgac_code="111", agency_name="Test CGAC Agency 2")
@@ -502,7 +502,7 @@ def test_assistance_listing_title(database):
     assert fabs_obj.assistance_listing_title is None
 
     # when assistance_listing_number is in the database
-    submission_id = initialize_test_row(database, assistance_listing_num="12.345", submission_id=3)
+    submission_id = initialize_test_row(database, assistance_listing_num="12.C45", submission_id=3)
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)

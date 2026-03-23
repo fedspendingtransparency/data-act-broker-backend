@@ -60,9 +60,24 @@ def test_success_multiple_rows(database):
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
     sf_1 = SF133Factory(
-        line=1021, display_tas=tas, period=period, fiscal_year=year, amount=3, disaster_emergency_fund_code="N"
+        line=1021,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=2,
+        disaster_emergency_fund_code="N",
+        bea_category="a",
     )
     sf_2 = SF133Factory(
+        line=1021,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=1,
+        disaster_emergency_fund_code="N",
+        bea_category="b",
+    )
+    sf_3 = SF133Factory(
         line=1033, display_tas=tas, period=period, fiscal_year=year, amount=2, disaster_emergency_fund_code="N"
     )
     op_1 = ObjectClassProgramActivityFactory(
@@ -82,7 +97,7 @@ def test_success_multiple_rows(database):
         prior_year_adjustment="x",
     )
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op_1, op_2], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, op_1, op_2], submission=submission) == 0
 
 
 def test_non_matching_defc(database):
@@ -148,6 +163,29 @@ def test_different_pya(database):
     assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op], submission=submission) == 0
 
 
+def test_success_no_sf(database):
+    """DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE = value for GTAS SF 133 lines #1021+1033 for
+    the same reporting period for the TAS and DEFC combination where PYA = "X". Entries with no SF133 associated
+    (implied 0-value)
+    """
+    submission_id = 1
+    tas, period, year = "some-tas", 2, 2002
+
+    submission = SubmissionFactory(
+        submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
+    )
+    op = ObjectClassProgramActivityFactory(
+        submission_id=submission_id,
+        row_number=1,
+        display_tas=tas,
+        deobligations_recov_by_pro_cpe=0,
+        disaster_emergency_fund_code="n",
+        prior_year_adjustment="X",
+    )
+
+    assert number_of_errors(_FILE, database, models=[op], submission=submission) == 0
+
+
 def test_failure(database):
     """Fail DeobligationsRecoveriesRefundsOfPriorYearByProgramObjectClass_CPE = value for GTAS SF 133 lines #1021+1033
     for the same reporting period for the TAS and DEFC combination where PYA = "X".
@@ -159,18 +197,42 @@ def test_failure(database):
         submission_id=submission_id, reporting_fiscal_period=period, reporting_fiscal_year=year
     )
     sf_1 = SF133Factory(
-        line=1021, display_tas=tas, period=period, fiscal_year=year, amount=1, disaster_emergency_fund_code="N"
+        line=1021,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=1,
+        disaster_emergency_fund_code="N",
+        bea_category="a",
     )
     sf_2 = SF133Factory(
+        line=1021,
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        amount=1,
+        disaster_emergency_fund_code="N",
+        bea_category="b",
+    )
+    sf_3 = SF133Factory(
         line=1033, display_tas=tas, period=period, fiscal_year=year, amount=0, disaster_emergency_fund_code="N"
     )
     op = ObjectClassProgramActivityFactory(
         submission_id=submission_id,
         row_number=1,
         display_tas=tas,
-        deobligations_recov_by_pro_cpe=0,
+        deobligations_recov_by_pro_cpe=1,
+        disaster_emergency_fund_code="n",
+        prior_year_adjustment="x",
+    )
+    # No SF133 associated
+    op_2 = ObjectClassProgramActivityFactory(
+        submission_id=submission_id,
+        row_number=1,
+        display_tas="tas_no_sf",
+        deobligations_recov_by_pro_cpe=1,
         disaster_emergency_fund_code="n",
         prior_year_adjustment="x",
     )
 
-    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, op], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, sf_3, op, op_2], submission=submission) == 2

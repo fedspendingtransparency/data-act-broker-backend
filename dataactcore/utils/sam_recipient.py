@@ -598,6 +598,20 @@ def parse_exec_comp(exec_comp_str=None):
     if isinstance(exec_comp_str, str) and not exec_comp_str.isdigit():
         high_comp_officers = exec_comp_str.split("~")
 
+        if len(high_comp_officers) > 5:
+            # SAM had a bug where the exec comp string values were duplicated.
+            # Instead of fixing the files, we need to work around it.
+            # Sometimes the exec comp names/amounts are duplicated *within* the 5 values we expect
+            #     * Examples: A~A~A~A~A or A~A~A or A~A~B~B
+            #     * Here we accept it as is and have to trust SAM's data.
+            # With this bug, each value is duplicated next to it and the length was greater than 5
+            #     * Examples: A~A~B~B~C~C~D~D~E~E or A~A~B~B~C~C
+            #     * Here, instead of detecting duplicates and clearing them,
+            #       we're going to skip every other one => A~B~C~D~E or A~B~C
+            # Should only run if the length is greater than 5 which is already a clear indicator of errant data.
+            logger.warning("Detected exec comp string of invalid length. Only processing every other duplicate value.")
+            high_comp_officers = high_comp_officers[::2]
+
         # records have inconsistent values for Null
         # 'see note above' is excluded as it may contain relevant info
         unaccepted_titles = ["x", "n/a", "na", "null", "none", ". . .", "no one", "no  one"]

@@ -116,6 +116,15 @@ class FABSUploadTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "Submission has already been published")
 
+    def test_revalidation_already_published(self):
+        """Test a revalidation failure because the FABS submission is already published"""
+        params = {"submission_id": self.published_submission}
+        response = self.app.post_json(
+            "/v1/restart_validation/", params, headers={"x-session-id": self.session_id}, expect_errors=True
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Submission has already been published")
+
     def test_unfinished_job(self):
         """Test a publish failure because the submission has a running job"""
         submission = {"submission_id": self.running_submission}

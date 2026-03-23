@@ -961,7 +961,7 @@ class FileHandler:
                 CREATE INDEX ix_tmp_fabs_{submission_id}_funding_sub_tier_upper ON
                     tmp_fabs_{submission_id} (UPPER(funding_sub_tier_agency_co));
                 CREATE INDEX ix_tmp_fabs_{submission_id}_assistance_listing_num ON
-                    tmp_fabs_{submission_id} (assistance_listing_number);
+                    tmp_fabs_{submission_id} (UPPER(assistance_listing_number));
                 CREATE INDEX ix_tmp_fabs_{submission_id}_awardee_unique ON
                     tmp_fabs_{submission_id} (awardee_or_recipient_uniqu);
                 CREATE INDEX ix_tmp_fabs_{submission_id}_assistance_type_upper ON
@@ -1196,12 +1196,11 @@ class FileHandler:
         return job_dict
 
     @staticmethod
-    def restart_validation(submission, fabs):
+    def restart_validation(submission):
         """Restart validations for a submission
 
         Args:
             submission: the submission to restart the validations for
-            fabs: a boolean to indicate whether the submission is a FABS or DABS submission (True for FABS)
 
         Returns:
             JsonResponse object with a "success" message
@@ -1211,7 +1210,7 @@ class FileHandler:
 
         sess = GlobalDB.db().session
         # Determine which job types to start
-        if not fabs:
+        if not submission.is_fabs:
             initial_file_types = [
                 FILE_TYPE_DICT["appropriations"],
                 FILE_TYPE_DICT["program_activity"],
@@ -1219,6 +1218,9 @@ class FileHandler:
             ]
         else:
             initial_file_types = [FILE_TYPE_DICT["fabs"]]
+
+        if submission.is_fabs and submission.publish_status_id == PUBLISH_STATUS_DICT["published"]:
+            return JsonResponse.error(ValueError("Submission has already been published"), StatusCode.CLIENT_ERROR)
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
@@ -2585,7 +2587,7 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 )
             ),
             PublishedFilesHistory.filename.isnot(None),
-            PublishedFilesHistory.file_type_id.isnot(None),
+            or_(PublishedFilesHistory.file_type_id.isnot(None), PublishedFilesHistory.filename.like("%_comments%")),
         ]
         order_by = [Submission.submission_id, PublishedFilesHistory.file_type_id]
 
@@ -2634,41 +2636,15 @@ def list_published_files(sub_type, agency=None, year=None, period=None):
                 period = "P{}".format(str(result.reporting_fiscal_period).zfill(2))
             results.append({"id": result.reporting_fiscal_period, "label": period})
     else:
-        agency_name = None
-        display_period = None
-        submission_id = None
         for result in query:
             results.append(
                 {
                     "id": result.published_files_history_id,
                     "label": os.path.basename(result.filename),
-                    "filetype": FILE_TYPE_DICT_LETTER[result.file_type_id],
+                    "filetype": FILE_TYPE_DICT_LETTER[result.file_type_id] if result.file_type_id else "comments",
                     "submission_id": result.submission_id,
                 }
             )
-            agency_name = "{}_{}".format(result.agency_code, result.agency_name)
-            if result.is_quarter_format:
-                display_period = "Q{}".format(int(period / 3))
-            else:
-                display_period = "P{}".format(str(period).zfill(2))
-            submission_id = result.submission_id
-        if sub_type == "dabs":
-            comments_filename = "{}-{}-{}-Agency_Comments.txt".format(year, display_period, agency_name)
-            agency_comments_url = os.path.join(CONFIG_BROKER["usas_public_submissions_url"], comments_filename)
-
-            try:
-                r = requests.head(agency_comments_url)
-                if r.status_code == requests.codes.ok:
-                    results.append(
-                        {
-                            "id": None,
-                            "label": comments_filename,
-                            "filetype": "comments",
-                            "submission_id": submission_id,
-                        }
-                    )
-            except Exception as e:
-                logger.exception(e)
 
     return JsonResponse.create(StatusCode.OK, results)
 

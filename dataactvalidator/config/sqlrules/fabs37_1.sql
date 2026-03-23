@@ -5,7 +5,7 @@
 WITH fabs37_1_{0} AS
     (SELECT submission_id,
         row_number,
-        assistance_listing_number,
+        UPPER(assistance_listing_number) AS assistance_listing_number,
         action_type,
         correction_delete_indicatr,
         action_date,
@@ -26,7 +26,7 @@ WHERE UPPER(fabs.action_type) IN ('A', 'E')
         SELECT DISTINCT sub_fabs.row_number
         FROM fabs37_1_{0} AS sub_fabs
             JOIN assistance_listing AS al
-                ON sub_fabs.assistance_listing_number = to_char(al.program_number, 'FM00.000')
+                ON sub_fabs.assistance_listing_number = UPPER(al.program_number)
                 AND ((al.published_date <= sub_fabs.action_date
                         AND al.archived_date = ''
                     )

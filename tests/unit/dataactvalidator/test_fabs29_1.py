@@ -16,22 +16,23 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """OriginalLoanSubsidyCost is required for loans (i.e., when AssistanceType = 07 or 08)."""
+    """OriginalLoanSubsidyCost is required for loans (i.e., when AssistanceType = 07, 08, F003, or F004)."""
 
     fabs = FABSFactory(assistance_type="07", original_loan_subsidy_cost=0, correction_delete_indicatr="")
     fabs_2 = FABSFactory(assistance_type="08", original_loan_subsidy_cost=20, correction_delete_indicatr="c")
+    fabs_3 = FABSFactory(assistance_type="F003", original_loan_subsidy_cost=20, correction_delete_indicatr="c")
     # Ignore correction delete indicator of D
-    fabs_3 = FABSFactory(assistance_type="08", original_loan_subsidy_cost=None, correction_delete_indicatr="d")
+    fabs_4 = FABSFactory(assistance_type="08", original_loan_subsidy_cost=None, correction_delete_indicatr="d")
 
-    errors = number_of_errors(_FILE, database, models=[fabs, fabs_2, fabs_3])
+    errors = number_of_errors(_FILE, database, models=[fabs, fabs_2, fabs_3, fabs_4])
     assert errors == 0
 
 
 def test_failure(database):
-    """OriginalLoanSubsidyCost is required for loans (i.e., when AssistanceType = 07 or 08)."""
+    """OriginalLoanSubsidyCost is required for loans (i.e., when AssistanceType = 07, 08, F003, or F004)."""
 
     fabs = FABSFactory(assistance_type="07", original_loan_subsidy_cost=None, correction_delete_indicatr=None)
-    fabs_2 = FABSFactory(assistance_type="08", original_loan_subsidy_cost=None, correction_delete_indicatr="C")
+    fabs_2 = FABSFactory(assistance_type="F004", original_loan_subsidy_cost=None, correction_delete_indicatr="C")
 
     errors = number_of_errors(_FILE, database, models=[fabs, fabs_2])
     assert errors == 2

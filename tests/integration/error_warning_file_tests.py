@@ -236,140 +236,63 @@ class ErrorWarningTests(BaseTestValidator):
                 sub_account_code="000",
                 internal_start_date="01-01-2000",
             )
-            sess.add_all([tas1, tas2, tas3, tas4, tas5, tas6, tas7, tas8, tas9, tas10])
+            tas_list = [tas1, tas2, tas3, tas4, tas5, tas6, tas7, tas8, tas9, tas10]
+            sess.add_all(tas_list)
 
-            # adding GTAS to ensure valid file is valid
-            gtas1 = SF133Factory(
-                tas=concat_tas_dict(tas1.component_dict()),
-                allocation_transfer_agency="019",
-                agency_identifier="072",
-                beginning_period_of_availa=None,
-                line=1009,
-                ending_period_of_availabil=None,
-                availability_type_code="X",
-                main_account_code="0306",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas2 = SF133Factory(
-                tas=concat_tas_dict(tas2.component_dict()),
-                allocation_transfer_agency=None,
-                agency_identifier="019",
-                beginning_period_of_availa="2016",
-                line=1009,
-                ending_period_of_availabil="2016",
-                availability_type_code=None,
-                main_account_code="0113",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas3 = SF133Factory(
-                tas=concat_tas_dict(tas3.component_dict()),
-                allocation_transfer_agency=None,
-                agency_identifier="028",
-                beginning_period_of_availa=None,
-                line=1009,
-                ending_period_of_availabil=None,
-                availability_type_code="X",
-                main_account_code="0406",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas4 = SF133Factory(
-                tas=concat_tas_dict(tas4.component_dict()),
-                allocation_transfer_agency=None,
-                agency_identifier="028",
-                beginning_period_of_availa="2010",
-                line=1009,
-                ending_period_of_availabil="2011",
-                availability_type_code=None,
-                main_account_code="0406",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas5 = SF133Factory(
-                tas=concat_tas_dict(tas5.component_dict()),
-                allocation_transfer_agency="069",
-                agency_identifier="013",
-                beginning_period_of_availa=None,
-                line=1009,
-                ending_period_of_availabil=None,
-                availability_type_code="X",
-                main_account_code="2050",
-                sub_account_code="005",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas6 = SF133Factory(
-                tas=concat_tas_dict(tas6.component_dict()),
-                allocation_transfer_agency="028",
-                agency_identifier="028",
-                beginning_period_of_availa=None,
-                line=1009,
-                ending_period_of_availabil=None,
-                availability_type_code="X",
-                main_account_code="8007",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas7 = SF133Factory(
-                tas=concat_tas_dict(tas7.component_dict()),
-                allocation_transfer_agency=None,
-                agency_identifier="049",
-                beginning_period_of_availa=None,
-                line=1009,
-                ending_period_of_availabil=None,
-                availability_type_code="X",
-                main_account_code="0100",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas8 = SF133Factory(
-                tas=concat_tas_dict(tas8.component_dict()),
-                allocation_transfer_agency=None,
-                agency_identifier="049",
-                beginning_period_of_availa="2010",
-                line=1009,
-                ending_period_of_availabil="2011",
-                availability_type_code=None,
-                main_account_code="0100",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas9 = SF133Factory(
-                tas=concat_tas_dict(tas9.component_dict()),
-                allocation_transfer_agency=None,
-                agency_identifier="049",
-                beginning_period_of_availa="2014",
-                line=1009,
-                ending_period_of_availabil="2015",
-                availability_type_code=None,
-                main_account_code="0100",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            gtas10 = SF133Factory(
-                tas=concat_tas_dict(tas10.component_dict()),
-                allocation_transfer_agency=None,
-                agency_identifier="049",
-                beginning_period_of_availa="2015",
-                line=1009,
-                ending_period_of_availabil="2016",
-                availability_type_code=None,
-                main_account_code="0100",
-                sub_account_code="000",
-                period=6,
-                fiscal_year=2001,
-            )
-            sess.add_all([gtas1, gtas2, gtas3, gtas4, gtas5, gtas6, gtas7, gtas8, gtas9, gtas10])
+            valid_line_amounts = {
+                "1000": [3.03, 3.03, 3.03, 3.03, 3.03, 3.03, 3.03, 3.03, 3.03, 3.03],
+                "1021": [5.5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+                "1160": [1.01, 1.01, 1.01, 1.01, 1.01, 1.01, 1.01, 1.01, 1.01, 1.01],
+                "1340": [1.51, 1.51, 1.51, 1.51, 1.51, 1.51, 1.51, 1.51, 1.51, 1.51],
+                "1540": [2.02, 2.02, 2.02, 2.02, 2.02, 2.02, 2.02, 2.02, 2.02, 2.02],
+                "1750": [0.51, 0.51, 0.51, 0.51, 0.51, 0.51, 0.51, 0.51, 0.51, 0.51],
+                "1910": [13.58, 13.08, 13.08, 13.08, 13.08, 13.08, 13.08, 13.08, 13.08, 13.08],
+                "2490": [5.5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+                "2490_old": [3.03, 3.03, 3.03, 3.03, 3.03, 3.03, 3.03, 3.03, 3.03, 3.03],
+                "2500": [13.58, 13.08, 13.08, 13.08, 13.08, 13.08, 13.08, 13.08, 13.08, 13.08],
+                "3020": [5.5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+            }
+            sf133_list = []
+
+            for tas_key, tas_val in enumerate(tas_list):
+                for line_key, line_val in valid_line_amounts.items():
+                    if line_key != "2490_old":
+                        sf133_list.append(
+                            SF133Factory(
+                                tas=concat_tas_dict(tas_val.component_dict()),
+                                allocation_transfer_agency=tas_val.allocation_transfer_agency,
+                                agency_identifier=tas_val.agency_identifier,
+                                beginning_period_of_availa=tas_val.beginning_period_of_availa,
+                                line=line_key,
+                                ending_period_of_availabil=tas_val.ending_period_of_availabil,
+                                availability_type_code=tas_val.availability_type_code,
+                                main_account_code=tas_val.main_account_code,
+                                sub_account_code=tas_val.sub_account_code,
+                                period=6,
+                                fiscal_year=2001,
+                                amount=line_val[tas_key],
+                            )
+                        )
+                    # Add another one for rule A34
+                    else:
+                        sf133_list.append(
+                            SF133Factory(
+                                tas=concat_tas_dict(tas_val.component_dict()),
+                                allocation_transfer_agency=tas_val.allocation_transfer_agency,
+                                agency_identifier=tas_val.agency_identifier,
+                                beginning_period_of_availa=tas_val.beginning_period_of_availa,
+                                line=2490,
+                                ending_period_of_availabil=tas_val.ending_period_of_availabil,
+                                availability_type_code=tas_val.availability_type_code,
+                                main_account_code=tas_val.main_account_code,
+                                sub_account_code=tas_val.sub_account_code,
+                                period=12,
+                                fiscal_year=2000,
+                                amount=line_val[tas_key],
+                            )
+                        )
+
+            sess.add_all(sf133_list)
             sess.commit()
 
     def setUp(self):
@@ -719,7 +642,8 @@ class ErrorWarningTests(BaseTestValidator):
             .filter_by(job_id=self.val_job.job_id, severity_id=RULE_SEVERITY_DICT["fatal"])
             .count()
         )
-        assert error_count == 1
+        # A14 is also going to fail, just let it
+        assert error_count == 2
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -732,7 +656,18 @@ class ErrorWarningTests(BaseTestValidator):
                 "Flex Field": "flex_field_a: FLEX_A, flex_field_b: FLEX_B",
                 "Row Number": "6",
                 "Rule Label": "",
-            }
+            },
+            {
+                "Unique ID": "TAS: 069-013-X-2050-005",
+                "Field Name": "grossoutlayamountbytas_cpe",
+                "Rule Message": "GrossOutlayAmountByTAS_CPE= CPE value for GTAS SF-133 line #3020",
+                "Value Provided": "grossoutlayamountbytas_cpe: 35000000000000000000000000",
+                "Expected Value": "GTAS SF133 Line 3020: 5",
+                "Difference": "34999999999999999999999995",
+                "Flex Field": "flex_field_a: FLEX_A, flex_field_b: FLEX_B",
+                "Row Number": "6",
+                "Rule Label": "A14",
+            },
         ]
         assert report_content == expected_values
         self.cleanup()
@@ -771,13 +706,13 @@ class ErrorWarningTests(BaseTestValidator):
                 "Rule Message": "StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE +"
                 " UnobligatedBalance_CPE.",
                 "Value Provided": "obligationsincurredtotalbytas_cpe: 8.08, statusofbudgetaryresourcestotal_cpe: ,"
-                " unobligatedbalance_cpe: 2.02",
+                " unobligatedbalance_cpe: 5",
                 "Expected Value": "StatusOfBudgetaryResourcesTotal_CPE must equal the sum of these elements:"
                 " ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE. The Broker cannot"
                 " distinguish which item is incorrect for this rule. Refer to related rule errors"
                 " and warnings in this report (rules A15, A22, A23) to distinguish which elements"
                 " may be incorrect.",
-                "Difference": "-10.10",
+                "Difference": "-13.08",
                 "Flex Field": "flex_field_a: FLEX_A, flex_field_b: FLEX_B",
                 "Row Number": "3",
                 "Rule Label": "A4",
@@ -786,12 +721,12 @@ class ErrorWarningTests(BaseTestValidator):
                 "Unique ID": "TAS: 019-2016/2016-0113-000",
                 "Field Name": "statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe",
                 "Rule Message": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE.",
-                "Value Provided": "statusofbudgetaryresourcestotal_cpe: , totalbudgetaryresources_cpe: 10.1",
+                "Value Provided": "statusofbudgetaryresourcestotal_cpe: , totalbudgetaryresources_cpe: 13.08",
                 "Expected Value": "StatusOfBudgetaryResourcesTotal_CPE must equal TotalBudgetaryResources_CPE. The"
                 " Broker cannot distinguish which side of the equation is correct for this rule."
                 " Refer to related rule errors and warnings in this report (rules A6, A23) to"
                 " distinguish which elements may be incorrect.",
-                "Difference": "-10.1",
+                "Difference": "-13.08",
                 "Flex Field": "flex_field_a: FLEX_A, flex_field_b: FLEX_B",
                 "Row Number": "3",
                 "Rule Label": "A24",
@@ -813,7 +748,7 @@ class ErrorWarningTests(BaseTestValidator):
             .filter_by(job_id=self.val_job.job_id, severity_id=RULE_SEVERITY_DICT["fatal"])
             .count()
         )
-        assert error_count == 1
+        assert error_count == 2
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
@@ -828,11 +763,11 @@ class ErrorWarningTests(BaseTestValidator):
                 " AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE"
                 " + GTAS SF 133 Line 1902.",
                 "Value Provided": "GTAS SF133 Line 1902: 0,"
-                " adjustmentstounobligatedbalancebroughtforward_cpe: 2.02,"
+                " adjustmentstounobligatedbalancebroughtforward_cpe: 5,"
                 " budgetauthorityappropriatedamount_cpe: 0.01,"
                 " budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,"
                 " otherbudgetaryresourcesamount_cpe: 4.04,"
-                " totalbudgetaryresources_cpe: 10.1",
+                " totalbudgetaryresources_cpe: 13.08",
                 "Expected Value": "TotalBudgetaryResources_CPE must equal the sum of these elements:"
                 " BudgetAuthorityAppropriatedAmount_CPE +"
                 " BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +"
@@ -845,7 +780,19 @@ class ErrorWarningTests(BaseTestValidator):
                 "Flex Field": "flex_field_a: FLEX_A, flex_field_b: FLEX_B",
                 "Row Number": "10",
                 "Rule Label": "A2",
-            }
+            },
+            {
+                "Unique ID": "TAS: 049-2014/2015-0100-000",
+                "Field Name": "budgetauthorityappropriatedamount_cpe",
+                "Rule Message": "BudgetAuthorityAppropriatedAmount_CPE= CPE aggregate value for GTAS SF-133 line #1160"
+                " + #1180 + #1260 + #1280",
+                "Value Provided": "budgetauthorityappropriatedamount_cpe: 0.01",
+                "Expected Value": "SUM of GTAS SF133 Lines 1160, 1180, 1260, 1280: 1.01",
+                "Difference": "-1.00",
+                "Flex Field": "flex_field_a: FLEX_A, flex_field_b: FLEX_B",
+                "Row Number": "10",
+                "Rule Label": "A8",
+            },
         ]
         assert report_content == expected_values
         self.cleanup()

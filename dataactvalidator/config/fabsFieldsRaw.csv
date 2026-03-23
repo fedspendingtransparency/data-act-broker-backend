@@ -1,7 +1,7 @@
 fieldname,fieldname_short,required,data_type,field_length
 ActionDate,action_date,ASP: Conditional per Validation Rule,string,8
 ActionType,action_type,ASP: Conditional per Validation Rule,string,1
-AssistanceType,assistance_type,ASP: Conditional per Validation Rule,string,2
+AssistanceType,assistance_type,ASP: Conditional per Validation Rule,string,4
 AwardDescription,award_description,ASP: Conditional per Validation Rule,string,18000
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Conditional per Validation Rule,string,120
 AwardeeOrRecipientUEI,awardee_or_recipient_uei,ASP: Conditional per Validation Rule,string,12

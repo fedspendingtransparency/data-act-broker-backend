@@ -33,7 +33,7 @@ RUN apt-get install -y build-essential
 #ENV PATH=${SPARK_HOME}/bin:${HADOOP_HOME}/bin:${JAVA_HOME}/bin:${PATH}
 #RUN echo "Installed Spark" && echo "$(${SPARK_HOME}/bin/pyspark --version)"
 
-RUN pip install unittest-xml-reporting setuptools==68.1.2
+RUN pip install unittest-xml-reporting
 
 COPY requirements.txt /data-act/backend/requirements.txt
 COPY server_requirements.txt /data-act/backend/server_requirements.txt

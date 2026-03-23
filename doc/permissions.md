@@ -2,7 +2,7 @@
 
 A simple guide covering permissions on the Broker and how they get set on each environment. 
 
-- For more details from a CAIA permission administration standpoint, see the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) (requires CAIA login):
+- For more details from a CAIA permission administration standpoint, see the [IIQ User Guide](https://caia-shield.treasury.gov/docs/IIQUserGuide/) (requires CAIA login):
 - For more details from a code implementation level, please check out the code in [permissions.py](../dataactbroker/permissions.py).
 
 ## Broker Permission Levels
@@ -53,14 +53,14 @@ Each agency has assigned at least one **Agency Administrator** (also referred to
 responsible for managing the users and their associated roles within the agency. Each agency admin should be aware of
 the common workflows below.
 
-Each workflow will be referencing the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) as it includes
+Each workflow will be referencing the [IIQ User Guide](https://caia-shield.treasury.gov/docs/IIQUserGuide/) as it includes
 step-by-step instructions with screenshots.
 
 #### Requesting User Access
 
 Agency Administrators are unable to approve their own IIQ requests; **therefore, the user seeking access will need to self-request.**
 
-The user can follow the instructions in the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) ("*Self Request Access*").
+The user can follow the instructions in the [IIQ User Guide](https://caia-shield.treasury.gov/docs/IIQUserGuide/) ("*Self Request Access*").
 
 To determine the proper CAIA role to add, refer to the [Roles Names](#role-names) section below.
 
@@ -69,7 +69,7 @@ To determine the proper CAIA role to add, refer to the [Roles Names](#role-names
 Once the agency user has requested the proper CAIA role, the request needs to be approved or denied by the Agency Admin.
 The Agency Admin CAIA role includes the unique ability to see, approve, and deny these requests. 
 
-The agency admin can follow the instructions in the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) ("*Manage User Access*" -> "*Approving/Denying User Access Requests*").
+The agency admin can follow the instructions in the [IIQ User Guide](https://caia-shield.treasury.gov/docs/IIQUserGuide/) ("*Manage User Access*" -> "*Approving/Denying User Access Requests*").
 
 Once approved, it will take at least a few minutes for the assigned role to be added to the agency user by the system.
 
@@ -77,7 +77,7 @@ Once approved, it will take at least a few minutes for the assigned role to be a
 
 If a user needs to have a certain role removed, either the agency user or the agency admin can revoke the permission without needing approval. 
 
-The agency admin can follow the instructions in the [IIQ User Guide](https://caia.treasury.gov/developers/IIQUserGuide/) ("*Manage User Access*" -> "*Removing User Access*").
+The agency admin can follow the instructions in the [IIQ User Guide](https://caia-shield.treasury.gov/docs/IIQUserGuide/) ("*Manage User Access*" -> "*Removing User Access*").
 
 #### Identifying Users Roles
 

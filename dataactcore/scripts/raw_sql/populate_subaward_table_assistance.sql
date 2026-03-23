@@ -43,7 +43,7 @@ CREATE TEMPORARY TABLE aw_pf ON COMMIT DROP AS
         pf.place_of_perform_county_na AS place_of_perform_county_na,
         pf.place_of_performance_congr AS place_of_performance_congr,
         pf.action_date AS action_date,
-        pf.assistance_listing_number AS assistance_listing_number,
+        UPPER(pf.assistance_listing_number) AS assistance_listing_number,
         pf.assistance_listing_title AS assistance_listing_title,
         pf.federal_action_obligation AS federal_action_obligation,
         pf.high_comp_officer1_full_na AS high_comp_officer1_full_na,
@@ -165,7 +165,7 @@ CREATE TEMPORARY TABLE grouped_aw_pf ON COMMIT DROP AS
         SUM(pf.federal_action_obligation) AS award_amount
      FROM aw_pf AS pf
      LEFT OUTER JOIN assistance_listing AS al
-        ON to_char(al.program_number, 'FM00.000') = pf.assistance_listing_number
+        ON UPPER(al.program_number) = pf.assistance_listing_number
      GROUP BY unique_award_key
      );
 CREATE INDEX ix_grouped_aw_pf_uak ON grouped_aw_pf (unique_award_key);

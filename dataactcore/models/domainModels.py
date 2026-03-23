@@ -13,7 +13,6 @@ from sqlalchemy import (
     BigInteger,
     Numeric,
     Text,
-    Float,
     UniqueConstraint,
     Boolean,
     ARRAY,
@@ -205,13 +204,7 @@ def matching_cars_subquery(sess, model_class, start_date, end_date, submission_i
     # TAS components (ATA, AI, etc.) from being valid at the same time. When
     # that happens (unlikely), we select the minimum (i.e. older) of the
     # potential TAS history entries.
-    subquery = sess.query(sa.func.min(TASLookup.account_num))
-
-    # Filter to matching TAS components, accounting for NULLs
-    for field_name in TAS_COMPONENTS:
-        tas_col = getattr(TASLookup, field_name)
-        model_col = getattr(model_class, field_name)
-        subquery = subquery.filter(sa.func.coalesce(tas_col, "") == sa.func.coalesce(model_col, ""))
+    subquery = sess.query(sa.func.min(TASLookup.account_num)).filter(TASLookup.tas == model_class.tas)
 
     day_after_end = end_date + timedelta(days=1)
     model_dates = sa.tuple_(start_date, end_date)
@@ -300,6 +293,11 @@ class SF133(Base):
     amount = Column(Numeric, nullable=False, default=0, server_default="0")
     account_num = Column(Integer, nullable=True)
     disaster_emergency_fund_code = Column(Text, index=True)
+    bea_category = Column(Text)
+    budget_object_class = Column(Text)
+    by_direct_reimbursable_fun = Column(Text)
+    prior_year_adjustment = Column(Text)
+    program_activity_reporting_key = Column(Text)
 
 
 Index(
@@ -309,6 +307,11 @@ Index(
     SF133.period,
     SF133.line,
     SF133.disaster_emergency_fund_code,
+    SF133.bea_category,
+    SF133.budget_object_class,
+    SF133.by_direct_reimbursable_fun,
+    SF133.prior_year_adjustment,
+    SF133.program_activity_reporting_key,
     unique=True,
 )
 
@@ -512,7 +515,7 @@ Index("ix_historic_duns_uei_upper", sa.func.upper(HistoricDUNS.uei))
 class AssistanceListing(Base):
     __tablename__ = "assistance_listing"
     assistance_listing_id = Column(Integer, primary_key=True)
-    program_number = Column(Float, nullable=False, index=True, unique=True)
+    program_number = Column(Text, nullable=False)
     program_title = Column(Text)
     popular_name = Column(Text)
     federal_agency = Column(Text)
@@ -552,6 +555,9 @@ class AssistanceListing(Base):
     omb_bureau_code = Column(Text)
     published_date = Column(Text, index=True)
     archived_date = Column(Text, index=True)
+
+
+Index("ix_assistance_listing_program_number_upper", sa.func.upper(AssistanceListing.program_number), unique=True)
 
 
 class Zips(Base):
