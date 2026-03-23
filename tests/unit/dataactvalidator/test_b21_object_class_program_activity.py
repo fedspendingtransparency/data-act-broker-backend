@@ -363,7 +363,7 @@ def test_non_matching_defc(database):
 
 
 def test_exception_success(database):
-    """ Testing exception TASs"""
+    """Testing exception TASs"""
     submission_id = randint(1000, 10000)
     tas, period, year = "020-X-5688-000", 2, 2002
 
@@ -387,7 +387,10 @@ def test_exception_success(database):
         is_quarter_format=False,
     )
     op = ObjectClassProgramActivityFactory(
-        display_tas="some-other-tas", disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="x"
+        display_tas="some-other-tas",
+        disaster_emergency_fund_code="n",
+        submission_id=submission_id,
+        prior_year_adjustment="x",
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
@@ -395,7 +398,7 @@ def test_exception_success(database):
 
 
 def test_exception_failure(database):
-    """ Testing exception TASs failing"""
+    """Testing exception TASs failing"""
     submission_id = randint(1000, 10000)
     tas, period, year = "020-X-5688-000", 2, 2002
 
@@ -419,7 +422,10 @@ def test_exception_failure(database):
         is_quarter_format=False,
     )
     op = ObjectClassProgramActivityFactory(
-        display_tas="some-other-tas", disaster_emergency_fund_code="n", submission_id=submission_id, prior_year_adjustment="x"
+        display_tas="some-other-tas",
+        disaster_emergency_fund_code="n",
+        submission_id=submission_id,
+        prior_year_adjustment="x",
     )
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)

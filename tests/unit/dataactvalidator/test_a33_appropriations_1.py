@@ -473,7 +473,7 @@ def test_financing_tas(database):
 
 
 def test_exception_success(database):
-    """ Testing exception TASs"""
+    """Testing exception TASs"""
     submission_id = randint(1000, 10000)
     tas, period, year = "020-X-5688-000", 2, 2002
 
@@ -493,14 +493,14 @@ def test_exception_success(database):
         cgac_code="020",
         frec_code=None,
     )
-    ap = AppropriationFactory(display_tas='some-other-tas', submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="some-other-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 0
 
 
 def test_exception_failure(database):
-    """ Testing exception TASs failing"""
+    """Testing exception TASs failing"""
     submission_id = randint(1000, 10000)
     tas, period, year = "020-X-5688-000", 2, 2002
 
@@ -520,7 +520,7 @@ def test_exception_failure(database):
         cgac_code="070",
         frec_code=None,
     )
-    ap = AppropriationFactory(display_tas='some-other-tas', submission_id=submission_id)
+    ap = AppropriationFactory(display_tas="some-other-tas", submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 1
