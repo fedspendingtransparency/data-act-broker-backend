@@ -2,6 +2,7 @@ import os
 import logging
 import requests
 import pandas as pd
+import boto3
 import time
 import sys
 from datetime import datetime
@@ -74,10 +75,19 @@ def load_assistance_listing(base_path, load_local=False, local_file_name="assist
         local_file_name: the name of the file if loading locally
     """
     local_now = datetime.now()
-    if not load_local:
+    tmp_name = str(time.time()).replace(".", "") + "_assistance_listing.csv"
+    filename = os.path.join(base_path, tmp_name)
+    
+    fapc = os.environ.get("fapc", "false")
+    if fapc == "true":
+        s3 = boto3.client("s3")
+        s3.download_file(
+            Bucket=CONFIG_BROKER["public_files"],
+            Key="broker_reference_data/assistance_listing.csv",
+            Filename=filename,
+        )
+    elif not load_local:
         logger.info("Fetching Assistance Listing file from {}".format(S3_ASSISTANCE_LISTING_FILE))
-        tmp_name = str(time.time()).replace(".", "") + "_assistance_listing.csv"
-        filename = os.path.join(base_path, tmp_name)
         r = requests.get(S3_ASSISTANCE_LISTING_FILE, allow_redirects=True)
         open(filename, "wb").write(r.content)
     else:
