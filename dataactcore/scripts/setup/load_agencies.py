@@ -51,7 +51,7 @@ def get_agency_file(base_path):
         fapc = os.environ.get("fapc", "false")
         if fapc == "true":
             s3 = boto3.client("s3")
-            bucket = CONFIG_BROKER["public_files"]
+            bucket = CONFIG_BROKER["public_files_bucket"]
             key = f"broker_reference_data/{filename}"
             source = f"{bucket}/{key}"
             s3.download_file(Bucket=bucket, Key=key, Filename=agency_codes_file)

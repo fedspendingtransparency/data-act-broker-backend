@@ -82,7 +82,7 @@ def load_assistance_listing(base_path, load_local=False, local_file_name="assist
     if fapc == "true":
         s3 = boto3.client("s3")
         s3.download_file(
-            Bucket=CONFIG_BROKER["public_files"],
+            Bucket=CONFIG_BROKER["public_files_bucket"],
             Key="broker_reference_data/assistance_listing.csv",
             Filename=filename,
         )
