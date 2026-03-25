@@ -24,7 +24,7 @@ from dataactcore.scripts.setup.setup_all_db import setup_all_db
 from dataactcore.scripts.setup.setup_emails import setup_emails
 from dataactcore.scripts.setup.load_submission_window_schedule import load_submission_window_schedule
 from dataactcore.scripts.setup.load_tas import load_tas
-from dataactcore.scripts.setup.read_zips import read_zips
+from dataactcore.scripts.setup.read_zips import read_zips_internal
 from dataactcore.scripts.pipeline.load_park import load_park_data
 from dataactcore.scripts.pipeline.load_program_activity import load_program_activity_data
 from dataactcore.scripts.pipeline.load_sf133 import load_all_sf133
@@ -137,7 +137,7 @@ def load_location_codes(force_reload):
 def load_zip_codes():
     """Load zip codes into the broker database."""
     logger.info("Loading zip code data")
-    read_zips()
+    read_zips_internal()
 
 
 def uncache_all_files():
