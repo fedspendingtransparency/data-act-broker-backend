@@ -214,5 +214,5 @@ def main():
 
 if __name__ == "__main__":
     with create_app().app_context():
-        configure_logging()
+        # configure_logging()
         main()

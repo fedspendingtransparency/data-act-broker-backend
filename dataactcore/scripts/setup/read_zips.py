@@ -810,5 +810,5 @@ def read_zips_internal():
 
 
 if __name__ == "__main__":
-    configure_logging()
+    # configure_logging()
     read_zips_internal()
