@@ -15,4 +15,17 @@ WHERE op.submission_id = {0}
         FROM appropriation AS approp
         WHERE op.account_num IS NOT DISTINCT FROM approp.account_num
             AND op.submission_id = approp.submission_id
+    )
+    AND (COALESCE(op.obligations_delivered_orde_cpe, 0) <> 0
+        OR COALESCE(op.obligations_delivered_orde_fyb, 0) <> 0
+        OR COALESCE(op.obligations_incurred_by_pr_cpe, 0) <> 0
+        OR COALESCE(op.obligations_undelivered_or_cpe, 0) <> 0
+        OR COALESCE(op.obligations_undelivered_or_fyb, 0) <> 0
+        OR COALESCE(op.deobligations_recov_by_pro_cpe, 0) <> 0
+        OR COALESCE(op.gross_outlay_amount_by_pro_cpe, 0) <> 0
+        OR COALESCE(op.gross_outlay_amount_by_pro_fyb, 0) <> 0
+        OR COALESCE(op.gross_outlays_delivered_or_cpe, 0) <> 0
+        OR COALESCE(op.gross_outlays_delivered_or_fyb, 0) <> 0
+        OR COALESCE(op.gross_outlays_undelivered_cpe, 0) <> 0
+        OR COALESCE(op.gross_outlays_undelivered_fyb, 0) <> 0
     );
