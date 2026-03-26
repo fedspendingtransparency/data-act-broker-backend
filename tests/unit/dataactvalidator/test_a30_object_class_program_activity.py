@@ -25,13 +25,30 @@ def test_column_headers(database):
 def test_success(database):
     """Tests that TAS values in File B should exist in File A for the same reporting period"""
     tas = TASFactory()
-    database.session.add(tas)
+    tas2 = TASFactory()
+    database.session.add_all([tas, tas2])
     database.session.flush()
 
     op = ObjectClassProgramActivityFactory(account_num=tas.account_num)
+    # ignored because all values are 0
+    op_2 = ObjectClassProgramActivityFactory(
+        account_num=tas2.account_num,
+        obligations_delivered_orde_cpe=0,
+        obligations_delivered_orde_fyb=0,
+        obligations_incurred_by_pr_cpe=0,
+        obligations_undelivered_or_cpe=0,
+        obligations_undelivered_or_fyb=0,
+        deobligations_recov_by_pro_cpe=0,
+        gross_outlay_amount_by_pro_cpe=0,
+        gross_outlay_amount_by_pro_fyb=0,
+        gross_outlays_delivered_or_cpe=0,
+        gross_outlays_delivered_or_fyb=0,
+        gross_outlays_undelivered_cpe=0,
+        gross_outlays_undelivered_fyb=0,
+    )
     ap = AppropriationFactory(account_num=tas.account_num)
 
-    assert number_of_errors(_FILE, database, models=[op, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[op, op_2, ap]) == 0
 
 
 def test_failure(database):
