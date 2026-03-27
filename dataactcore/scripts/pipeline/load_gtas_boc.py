@@ -42,7 +42,7 @@ def load_all_boc(boc_path=None, force_load=False, aws_prefix="OMB_Extract_BOC"):
     with create_app().app_context():
         sess = GlobalDB.db().session
         fapc = os.environ.get("fapc", "false") == "true"
-        boc_list = get_prefixed_file_list(boc_path, aws_prefix, signed=not fapc)
+        boc_list = get_prefixed_file_list(boc_path, aws_prefix, file_extension="csv", signed=not fapc)
         boc_re = re.compile(r"OMB_Extract_BOC_(?P<year>\d{4})_(?P<period>\d{2})\.csv")
         for boc in boc_list:
             # for each BOC file, parse out fiscal year and period and call the BOC loader

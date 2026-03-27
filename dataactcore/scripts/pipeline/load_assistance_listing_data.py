@@ -75,7 +75,6 @@ def load_assistance_listing(base_path, load_local=False, local_file_name="assist
         local_file_name: the name of the file if loading locally
     """
     local_now = datetime.now()
-
     if not load_local:
         tmp_name = str(time.time()).replace(".", "") + "_assistance_listing.csv"
         filename = os.path.join(base_path, tmp_name)
