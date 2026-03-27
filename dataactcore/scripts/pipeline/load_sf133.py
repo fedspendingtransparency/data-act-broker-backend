@@ -57,7 +57,7 @@ def load_all_sf133(
 
         # get a list of SF 133 files to load
         fapc = os.environ.get("fapc", "false") == "true"
-        sf133_list = get_prefixed_file_list(sf133_path, aws_prefix, signed=fapc)
+        sf133_list = get_prefixed_file_list(sf133_path, aws_prefix, signed=not fapc)
         sf_re = re.compile(r"sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv")
         for sf133 in sf133_list:
             # for each SF file, parse out fiscal year and period and call the SF 133 loader
