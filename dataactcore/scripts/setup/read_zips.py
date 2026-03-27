@@ -811,4 +811,9 @@ def read_zips_internal():
 
 if __name__ == "__main__":
     # configure_logging()
-    read_zips_internal()
+    fapc = os.environ.get("fapc", "false")
+    if fapc == "true":
+        read_zips_internal()
+    else:
+        read_zips()
+
