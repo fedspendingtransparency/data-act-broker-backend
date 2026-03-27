@@ -130,7 +130,6 @@ def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, r
         # TODO: the SAM API currently doesn't list available files and doesnt include historic ones,
         #       so we're pulling files from the CSV_ARCHIVE_BUCKET bucket up and then use the API.
         #       Rework this if SAM includes these historic files in the API and list what files are available
-        logger.info("bucket" + S3_ARCHIVE)
         monthly_v1_files = list_s3_archive_files(data_type, "MONTHLY", "v1")
         monthly_v2_files = list_s3_archive_files(data_type, "MONTHLY", "v2")
         daily_v1_files = list_s3_archive_files(data_type, "DAILY", "v1")

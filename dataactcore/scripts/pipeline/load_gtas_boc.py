@@ -9,7 +9,7 @@ import numpy as np
 from datetime import datetime
 
 from dataactbroker.helpers.generic_helper import format_internal_tas
-from dataactbroker.helpers.script_helper import get_prefixed_file_list_not_signed
+from dataactbroker.helpers.script_helper import get_prefixed_file_list_not_signed, get_prefixed_file_list
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -41,8 +41,8 @@ def load_all_boc(boc_path=None, force_load=False, aws_prefix="OMB_Extract_BOC"):
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-
-        boc_list = get_prefixed_file_list_not_signed(boc_path, aws_prefix)
+        fapc = os.environ.get("fapc", "false")
+        boc_list = get_prefixed_file_list_not_signed(boc_path, aws_prefix) if fapc == "true" else get_prefixed_file_list(boc_path, aws_prefix)
         boc_re = re.compile(r"OMB_Extract_BOC_(?P<year>\d{4})_(?P<period>\d{2})\.csv")
         for boc in boc_list:
             # for each BOC file, parse out fiscal year and period and call the BOC loader
