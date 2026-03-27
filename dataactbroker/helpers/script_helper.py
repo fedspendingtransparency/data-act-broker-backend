@@ -262,7 +262,7 @@ def flatten_json(json_obj):
     return out
 
 
-def get_prefixed_file_list(file_path, aws_prefix, bucket_name="sf_133_bucket", file_extension="csv"):
+def get_prefixed_file_list(file_path, aws_prefix, bucket_name="sf_133_bucket", file_extension="csv", signed=True):
     """Get a list of files starting with the given prefix
 
     Args:
@@ -270,6 +270,7 @@ def get_prefixed_file_list(file_path, aws_prefix, bucket_name="sf_133_bucket", f
         aws_prefix: prefix to filter which files to pull from AWS
         bucket_name: name of the bucket from which to pull the files
         file_extension: the extension of the files to look for
+        signed: whether to pull presigned S3 urls or not
 
     Returns:
         A list of tuples containing information about existing
@@ -285,50 +286,24 @@ def get_prefixed_file_list(file_path, aws_prefix, bucket_name="sf_133_bucket", f
         if CONFIG_BROKER["use_aws"]:
             # get list of prefixed files in the config bucket on S3
             s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
-            response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER[bucket_name], Prefix=aws_prefix)
-            file_list = []
-            for obj in response.get("Contents", []):
-                file_url = s3_client.generate_presigned_url(
-                    "get_object", {"Bucket": CONFIG_BROKER[bucket_name], "Key": obj["Key"]}, ExpiresIn=600
-                )
-                file_list.append(FileInfo(file_url, obj["Key"]))
-        else:
-            file_list = []
 
-    return file_list
-
-
-def get_prefixed_file_list_not_signed(file_path, aws_prefix, bucket_name="sf_133_bucket", file_extension="csv"):
-    """Get a list of files starting with the given prefix
-
-    Args:
-        file_path: path to where files are stored
-        aws_prefix: prefix to filter which files to pull from AWS
-        bucket_name: name of the bucket from which to pull the files
-        file_extension: the extension of the files to look for
-
-    Returns:
-        A list of tuples containing information about existing files
-    """
-    FileInfo = namedtuple("FileInfo", ["full_file", "file"])
-
-    if file_path is not None:
-        logger.info("Loading local files")
-        found_files = glob.glob(os.path.join(file_path, f"{aws_prefix}*.{file_extension}"))
-        file_list = [FileInfo(file_info, os.path.basename(file_info)) for file_info in found_files]
-
-    else:
-        logger.info("Loading Files")
-        if CONFIG_BROKER["use_aws"]:
-            s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
-            paginator = s3_client.get_paginator("list_objects_v2")
-            pages = paginator.paginate(Bucket=CONFIG_BROKER[bucket_name], Prefix=aws_prefix)
-            file_list = []
-            for page in pages:
-                for obj in page.get("Contents", []):
-                    key = obj["Key"]
-                    s3_object = s3_client.get_object(Bucket=CONFIG_BROKER[bucket_name], Key=key)
-                    file_list.append(FileInfo(s3_object, key))
+            if signed:
+                response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER[bucket_name], Prefix=aws_prefix)
+                file_list = []
+                for obj in response.get("Contents", []):
+                    file_url = s3_client.generate_presigned_url(
+                        "get_object", {"Bucket": CONFIG_BROKER[bucket_name], "Key": obj["Key"]}, ExpiresIn=600
+                    )
+                    file_list.append(FileInfo(file_url, obj["Key"]))
+            else:
+                paginator = s3_client.get_paginator("list_objects_v2")
+                pages = paginator.paginate(Bucket=CONFIG_BROKER[bucket_name], Prefix=aws_prefix)
+                file_list = []
+                for page in pages:
+                    for obj in page.get("Contents", []):
+                        key = obj["Key"]
+                        s3_object = s3_client.get_object(Bucket=CONFIG_BROKER[bucket_name], Key=key)
+                        file_list.append(FileInfo(s3_object, key))
         else:
             file_list = []
 

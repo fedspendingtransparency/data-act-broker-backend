@@ -48,8 +48,8 @@ def get_agency_file(base_path):
     if CONFIG_BROKER["use_aws"]:
         os.remove(agency_codes_file)
 
-        fapc = os.environ.get("fapc", "false")
-        if fapc == "true":
+        fapc = os.environ.get("fapc", "false") == "true"
+        if fapc:
             s3 = boto3.client("s3")
             bucket = CONFIG_BROKER["public_files_bucket"]
             key = f"broker_reference_data/{filename}"

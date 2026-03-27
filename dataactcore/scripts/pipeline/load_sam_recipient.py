@@ -332,9 +332,8 @@ def process_sam_extract_file(data_type, period, version, date, sess, local=None,
 
 if __name__ == "__main__":
     now = datetime.datetime.now()
-    
-    # remove otel error logs
-    # configure_logging()
+
+    configure_logging()
 
     parser = argparse.ArgumentParser(description="Get data from SAM and update SAM Recipient/exec comp tables")
     parser.add_argument(

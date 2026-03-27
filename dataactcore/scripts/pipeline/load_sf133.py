@@ -8,7 +8,7 @@ import argparse
 import pandas as pd
 
 from dataactbroker.helpers.generic_helper import format_internal_tas
-from dataactbroker.helpers.script_helper import get_prefixed_file_list_not_signed, get_prefixed_file_list
+from dataactbroker.helpers.script_helper import get_prefixed_file_list
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
@@ -56,8 +56,8 @@ def load_all_sf133(
         sess = GlobalDB.db().session
 
         # get a list of SF 133 files to load
-        fapc = os.environ.get("fapc", "false")
-        sf133_list = get_prefixed_file_list_not_signed(sf133_path, aws_prefix) if fapc == "true" else get_prefixed_file_list(sf133_path, aws_prefix)
+        fapc = os.environ.get("fapc", "false") == "true"
+        sf133_list = get_prefixed_file_list(sf133_path, aws_prefix, signed=fapc)
         sf_re = re.compile(r"sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv")
         for sf133 in sf133_list:
             # for each SF file, parse out fiscal year and period and call the SF 133 loader
