@@ -13,7 +13,13 @@ WITH limited_lines_sf_133_b21_{0} AS
                 AND sf.allocation_transfer_agency IS NULL
             )
             OR sf.allocation_transfer_agency = sub.cgac_code
+            OR COALESCE(sub.cgac_code, '') = '070'
+                AND UPPER(sf.display_tas) = '020-X-5688-000'
         )
+        AND CASE WHEN COALESCE(sub.cgac_code, '') = '020'
+            THEN UPPER(sf.display_tas) <> '020-X-5688-000'
+            ELSE TRUE
+            END
     WHERE line IN (2190, 3020)
         AND amount <> 0
         AND sub.submission_id = {0}

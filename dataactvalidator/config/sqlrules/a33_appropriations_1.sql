@@ -74,7 +74,13 @@ FROM sf_133 AS sf
                 AND sf.allocation_transfer_agency IS NULL
                 AND sf.agency_identifier = '011'
                 AND tl.fr_entity_type = ANY(sub_c.frec_list)
+            OR COALESCE(sub_c.cgac_code, '') = '070'
+                AND UPPER(sf.display_tas) = '020-X-5688-000'
         )
+    AND CASE WHEN COALESCE(sub_c.cgac_code, '') = '020'
+        THEN UPPER(sf.display_tas) <> '020-X-5688-000'
+        ELSE TRUE
+        END
 WHERE NOT EXISTS (
         SELECT 1
         FROM appropriation AS approp
