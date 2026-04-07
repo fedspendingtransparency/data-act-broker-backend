@@ -360,3 +360,73 @@ def test_non_matching_defc(database):
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
     assert errors == 1
+
+
+def test_exception_success(database):
+    """Testing exception TASs"""
+    submission_id = randint(1000, 10000)
+    tas, period, year = "020-X-5688-000", 2, 2002
+
+    # Shouldn't throw an error because the above TAS should be ignored
+    sf1 = SF133Factory(
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        allocation_transfer_agency="020",
+        agency_identifier="some-other-code",
+        disaster_emergency_fund_code="N",
+        line=3020,
+        amount=4,
+        bea_category="a",
+    )
+    submission = SubmissionFactory(
+        submission_id=submission_id,
+        reporting_fiscal_period=period,
+        reporting_fiscal_year=year,
+        cgac_code="020",
+        is_quarter_format=False,
+    )
+    op = ObjectClassProgramActivityFactory(
+        display_tas="some-other-tas",
+        disaster_emergency_fund_code="n",
+        submission_id=submission_id,
+        prior_year_adjustment="x",
+    )
+
+    errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
+    assert errors == 0
+
+
+def test_exception_failure(database):
+    """Testing exception TASs failing"""
+    submission_id = randint(1000, 10000)
+    tas, period, year = "020-X-5688-000", 2, 2002
+
+    # Should throw an error because the above TAS should be submitted by DHS
+    sf1 = SF133Factory(
+        display_tas=tas,
+        period=period,
+        fiscal_year=year,
+        allocation_transfer_agency="020",
+        agency_identifier="some-other-code",
+        disaster_emergency_fund_code="N",
+        line=3020,
+        amount=4,
+        bea_category="a",
+    )
+    submission = SubmissionFactory(
+        submission_id=submission_id,
+        reporting_fiscal_period=period,
+        reporting_fiscal_year=year,
+        cgac_code="070",
+        is_quarter_format=False,
+    )
+    op = ObjectClassProgramActivityFactory(
+        display_tas="some-other-tas",
+        disaster_emergency_fund_code="n",
+        submission_id=submission_id,
+        prior_year_adjustment="x",
+    )
+
+    errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
+    assert errors == 1

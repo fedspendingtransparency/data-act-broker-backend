@@ -2,6 +2,7 @@ import os
 import logging
 import requests
 import re
+import boto3
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -41,13 +42,25 @@ def get_agency_file(base_path):
     Returns:
         the file path for the agency file either online or locally
     """
-    agency_codes_file = os.path.join(base_path, "agency_codes.csv")
-    if CONFIG_BROKER.get("usas_public_reference_url"):
+    filename = "agency_codes.csv"
+    agency_codes_file = os.path.join(base_path, filename)
+
+    if CONFIG_BROKER["use_aws"]:
         os.remove(agency_codes_file)
-        agency_codes_url = "{}/agency_codes.csv".format(CONFIG_BROKER["usas_public_reference_url"])
-        logger.info("Loading agency codes file from {}".format(agency_codes_url))
-        r = requests.get(agency_codes_url, allow_redirects=True)
-        open(agency_codes_file, "wb").write(r.content)
+
+        fapc = os.environ.get("fapc", "false") == "true"
+        if fapc:
+            s3 = boto3.client("s3")
+            bucket = CONFIG_BROKER["public_files_bucket"]
+            key = f"broker_reference_data/{filename}"
+            source = f"{bucket}/{key}"
+            s3.download_file(Bucket=bucket, Key=key, Filename=agency_codes_file)
+        else:
+            source = f"{CONFIG_BROKER['usas_public_reference_url']}/{filename}"
+            r = requests.get(source, allow_redirects=True)
+            open(agency_codes_file, "wb").write(r.content)
+
+        logger.info(f"Loading agency codes file from {source}")
     return agency_codes_file
 
 

@@ -48,6 +48,7 @@ DEFAULT_CONFIG = {
 }
 
 
+# TODO: Not logging correctly in either remote environment
 def configure_logging(service_name="broker"):
     config = DEFAULT_CONFIG
     if "python_config" in CONFIG_LOGGING:

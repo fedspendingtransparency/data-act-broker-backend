@@ -693,12 +693,29 @@ def read_zips():
     with create_app().app_context():
         start_time = datetime.now()
         sess = GlobalDB.db().session
+        fapc = os.environ.get("fapc", "false") == "true"
 
         prep_temp_zip_cd_tables(sess)
 
-        if CONFIG_BROKER["use_aws"]:
+        if CONFIG_BROKER["use_aws"] and fapc:
             zip_folder = CONFIG_BROKER["zip_folder"] + "/"
             s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+
+            paginator = s3_client.get_paginator("list_objects_v2")
+            pages = paginator.paginate(Bucket=CONFIG_BROKER["sf_133_bucket"], Prefix=zip_folder)
+            for page in pages:
+                for obj in page.get("Contents", []):
+                    if obj["Key"] != zip_folder:
+                        s3_object = s3_client.get_object(Bucket=CONFIG_BROKER["sf_133_bucket"], Key=obj["Key"])
+                        parse_zip4_file(s3_object["Body"], sess)
+
+            # parse remaining 5 digit zips that weren't in the first file
+            citystate_object = s3_client.get_object(Bucket=CONFIG_BROKER["sf_133_bucket"], Key="ctystate.txt")
+            parse_citystate_file(citystate_object["Body"], sess)
+        elif CONFIG_BROKER["use_aws"]:
+            zip_folder = CONFIG_BROKER["zip_folder"] + "/"
+            s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+
             response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER["sf_133_bucket"], Prefix=zip_folder)
             for obj in response.get("Contents", []):
                 if obj["Key"] != zip_folder:
@@ -732,7 +749,12 @@ def read_zips():
         update_external_data_load_date(start_time, datetime.now(), "zip_code")
 
         update_state_congr_table_current(sess)
-        if CONFIG_BROKER["use_aws"]:
+        if CONFIG_BROKER["use_aws"] and fapc:
+            census_object = s3_client.get_object(
+                Bucket=CONFIG_BROKER["sf_133_bucket"], Key="census_congressional_districts.csv"
+            )
+            census_file = census_object["Body"]
+        elif CONFIG_BROKER["use_aws"]:
             census_file = s3_client.generate_presigned_url(
                 "get_object",
                 {"Bucket": CONFIG_BROKER["sf_133_bucket"], "Key": "census_congressional_districts.csv"},
