@@ -413,19 +413,19 @@ if __name__ == "__main__":
                     ).fetchall()
 
                     for unlinked_id in unlinked_ids:
-                        logger.info(f"Loading SAM Subaward reports for {data_type} with award_id {award_id}")
+                        logger.info(f"Loading SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}")
                         report_nums = load_subawards(
                             sess,
                             data_type,
                             load_type=load_type,
                             start_load_date=start_date,
                             end_load_date=end_date,
-                            award_id=award_id,
+                            award_id=unlinked_id.award_id,
                             update_db=not args.ignore_db,
                             metrics=metrics_json,
                         )
                         pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
-                        logger.info(f"Loaded SAM Subaward reports for {data_type} with award_id {award_id}")
+                        logger.info(f"Loaded SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}")
                 else:
                     logger.info(f"Loading {load_type} SAM Subaward reports for {data_type}")
                     report_nums = load_subawards(
