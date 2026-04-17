@@ -42,7 +42,7 @@ SUBAWARD_CONFIG = {
 
 
 def load_subawards(
-    sess, data_type, load_type="published", start_load_date=None, end_load_date=None, update_db=True, metrics=None
+    sess, data_type, load_type="published", start_load_date=None, end_load_date=None, award_id=None, update_db=True, metrics=None
 ):
     """Pull subaward data from the SAM Subaward API and update the DB.
 
@@ -52,6 +52,7 @@ def load_subawards(
         load_type: either "published" (default) or "deleted"
         start_load_date: earliest reportUpdatedDate to pull from, None for beginning of time
         end_load_date: latest reportUpdatedDate to pull from, None for the present
+        award_id: which award id to pull
         update_db: Boolean; update the DB tables with the new data from the API.
         metrics: an object containing information for the metrics file
 
@@ -78,6 +79,10 @@ def load_subawards(
         params["fromDate"] = start_load_date
     if end_load_date:
         params["toDate"] = end_load_date
+
+    if award_id:
+        award_id_field = 'fain' if data_type == 'assistance' else 'piid'
+        params[award_id_field] = award_id
 
     # Retrieve the total count of expected records for this pull
     param_string = "&".join(f"{k}={v}" for k, v in params.items())
@@ -367,6 +372,7 @@ if __name__ == "__main__":
         nargs=1,
         type=str,
     )
+    parser.add_argument('-u', "--unlinked", help="Pull only unlinked records.", action="store_true")
     parser.add_argument("--auto", help="Pull records since the last load.", action="store_true")
     parser.add_argument("-i", "--ignore_db", help="Do not update the DB tables", action="store_true")
 
@@ -401,18 +407,45 @@ if __name__ == "__main__":
         pulled_report_nums = {}
         for data_type in data_types:
             for load_type in load_types:
-                logger.info(f"Loading {load_type} SAM Subaward reports for {data_type}")
-                report_nums = load_subawards(
-                    sess,
-                    data_type,
-                    load_type=load_type,
-                    start_load_date=start_date,
-                    end_load_date=end_date,
-                    update_db=not args.ignore_db,
-                    metrics=metrics_json,
-                )
-                pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
-                logger.info(f"Loaded {load_type} SAM Subaward reports for {data_type}")
+                if args.unlinked and load_type != 'deleted':
+                    type_table = 'grant' if data_type == 'assistance' else 'contract'
+                    award_ids = sess.execute(
+                        f"""
+                            SELECT DISTINCT SPLIT_PART(ss.unique_award_key, '_', 3)
+                            FROM subaward
+                            JOIN sam_sub{type_table} ss on subaward.internal_id=ss.subaward_report_number
+                            WHERE subaward.unique_award_key IS NULL;
+                        """
+                    ).fetchall()
+                    logger.info(award_ids)
+
+                    # for award_id in award_ids:
+                    #     logger.info(f"Loading SAM Subaward reports for {data_type} with award_id {award_id}")
+                    #     report_nums = load_subawards(
+                    #         sess,
+                    #         data_type,
+                    #         load_type=load_type,
+                    #         start_load_date=start_date,
+                    #         end_load_date=end_date,
+                    #         award_id=award_id,
+                    #         update_db=not args.ignore_db,
+                    #         metrics=metrics_json,
+                    #     )
+                    #     pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
+                    #     logger.info(f"Loaded SAM Subaward reports for {data_type} with award_id {award_id}")
+                else:
+                    logger.info(f"Loading {load_type} SAM Subaward reports for {data_type}")
+                    report_nums = load_subawards(
+                        sess,
+                        data_type,
+                        load_type=load_type,
+                        start_load_date=start_date,
+                        end_load_date=end_date,
+                        update_db=not args.ignore_db,
+                        metrics=metrics_json,
+                    )
+                    pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
+                    logger.info(f"Loaded {load_type} SAM Subaward reports for {data_type}")
 
         logger.info("Populating subaward table based off new data")
         for loader_portion, report_nums in pulled_report_nums.items():
