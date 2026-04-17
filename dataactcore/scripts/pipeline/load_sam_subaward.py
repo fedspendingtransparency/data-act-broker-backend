@@ -110,6 +110,12 @@ def load_subawards(
                 if update_db:
                     new_subaward = parse_raw_subaward(subaward, data_type=data_type)
                     if new_subaward:
+                        if new_subaward['subaward_report_id'] in (29296421, '29296421'):
+                            logger.info('===================================================')
+                            logger.info(entries_processed)
+                            logger.info(new_subaward)
+                            logger.info(response_dict)
+                            logger.info('===================================================')
                         new_subawards = pd.concat([pd.DataFrame.from_dict([new_subaward]), new_subawards])
         new_subawards.reset_index(drop=True, inplace=True)
         report_numbers_pulled.extend(new_subawards["subaward_report_number"].tolist())
