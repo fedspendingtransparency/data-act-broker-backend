@@ -409,17 +409,17 @@ if __name__ == "__main__":
             for load_type in load_types:
                 if args.unlinked and load_type != 'deleted':
                     type_table = 'grant' if data_type == 'assistance' else 'contract'
-                    award_ids = sess.execute(
+                    unlinked_ids = sess.execute(
                         f"""
-                            SELECT DISTINCT SPLIT_PART(ss.unique_award_key, '_', 3)
+                            SELECT DISTINCT SPLIT_PART(ss.unique_award_key, '_', 3) AS award_id
                             FROM subaward
                             JOIN sam_sub{type_table} ss on subaward.internal_id=ss.subaward_report_number
                             WHERE subaward.unique_award_key IS NULL;
                         """
                     ).fetchall()
-                    logger.info(award_ids)
 
-                    # for award_id in award_ids:
+                    for unlinked_id in unlinked_ids:
+                        logger.info(unlinked_id.award_id)
                     #     logger.info(f"Loading SAM Subaward reports for {data_type} with award_id {award_id}")
                     #     report_nums = load_subawards(
                     #         sess,
