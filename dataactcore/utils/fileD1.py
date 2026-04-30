@@ -424,13 +424,31 @@ mapping = OrderedDict(
             "service_disabled_veteran_o",
             ["ServiceDisabledVeteranOwnedBusiness", "ServiceDisabledVeteranOwnedBusiness (13W)"],
         ),
+        (
+            "ser_disabvet_own_bus_join_ven",
+            [
+                "Service-DisabledVeteran-OwnedBusinessJointVenture",
+                "Service-DisabledVeteran-OwnedBusinessJointVenture (13WA)",
+            ],
+        ),
         ("woman_owned_business", ["WomanOwnedBusiness", "WomanOwnedBusiness (13U)"]),
         ("women_owned_small_business", ["WomenOwnedSmallBusiness", "WomenOwnedSmallBusiness (13UB)"]),
+        (
+            "sba_cert_women_own_small_bus",
+            ["SBA-CertifiedWomen-OwnedSmallBusiness", "SBA-CertifiedWomen-OwnedSmallBusiness (13ND)"],
+        ),
         (
             "economically_disadvantaged",
             [
                 "EconomicallyDisadvantagedWomenOwnedSmallBusiness",
                 "EconomicallyDisadvantagedWomenOwnedSmallBusiness (13UC)",
+            ],
+        ),
+        (
+            "sba_cert_econ_disadv_wosb",
+            [
+                "SBA-CertifiedEconomicallyDisadvantagedWomen-OwnedSmallBusiness",
+                "SBA-CertifiedEconomicallyDisadvantagedWomen-OwnedSmallBusiness (13NE)",
             ],
         ),
         (
@@ -475,6 +493,7 @@ mapping = OrderedDict(
             ],
         ),
         ("emerging_small_business", ["EmergingSmallBusiness", "EmergingSmallBusiness (13M)"]),
+        ("small_business_joint_venture", ["SmallBusinessJointVenture", "SmallBusinessJointVenture (13MZ)"]),
         (
             "community_developed_corpor",
             ["CommunityDevelopedCorporationOwnedFirm", "CommunityDevelopedCorporationOwnedFirm (13LB)"],
@@ -795,9 +814,12 @@ def initial_query(session):
             file_model.tribally_owned_business,
             file_model.veteran_owned_business,
             file_model.service_disabled_veteran_o,
+            file_model.ser_disabvet_own_bus_join_ven,
             file_model.woman_owned_business,
             file_model.women_owned_small_business,
+            file_model.sba_cert_women_own_small_bus,
             file_model.economically_disadvantaged,
+            file_model.sba_cert_econ_disadv_wosb,
             file_model.joint_venture_women_owned,
             file_model.joint_venture_economically,
             file_model.minority_owned_business,
@@ -810,6 +832,7 @@ def initial_query(session):
             file_model.contracting_officers_deter,
             file_model.contracting_officers_desc,
             file_model.emerging_small_business,
+            file_model.small_business_joint_venture,
             file_model.community_developed_corpor,
             file_model.labor_surplus_area_firm,
             file_model.us_federal_government,
