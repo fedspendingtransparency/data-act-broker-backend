@@ -42,7 +42,14 @@ SUBAWARD_CONFIG = {
 
 
 def load_subawards(
-    sess, data_type, load_type="published", start_load_date=None, end_load_date=None, award_id=None, update_db=True, metrics=None
+    sess,
+    data_type,
+    load_type="published",
+    start_load_date=None,
+    end_load_date=None,
+    award_id=None,
+    update_db=True,
+    metrics=None,
 ):
     """Pull subaward data from the SAM Subaward API and update the DB.
 
@@ -81,7 +88,7 @@ def load_subawards(
         params["toDate"] = end_load_date
 
     if award_id:
-        award_id_field = 'fain' if data_type == 'assistance' else 'piid'
+        award_id_field = "fain" if data_type == "assistance" else "piid"
         params[award_id_field] = award_id
 
     # Retrieve the total count of expected records for this pull
@@ -366,7 +373,7 @@ if __name__ == "__main__":
         nargs=1,
         type=str,
     )
-    parser.add_argument('-u', "--unlinked", help="Pull only unlinked records.", action="store_true")
+    parser.add_argument("-u", "--unlinked", help="Pull only unlinked records.", action="store_true")
     parser.add_argument("--auto", help="Pull records since the last load.", action="store_true")
     parser.add_argument("-i", "--ignore_db", help="Do not update the DB tables", action="store_true")
 
@@ -401,8 +408,8 @@ if __name__ == "__main__":
         pulled_report_nums = {}
         for data_type in data_types:
             for load_type in load_types:
-                if args.unlinked and load_type != 'deleted':
-                    type_table = 'grant' if data_type == 'assistance' else 'contract'
+                if args.unlinked and load_type != "deleted":
+                    type_table = "grant" if data_type == "assistance" else "contract"
                     unlinked_ids = sess.execute(
                         f"""
                             SELECT DISTINCT SPLIT_PART(ss.unique_award_key, '_', 3) AS award_id
@@ -413,7 +420,9 @@ if __name__ == "__main__":
                     ).fetchall()
 
                     for unlinked_id in unlinked_ids:
-                        logger.info(f"Loading SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}")
+                        logger.info(
+                            f"Loading SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}"
+                        )
                         report_nums = load_subawards(
                             sess,
                             data_type,
