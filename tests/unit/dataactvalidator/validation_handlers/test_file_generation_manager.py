@@ -128,10 +128,10 @@ d1_booleans = [
     "nonprofit_organization",
     "other_not_for_profit_organ",
     "us_local_government",
-"small_business_joint_venture",
+    "small_business_joint_venture",
     "ser_disabvet_own_bus_join_ven",
     "sba_cert_women_own_small_bus",
-    "sba_cert_econ_disadv_wosb"
+    "sba_cert_econ_disadv_wosb",
 ]
 
 
