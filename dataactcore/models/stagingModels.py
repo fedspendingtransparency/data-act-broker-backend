@@ -945,6 +945,10 @@ class AwardProcurement(Base):
     additional_reporting = Column(Text)
     awardee_or_recipient_uei = Column(Text, index=True)
     ultimate_parent_uei = Column(Text)
+    small_business_joint_venture = Column(Boolean)
+    ser_disabvet_own_bus_join_ven = Column(Boolean)
+    sba_cert_women_own_small_bus = Column(Boolean)
+    sba_cert_econ_disadv_wosb = Column(Boolean)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1348,6 +1352,10 @@ class PublishedAwardProcurement(Base):
     additional_reporting = Column(Text)
     awardee_or_recipient_uei = Column(Text)
     ultimate_parent_uei = Column(Text)
+    small_business_joint_venture = Column(Boolean)
+    ser_disabvet_own_bus_join_ven = Column(Boolean)
+    sba_cert_women_own_small_bus = Column(Boolean)
+    sba_cert_econ_disadv_wosb = Column(Boolean)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
