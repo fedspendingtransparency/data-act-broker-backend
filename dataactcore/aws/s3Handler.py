@@ -1,5 +1,6 @@
 import boto3
 import logging
+import os
 from botocore.exceptions import ClientError
 
 from dataactcore.config import CONFIG_BROKER
@@ -20,7 +21,7 @@ class S3Handler:
         URL_LIFETIME: Length of time before s3 URLs expire in seconds
     """
 
-    BASE_URL = "https://files-broker-nonprod.usaspending.gov"
+    BASE_URL = os.environ.get("BASE_URL", "https://files-broker-nonprod.usaspending.gov")
     ENABLE_S3 = True
     URL_LIFETIME = 60
 
