@@ -2,6 +2,7 @@ import boto3
 import logging
 import os
 from botocore.exceptions import ClientError
+from botocore.config import Config
 
 from dataactcore.config import CONFIG_BROKER
 
@@ -50,7 +51,7 @@ class S3Handler:
             A string containing the signed URL to the file
         """
         if S3Handler.ENABLE_S3:
-            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"], config=Config(signature_version="s3v4"))
             s3_params = {"Bucket": bucket_route, "Key": (path + "/" + file_name) if path else file_name}
             presigned_url = s3.generate_presigned_url(method, s3_params, ExpiresIn=S3Handler.URL_LIFETIME)
             if url_mapping:
