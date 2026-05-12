@@ -415,7 +415,8 @@ if __name__ == "__main__":
                             SELECT DISTINCT SPLIT_PART(ss.unique_award_key, '_', 3) AS award_id
                             FROM subaward
                             JOIN sam_sub{type_table} ss on subaward.internal_id=ss.subaward_report_number
-                            WHERE subaward.unique_award_key IS NULL;
+                            WHERE subaward.unique_award_key IS NULL
+                                AND NOT SPLIT_PART(ss.unique_award_key, '_', 3) LIKE '%-%';
                         """
                     ).fetchall()
 
