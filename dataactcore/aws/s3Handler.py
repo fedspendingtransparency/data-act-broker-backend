@@ -22,7 +22,7 @@ class S3Handler:
         URL_LIFETIME: Length of time before s3 URLs expire in seconds
     """
 
-    BASE_URL = os.environ.get("BASE_URL", "https://files-broker-nonprod.usaspending.gov")
+    BASE_URL = "https://files-broker-nonprod.usaspending.gov"
     ENABLE_S3 = True
     URL_LIFETIME = 60
 
@@ -51,6 +51,7 @@ class S3Handler:
             A string containing the signed URL to the file
         """
         if S3Handler.ENABLE_S3:
+            #TODO remove after fapc
             fapc = os.environ.get("fapc", "false") == "true"
             if fapc:
                 s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"], config=Config(signature_version="s3v4"))
