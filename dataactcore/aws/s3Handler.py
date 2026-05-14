@@ -22,7 +22,7 @@ class S3Handler:
         URL_LIFETIME: Length of time before s3 URLs expire in seconds
     """
 
-    BASE_URL = os.environ.get("BASE_URL", "https://files-broker-nonprod.usaspending.gov")
+    BASE_URL = "https://files-broker-nonprod.usaspending.gov"
     ENABLE_S3 = True
     URL_LIFETIME = 60
 
@@ -51,8 +51,15 @@ class S3Handler:
             A string containing the signed URL to the file
         """
         if S3Handler.ENABLE_S3:
-            # TODO: Remove config=Config(signature_version="s3v4") when updating botocore
-            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"], config=Config(signature_version="s3v4"))
+            # TODO remove after fapc
+            fapc = os.environ.get("fapc", "false") == "true"
+            if fapc:
+                # TODO: Remove config=Config(signature_version="s3v4") when updating botocore
+                s3 = boto3.client(
+                    "s3", region_name=CONFIG_BROKER["aws_region"], config=Config(signature_version="s3v4")
+                )
+            else:
+                s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
             s3_params = {"Bucket": bucket_route, "Key": (path + "/" + file_name) if path else file_name}
             presigned_url = s3.generate_presigned_url(method, s3_params, ExpiresIn=S3Handler.URL_LIFETIME)
             if url_mapping:
