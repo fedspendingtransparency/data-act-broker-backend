@@ -56,6 +56,7 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://api.sam.gov/contract-awards/v1/search?"
 
+# TODO figure out vendor_site_code
 SAM_CONTRACT_MAPPINGS = {
     "contractId.modificationNumber": "award_modification_amendme",
     "contractId.piid": "piid",
@@ -534,7 +535,7 @@ def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
     # Change US territories to the USA country code and name
     ppop_us_mask = contract_data["place_of_perform_country_c"].isin(list(country_code_map.keys()))
     ppop_territory_mask = ppop_us_mask & (contract_data["place_of_perform_country_c"] != "USA")
-    # TODO try to change this to a where
+
     contract_data["place_of_performance_state"] = contract_data.apply(
         lambda row: country_code_map[row["place_of_perform_country_c"]] if row[
                                                                                "place_of_perform_country_c"] in country_code_map and
@@ -578,7 +579,7 @@ def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
                              "county_code": types.TEXT()})
     # Get 9-digit-related county code
     sess.execute(
-        f"""
+        """
                 UPDATE tmp_zips_df
                 SET county_code = county_number
                 FROM zips
@@ -589,7 +590,7 @@ def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
     # TODO confirm we want to use this method and not the full zips
     # Get 5-digit-related county code
     sess.execute(
-        f"""
+        """
                 UPDATE tmp_zips_df
                 SET county_code = county_number
                 FROM (
@@ -766,7 +767,7 @@ def derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_d
             )
             cgac_errors[key] = str(value)
     if not funding_cgac_errors_df.empty:
-        funding_cgac_errors_json = awarding_cgac_errors_df.set_index("funding_sub_tier_agency_co")["funding_sub_tier_agency_na"].to_dict()
+        funding_cgac_errors_json = funding_cgac_errors_df.set_index("funding_sub_tier_agency_co")["funding_sub_tier_agency_na"].to_dict()
         for key, value in funding_cgac_errors_json.items():
             logger.info(
                 "WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: %s does not exist in cgac table. "
@@ -814,6 +815,46 @@ def derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_d
     return contract_data
 
 
+def process_data(contract_data,
+    contract_type,
+    sess,
+    sub_tier_df,
+    county_df,
+    state_df,
+    country_df,
+    exec_comp_df,
+    specific_params=None):
+    """Process the data"""
+    contract_mappings = SAM_CONTRACT_MAPPINGS
+    if contract_type == "IDV":
+        contract_mappings = contract_mappings | IDV_MAPPINGS
+    else:
+        contract_mappings = contract_mappings | AWARD_MAPPINGS
+
+    # Remove columns from dataframe that aren't in our existing mapping (we don't want them)
+    contract_data = contract_data[contract_data.columns.intersection(list(contract_mappings.keys()))]
+
+    # Add blank columns to complete the mappings for derivations and missing columns from the file
+    contract_data = contract_data.reindex(columns=contract_data.columns.tolist() + list(contract_mappings.keys() - contract_data.columns))
+
+    # lowercase all contract_mappings now that we've sorted through what we've gotten from the files
+    contract_mappings = {k.lower(): v for k, v in contract_mappings.items()}
+
+    contract_data = clean_data(
+        contract_data,
+        DetachedAwardProcurement,
+        contract_mappings,
+        {},
+    )
+
+    contract_data = derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_df, country_df, exec_comp_df, contract_type)
+
+    # insert the data
+    insert_into_db(sess, contract_data)
+
+    # TODO figure out where/how to delete the tmp_zips_df table
+
+
 def get_data(
     contract_type,
     award_type,
@@ -849,41 +890,23 @@ def get_data(
         specific_params: a string containing a specific set of params to run the query with (used for outside
             scripts that need to run a data load)
     """
-    test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", f"sam_contract_{contract_type.lower()}.csv")
+    test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type.lower()}.csv")
     contract_data = []
-    contract_mappings = SAM_CONTRACT_MAPPINGS
-    if contract_type == "IDV":
-        contract_mappings = contract_mappings | IDV_MAPPINGS
-    else:
-        contract_mappings = contract_mappings | AWARD_MAPPINGS
 
     if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT"):
         # We might need to use chunksize later on, but it also won't be in this "if"
         contract_data = pd.read_csv(test_file, dtype=str)
 
     if len(contract_data) > 0:
-        # Remove columns from dataframe that aren't in our existing mapping (we don't want them)
-        contract_data = contract_data[contract_data.columns.intersection(list(contract_mappings.keys()))]
-
-        # Add blank columns to complete the mappings for derivations and missing columns from the file
-        contract_data = contract_data.reindex(columns=contract_data.columns.tolist() + list(contract_mappings.keys() - contract_data.columns))
-
-        # lowercase all contract_mappings now that we've sorted through what we've gotten from the files
-        contract_mappings = {k.lower(): v for k, v in contract_mappings.items()}
-
-        contract_data = clean_data(
-            contract_data,
-            DetachedAwardProcurement,
-            contract_mappings,
-            {},
+        process_data(contract_data,
+            contract_type,
+            sess,
+            sub_tier_df,
+            county_df,
+            state_df,
+            country_df,
+            exec_comp_df,
         )
-
-        contract_data = derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_df, country_df, exec_comp_df, contract_type)
-
-        # insert the data
-        insert_into_db(sess, contract_data)
-
-        # TODO figure out where/how to delete the tmp_zips_df table
 
 
 def create_lookups(sess):
