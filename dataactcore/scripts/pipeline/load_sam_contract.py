@@ -98,7 +98,7 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.competitionInformation.otherThanFullAndOpenCompetition.name": "other_than_full_and_o_desc",
     "coreData.competitionInformation.sbirSTTR.code": "research",
     "coreData.competitionInformation.sbirSTTR.name": "research_description",
-    "coreData.competitionInformation.smallBusinessCompetitivenessDemonstrationProgram": "small_business_competitive", # has data in SAM but doesn't have data in FPDS at least sometimes
+    "coreData.competitionInformation.smallBusinessCompetitivenessDemonstrationProgram.name": "small_business_competitive", # has data in SAM but doesn't have data in FPDS at least sometimes
     "coreData.competitionInformation.solicitationProcedures.code": "solicitation_procedures",
     "coreData.competitionInformation.solicitationProcedures.name": "solicitation_procedur_desc",
     "coreData.competitionInformation.sourceSelectionProcess.code": "source_selection_process",
@@ -542,15 +542,15 @@ def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
                                                                            row[
                                                                                "place_of_perform_country_c"] != "USA" else
         row["place_of_performance_state"], axis=1)
-    contract_data = contract_data.merge(state_df, how="left", left_on="legal_entity_state_code",
+    contract_data = contract_data.merge(state_df, how="left", left_on="place_of_performance_state",
                                         right_on="state_code").drop("state_code", axis=1)
     # updating both blank states and those that were changed due to the territory updates
     contract_data["place_of_perfor_state_desc"] = np.where(
         ppop_territory_mask | (contract_data["place_of_perfor_state_desc"].isnull()), contract_data["state_name"],
         contract_data["place_of_perfor_state_desc"])
 
-    contract_data["place_of_perfor_state_desc"] = np.where(ppop_territory_mask, "UNITED STATES",
-                                                           contract_data["place_of_perfor_state_desc"])
+    contract_data["place_of_perf_country_desc"] = np.where(ppop_territory_mask, "UNITED STATES",
+                                                           contract_data["place_of_perf_country_desc"])
     contract_data["place_of_perform_country_c"] = np.where(ppop_territory_mask, "USA",
                                                            contract_data["place_of_perform_country_c"])
 
@@ -561,14 +561,13 @@ def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
         contract_data["place_of_perf_country_desc"].isnull(), contract_data["country_name"],
         contract_data["place_of_perf_country_desc"])
 
-    ppop_valid_zip_mask = (contract_data["place_of_performance_zip4a"].str.match(r"^\d{5}(-?\d{4})?$"))
+    ppop_valid_zip_mask = (contract_data["place_of_performance_zip4a"].str.match(r"^\d{5}(-?\d{4})?$")) & ppop_us_mask
     # if we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
     contract_data["place_of_performance_zip5"] = np.where(ppop_valid_zip_mask, contract_data["place_of_performance_zip4a"].str[:5], np.nan)
     contract_data["place_of_perform_zip_last4"] = np.where(
         ppop_valid_zip_mask & (contract_data["place_of_performance_zip4a"].str.len() > 5),
         contract_data["place_of_performance_zip4a"].str[-4:], np.nan)
 
-    # TODO ppop county code doesn't have leading zeroes when it comes in
     # Derive ppop county data
     # Use zip codes to derive remaining possible county codes
     ppop_zips_df = contract_data[["place_of_performance_zip5", "place_of_perform_zip_last4"]][
@@ -660,10 +659,10 @@ def calculate_legal_entity_fields(sess, contract_data, county_df, state_df, coun
     # Drop all legal entity-based extra columns we've created through merges
     contract_data = contract_data.drop(["country_code", "country_name", "state_code", "state_name"], axis=1)
 
-    le_valid_zip_mask = (contract_data["legal_entity_zip4"].str.match(r"^\d{5}(-?\d{4})?$"))
+    le_valid_zip_mask = (contract_data["legal_entity_zip4"].str.match(r"^\d{5}(-?\d{4})?$")) & le_us_mask
     # if we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
-    contract_data["legal_entity_zip5"] = np.where(le_us_mask & le_valid_zip_mask, contract_data["legal_entity_zip4"].str[:5], np.nan)
-    contract_data["legal_entity_zip_last4"] = np.where(le_us_mask & le_valid_zip_mask & (contract_data["legal_entity_zip4"].str.len() > 5), contract_data["legal_entity_zip4"].str[-4:], np.nan)
+    contract_data["legal_entity_zip5"] = np.where(le_valid_zip_mask, contract_data["legal_entity_zip4"].str[:5], np.nan)
+    contract_data["legal_entity_zip_last4"] = np.where(le_valid_zip_mask & (contract_data["legal_entity_zip4"].str.len() > 5), contract_data["legal_entity_zip4"].str[-4:], np.nan)
 
     # Derive le county data
     le_zips_df = contract_data[["legal_entity_zip5", "legal_entity_zip_last4"]][~contract_data["legal_entity_zip5"].isnull()].drop_duplicates()
@@ -844,7 +843,7 @@ def process_data(contract_data,
         contract_data,
         DetachedAwardProcurement,
         contract_mappings,
-        {},
+        {"place_of_perform_county_co": {"pad_to_length": 3, "keep_null": True}},
     )
 
     contract_data = derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_df, country_df, exec_comp_df, contract_type)
