@@ -739,6 +739,23 @@ def request_sam_entity_api(filters, download_url=None):
     return _request_sam_api(url, request_type="post", headers=headers, params=filters)
 
 
+def request_sam_contracts_api(filters, download_url=None):
+    """Calls the SAM contracts API to retrieve SAM data by the filters
+
+    Args:
+        filters: dict of filters to search
+        download_url: the generated download_url sent by a previous request (for csvs)
+
+    Returns:
+        json list of SAM objects representing entities,
+        OR binary stream to be saved to a file
+    """
+    if not filters:
+        filters = {}
+    url = download_url if download_url else CONFIG_BROKER["sam"]["contract"]["api_url"]
+    return _request_sam_api(url, request_type="get", params=filters)
+
+
 def request_sam_iqaas_uei_api(filters):
     """Calls the SAM IQaaS API to retrieve SAM UEI data by the keys provided.
 

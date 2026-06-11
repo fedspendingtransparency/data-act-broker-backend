@@ -7,6 +7,7 @@ import asyncio
 import os
 import numpy as np
 import pandas as pd
+import tempfile
 
 import datetime
 import time
@@ -22,17 +23,18 @@ from distutils.util import strtobool
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
-from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand
+from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand, validate_load_dates
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.loader_utils import clean_data, insert_dataframe
+from dataactcore.utils.sam_recipient import request_sam_contracts_api
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
+from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now, get_timestamp
 from dataactcore.models.domainModels import (
     SubTierAgency,
     CGAC,
@@ -56,6 +58,7 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://api.sam.gov/contract-awards/v1/search?"
 
+S3_ARCHIVE = CONFIG_BROKER["sam"]["recipient"]["csv_archive_bucket"]
 # TODO figure out vendor_site_code
 SAM_CONTRACT_MAPPINGS = {
     "contractId.modificationNumber": "award_modification_amendme",
@@ -853,59 +856,124 @@ def process_data(contract_data,
 
     # TODO figure out where/how to delete the tmp_zips_df table
 
+def get_sam_contract_file(contract_type, award_type, delete, start_date=None, end_date=None, piid=None, extra_filters=None):
+    """Get the data from the atom feed based on the filters provided
+
+    Note: This wIll simply download the file onto the running machine. It's the responsibility of the caller to
+          delete the file after processing it to conserve space.
+
+    Args:
+        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+        award_type: a string indicating what the award type of the feed being checked is
+        delete: boolean representing whether to pull from the delete feed
+        start_date: a date indicating the first date to pull from (must be provided with end_date)
+        end_date: a date indicating the last date to pull from (must be provided with start_date)
+        piid: a specific piid to filter on
+        extra_filters: current dict of request filters that will be used to pull the data from the API
+    """
+    filters = {
+        'api_key': CONFIG_BROKER["sam"]["api_key"],
+        'awardOrIDV': contract_type,
+        'awardOrIDVTypeName': award_type.upper(),
+        'deletedStatus': 'yes' if delete else 'no',
+    }
+    if start_date and end_date:
+        filters['lastModifiedDate'] = f'[{start_date},{end_date}]'
+    if piid:
+        filters['piid'] = piid
+    if extra_filters is not None:
+        filters.update(extra_filters)
+
+    # TODO: Refactor with load_sam_recipient.download_sam_file.
+    #       Just needs to account for two separate API urls with different API contracts.
+
+    # request file
+    resp = request_sam_contracts_api(filters)
+
+    # get the token
+    download_url_regex = re.search(r"^.*(https\S+)\?token=(\S+)\s+.*$", str(resp.content))
+    download_url, token = download_url_regex.group(1), download_url_regex.group(2)
+
+    filters = {"token": token}
+    # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
+    # so we don't need to add any additional sleeping here.
+    file_content = request_sam_contracts_api(filters, download_url=download_url)
+
+    # get the generated download
+    filename_list = ['SAM', 'CONTRACT', contract_type.upper(), award_type.upper(), 'UPDATE' if not delete else 'DELETE']
+    if start_date and end_date:
+        for date_string in [start_date, end_date]:
+            # convert to iso8601 for easier filename sorting
+            filename_list.append(datetime.strptime(date_string, "%m/%d/%Y").strftime("%Y%m%d"))
+    if piid:
+        filename_list.append(f'PIID_{piid}')
+    local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{'_'.join(filename_list)}.csv")
+
+    with open(local_sam_file_path, mode="wb+") as local_sam_file:
+        temp_file.write(file_content.content)
+
+    return local_sam_file_path
 
 def get_data(
     contract_type,
     award_type,
-    now,
+    delete,
     sess,
     sub_tier_df,
     county_df,
     state_df,
     country_df,
     exec_comp_df,
-    last_run=None,
-    start_date=None,
-    end_date=None,
+    start_date,
+    end_date,
+    piid,
+    extra_filters = None,
+    local_file=None,
     metrics=None,
-    specific_params=None,
 ):
     """Get the data from the atom feed based on contract/award type and the last time the script was run.
 
     Args:
         contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
         award_type: a string indicating what the award type of the feed being checked is
-        now: a timestamp indicating the time to set the updated_at to
+        delete: boolean representing whether to pull from the delete feed
         sess: the database connection
         sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
         exec_comp_df: a dataframe containing all the data for Executive Compensation
-        last_run: a date indicating the last time the pull was run
         start_date: a date indicating the first date to pull from (must be provided with end_date)
         end_date: a date indicating the last date to pull from (must be provided with start_date)
+        piid: a specific piid to filter on
+        extra_filters: current dict of request filters that will be used to pull the data from the API
+        local_file: skip downloading the file and work from a local file if provided
         metrics: a dictionary to gather metrics for the script in
-        specific_params: a string containing a specific set of params to run the query with (used for outside
-            scripts that need to run a data load)
     """
-    test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type.lower()}.csv")
-    contract_data = []
+    # test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type.lower()}.csv")
+    sam_contract_file = local_file if local_file else get_sam_contract_file(contract_type, award_type, delete, start_date=start_date, end_date=end_date, piid=piid, extra_filters=extra_filters)
 
-    if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT"):
-        # We might need to use chunksize later on, but it also won't be in this "if"
-        contract_data = pd.read_csv(test_file, dtype=str)
+    # contract_data = []
+    # if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT"):
+    #     # We might need to use chunksize later on, but it also won't be in this "if"
+    #     contract_data = pd.read_csv(sam_contract_file, dtype=str)
+    #
+    # if len(contract_data) > 0:
+    #     process_data(contract_data,
+    #         contract_type,
+    #         sess,
+    #         sub_tier_df,
+    #         county_df,
+    #         state_df,
+    #         country_df,
+    #         exec_comp_df,
+    #     )
 
-    if len(contract_data) > 0:
-        process_data(contract_data,
-            contract_type,
-            sess,
-            sub_tier_df,
-            county_df,
-            state_df,
-            country_df,
-            exec_comp_df,
-        )
+    # Host the file in S3 after processing it for traceability
+    if not local and CONFIG_BROKER["use_aws"]:
+        s3 = boto3.client("s3", region_name="us-gov-west-1")
+        s3.upload_file(sam_contract_file, S3_ARCHIVE, os.path.basename(sam_contract_file))
+        os.remove(sam_contract_file)
 
 
 def create_lookups(sess):
@@ -963,14 +1031,6 @@ def main():
 
     parser = argparse.ArgumentParser(description="Pull data from SAM Contracts API.")
     parser.add_argument(
-        "-da",
-        "--dates",
-        help="Used to specify dates to gather updates from. "
-             "Should have 2 arguments, first and last day, formatted YYYY-mm-dd",
-        nargs=2,
-        type=str,
-    )
-    parser.add_argument(
         "-del",
         "--delete",
         help='Used to only run the delete feed. First argument must be "both", '
@@ -979,6 +1039,23 @@ def main():
         nargs=3,
         type=str,
     )
+    parser.add_argument(
+        "-da",
+        "--dates",
+        help="Used to specify dates to gather updates from. "
+             "Should have 2 arguments, first and last day, formatted YYYY-mm-dd",
+        nargs=2,
+        type=str,
+    )
+    parser.add_argument(
+        "-p",
+        "--piid",
+        help="Specify specific PIID to pull",
+        nargs=1,
+        type=str,
+    )
+    parser.add_argument("-l", "--local_file", type=str, default=None, help="Local filename to load. If not provided, run remotely.")
+
     args = parser.parse_args()
 
     award_types_award = ["Delivery Order", "BPA Call", "Definitive Contract", "Purchase Order"]
@@ -997,64 +1074,46 @@ def main():
 
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = create_lookups(sess)
 
+    start_date, end_date, auto = (None, None, True) if not args.dates else (args.dates[0], args.dates[1], False)
+    start_date, end_date = validate_load_dates(start_date, end_date, arg_auto, 'fpds', arg_date_format="%m-%d-%Y", output_date_format="%m/%d/%Y")
+
     if not args.delete:
-        logger.info("Starting at: %s", str(datetime.datetime.now()))
-
-        last_update_obj = (
-            sess.query(ExternalDataLoadDate)
-            .filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT["fpds"])
-            .one_or_none()
-        )
-
-        # update_date can't be null because it's being used as the PK for the table, so it can only exist or
-        # there are no rows in the table. If there are no rows, act like it's an "add all"
-        if not last_update_obj:
-            logger.error(
-                "No last_update date present, please add one to the database or specify a date range to continue."
-            )
-            raise ValueError(
-                "No last_update date present, please add one to the database or specify a date range to continue."
-            )
-        last_update = last_update_obj.last_load_date_start
-        start_date = None
-        end_date = None
-
-        if args.dates:
-            start_date = args.dates[0].replace("-", "/")
-            end_date = args.dates[1].replace("-", "/")
+        logger.info("Starting at: %s", str(get_utc_now()))
 
         for award_type in award_types_idv:
             get_data(
                 "IDV",
                 award_type,
-                now,
+                False,
                 sess,
                 sub_tier_df,
                 county_df,
                 state_df,
                 country_df,
                 exec_comp_df,
-                last_update,
-                start_date,
-                end_date,
-                metrics_json,
+                start_date=start_date,
+                end_date=end_date,
+                piid=args.piid,
+                local_file=args.local_file,
+                metrics=metrics_json,
             )
 
         for award_type in award_types_award:
             get_data(
                 "award",
                 award_type,
-                now,
+                False,
                 sess,
                 sub_tier_df,
                 county_df,
                 state_df,
                 country_df,
                 exec_comp_df,
-                last_update,
-                start_date,
-                end_date,
-                metrics_json,
+                start_date=start_date,
+                end_date=end_date,
+                piid=args.piid,
+                local_file=args.local_file,
+                metrics=metrics_json,
             )
 
         # We also need to process the delete feed
@@ -1089,7 +1148,7 @@ def main():
         #     get_delete_data("award", now, sess, now, del_start, del_end, metrics=metrics_json)
         # sess.commit()
 
-    metrics_json["duration"] = str(datetime.datetime.now() - now)
+    metrics_json["duration"] = str(get_utc_now() - now)
 
     with open("load_sam_contract_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
