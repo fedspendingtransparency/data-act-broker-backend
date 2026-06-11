@@ -1075,7 +1075,7 @@ def main():
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = create_lookups(sess)
 
     start_date, end_date, auto = (None, None, True) if not args.dates else (args.dates[0], args.dates[1], False)
-    start_date, end_date = validate_load_dates(start_date, end_date, auto, 'fpds', arg_date_format="%m-%d-%Y", output_date_format="%m/%d/%Y")
+    start_date, end_date = validate_load_dates(start_date, end_date, auto, 'fpds', arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y")
 
     if not args.delete:
         logger.info("Starting at: %s", str(get_utc_now()))
