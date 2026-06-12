@@ -909,7 +909,7 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
     if start_date and end_date:
         for date_string in [start_date, end_date]:
             # convert to iso8601 for easier filename sorting
-            filename_list.append(datetime.strptime(date_string, "%m/%d/%Y").strftime("%Y%m%d"))
+            filename_list.append(datetime.datetime.strptime(date_string, "%m/%d/%Y").strftime("%Y%m%d"))
     if piid:
         filename_list.append(f'PIID_{piid}')
     local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{'_'.join(filename_list)}.csv")
