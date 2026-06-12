@@ -8,6 +8,7 @@ import os
 import numpy as np
 import pandas as pd
 import tempfile
+import gzip
 
 import datetime
 import time
@@ -910,8 +911,8 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
         filename_list.append(f'PIID_{piid}')
     local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{'_'.join(filename_list)}.csv")
 
-    with open(local_sam_file_path, mode="w+") as local_sam_file:
-        local_sam_file.write(file_content.text)
+    with open(local_sam_file_path, mode="wb+") as local_sam_file:
+        local_sam_file.write(gzip.decompress(file_content.content))
 
     return local_sam_file_path
 
