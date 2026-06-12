@@ -871,6 +871,16 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
         piid: a specific piid to filter on
         extra_filters: current dict of request filters that will be used to pull the data from the API
     """
+    filename_list = ['SAM', 'CONTRACT', contract_type.upper(), award_type.upper(), 'UPDATE' if not delete else 'DELETE']
+    if start_date and end_date:
+        for date_string in [start_date, end_date]:
+            # convert to iso8601 for easier filename sorting
+            filename_list.append(datetime.datetime.strptime(date_string, "%m/%d/%Y").strftime("%Y%m%d"))
+    if piid:
+        filename_list.append(f'PIID_{piid}')
+    local_sam_file_name = f"{'_'.join(filename_list)}.csv"
+    local_sam_file_path = os.path.join(tempfile.gettempdir(), local_sam_file_name)
+
     filters = {
         'api_key': CONFIG_BROKER["sam"]["api_key"],
         'awardOrIDV': contract_type,
@@ -888,28 +898,22 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
 
     # TODO: Refactor with load_sam_recipient.download_sam_file.
     #       Just needs to account for two separate API urls with different API contracts.
-
-    # request file
+    logger.info(f'Requesting file: {local_sam_file_name}')
     resp = request_sam_contracts_api(filters)
     resp_content = json.loads(resp.content.decode('utf-8'))
+    logger.info(resp_content)
 
     # just use the presignedUrl provided, includes the params we need (token, api key)
+    logger.info('File requested, waiting for file to generate')
     download_url = resp_content.get('presignedUrl').replace('REPLACE_WITH_API_KEY', CONFIG_BROKER["sam"]["api_key"])
 
     # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
     # so we don't need to add any additional sleeping here.
     file_content = request_sam_contracts_api(None, download_url=download_url, stream=True)
+    logger.info(file_content.status_code)
 
     # get the generated download
-    filename_list = ['SAM', 'CONTRACT', contract_type.upper(), award_type.upper(), 'UPDATE' if not delete else 'DELETE']
-    if start_date and end_date:
-        for date_string in [start_date, end_date]:
-            # convert to iso8601 for easier filename sorting
-            filename_list.append(datetime.datetime.strptime(date_string, "%m/%d/%Y").strftime("%Y%m%d"))
-    if piid:
-        filename_list.append(f'PIID_{piid}')
-    local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{'_'.join(filename_list)}.csv")
-
+    logger.info('Downloading file')
     try:
         with open(local_sam_file_path, mode="wb") as local_sam_file:
             for chunk in file_content.iter_content(chunk_size=8192):

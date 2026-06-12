@@ -856,8 +856,7 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None, st
     """
     if request_type not in ["get", "post"]:
         return ValueError("request_type must be 'get' or 'post'")
-    # auth = (CONFIG_BROKER["sam"]["account_user_id"], CONFIG_BROKER["sam"]["account_password"])
-    auth = None
+    auth = (CONFIG_BROKER["sam"]["account_user_id"], CONFIG_BROKER["sam"]["account_password"])
     r = requests.request(
         request_type.upper(), url, headers=headers, params=params, json=json.dumps(body), auth=auth, timeout=60, stream=stream
     )
