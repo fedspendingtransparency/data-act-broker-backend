@@ -910,6 +910,7 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
     # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
     # so we don't need to add any additional sleeping here.
     file_content = request_sam_contracts_api(None, download_url=download_url, stream=False)
+    logger.info(file_content.status_code)
     logger.info(file_content.text)
     logger.info(file_content.content)
 
