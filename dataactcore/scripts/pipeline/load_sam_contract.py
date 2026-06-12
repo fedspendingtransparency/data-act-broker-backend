@@ -893,6 +893,7 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
     resp = request_sam_contracts_api(filters)
 
     # get the token
+    logger.info(resp.content)
     download_url_regex = re.search(r"^.*(https\S+)\?token=(\S+)\s+.*$", str(resp.content))
     download_url, token = download_url_regex.group(1), download_url_regex.group(2)
 
