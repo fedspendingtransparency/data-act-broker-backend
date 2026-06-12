@@ -739,12 +739,13 @@ def request_sam_entity_api(filters, download_url=None):
     return _request_sam_api(url, request_type="post", headers=headers, params=filters)
 
 
-def request_sam_contracts_api(filters, download_url=None):
+def request_sam_contracts_api(filters, download_url=None, stream=False):
     """Calls the SAM contracts API to retrieve SAM data by the filters
 
     Args:
         filters: dict of filters to search
         download_url: the generated download_url sent by a previous request (for csvs)
+        stream: whether to stream the contents or not
 
     Returns:
         json list of SAM objects representing entities,
@@ -753,7 +754,7 @@ def request_sam_contracts_api(filters, download_url=None):
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["contract"]["api_url"]
-    return _request_sam_api(url, request_type="get", params=filters)
+    return _request_sam_api(url, request_type="get", params=filters, stream=stream)
 
 
 def request_sam_iqaas_uei_api(filters):
@@ -836,7 +837,7 @@ def give_up(e):
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
 @sleep_and_retry
 @on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=3, logger=logger, giveup=give_up)
-def _request_sam_api(url, request_type, headers=None, params=None, body=None):
+def _request_sam_api(url, request_type, headers=None, params=None, body=None, stream=False):
     """Calls one of the SAM APIs and returns its content
 
     Args:
@@ -845,6 +846,7 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None):
         headers: headers to use for the API
         params: query filters to use for the API
         body: json filters to use for the API
+        stream: whether or not to stream the contents
 
     Returns:
         the response's content
@@ -857,7 +859,7 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None):
     # auth = (CONFIG_BROKER["sam"]["account_user_id"], CONFIG_BROKER["sam"]["account_password"])
     auth = None
     r = requests.request(
-        request_type.upper(), url, headers=headers, params=params, json=json.dumps(body), auth=auth, timeout=60
+        request_type.upper(), url, headers=headers, params=params, json=json.dumps(body), auth=auth, timeout=60, stream=stream
     )
     # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
     r.raise_for_status()

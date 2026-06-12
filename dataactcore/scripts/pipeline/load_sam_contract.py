@@ -8,7 +8,6 @@ import os
 import numpy as np
 import pandas as pd
 import tempfile
-import gzip
 
 import datetime
 import time
@@ -899,7 +898,7 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
 
     # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
     # so we don't need to add any additional sleeping here.
-    file_content = request_sam_contracts_api(None, download_url=download_url)
+    file_content = request_sam_contracts_api(None, download_url=download_url, stream=True)
 
     # get the generated download
     filename_list = ['SAM', 'CONTRACT', contract_type.upper(), award_type.upper(), 'UPDATE' if not delete else 'DELETE']
@@ -911,8 +910,13 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
         filename_list.append(f'PIID_{piid}')
     local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{'_'.join(filename_list)}.csv")
 
-    with open(local_sam_file_path, mode="wb+") as local_sam_file:
-        local_sam_file.write(gzip.decompress(file_content.content))
+    try:
+        with open(local_sam_file_path, mode="wb") as local_sam_file:
+            for chunk in file_content.iter_content(chunk_size=8192):
+                if chunk:
+                    local_sam_file.write(chunk)
+    finally:
+        file_content.close()
 
     return local_sam_file_path
 
