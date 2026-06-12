@@ -891,7 +891,7 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
 
     # request file
     resp = request_sam_contracts_api(filters)
-    resp_content = json.loads(resp.decode('utf-8'))
+    resp_content = json.loads(resp.content.decode('utf-8'))
 
     # get the token
     logger.info(resp.content)
