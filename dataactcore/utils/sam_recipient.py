@@ -753,7 +753,7 @@ def request_sam_contracts_api(filters, download_url=None):
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["contract"]["api_url"]
-    return _request_sam_api(url, request_type="get", params=filters, max_retries=3)
+    return _request_sam_api(url, request_type="get", params=filters)
 
 
 def request_sam_iqaas_uei_api(filters):
@@ -835,7 +835,7 @@ def give_up(e):
 
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
 @sleep_and_retry
-@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=15, logger=logger, giveup=give_up)
+@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=3, logger=logger, giveup=give_up)
 def _request_sam_api(url, request_type, headers=None, params=None, body=None):
     """Calls one of the SAM APIs and returns its content
 
