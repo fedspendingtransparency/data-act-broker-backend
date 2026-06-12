@@ -891,13 +891,15 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
 
     # request file
     resp = request_sam_contracts_api(filters)
+    resp_content = json.loads(resp.decode('utf-8'))
 
     # get the token
     logger.info(resp.content)
-    download_url_regex = re.search(r"^.*(https\S+)?\S+token=(\S+)\s+.*$", str(resp.content))
-    download_url, token = download_url_regex.group(1), download_url_regex.group(2)
+    # download_url_regex = re.search(r"^.*(https\S+)?\S+exportToken=(\S+)\s+.*$", str(resp.content))
+    # download_url, token = download_url_regex.group(1), download_url_regex.group(2)
+    download_url = resp_content.get('presignedUrl').replace('REPLACE_WITH_API_KEY', CONFIG_BROKER["sam"]["api_key"])
 
-    filters = {'api_key': CONFIG_BROKER["sam"]["api_key"], "token": token}
+    filters = None
     # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
     # so we don't need to add any additional sleeping here.
     file_content = request_sam_contracts_api(filters, download_url=download_url)
