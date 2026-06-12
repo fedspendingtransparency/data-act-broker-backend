@@ -876,6 +876,8 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
         'awardOrIDV': contract_type,
         'awardOrIDVTypeName': award_type.upper(),
         'deletedStatus': 'yes' if delete else 'no',
+        'format': 'csv',
+        'emailId': 'No'
     }
     if start_date and end_date:
         filters['lastModifiedDate'] = f'[{start_date},{end_date}]'
