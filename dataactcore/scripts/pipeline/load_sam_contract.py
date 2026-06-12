@@ -893,16 +893,12 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
     resp = request_sam_contracts_api(filters)
     resp_content = json.loads(resp.content.decode('utf-8'))
 
-    # get the token
-    logger.info(resp.content)
-    # download_url_regex = re.search(r"^.*(https\S+)?\S+exportToken=(\S+)\s+.*$", str(resp.content))
-    # download_url, token = download_url_regex.group(1), download_url_regex.group(2)
+    # just use the presignedUrl provided, includes the params we need (token, api key)
     download_url = resp_content.get('presignedUrl').replace('REPLACE_WITH_API_KEY', CONFIG_BROKER["sam"]["api_key"])
 
-    filters = None
     # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
     # so we don't need to add any additional sleeping here.
-    file_content = request_sam_contracts_api(filters, download_url=download_url)
+    file_content = request_sam_contracts_api(None, download_url=download_url)
 
     # get the generated download
     filename_list = ['SAM', 'CONTRACT', contract_type.upper(), award_type.upper(), 'UPDATE' if not delete else 'DELETE']
@@ -975,7 +971,7 @@ def get_data(
     #     )
 
     # Host the file in S3 after processing it for traceability
-    if not local and CONFIG_BROKER["use_aws"]:
+    if not local_file and CONFIG_BROKER["use_aws"]:
         s3 = boto3.client("s3", region_name="us-gov-west-1")
         s3.upload_file(sam_contract_file, S3_ARCHIVE, os.path.basename(sam_contract_file))
         os.remove(sam_contract_file)
