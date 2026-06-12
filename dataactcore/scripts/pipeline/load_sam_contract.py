@@ -910,7 +910,7 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
     # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
     # so we don't need to add any additional sleeping here.
     def file_ready_check(response):
-        if "The specified key does not exist" in file_content.text:
+        if "The specified key does not exist" in response.text:
             raise RequestException('The specified key does not exist.')
 
     file_content = request_sam_contracts_api(None, download_url=download_url, stream=False, custom_error_check=file_ready_check)
