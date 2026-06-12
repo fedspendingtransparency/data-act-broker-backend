@@ -739,7 +739,7 @@ def request_sam_entity_api(filters, download_url=None):
     return _request_sam_api(url, request_type="post", headers=headers, params=filters)
 
 
-def request_sam_contracts_api(filters, download_url=None, stream=False):
+def request_sam_contracts_api(filters, download_url=None, stream=False, custom_error_check=None):
     """Calls the SAM contracts API to retrieve SAM data by the filters
 
     Args:
@@ -754,7 +754,7 @@ def request_sam_contracts_api(filters, download_url=None, stream=False):
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["contract"]["api_url"]
-    return _request_sam_api(url, request_type="get", params=filters, stream=stream)
+    return _request_sam_api(url, request_type="get", params=filters, stream=stream, custom_error_check=custom_error_check)
 
 
 def request_sam_iqaas_uei_api(filters):
@@ -837,7 +837,7 @@ def give_up(e):
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
 @sleep_and_retry
 @on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=3, logger=logger, giveup=give_up)
-def _request_sam_api(url, request_type, headers=None, params=None, body=None, stream=False):
+def _request_sam_api(url, request_type, headers=None, params=None, body=None, stream=False, custom_error_check=None):
     """Calls one of the SAM APIs and returns its content
 
     Args:
@@ -847,6 +847,7 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None, st
         params: query filters to use for the API
         body: json filters to use for the API
         stream: whether or not to stream the contents
+        custom_error_check: custom function to raise an error based on the response
 
     Returns:
         the response's content
@@ -862,6 +863,10 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None, st
     )
     # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
     r.raise_for_status()
+
+    if custom_error_check:
+        custom_error_check(r)
+
     return r
 
 

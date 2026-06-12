@@ -20,7 +20,7 @@ from sqlalchemy import func, and_, case, or_, types
 from dateutil.relativedelta import relativedelta
 from distutils.util import strtobool
 
-from requests.exceptions import ConnectionError, ReadTimeout
+from requests.exceptions import ConnectionError, ReadTimeout, RequestException
 from urllib3.exceptions import ReadTimeoutError
 
 from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand, validate_load_dates
@@ -909,7 +909,11 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
 
     # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
     # so we don't need to add any additional sleeping here.
-    file_content = request_sam_contracts_api(None, download_url=download_url, stream=False)
+    def file_ready_check(response):
+        if "The specified key does not exist" in file_content.text:
+            raise RequestException('The specified key does not exist.')
+
+    file_content = request_sam_contracts_api(None, download_url=download_url, stream=False, custom_error_check=file_ready_check)
     logger.info(file_content.status_code)
     logger.info(file_content.text)
     logger.info(file_content.content)
