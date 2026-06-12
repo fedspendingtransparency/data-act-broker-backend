@@ -753,7 +753,7 @@ def request_sam_contracts_api(filters, download_url=None):
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["contract"]["api_url"]
-    return _request_sam_api(url, request_type="get", params=filters)
+    return _request_sam_api(url, request_type="get", params=filters, max_retries=3)
 
 
 def request_sam_iqaas_uei_api(filters):
