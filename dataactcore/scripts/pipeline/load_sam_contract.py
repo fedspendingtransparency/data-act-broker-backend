@@ -910,7 +910,7 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
         filename_list.append(f'PIID_{piid}')
     local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{'_'.join(filename_list)}.csv")
 
-    with open(local_sam_file_path, mode="wb+") as local_sam_file:
+    with open(local_sam_file_path, mode="w+") as local_sam_file:
         local_sam_file.write(file_content.text)
 
     return local_sam_file_path
