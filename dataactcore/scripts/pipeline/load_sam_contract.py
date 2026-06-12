@@ -915,7 +915,7 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
     local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{'_'.join(filename_list)}.csv")
 
     with open(local_sam_file_path, mode="wb+") as local_sam_file:
-        temp_file.write(file_content.content)
+        local_sam_file.write(file_content.content)
 
     return local_sam_file_path
 
