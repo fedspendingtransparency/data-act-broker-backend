@@ -973,7 +973,7 @@ def get_data(
     # Host the file in S3 after processing it for traceability
     if not local_file and CONFIG_BROKER["use_aws"]:
         s3 = boto3.client("s3", region_name="us-gov-west-1")
-        s3.upload_file(sam_contract_file, S3_ARCHIVE, os.path.basename(sam_contract_file))
+        s3.upload_file(sam_contract_file, S3_ARCHIVE, os.path.join('Contracts', os.path.basename(sam_contract_file)))
         os.remove(sam_contract_file)
 
 
