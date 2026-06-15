@@ -921,18 +921,18 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
 
     file_content = request_sam_contracts_api(None, download_url=download_url, stream=False, custom_error_check=file_ready_check)
     logger.info(file_content.status_code)
-    logger.info(file_content.text)
-    logger.info(file_content.content)
+    # logger.info(file_content.text)
+    # logger.info(file_content.content)
 
-    # # get the generated download
-    # logger.info('Downloading file')
-    # try:
-    #     with open(local_sam_file_path, mode="wb") as local_sam_file:
-    #         for chunk in file_content.iter_content(chunk_size=8192):
-    #             if chunk:
-    #                 local_sam_file.write(chunk)
-    # finally:
-    #     file_content.close()
+    # get the generated download
+    logger.info('Downloading file')
+    try:
+        with open(local_sam_file_path, mode="wb") as local_sam_file:
+            for chunk in file_content.iter_content(chunk_size=8192):
+                if chunk:
+                    local_sam_file.write(chunk)
+    finally:
+        file_content.close()
 
     return local_sam_file_path
 
