@@ -1110,7 +1110,7 @@ def main():
             state_df,
             country_df,
             exec_comp_df,
-            contract_type='IDV',
+            contract_type='award',
             award_type=None,
             delete=True,
             start_date=start_date,
