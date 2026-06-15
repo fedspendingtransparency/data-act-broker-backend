@@ -7,6 +7,7 @@ import requests
 from requests.packages.urllib3.exceptions import ReadTimeoutError
 from dateutil.parser import parse
 import datetime as dt
+from pathlib import Path
 
 from suds.transport.https import HttpAuthenticated as SudsHttpsTransport
 from urllib.request import HTTPBasicAuthHandler
@@ -246,3 +247,19 @@ def zip_dir(dir_path, name):
             )
     zip_h.close()
     return zip_path
+
+def unzip(zip_path, specific_files=None):
+    """Simply unzips the contents of a zip in the same directory
+
+    Args:
+        zip_path: the path of the directory to be zipped
+        specific_files: list of specific files to extract; otherwise, all
+
+    Returns:
+        list of extracted file names
+    """
+    zip_dir = str(Path(file_string).resolve().parent)
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        extracted_files = specific_files if specific_files else zip_ref.namelist()
+        zip_ref.extractall(zip_dir, members=specific_files)
+    return extracted_files

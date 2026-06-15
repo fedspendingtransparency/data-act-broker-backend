@@ -24,6 +24,7 @@ from requests.exceptions import ConnectionError, ReadTimeout, RequestException
 from urllib3.exceptions import ReadTimeoutError
 
 from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand, validate_load_dates
+from dataactbroker.helpers.generic_helper import unzip
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -882,8 +883,9 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
             filename_list.append(datetime.datetime.strptime(date_string, "%m/%d/%Y").strftime("%Y%m%d"))
     if piid:
         filename_list.append(f'PIID_{piid}')
-    local_sam_file_name = f"{'_'.join(filename_list)}.csv"
-    local_sam_file_path = os.path.join(tempfile.gettempdir(), local_sam_file_name)
+    local_sam_file_name = f"{'_'.join(filename_list)}"
+    local_sam_file_zipped = os.path.join(tempfile.gettempdir(), f'{local_sam_file_name}.zip')
+    local_sam_file_path = os.path.join(tempfile.gettempdir(), f'{local_sam_file_name}.csv')
 
     filters = {
         'api_key': CONFIG_BROKER["sam"]["api_key"],
@@ -919,20 +921,25 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
         if "The specified key does not exist" in response.text:
             raise RequestException('The specified key does not exist.')
 
-    file_content = request_sam_contracts_api(None, download_url=download_url, stream=False, custom_error_check=file_ready_check)
-    logger.info(file_content.status_code)
-    # logger.info(file_content.text)
-    # logger.info(file_content.content)
+    file_content = request_sam_contracts_api(None, download_url=download_url, stream=True, custom_error_check=file_ready_check)
 
     # get the generated download
-    logger.info('Downloading file')
+    logger.info('Downloading zip of request')
     try:
-        with open(local_sam_file_path, mode="wb") as local_sam_file:
+        with open(local_sam_file_zipped, mode="wb") as local_sam_zip:
             for chunk in file_content.iter_content(chunk_size=8192):
                 if chunk:
-                    local_sam_file.write(chunk)
+                    local_sam_file_zipped.write(chunk)
     finally:
         file_content.close()
+
+    # That's just a zip
+    logger.info('Extracting zip')
+    extracted_files = unzip(local_sam_file_zipped)
+    if len(extracted_files) > 1:
+        raise ValueError(f'Multiple files found in the zip: {extracted_files}')
+    os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
+    os.remove(local_sam_file_zipped)
 
     return local_sam_file_path
 
