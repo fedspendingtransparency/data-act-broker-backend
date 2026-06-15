@@ -871,7 +871,11 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
         piid: a specific piid to filter on
         extra_filters: current dict of request filters that will be used to pull the data from the API
     """
-    filename_list = ['SAM', 'CONTRACT', contract_type.upper(), award_type.upper(), 'UPDATE' if not delete else 'DELETE']
+    filename_list = ['SAM', 'CONTRACT', 'UPDATE' if not delete else 'DELETE']
+    if contract_type:
+        filename_list.append(contract_type.upper())
+    if award_type:
+        filename_list.append(award_type.upper())
     if start_date and end_date:
         for date_string in [start_date, end_date]:
             # convert to iso8601 for easier filename sorting
