@@ -1098,41 +1098,59 @@ def main():
     if not args.delete:
         logger.info("Starting at: %s", str(get_utc_now()))
 
-        for award_type in award_types_idv:
-            get_data(
-                sess,
-                sub_tier_df,
-                county_df,
-                state_df,
-                country_df,
-                exec_comp_df,
-                contract_type='IDV',
-                award_type=award_type,
-                delete=False,
-                start_date=start_date,
-                end_date=end_date,
-                piid=args.piid,
-                local_file=args.local_file,
-                metrics=metrics_json,
-            )
+        # TODO: test call
+        get_data(
+            sess,
+            sub_tier_df,
+            county_df,
+            state_df,
+            country_df,
+            exec_comp_df,
+            contract_type='IDV',
+            award_type=None,
+            delete=True,
+            start_date=start_date,
+            end_date=end_date,
+            piid=args.piid,
+            local_file=args.local_file,
+            metrics=metrics_json,
+        )
 
-        for award_type in award_types_award:
-            get_data(
-                sess,
-                sub_tier_df,
-                county_df,
-                state_df,
-                country_df,
-                exec_comp_df,
-                contract_type="award",
-                award_type=award_type,
-                delete=False,
-                start_date=start_date,
-                end_date=end_date,
-                piid=args.piid,
-                local_file=args.local_file,
-                metrics=metrics_json,
-            )
+        # for award_type in award_types_idv:
+        #     get_data(
+        #         sess,
+        #         sub_tier_df,
+        #         county_df,
+        #         state_df,
+        #         country_df,
+        #         exec_comp_df,
+        #         contract_type='IDV',
+        #         award_type=award_type,
+        #         delete=False,
+        #         start_date=start_date,
+        #         end_date=end_date,
+        #         piid=args.piid,
+        #         local_file=args.local_file,
+        #         metrics=metrics_json,
+        #     )
+
+        # for award_type in award_types_award:
+        #     get_data(
+        #         sess,
+        #         sub_tier_df,
+        #         county_df,
+        #         state_df,
+        #         country_df,
+        #         exec_comp_df,
+        #         contract_type="award",
+        #         award_type=award_type,
+        #         delete=False,
+        #         start_date=start_date,
+        #         end_date=end_date,
+        #         piid=args.piid,
+        #         local_file=args.local_file,
+        #         metrics=metrics_json,
+        #     )
 
         # We also need to process the delete feed
         # get_delete_data("IDV", now, sess, last_update, start_date, end_date, metrics=metrics_json)
