@@ -856,7 +856,7 @@ def process_data(contract_data,
 
     # TODO figure out where/how to delete the tmp_zips_df table
 
-def get_sam_contract_file(contract_type, award_type, delete, start_date=None, end_date=None, piid=None, extra_filters=None):
+def get_sam_contract_file(contract_type=None, award_type=None, delete=False, start_date=None, end_date=None, piid=None, extra_filters=None):
     """Get the data from the atom feed based on the filters provided
 
     Note: This wIll simply download the file onto the running machine. It's the responsibility of the caller to
@@ -883,14 +883,16 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
 
     filters = {
         'api_key': CONFIG_BROKER["sam"]["api_key"],
-        'awardOrIDV': contract_type,
-        'awardOrIDVTypeName': award_type.upper(),
         'deletedStatus': 'yes' if delete else 'no',
         'format': 'csv',
         'emailId': 'No'
     }
     if start_date and end_date:
         filters['lastModifiedDate'] = f'[{start_date},{end_date}]'
+    if contract_type:
+        filters['awardOrIDV'] = contract_type
+    if award_type:
+        filters['awardOrIDVTypeName'] = award_type.upper()
     if piid:
         filters['piid'] = piid
     if extra_filters is not None:
@@ -931,18 +933,18 @@ def get_sam_contract_file(contract_type, award_type, delete, start_date=None, en
     return local_sam_file_path
 
 def get_data(
-    contract_type,
-    award_type,
-    delete,
     sess,
     sub_tier_df,
     county_df,
     state_df,
     country_df,
     exec_comp_df,
-    start_date,
-    end_date,
-    piid,
+    contract_type=None,
+    award_type=None,
+    delete=False,
+    start_date=None,
+    end_date=None,
+    piid=None,
     extra_filters = None,
     local_file=None,
     metrics=None,
@@ -950,15 +952,15 @@ def get_data(
     """Get the data from the atom feed based on contract/award type and the last time the script was run.
 
     Args:
-        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
-        award_type: a string indicating what the award type of the feed being checked is
-        delete: boolean representing whether to pull from the delete feed
         sess: the database connection
         sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
         exec_comp_df: a dataframe containing all the data for Executive Compensation
+        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+        award_type: a string indicating what the award type of the feed being checked is
+        delete: boolean representing whether to pull from the delete feed
         start_date: a date indicating the first date to pull from (must be provided with end_date)
         end_date: a date indicating the last date to pull from (must be provided with start_date)
         piid: a specific piid to filter on
@@ -967,7 +969,7 @@ def get_data(
         metrics: a dictionary to gather metrics for the script in
     """
     # test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type.lower()}.csv")
-    sam_contract_file = local_file if local_file else get_sam_contract_file(contract_type, award_type, delete, start_date=start_date, end_date=end_date, piid=piid, extra_filters=extra_filters)
+    sam_contract_file = local_file if local_file else get_sam_contract_file(contract_type=contract_type, award_type=award_type, delete=delete, start_date=start_date, end_date=end_date, piid=piid, extra_filters=extra_filters)
 
     # contract_data = []
     # if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT"):
