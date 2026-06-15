@@ -1100,15 +1100,15 @@ def main():
 
         for award_type in award_types_idv:
             get_data(
-                "IDV",
-                award_type,
-                False,
                 sess,
                 sub_tier_df,
                 county_df,
                 state_df,
                 country_df,
                 exec_comp_df,
+                contract_type='IDV',
+                award_type=award_type,
+                delete=False,
                 start_date=start_date,
                 end_date=end_date,
                 piid=args.piid,
@@ -1118,15 +1118,15 @@ def main():
 
         for award_type in award_types_award:
             get_data(
-                "award",
-                award_type,
-                False,
                 sess,
                 sub_tier_df,
                 county_df,
                 state_df,
                 country_df,
                 exec_comp_df,
+                contract_type="award",
+                award_type=award_type,
+                delete=False,
                 start_date=start_date,
                 end_date=end_date,
                 piid=args.piid,
