@@ -259,7 +259,7 @@ def unzip(zip_path, specific_files=None):
         list of extracted file names
     """
     zip_dir = str(Path(zip_path).resolve().parent)
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+    with ZipFile(zip_path, "r") as zip_ref:
         extracted_files = specific_files if specific_files else zip_ref.namelist()
         zip_ref.extractall(zip_dir, members=specific_files)
     return extracted_files
