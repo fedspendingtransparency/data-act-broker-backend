@@ -754,6 +754,7 @@ def request_sam_contracts_api(filters, download_url=None, stream=False, custom_e
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["contract"]["api_url"]
+    logger.info(f"{url} {filters}")
     return _request_sam_api(url, request_type="get", params=filters, stream=stream, custom_error_check=custom_error_check)
 
 
