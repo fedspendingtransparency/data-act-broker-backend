@@ -929,7 +929,7 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
         with open(local_sam_file_zipped, mode="wb") as local_sam_zip:
             for chunk in file_content.iter_content(chunk_size=8192):
                 if chunk:
-                    local_sam_file_zipped.write(chunk)
+                    local_sam_zip.write(chunk)
     finally:
         file_content.close()
 
