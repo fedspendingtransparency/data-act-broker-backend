@@ -918,6 +918,7 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
         resp = request_sam_contracts_api(filters)
         resp_content = json.loads(resp.content.decode('utf-8'))
 
+        logger.info(resp_content)
         if resp_content is None:
             logger.info(resp.text)
             return None
