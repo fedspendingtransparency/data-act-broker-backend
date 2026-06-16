@@ -754,7 +754,6 @@ def request_sam_contracts_api(filters, download_url=None, stream=False, custom_e
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["contract"]["api_url"]
-    logger.info(f"{url} {filters}")
     return _request_sam_api(url, request_type="get", params=filters, stream=stream, custom_error_check=custom_error_check)
 
 
@@ -837,7 +836,7 @@ def give_up(e):
 
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
 @sleep_and_retry
-@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=7, logger=logger, giveup=give_up)
+@on_exception(expo, RETRY_REQUEST_EXCEPTIONS, max_tries=5, logger=logger, giveup=give_up)
 def _request_sam_api(url, request_type, headers=None, params=None, body=None, stream=False, custom_error_check=None):
     """Calls one of the SAM APIs and returns its content
 

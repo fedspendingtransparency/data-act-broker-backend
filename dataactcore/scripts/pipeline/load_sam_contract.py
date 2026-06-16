@@ -906,14 +906,6 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
 
     # TODO: Refactor with load_sam_recipient.download_sam_file.
     #       Just needs to account for two separate API urls with different API contracts.
-    logger.info(f'Requesting file: {local_sam_file_name}')
-    resp = request_sam_contracts_api(filters)
-    resp_content = json.loads(resp.content.decode('utf-8'))
-    logger.info(resp_content)
-
-    # just use the presignedUrl provided, includes the params we need (token, api key)
-    logger.info('File requested, waiting for file to generate')
-    download_url = resp_content.get('presignedUrl').replace('REPLACE_WITH_API_KEY', CONFIG_BROKER["sam"]["api_key"])
 
     # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
     # so we don't need to add any additional sleeping here.
@@ -921,9 +913,31 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
         if "The specified key does not exist" in response.text:
             raise RequestException('The specified key does not exist.')
 
-    file_content = request_sam_contracts_api(None, download_url=download_url, stream=True, custom_error_check=file_ready_check)
+    def extract_sam_contracts_file():
+        logger.info(f'Requesting file: {local_sam_file_name}')
+        resp = request_sam_contracts_api(filters)
+        resp_content = json.loads(resp.content.decode('utf-8'))
 
-    # get the generated download
+        # just use the presignedUrl provided, includes the params we need (token, api key)
+        logger.info(f'File requested, waiting for file to generate (token: {resp_content.get('exportToken')}')
+        download_url = resp_content.get('presignedUrl').replace('REPLACE_WITH_API_KEY', CONFIG_BROKER["sam"]["api_key"])
+
+        return request_sam_contracts_api(filters=None, download_url=download_url, stream=True, custom_error_check=file_ready_check)
+
+    # Anytime we request a custom extract from SAM via tokens, the success rate is hit or miss to varying degrees.
+    # Despite the additional backoff logic when pinging for the downloadable file, this is an attempt to retry the
+    # *whole request* multiple times as sometimes it'll generate in seconds and other times it will not in an hour.
+    retry_count = 0
+    file_content = None
+    while file_content is None and retry_count <= 20:
+        try:
+            file_content = extract_sam_contracts_file()
+        except RequestException:
+            retry_count += 1
+            logger.info(f'Retrying (count: {retry_count})')
+    if retry_count == 20 and not file_content:
+        raise RequestException(f'Couldn\'t generate the requested file after {retry_count} retries.')
+
     logger.info('Downloading zip of request')
     try:
         with open(local_sam_file_zipped, mode="wb") as local_sam_zip:
@@ -933,13 +947,14 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
     finally:
         file_content.close()
 
-    # That's just a zip
-    logger.info('Extracting zip')
+    logger.info('Downloaded file. Extracting zip.')
     extracted_files = unzip(local_sam_file_zipped)
     if len(extracted_files) > 1:
         raise ValueError(f'Multiple files found in the zip: {extracted_files}')
     os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
     os.remove(local_sam_file_zipped)
+
+    logger.info(f'Extracted {local_sam_file_name}.csv')
 
     return local_sam_file_path
 
