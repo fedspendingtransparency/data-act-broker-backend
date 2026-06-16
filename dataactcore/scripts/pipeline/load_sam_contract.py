@@ -918,6 +918,10 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
         resp = request_sam_contracts_api(filters)
         resp_content = json.loads(resp.content.decode('utf-8'))
 
+        if resp_content is None:
+            logger.info(resp.text)
+            return None
+
         # just use the presignedUrl provided, includes the params we need (token, api key)
         logger.info(f'File requested, waiting for file to generate (token: {resp_content.get('exportToken')})')
         download_url = resp_content.get('presignedUrl').replace('REPLACE_WITH_API_KEY', CONFIG_BROKER["sam"]["api_key"])
@@ -938,6 +942,9 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
             logger.info(f'Retrying (attempt count: {attempt_count})')
     if attempt_count == max_attempts and not file_content:
         raise RequestException(f'Couldn\'t generate the requested file after {attempt_count} attempts.')
+    elif not file_content:
+        logger.info('No data found for the requested filters.')
+        return None
 
     logger.info('Downloading zip of request')
     try:
@@ -997,6 +1004,9 @@ def get_data(
     """
     # test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type.lower()}.csv")
     sam_contract_file = local_file if local_file else get_sam_contract_file(contract_type=contract_type, award_type=award_type, delete=delete, start_date=start_date, end_date=end_date, piid=piid, extra_filters=extra_filters)
+    if not sam_contract_file:
+        logger.info('No file found to process data. Skipping.')
+        return
 
     # contract_data = []
     # if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT"):
