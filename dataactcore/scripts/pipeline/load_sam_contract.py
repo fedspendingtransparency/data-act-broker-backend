@@ -919,7 +919,7 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
         resp_content = json.loads(resp.content.decode('utf-8'))
 
         # just use the presignedUrl provided, includes the params we need (token, api key)
-        logger.info(f'File requested, waiting for file to generate (token: {resp_content.get('exportToken')}')
+        logger.info(f'File requested, waiting for file to generate (token: {resp_content.get('exportToken')})')
         download_url = resp_content.get('presignedUrl').replace('REPLACE_WITH_API_KEY', CONFIG_BROKER["sam"]["api_key"])
 
         return request_sam_contracts_api(filters=None, download_url=download_url, stream=True, custom_error_check=file_ready_check)
@@ -927,16 +927,17 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
     # Anytime we request a custom extract from SAM via tokens, the success rate is hit or miss to varying degrees.
     # Despite the additional backoff logic when pinging for the downloadable file, this is an attempt to retry the
     # *whole request* multiple times as sometimes it'll generate in seconds and other times it will not in an hour.
-    retry_count = 0
+    attempt_count = 0
+    max_attempts = 20
     file_content = None
-    while file_content is None and retry_count <= 20:
+    while file_content is None and attempt_count < max_attempts:
         try:
             file_content = extract_sam_contracts_file()
         except RequestException:
-            retry_count += 1
+            attempt_count += 1
             logger.info(f'Retrying (count: {retry_count})')
-    if retry_count == 20 and not file_content:
-        raise RequestException(f'Couldn\'t generate the requested file after {retry_count} retries.')
+    if attempt_count == max_attempts and not file_content:
+        raise RequestException(f'Couldn\'t generate the requested file after {attempt_count} attempts.')
 
     logger.info('Downloading zip of request')
     try:
