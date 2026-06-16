@@ -22,7 +22,7 @@ from distutils.util import strtobool
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
-from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand
+from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand, validate_load_dates
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -56,7 +56,6 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://api.sam.gov/contract-awards/v1/search?"
 
-# TODO figure out vendor_site_code
 SAM_CONTRACT_MAPPINGS = {
     "contractId.modificationNumber": "award_modification_amendme",
     "contractId.piid": "piid",
@@ -709,6 +708,33 @@ def calculate_legal_entity_fields(sess, contract_data, county_df, state_df, coun
     return contract_data
 
 
+def derive_transaction_unique(contract_data):
+    """Derive the unique transaction key. Pulled out so it can be shared by deletes and updates
+
+    Args:
+        contract_data: dataframe to update with derivations
+
+    Returns:
+        The contract_data dataframe with completed derivations
+
+    """
+    # TODO why do we upper the unique award key but not the transaction key?
+    key_list = [
+        "agency_id",
+        "referenced_idv_agency_iden",
+        "piid",
+        "award_modification_amendme",
+        "parent_award_id",
+        "transaction_number",
+    ]
+    idv_list = ["agency_id", "piid", "award_modification_amendme"]
+    contract_data["detached_award_proc_unique"] = contract_data.apply(lambda row: "_".join(
+        [row[key] if (row["pulled_from"] == "AWARD" or key in idv_list) and pd.notnull(row[key]) else "-none-" for key in
+         key_list]), axis=1)
+
+    return contract_data
+
+
 def derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_df, country_df, exec_comp_df, contract_type):
     """Derive fields that aren't passed from SAM or that might be blank in their data, but we can derive them anyway
 
@@ -798,31 +824,11 @@ def derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_d
     contract_data["unique_award_key"] = contract_data.apply(lambda row: "_".join(
         prefix_list + [row[key] if pd.notnull(row[key]) else "-none-" for key in key_list]).upper(), axis=1)
 
-    # TODO why do we upper the unique award key but not the transaction key?
-    # calculate unique key
-    key_list = [
-        "agency_id",
-        "referenced_idv_agency_iden",
-        "piid",
-        "award_modification_amendme",
-        "parent_award_id",
-        "transaction_number",
-    ]
-    idv_list = ["agency_id", "piid", "award_modification_amendme"]
-    contract_data["detached_award_proc_unique"] = contract_data.apply(lambda row: "_".join([row[key] if (contract_type == "award" or key in idv_list) and pd.notnull(row[key]) else "-none-" for key in key_list]), axis=1)
-
+    contract_data = derive_transaction_unique(contract_data)
     return contract_data
 
 
-def process_data(contract_data,
-    contract_type,
-    sess,
-    sub_tier_df,
-    county_df,
-    state_df,
-    country_df,
-    exec_comp_df,
-    specific_params=None):
+def process_data(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
     """Process the data"""
     contract_mappings = SAM_CONTRACT_MAPPINGS
     if contract_type == "IDV":
@@ -854,58 +860,87 @@ def process_data(contract_data,
     # TODO figure out where/how to delete the tmp_zips_df table
 
 
+def process_deletes(sess, contract_data):
+    """Process the deletes data coming in"""
+    logger.info("Starting delete processing at: %s", str(datetime.datetime.now()))
+    # Remove columns from dataframe that aren't in our existing mapping (we don't want them)
+    contract_data = contract_data[contract_data.columns.intersection(list(SAM_CONTRACT_MAPPINGS.keys()))]
+
+    # Add blank columns to complete the mappings for derivations and missing columns from the file
+    contract_data = contract_data.reindex(
+        columns=contract_data.columns.tolist() + list(SAM_CONTRACT_MAPPINGS.keys() - contract_data.columns))
+
+    # lowercase all contract_mappings now that we've sorted through what we've gotten from the files
+    contract_mappings = {k.lower(): v for k, v in SAM_CONTRACT_MAPPINGS.items()}
+
+    contract_data = clean_data(
+        contract_data,
+        DetachedAwardProcurement,
+        contract_mappings,
+        {},
+    )
+
+    contract_data = derive_transaction_unique(contract_data)
+
+    contract_data.to_sql("tmp_contract_delete", con=sess.connection(), if_exists="replace", index=False)
+    sess.execute(
+        f"""
+            DELETE FROM detached_award_procurement USING tmp_contract_delete
+            WHERE detached_award_procurement.detached_award_proc_unique = tmp_contract_delete.detached_award_proc_unique
+                AND detached_award_procurement.last_modified < tmp_contract_delete.last_modified
+        """
+    )
+
+
 def get_data(
-    contract_type,
-    award_type,
-    now,
-    sess,
-    sub_tier_df,
-    county_df,
-    state_df,
-    country_df,
-    exec_comp_df,
-    last_run=None,
-    start_date=None,
-    end_date=None,
-    metrics=None,
-    specific_params=None,
+        contract_type,
+        award_type,
+        delete,
+        sess,
+        sub_tier_df,
+        county_df,
+        state_df,
+        country_df,
+        exec_comp_df,
+        start_date,
+        end_date,
+        piid,
+        extra_filters=None,
+        local_file=None,
+        metrics=None,
 ):
     """Get the data from the atom feed based on contract/award type and the last time the script was run.
 
     Args:
         contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
         award_type: a string indicating what the award type of the feed being checked is
-        now: a timestamp indicating the time to set the updated_at to
+        delete: boolean representing whether to pull from the delete feed
         sess: the database connection
         sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
         exec_comp_df: a dataframe containing all the data for Executive Compensation
-        last_run: a date indicating the last time the pull was run
         start_date: a date indicating the first date to pull from (must be provided with end_date)
         end_date: a date indicating the last date to pull from (must be provided with start_date)
+        piid: a specific piid to filter on
+        extra_filters: current dict of request filters that will be used to pull the data from the API
+        local_file: skip downloading the file and work from a local file if provided
         metrics: a dictionary to gather metrics for the script in
-        specific_params: a string containing a specific set of params to run the query with (used for outside
-            scripts that need to run a data load)
     """
-    test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type.lower()}.csv")
+    arg_string = "delete" if delete else contract_type.lower()
+    test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{arg_string}.csv")
     contract_data = []
 
-    if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT"):
+    if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT") or delete:
         # We might need to use chunksize later on, but it also won't be in this "if"
         contract_data = pd.read_csv(test_file, dtype=str)
 
     if len(contract_data) > 0:
-        process_data(contract_data,
-            contract_type,
-            sess,
-            sub_tier_df,
-            county_df,
-            state_df,
-            country_df,
-            exec_comp_df,
-        )
+        if not delete:
+            process_data(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
+        else:
+            process_deletes(sess, contract_data)
 
 
 def create_lookups(sess):
@@ -973,13 +1008,25 @@ def main():
     parser.add_argument(
         "-del",
         "--delete",
-        help='Used to only run the delete feed. First argument must be "both", '
-        '"idv", or "award". The second and third arguments must be the first '
-        "and last day to run the feeds for, formatted YYYY-mm-dd",
-        nargs=3,
+        help="Used to only run the delete feed. Must be used in conjunction with the dates argument",
+        action="store_true",
+        required=False,
+        default=False,
+    )
+    parser.add_argument(
+        "-p",
+        "--piid",
+        help="Specify specific PIID to pull",
+        nargs=1,
         type=str,
     )
+    parser.add_argument("-l", "--local_file", type=str, default=None,
+                        help="Local filename to load. If not provided, run remotely.")
     args = parser.parse_args()
+
+    if args.delete and not args.dates:
+        logger.error("Delete argument may only be used in conjunction with the dates argument.")
+        raise ValueError("Delete argument may only be used in conjunction with the dates argument.")
 
     award_types_award = ["Delivery Order", "BPA Call", "Definitive Contract", "Purchase Order"]
     award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
@@ -997,97 +1044,74 @@ def main():
 
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = create_lookups(sess)
 
+    start_date, end_date, auto = (None, None, True) if not args.dates else ([args.dates[0]], [args.dates[1]], False)
+    start_date, end_date = validate_load_dates(start_date, end_date, auto, 'fpds', arg_date_format="%Y-%m-%d",
+                                               output_date_format="%m/%d/%Y")
+
     if not args.delete:
         logger.info("Starting at: %s", str(datetime.datetime.now()))
-
-        last_update_obj = (
-            sess.query(ExternalDataLoadDate)
-            .filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT["fpds"])
-            .one_or_none()
-        )
-
-        # update_date can't be null because it's being used as the PK for the table, so it can only exist or
-        # there are no rows in the table. If there are no rows, act like it's an "add all"
-        if not last_update_obj:
-            logger.error(
-                "No last_update date present, please add one to the database or specify a date range to continue."
-            )
-            raise ValueError(
-                "No last_update date present, please add one to the database or specify a date range to continue."
-            )
-        last_update = last_update_obj.last_load_date_start
-        start_date = None
-        end_date = None
-
-        if args.dates:
-            start_date = args.dates[0].replace("-", "/")
-            end_date = args.dates[1].replace("-", "/")
 
         for award_type in award_types_idv:
             get_data(
                 "IDV",
                 award_type,
-                now,
+                False,
                 sess,
                 sub_tier_df,
                 county_df,
                 state_df,
                 country_df,
                 exec_comp_df,
-                last_update,
-                start_date,
-                end_date,
-                metrics_json,
+                start_date=start_date,
+                end_date=end_date,
+                piid=args.piid,
+                local_file=args.local_file,
+                metrics=metrics_json,
             )
 
         for award_type in award_types_award:
             get_data(
                 "award",
                 award_type,
-                now,
+                False,
                 sess,
                 sub_tier_df,
                 county_df,
                 state_df,
                 country_df,
                 exec_comp_df,
-                last_update,
-                start_date,
-                end_date,
-                metrics_json,
+                start_date=start_date,
+                end_date=end_date,
+                piid=args.piid,
+                local_file=args.local_file,
+                metrics=metrics_json,
             )
-
-        # We also need to process the delete feed
-        # get_delete_data("IDV", now, sess, last_update, start_date, end_date, metrics=metrics_json)
-        # get_delete_data("award", now, sess, last_update, start_date, end_date, metrics=metrics_json)
-        # if not start_date and not end_date:
-        #     update_external_data_load_date(now, datetime.datetime.now(), "fpds")
 
         sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
-    else:
-        del_type = args.delete[0]
-        if del_type == "award":
-            del_awards = True
-            del_idvs = False
-        elif del_type == "idv":
-            del_awards = False
-            del_idvs = True
-        elif del_type == "both":
-            del_awards = True
-            del_idvs = True
-        else:
-            logger.error('Delete argument must be "idv", "award", or "both"')
-            raise ValueError('Delete argument must be "idv", "award", or "both"')
 
-        del_start = args.delete[1].replace("-", "/")
-        del_end = args.delete[2].replace("-", "/")
+    # We also need to process the delete feed
+    get_data(
+        '',
+        '',
+        True,
+        sess,
+        sub_tier_df,
+        county_df,
+        state_df,
+        country_df,
+        exec_comp_df,
+        start_date=start_date,
+        end_date=end_date,
+        piid=args.piid,
+        local_file=args.local_file,
+        metrics=metrics_json,
+    )
+    # Only update load date if dates weren't specified
+    if not args.dates:
+        update_external_data_load_date(now, datetime.datetime.now(), "fpds")
 
-        # if del_idvs:
-        #     get_delete_data("IDV", now, sess, now, del_start, del_end, metrics=metrics_json)
-        # if del_awards:
-        #     get_delete_data("award", now, sess, now, del_start, del_end, metrics=metrics_json)
-        # sess.commit()
+    sess.commit()
 
     metrics_json["duration"] = str(datetime.datetime.now() - now)
 

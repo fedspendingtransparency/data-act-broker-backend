@@ -116,9 +116,9 @@ def test_calculate_ppop_fields(database):
     prep_data(sess)
     contract_data = get_file("award")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(contract_data,
+    load_sam_contract.process_data(sess,
+                                   contract_data,
         "award",
-        sess,
         sub_tier_df,
         county_df,
         state_df,
@@ -191,9 +191,9 @@ def test_calculate_legal_entity_fields(database):
     prep_data(sess)
     contract_data = get_file("award")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(contract_data,
+    load_sam_contract.process_data(sess,
+                                   contract_data,
                                    "award",
-                                   sess,
                                    sub_tier_df,
                                    county_df,
                                    state_df,
@@ -266,17 +266,17 @@ def test_derive_remaining_fields(database):
     contract_data_award = get_file("award")
     contract_data_idv = get_file("idv")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(contract_data_award,
+    load_sam_contract.process_data(sess,
+                                   contract_data_award,
                                    "award",
-                                   sess,
                                    sub_tier_df,
                                    county_df,
                                    state_df,
                                    country_df,
                                    exec_comp_df)
-    load_sam_contract.process_data(contract_data_idv,
+    load_sam_contract.process_data(sess,
+                                   contract_data_idv,
                                    "idv",
-                                   sess,
                                    sub_tier_df,
                                    county_df,
                                    state_df,
