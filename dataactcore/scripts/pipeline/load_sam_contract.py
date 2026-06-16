@@ -935,7 +935,7 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
             file_content = extract_sam_contracts_file()
         except RequestException:
             attempt_count += 1
-            logger.info(f'Retrying (count: {retry_count})')
+            logger.info(f'Retrying (attempt count: {attempt_count})')
     if attempt_count == max_attempts and not file_content:
         raise RequestException(f'Couldn\'t generate the requested file after {attempt_count} attempts.')
 
