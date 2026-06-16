@@ -934,9 +934,10 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
     attempt_count = 0
     max_attempts = 30
     file_content = None
-    while file_content is None and attempt_count < max_attempts:
+    while attempt_count < max_attempts:
         try:
             file_content = extract_sam_contracts_file()
+            break
         except RequestException:
             attempt_count += 1
             logger.info(f'Retrying (attempt count: {attempt_count})')
