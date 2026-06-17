@@ -8,6 +8,7 @@ from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.scripts.pipeline import load_sam_contract
 
 def remove_metrics_file():
+    """Remove the metrics file that's created when running parts of the script"""
     if os.path.isfile("load_sam_contract_metrics.json"):
         os.remove("load_sam_contract_metrics.json")
 
@@ -59,7 +60,7 @@ def prep_data(sess):
 
 
 def get_file(contract_type):
-    """Get test file based on contract_type"""
+    """Get test file data based on contract_type"""
     # Get the test file
     contract_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type}.csv")
     contract_data = pd.read_csv(contract_file, dtype=str)
@@ -116,9 +117,9 @@ def test_calculate_ppop_fields(database):
     prep_data(sess)
     contract_data = get_file("award")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(contract_data,
+    load_sam_contract.process_data(sess,
+                                   contract_data,
         "award",
-        sess,
         sub_tier_df,
         county_df,
         state_df,
@@ -191,9 +192,9 @@ def test_calculate_legal_entity_fields(database):
     prep_data(sess)
     contract_data = get_file("award")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(contract_data,
+    load_sam_contract.process_data(sess,
+                                   contract_data,
                                    "award",
-                                   sess,
                                    sub_tier_df,
                                    county_df,
                                    state_df,
@@ -266,17 +267,17 @@ def test_derive_remaining_fields(database):
     contract_data_award = get_file("award")
     contract_data_idv = get_file("idv")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(contract_data_award,
+    load_sam_contract.process_data(sess,
+                                   contract_data_award,
                                    "award",
-                                   sess,
                                    sub_tier_df,
                                    county_df,
                                    state_df,
                                    country_df,
                                    exec_comp_df)
-    load_sam_contract.process_data(contract_data_idv,
+    load_sam_contract.process_data(sess,
+                                   contract_data_idv,
                                    "idv",
-                                   sess,
                                    sub_tier_df,
                                    county_df,
                                    state_df,
@@ -369,5 +370,58 @@ def test_derive_remaining_fields(database):
     assert row4.unique_award_key == "CONT_AWD_ABCPIID4_1234_-NONE-_-NONE-"
 
     assert row5.unique_award_key == "CONT_IDV_CONTPIID1_1234"
+
+    remove_metrics_file()
+
+
+def test_deletes(database):
+    """Test that deleting works correctly"""
+    sess = database.session
+    prep_data(sess)
+    contract_data_award = get_file("award")
+    contract_data_idv = get_file("idv")
+    contract_data_deletes = get_file("delete")
+    sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
+    load_sam_contract.process_data(sess,
+                                   contract_data_award,
+                                   "award",
+                                   sub_tier_df,
+                                   county_df,
+                                   state_df,
+                                   country_df,
+                                   exec_comp_df)
+    load_sam_contract.process_data(sess,
+                                   contract_data_idv,
+                                   "idv",
+                                   sub_tier_df,
+                                   county_df,
+                                   state_df,
+                                   country_df,
+                                   exec_comp_df)
+    load_sam_contract.process_deletes(sess, contract_data_deletes)
+
+    row1 = sess.query(DetachedAwardProcurement).filter_by(
+        detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4").one_or_none()
+    row2 = sess.query(DetachedAwardProcurement).filter_by(
+        detached_award_proc_unique="1234_-none-_CONTPIID1_NUM001_-none-_-none-").one_or_none()
+    row3 = sess.query(DetachedAwardProcurement).filter_by(
+        detached_award_proc_unique="1234_-none-_DELETEPIID1_ABC32_-none-_0").one_or_none()
+    row4 = sess.query(DetachedAwardProcurement).filter_by(
+        detached_award_proc_unique="1234_-none-_DELETEPIID2_NUM001_-none-_-none-").one_or_none()
+    row5 = sess.query(DetachedAwardProcurement).filter_by(
+        detached_award_proc_unique="1234_-none-_SOMENEWDELETEPIID_NUM001_-none-_-none-").one_or_none()
+
+    # Entries exist in the delete file but the lastModified for these entries in the database is later than the one in
+    # the delete file, meaning they've been re-added since and shouldn't be deleted
+    assert row1 is not None
+    assert row2 is not None
+
+    # Entries exist in the delete file and the database and the lastModified of the delete file entries is later than
+    # the one in the database, meaning they should be deleted
+    assert row3 is None
+    assert row4 is None
+
+    # Entries don't exist in the database so it shouldn't exist but no error is thrown for having it in the delete file
+    assert row5 is None
 
     remove_metrics_file()
