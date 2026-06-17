@@ -446,6 +446,17 @@ boolean_fields = [
     "sba_cert_econ_disadv_wosb",
 ]
 
+date_fields = [
+    "action_date",
+    "approved_date",
+    "initial_report_date",
+    "last_modified",
+    "period_of_perf_potential_e",
+    "period_of_performance_curr",
+    "period_of_performance_star",
+    "solicitation_date"
+]
+
 country_code_map = {
     "USA": "US",
     "ASM": "AS",
@@ -502,10 +513,9 @@ def insert_into_db(sess, contract_data):
     # Escape all single quotes in dataframe
     contract_data = contract_data.astype(str).replace("'","''", regex=True)
 
-    # TODO decide if we need to change the T/Z dates to regular format
-    # The dates are the same as the ones in our DB but they have T and Z in them
+    # Remove the T and Z from date columns
+    contract_data[date_fields] = contract_data[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
-    # TODO look into making sqlalchemy again
     # Execute SQL
     sess.execute(
         f"""
@@ -585,7 +595,7 @@ def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
                     AND place_of_perform_zip_last4 = zip_last4;
             """
     )
-    # TODO confirm we want to use this method and not the full zips
+
     # Get 5-digit-related county code
     sess.execute(
         """
@@ -677,7 +687,7 @@ def calculate_legal_entity_fields(sess, contract_data, county_df, state_df, coun
                 AND legal_entity_zip_last4 = zip_last4;
         """
     )
-    # TODO confirm we want to use this method and not the full zips
+
     # Get 5-digit-related county code
     sess.execute(
         f"""
@@ -718,7 +728,6 @@ def derive_transaction_unique(contract_data):
         The contract_data dataframe with completed derivations
 
     """
-    # TODO why do we upper the unique award key but not the transaction key?
     key_list = [
         "agency_id",
         "referenced_idv_agency_iden",
@@ -865,7 +874,8 @@ def process_data(sess, contract_data, contract_type, sub_tier_df, county_df, sta
     # Insert the data
     insert_into_db(sess, contract_data)
 
-    # TODO figure out where/how to delete the tmp_zips_df table
+    # Dropping tables that shouldn't remain
+    sess.execute("DROP TABLE IF EXISTS tmp_zips_df")
 
 
 def process_deletes(sess, contract_data):
@@ -902,7 +912,7 @@ def process_deletes(sess, contract_data):
     sess.execute(
         """
             DELETE FROM detached_award_procurement USING tmp_contract_delete
-            WHERE detached_award_procurement.detached_award_proc_unique = tmp_contract_delete.detached_award_proc_unique
+            WHERE UPPER(detached_award_procurement.detached_award_proc_unique) = UPPER(tmp_contract_delete.detached_award_proc_unique)
                 AND detached_award_procurement.last_modified < tmp_contract_delete.last_modified
         """
     )
@@ -978,8 +988,6 @@ def create_lookups(sess):
         Dataframes of sub tier agencies, country data, county data, state data, and executive compensation data
         including UEI number
     """
-
-    # TODO: Do we UPPER everything here for simplicity?
 
     # Get and create dataframe of sub tier agencies
     sub_tier_df = pd.read_sql(sess.query(
