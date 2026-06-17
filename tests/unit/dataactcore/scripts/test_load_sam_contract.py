@@ -8,6 +8,7 @@ from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.scripts.pipeline import load_sam_contract
 
 def remove_metrics_file():
+    """Remove the metrics file that's created when running parts of the script"""
     if os.path.isfile("load_sam_contract_metrics.json"):
         os.remove("load_sam_contract_metrics.json")
 
@@ -59,7 +60,7 @@ def prep_data(sess):
 
 
 def get_file(contract_type):
-    """Get test file based on contract_type"""
+    """Get test file data based on contract_type"""
     # Get the test file
     contract_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type}.csv")
     contract_data = pd.read_csv(contract_file, dtype=str)
@@ -419,6 +420,8 @@ def test_deletes(database):
     # the one in the database, meaning they should be deleted
     assert row3 is None
     assert row4 is None
-    
+
     # Entries don't exist in the database so it shouldn't exist but no error is thrown for having it in the delete file
     assert row5 is None
+
+    remove_metrics_file()

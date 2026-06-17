@@ -519,7 +519,7 @@ def insert_into_db(sess, contract_data):
 
 
 def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
-    """calculate values that aren't in any feed (or haven't been provided properly) for place of performance
+    """Calculate values that aren't in any feed (or haven't been provided properly) for place of performance
 
     Args:
         sess: sqlalchemy session
@@ -627,7 +627,7 @@ def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
 
 
 def calculate_legal_entity_fields(sess, contract_data, county_df, state_df, country_df):
-    """calculate values that aren't in any feed (or haven't been provided properly) for legal entity
+    """Calculate values that aren't in any feed (or haven't been provided properly) for legal entity
 
     Args:
         sess: sqlalchemy session
@@ -659,7 +659,7 @@ def calculate_legal_entity_fields(sess, contract_data, county_df, state_df, coun
     contract_data = contract_data.drop(["country_code", "country_name", "state_code", "state_name"], axis=1)
 
     le_valid_zip_mask = (contract_data["legal_entity_zip4"].str.match(r"^\d{5}(-?\d{4})?$")) & le_us_mask
-    # if we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
+    # If we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
     contract_data["legal_entity_zip5"] = np.where(le_valid_zip_mask, contract_data["legal_entity_zip4"].str[:5], np.nan)
     contract_data["legal_entity_zip_last4"] = np.where(le_valid_zip_mask & (contract_data["legal_entity_zip4"].str.len() > 5), contract_data["legal_entity_zip4"].str[-4:], np.nan)
 
@@ -735,47 +735,47 @@ def derive_transaction_unique(contract_data):
     return contract_data
 
 
-def derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_df, country_df, exec_comp_df, contract_type):
+def derive_remaining_fields(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
     """Derive fields that aren't passed from SAM or that might be blank in their data, but we can derive them anyway
 
     Args:
         sess: sqlalchemy session
         contract_data: dataframe to update with derivations
+        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
         sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
         exec_comp_df: a dataframe containing all the data for Executive Compensation
-        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
 
     Returns:
         The contract_data dataframe with completed derivations
     """
-    # calculate awarding/funding agency codes/names based on awarding/funding sub tier agency codes
+    # Calculate awarding/funding agency codes/names based on awarding/funding sub tier agency codes
     contract_data = contract_data.merge(sub_tier_df, how="left", left_on="awarding_sub_tier_agency_c", right_on="sub_tier_agency_c").drop("sub_tier_agency_c", axis=1).rename(columns={"agency_code": "awarding_agency_code", "agency_name": "awarding_agency_name"})
     contract_data = contract_data.merge(sub_tier_df, how="left", left_on="funding_sub_tier_agency_co",
                                         right_on="sub_tier_agency_c").drop("sub_tier_agency_c", axis=1).rename(
         columns={"agency_code": "funding_agency_code", "agency_name": "funding_agency_name"})
 
-    # do place of performance calculations only if we have SOME country code. If we have none at all the merge fails
+    # Do place of performance calculations only if we have SOME country code. If we have none at all the merge fails
     if contract_data["place_of_perform_country_c"].notnull().any():
         contract_data = calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df)
 
-    # do legal entity calculations only if we have SOME country code. If we have none at all the merge fails
+    # Do legal entity calculations only if we have SOME country code. If we have none at all the merge fails
     if contract_data["legal_entity_country_code"].notnull().any():
         contract_data = calculate_legal_entity_fields(sess, contract_data, county_df, state_df, country_df)
 
     # Make sure there are no np.NaNs that could mess up the business_categories calculations
     contract_data[boolean_fields] = contract_data[boolean_fields].replace({np.NaN: "NO"})
 
-    # calculate business categories
+    # Calculate business categories
     contract_data["business_categories"] = contract_data.apply(lambda row: get_business_categories(row=row, data_type="fpds"), axis=1)
 
     # Calculate executive compensation data for the entry. UPPER the UEI just in case it comes in lowercase
     contract_data["awardee_or_recipient_uei"] = contract_data["awardee_or_recipient_uei"].str.upper()
     contract_data = contract_data.merge(exec_comp_df, how="left", left_on="awardee_or_recipient_uei", right_on="uei").drop("uei", axis=1)
 
-    # fill in 999s for all blank values in awarding/funding codes and add them to cgac_errors
+    # Fill in 999s for all blank values in awarding/funding codes and add them to cgac_errors
     contract_data = contract_data.fillna({'awarding_agency_code':'999', 'funding_agency_code':'999'})
     awarding_cgac_errors_df = contract_data[contract_data["awarding_agency_code"] == "999"][["awarding_sub_tier_agency_c", "awarding_sub_tier_agency_n"]].drop_duplicates("awarding_sub_tier_agency_c")
     funding_cgac_errors_df = contract_data[contract_data["funding_agency_code"] == "999"][
@@ -784,22 +784,18 @@ def derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_d
         awarding_cgac_errors_json = awarding_cgac_errors_df.set_index("awarding_sub_tier_agency_c")["awarding_sub_tier_agency_n"].to_dict()
         for key, value in awarding_cgac_errors_json.items():
             logger.info(
-                "WARNING: MissingSubtierCGAC: The awarding sub-tier cgac_code: %s does not exist in cgac table."
-                " The FPDS-provided awarding sub-tier agency name (if given) for this cgac_code is %s. "
-                "The award has been loaded with awarding_agency_code 999.",
-                key,
-                value,
+                f"WARNING: MissingSubtierCGAC: The awarding sub-tier cgac_code: {key} does not exist in cgac table. "
+                f"The FPDS-provided awarding sub-tier agency name (if given) for this cgac_code is {value}. "
+                "The award has been loaded with awarding_agency_code 999."
             )
             cgac_errors[key] = str(value)
     if not funding_cgac_errors_df.empty:
         funding_cgac_errors_json = funding_cgac_errors_df.set_index("funding_sub_tier_agency_co")["funding_sub_tier_agency_na"].to_dict()
         for key, value in funding_cgac_errors_json.items():
             logger.info(
-                "WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: %s does not exist in cgac table. "
-                "The FPDS-provided funding sub-tier agency name (if given) for this cgac_code is %s. "
-                "The award has been loaded with funding_agency_code 999.",
-                key,
-                value,
+                f"WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: {key} does not exist in cgac table. "
+                f"The FPDS-provided funding sub-tier agency name (if given) for this cgac_code is {value}. "
+                "The award has been loaded with funding_agency_code 999."
             )
             cgac_errors[key] = value
 
@@ -829,7 +825,19 @@ def derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_d
 
 
 def process_data(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
-    """Process the data"""
+    """Process the provided data by performing derivations, making sure all columns exist, and cleaning up column names
+    then insert the data into the database or update existing data
+
+    Args:
+        sess: sqlalchemy session
+        contract_data: dataframe to update with derivations
+        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+        sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
+        county_df: a dataframe containing all county codes and names by state
+        state_df: a dataframe containing all state codes and names
+        country_df: a dataframe containing all country codes and names
+        exec_comp_df: a dataframe containing all the data for Executive Compensation
+    """
     contract_mappings = SAM_CONTRACT_MAPPINGS
     if contract_type == "IDV":
         contract_mappings = contract_mappings | IDV_MAPPINGS
@@ -842,7 +850,7 @@ def process_data(sess, contract_data, contract_type, sub_tier_df, county_df, sta
     # Add blank columns to complete the mappings for derivations and missing columns from the file
     contract_data = contract_data.reindex(columns=contract_data.columns.tolist() + list(contract_mappings.keys() - contract_data.columns))
 
-    # lowercase all contract_mappings now that we've sorted through what we've gotten from the files
+    # Lowercase all contract_mappings now that we've sorted through what we've gotten from the files
     contract_mappings = {k.lower(): v for k, v in contract_mappings.items()}
 
     contract_data = clean_data(
@@ -852,17 +860,24 @@ def process_data(sess, contract_data, contract_type, sub_tier_df, county_df, sta
         {"place_of_perform_county_co": {"pad_to_length": 3, "keep_null": True}},
     )
 
-    contract_data = derive_remaining_fields(sess, contract_data, sub_tier_df, county_df, state_df, country_df, exec_comp_df, contract_type)
+    contract_data = derive_remaining_fields(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
 
-    # insert the data
+    # Insert the data
     insert_into_db(sess, contract_data)
 
     # TODO figure out where/how to delete the tmp_zips_df table
 
 
 def process_deletes(sess, contract_data):
-    """Process the deletes data coming in"""
-    logger.info("Starting delete processing at: %s", str(datetime.datetime.now()))
+    """Process the deletes data coming in by adding required columns, cleaning up column names, and deleting the data.
+    The only value that needs to be derived is the unique transaction key for matching against existing data.
+
+    Args:
+        sess: sqlalchemy session
+        contract_data: dataframe to update with derivations
+    """
+    delete_start = datetime.datetime.now()
+    logger.info(f"Starting delete processing at: {str(delete_start)}")
     # Remove columns from dataframe that aren't in our existing mapping (we don't want them)
     contract_data = contract_data[contract_data.columns.intersection(list(SAM_CONTRACT_MAPPINGS.keys()))]
 
@@ -870,7 +885,7 @@ def process_deletes(sess, contract_data):
     contract_data = contract_data.reindex(
         columns=contract_data.columns.tolist() + list(SAM_CONTRACT_MAPPINGS.keys() - contract_data.columns))
 
-    # lowercase all contract_mappings now that we've sorted through what we've gotten from the files
+    # Lowercase all contract_mappings now that we've sorted through what we've gotten from the files
     contract_mappings = {k.lower(): v for k, v in SAM_CONTRACT_MAPPINGS.items()}
 
     contract_data = clean_data(
@@ -882,14 +897,20 @@ def process_deletes(sess, contract_data):
 
     contract_data = derive_transaction_unique(contract_data)
 
+    # Delete the data using a temporary table
     contract_data.to_sql("tmp_contract_delete", con=sess.connection(), if_exists="replace", index=False)
     sess.execute(
-        f"""
+        """
             DELETE FROM detached_award_procurement USING tmp_contract_delete
             WHERE detached_award_procurement.detached_award_proc_unique = tmp_contract_delete.detached_award_proc_unique
                 AND detached_award_procurement.last_modified < tmp_contract_delete.last_modified
         """
     )
+
+    # Remove the temporary table. Include IF EXISTS just in case something happened above although this should only
+    # be called if there is data in the delete data anyway.
+    sess.execute("DROP TABLE IF EXISTS tmp_contract_delete")
+    logger.info(f"Deletes finished processing at: {str(datetime.datetime.now())}. It took {str(datetime.datetime.now() - delete_start)}")
 
 
 def get_data(
@@ -909,7 +930,8 @@ def get_data(
         local_file=None,
         metrics=None,
 ):
-    """Get the data from the atom feed based on contract/award type and the last time the script was run.
+    """Get the data from the atom feed based on contract/award type and the last time the script was run or provided
+    dates and other filters.
 
     Args:
         contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
@@ -938,26 +960,28 @@ def get_data(
 
     if len(contract_data) > 0:
         if not delete:
+            specific_feed_start = datetime.datetime.now()
+            logger.info(f"Starting {contract_type} {award_type} processing at: {str(specific_feed_start)}")
             process_data(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
+            logger.info(f"Finishing {contract_type} {award_type} processing at: {str(specific_feed_start)}. It took {str(datetime.datetime.now() - specific_feed_start)}")
         else:
             process_deletes(sess, contract_data)
 
 
 def create_lookups(sess):
-    """Create the lookups used for FPDS derivations.
+    """Create the lookups used for contract derivations.
 
     Args:
         sess: connection to database
 
     Returns:
-        Dictionaries and dataframes of sub tier agencies by code, country names by code, county names by state code + county
-        code, county codes by state code + county name, state name by code, and executive compensation data by
-        UEI number
+        Dataframes of sub tier agencies, country data, county data, state data, and executive compensation data
+        including UEI number
     """
 
     # TODO: Do we UPPER everything here for simplicity?
 
-    # get and create dataframe of sub tier agencies
+    # Get and create dataframe of sub tier agencies
     sub_tier_df = pd.read_sql(sess.query(
             SubTierAgency.sub_tier_agency_code.label("sub_tier_agency_c"),
             case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label("agency_code"),
@@ -969,16 +993,16 @@ def create_lookups(sess):
         sess.connection()
     )
 
-    # get and create dataframe of countries
+    # Get and create dataframe of countries
     country_df = pd.read_sql(sess.query(CountryCode.country_code, CountryCode.country_name).statement, sess.connection())
 
-    # get and create dataframe of states
+    # Get and create dataframe of states
     state_df = pd.read_sql(sess.query(States.state_code, func.upper(States.state_name).label("state_name")).statement, sess.connection())
 
-    # get and create dataframe of counties
+    # Get and create dataframe of counties
     county_df = pd.read_sql(sess.query(CountyCode.county_number, CountyCode.state_code, func.trim(func.regexp_replace(func.upper(CountyCode.county_name), r" \(CA\)", "")).label("county_name")).statement, sess.connection())
 
-    # get and create dataframe of all exec comps and their associated UEIs
+    # Get and create dataframe of all exec comps and their associated UEIs
     exec_comp_df = pd.read_sql(
         sess.query(SAMRecipient.high_comp_officer1_full_na, SAMRecipient.high_comp_officer1_amount,
                    SAMRecipient.high_comp_officer2_full_na, SAMRecipient.high_comp_officer2_amount,
@@ -1001,7 +1025,7 @@ def main():
         "-da",
         "--dates",
         help="Used to specify dates to gather updates from. "
-             "Should have 2 arguments, first and last day, formatted YYYY-mm-dd",
+             "Must have 2 arguments, first and last day, formatted YYYY-mm-dd",
         nargs=2,
         type=str,
     )
@@ -1049,7 +1073,8 @@ def main():
                                                output_date_format="%m/%d/%Y")
 
     if not args.delete:
-        logger.info("Starting at: %s", str(datetime.datetime.now()))
+        insert_start = datetime.datetime.now()
+        logger.info(f"Starting data collection at: {str(insert_start)}")
 
         for award_type in award_types_idv:
             get_data(
@@ -1088,7 +1113,7 @@ def main():
             )
 
         sess.commit()
-        logger.info("Ending at: %s", str(datetime.datetime.now()))
+        logger.info(f"Ending data collection at: {str(datetime.datetime.now())}. It took {str(datetime.datetime.now() - insert_start)}")
 
     # We also need to process the delete feed
     get_data(
@@ -1118,7 +1143,7 @@ def main():
     with open("load_sam_contract_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
 
-    # writing MissingSubtierCGAC error file to easily parse/manage these errors
+    # Writing MissingSubtierCGAC error file to easily parse/manage these errors
     if cgac_errors:
         with open("cgacKeyErrors.txt", "w") as f:
             for key in cgac_errors:
