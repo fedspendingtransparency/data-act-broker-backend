@@ -1113,7 +1113,7 @@ def main():
             )
 
         sess.commit()
-        logger.info(f"Ending data collection at: {str(datetime.datetime.now())}. It took {str(datetime.datetime.now() - insert_start)}")
+        logger.info(f"Finishing data collection at: {str(datetime.datetime.now())}. It took {str(datetime.datetime.now() - insert_start)}")
 
     # We also need to process the delete feed
     get_data(
