@@ -932,7 +932,7 @@ def get_sam_contract_file(contract_type=None, award_type=None, delete=False, sta
     # Despite the additional backoff logic when pinging for the downloadable file, this is an attempt to retry the
     # *whole request* multiple times as sometimes it'll generate in seconds and other times it will not in an hour.
     attempt_count = 0
-    max_attempts = 30
+    max_attempts = 10
     file_content = None
     while attempt_count < max_attempts:
         try:
