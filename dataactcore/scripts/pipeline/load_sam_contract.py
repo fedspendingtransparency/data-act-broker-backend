@@ -1003,7 +1003,7 @@ def process_deletes(sess, contract_df):
     Returns:
         dataframe of chunked data for usas to delete
     """
-    delete_start = datetime.datetime.now()
+    delete_start = get_utc_now()
     logger.info(f"Starting delete processing at: {str(delete_start)}")
     # Remove columns from dataframe that aren't in our existing mapping (we don't want them)
     contract_df = contract_df[contract_df.columns.intersection(list(SAM_CONTRACT_MAPPINGS.keys()) + ["detached_award_procurement_id"])]
@@ -1047,7 +1047,7 @@ def process_deletes(sess, contract_df):
     usas_delete_data = pd.read_sql("SELECT detached_award_procurement_id, detached_award_proc_unique FROM tmp_contract_delete",
                              sess.connection())
     sess.execute("DROP TABLE IF EXISTS tmp_contract_delete")
-    logger.info(f"Deletes finished processing at: {str(datetime.datetime.now())}. It took {str(datetime.datetime.now() - delete_start)}")
+    logger.info(f"Deletes finished processing at: {str(get_utc_now())}. It took {str(get_utc_now() - delete_start)}")
 
     return usas_delete_data
 
@@ -1097,10 +1097,10 @@ def get_data(
 
             if len(contract_df) > 0:
                 if not delete:
-                    specific_feed_start = datetime.datetime.now()
+                    specific_feed_start = get_utc_now()
                     logger.info(f"Starting {contract_type} {award_type} processing at: {str(specific_feed_start)}")
                     process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
-                    logger.info(f"Finishing {contract_type} {award_type} processing at: {str(specific_feed_start)}. It took {str(datetime.datetime.now() - specific_feed_start)}")
+                    logger.info(f"Finishing {contract_type} {award_type} processing at: {str(specific_feed_start)}. It took {str(get_utc_now() - specific_feed_start)}")
                 else:
                     chunk_delete_df = process_deletes(sess, contract_df)
                     usas_delete_df = pd.concat([usas_delete_df, chunk_delete_df], ignore_index=True)
@@ -1108,9 +1108,8 @@ def get_data(
         metrics['records_received'] += records_received
     else:
         # Writing the file for USAS
-        seconds = int((get_utc_now() - datetime.datetime(1970, 1, 1)).total_seconds())
         # TODO: Potentially update based on downstream effects for operations and USAS
-        usas_delete_file = now.strftime("%m-%d-%Y") + "_delete_records_award" + "_" + str(seconds) + ".csv"
+        usas_delete_file = now.strftime("%m-%d-%Y") + "_delete_records_award" + "_" + get_timestamp() + ".csv"
         metrics["deleted_{}_records_file".format(contract_type).lower()] = usas_delete_file
         usas_delete_df.to_csv(usas_delete_file, index=False)
         if CONFIG_BROKER["use_aws"]:
@@ -1178,7 +1177,7 @@ def create_lookups(sess):
 
 def main():
     sess = GlobalDB.db().session
-    now = datetime.datetime.now()
+    now = get_utc_now()
 
     parser = argparse.ArgumentParser(description="Pull data from SAM Contracts API.")
     parser.add_argument(
@@ -1238,7 +1237,7 @@ def main():
                                                output_date_format="%m/%d/%Y")
 
     if not args.delete:
-        insert_start = datetime.datetime.now()
+        insert_start = get_utc_now()
         logger.info(f"Starting data collection at: {str(insert_start)}")
 
         for award_type in award_types_idv:
@@ -1278,7 +1277,7 @@ def main():
             )
 
         sess.commit()
-        logger.info(f"Finishing data collection at: {str(datetime.datetime.now())}. It took {str(datetime.datetime.now() - insert_start)}")
+        logger.info(f"Finishing data collection at: {str(get_utc_now())}. It took {str(get_utc_now() - insert_start)}")
 
     # We also need to process the delete feed
     get_data(
@@ -1297,7 +1296,7 @@ def main():
     )
     # Only update load date if dates weren't specified
     if not args.dates:
-        update_external_data_load_date(now, datetime.datetime.now(), "fpds")
+        update_external_data_load_date(now, get_utc_now(), "fpds")
 
     sess.commit()
 
