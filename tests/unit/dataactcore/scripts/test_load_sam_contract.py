@@ -63,8 +63,8 @@ def get_file(contract_type):
     """Get test file data based on contract_type"""
     # Get the test file
     contract_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type}.csv")
-    contract_data = pd.read_csv(contract_file, dtype=str)
-    return contract_data
+    contract_df = pd.read_csv(contract_file, dtype=str)
+    return contract_df
 
 
 def test_create_lookups(database):
@@ -115,10 +115,10 @@ def test_calculate_ppop_fields(database):
     """Test that calculate_ppop_fields properly derives the relevant fields"""
     sess = database.session
     prep_data(sess)
-    contract_data = get_file("award")
+    contract_df = get_file("award")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
     load_sam_contract.process_data(sess,
-                                   contract_data,
+                                   contract_df,
         "award",
         sub_tier_df,
         county_df,
@@ -190,10 +190,10 @@ def test_calculate_legal_entity_fields(database):
     """Test that calculate_legal_entity_fields properly derives the relevant fields"""
     sess = database.session
     prep_data(sess)
-    contract_data = get_file("award")
+    contract_df = get_file("award")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
     load_sam_contract.process_data(sess,
-                                   contract_data,
+                                   contract_df,
                                    "award",
                                    sub_tier_df,
                                    county_df,
@@ -264,11 +264,11 @@ def test_derive_remaining_fields(database):
     """Test that derive_remaining_fields properly derives the relevant fields (ignores ppop and le because other tests deal with those)"""
     sess = database.session
     prep_data(sess)
-    contract_data_award = get_file("award")
-    contract_data_idv = get_file("idv")
+    contract_df_award = get_file("award")
+    contract_df_idv = get_file("idv")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
     load_sam_contract.process_data(sess,
-                                   contract_data_award,
+                                   contract_df_award,
                                    "award",
                                    sub_tier_df,
                                    county_df,
@@ -276,7 +276,7 @@ def test_derive_remaining_fields(database):
                                    country_df,
                                    exec_comp_df)
     load_sam_contract.process_data(sess,
-                                   contract_data_idv,
+                                   contract_df_idv,
                                    "idv",
                                    sub_tier_df,
                                    county_df,
@@ -378,12 +378,12 @@ def test_deletes(database):
     """Test that deleting works correctly"""
     sess = database.session
     prep_data(sess)
-    contract_data_award = get_file("award")
-    contract_data_idv = get_file("idv")
-    contract_data_deletes = get_file("delete")
+    contract_df_award = get_file("award")
+    contract_df_idv = get_file("idv")
+    contract_df_deletes = get_file("delete")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
     load_sam_contract.process_data(sess,
-                                   contract_data_award,
+                                   contract_df_award,
                                    "award",
                                    sub_tier_df,
                                    county_df,
@@ -391,14 +391,14 @@ def test_deletes(database):
                                    country_df,
                                    exec_comp_df)
     load_sam_contract.process_data(sess,
-                                   contract_data_idv,
+                                   contract_df_idv,
                                    "idv",
                                    sub_tier_df,
                                    county_df,
                                    state_df,
                                    country_df,
                                    exec_comp_df)
-    load_sam_contract.process_deletes(sess, contract_data_deletes)
+    load_sam_contract.process_deletes(sess, contract_df_deletes)
 
     row1 = sess.query(DetachedAwardProcurement).filter_by(
         detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4").one_or_none()

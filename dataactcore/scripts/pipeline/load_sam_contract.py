@@ -488,15 +488,15 @@ logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-def insert_into_db(sess, contract_data):
+def insert_into_db(sess, contract_df):
     """Insert the dataframe into the database
 
     Args:
         sess: sqlalchemy session
-        contract_data: dataframe to insert into the database
+        contract_df: dataframe to insert into the database
     """
     # Header column list, remove all quotes and spaces created because we don't need them
-    header_cols = str(list(contract_data.columns))[1:-1].replace("'", "").replace(" ", "")
+    header_cols = str(list(contract_df.columns))[1:-1].replace("'", "").replace(" ", "")
 
     # Create list of all columns to update, we don't want to update created_at when upserting
     update_list = []
@@ -505,82 +505,82 @@ def insert_into_db(sess, contract_data):
             update_list.append(f"{col} = EXCLUDED.{col}")
 
     # Replace all nans with nulls
-    contract_data = contract_data.replace({np.NaN: "NULL"})
+    contract_df = contract_df.replace({np.NaN: "NULL"})
 
     # Update list columns to be strings for the insert
-    contract_data["business_categories"] = contract_data.apply(lambda row: "{" + ",".join(row["business_categories"]) + "}", axis=1)
+    contract_df["business_categories"] = contract_df.apply(lambda row: "{" + ",".join(row["business_categories"]) + "}", axis=1)
 
     # Escape all single quotes in dataframe
-    contract_data = contract_data.astype(str).replace("'","''", regex=True)
+    contract_df = contract_df.astype(str).replace("'","''", regex=True)
 
     # Remove the T and Z from date columns
-    contract_data[date_fields] = contract_data[date_fields].replace({"T": " ", "Z": ""}, regex=True)
+    contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
     # Execute SQL
     sess.execute(
         f"""
             INSERT INTO detached_award_procurement
             ({header_cols})
-            VALUES {','.join([str(i) for i in list(contract_data.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'")}
+            VALUES {','.join([str(i) for i in list(contract_df.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'")}
             ON CONFLICT (detached_award_proc_unique) DO UPDATE SET
             {",\n".join(update_list)};
         """
     )
 
 
-def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
+def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
     """Calculate values that aren't in any feed (or haven't been provided properly) for place of performance
 
     Args:
         sess: sqlalchemy session
-        contract_data: dataframe to update with derivations
+        contract_df: dataframe to update with derivations
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
 
     Returns:
-        The contract_data dataframe with legal entity derivations
+        The contract_df dataframe with legal entity derivations
     """
     # Change US territories to the USA country code and name
-    ppop_us_mask = contract_data["place_of_perform_country_c"].isin(list(country_code_map.keys()))
-    ppop_territory_mask = ppop_us_mask & (contract_data["place_of_perform_country_c"] != "USA")
+    ppop_us_mask = contract_df["place_of_perform_country_c"].isin(list(country_code_map.keys()))
+    ppop_territory_mask = ppop_us_mask & (contract_df["place_of_perform_country_c"] != "USA")
 
-    contract_data["place_of_performance_state"] = contract_data.apply(
+    contract_df["place_of_performance_state"] = contract_df.apply(
         lambda row: country_code_map[row["place_of_perform_country_c"]] if row[
                                                                                "place_of_perform_country_c"] in country_code_map and
                                                                            row[
                                                                                "place_of_perform_country_c"] != "USA" else
         row["place_of_performance_state"], axis=1)
-    contract_data = contract_data.merge(state_df, how="left", left_on="place_of_performance_state",
+    contract_df = contract_df.merge(state_df, how="left", left_on="place_of_performance_state",
                                         right_on="state_code").drop("state_code", axis=1)
     # updating both blank states and those that were changed due to the territory updates
-    contract_data["place_of_perfor_state_desc"] = np.where(
-        ppop_territory_mask | (contract_data["place_of_perfor_state_desc"].isnull()), contract_data["state_name"],
-        contract_data["place_of_perfor_state_desc"])
+    contract_df["place_of_perfor_state_desc"] = np.where(
+        ppop_territory_mask | (contract_df["place_of_perfor_state_desc"].isnull()), contract_df["state_name"],
+        contract_df["place_of_perfor_state_desc"])
 
-    contract_data["place_of_perf_country_desc"] = np.where(ppop_territory_mask, "UNITED STATES",
-                                                           contract_data["place_of_perf_country_desc"])
-    contract_data["place_of_perform_country_c"] = np.where(ppop_territory_mask, "USA",
-                                                           contract_data["place_of_perform_country_c"])
+    contract_df["place_of_perf_country_desc"] = np.where(ppop_territory_mask, "UNITED STATES",
+                                                           contract_df["place_of_perf_country_desc"])
+    contract_df["place_of_perform_country_c"] = np.where(ppop_territory_mask, "USA",
+                                                           contract_df["place_of_perform_country_c"])
 
     # Derive ppop country name
-    contract_data = contract_data.merge(country_df, how="left", left_on="place_of_perform_country_c",
+    contract_df = contract_df.merge(country_df, how="left", left_on="place_of_perform_country_c",
                                         right_on="country_code")
-    contract_data["place_of_perf_country_desc"] = np.where(
-        contract_data["place_of_perf_country_desc"].isnull(), contract_data["country_name"],
-        contract_data["place_of_perf_country_desc"])
+    contract_df["place_of_perf_country_desc"] = np.where(
+        contract_df["place_of_perf_country_desc"].isnull(), contract_df["country_name"],
+        contract_df["place_of_perf_country_desc"])
 
-    ppop_valid_zip_mask = (contract_data["place_of_performance_zip4a"].str.match(r"^\d{5}(-?\d{4})?$")) & ppop_us_mask
+    ppop_valid_zip_mask = (contract_df["place_of_performance_zip4a"].str.match(r"^\d{5}(-?\d{4})?$")) & ppop_us_mask
     # if we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
-    contract_data["place_of_performance_zip5"] = np.where(ppop_valid_zip_mask, contract_data["place_of_performance_zip4a"].str[:5], np.nan)
-    contract_data["place_of_perform_zip_last4"] = np.where(
-        ppop_valid_zip_mask & (contract_data["place_of_performance_zip4a"].str.len() > 5),
-        contract_data["place_of_performance_zip4a"].str[-4:], np.nan)
+    contract_df["place_of_performance_zip5"] = np.where(ppop_valid_zip_mask, contract_df["place_of_performance_zip4a"].str[:5], np.nan)
+    contract_df["place_of_perform_zip_last4"] = np.where(
+        ppop_valid_zip_mask & (contract_df["place_of_performance_zip4a"].str.len() > 5),
+        contract_df["place_of_performance_zip4a"].str[-4:], np.nan)
 
     # Derive ppop county data
     # Use zip codes to derive remaining possible county codes
-    ppop_zips_df = contract_data[["place_of_performance_zip5", "place_of_perform_zip_last4"]][
-        (~contract_data["place_of_performance_zip5"].isnull()) & (contract_data["place_of_perform_county_co"].isnull())].drop_duplicates()
+    ppop_zips_df = contract_df[["place_of_performance_zip5", "place_of_perform_zip_last4"]][
+        (~contract_df["place_of_performance_zip5"].isnull()) & (contract_df["place_of_perform_county_co"].isnull())].drop_duplicates()
     ppop_zips_df["county_code"] = np.nan
     ppop_zips_df.to_sql("tmp_zips_df", con=sess.connection(), if_exists="replace", index=False,
                       dtype={"place_of_performance_zip5": types.TEXT(), "place_of_perform_zip_last4": types.TEXT(),
@@ -617,64 +617,64 @@ def calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df):
     )
     ppop_zips_df = pd.read_sql("SELECT * FROM tmp_zips_df", sess.connection())
     # Get county code
-    contract_data = contract_data.merge(ppop_zips_df, how="left")
-    contract_data["place_of_perform_county_co"] = np.where(contract_data["place_of_perform_county_co"].isnull(),
-        contract_data["county_code"], contract_data["place_of_perform_county_co"])
+    contract_df = contract_df.merge(ppop_zips_df, how="left")
+    contract_df["place_of_perform_county_co"] = np.where(contract_df["place_of_perform_county_co"].isnull(),
+        contract_df["county_code"], contract_df["place_of_perform_county_co"])
     # Get county name
-    contract_data = contract_data.merge(county_df, how="left",
+    contract_df = contract_df.merge(county_df, how="left",
                                         left_on=["place_of_performance_state", "place_of_perform_county_co"],
                                         right_on=["state_code", "county_number"])
-    contract_data["place_of_perform_county_na"] = np.where(contract_data["place_of_perform_county_na"].isnull(),
-                                                           contract_data["county_name"],
-                                                           contract_data["place_of_perform_county_na"])
+    contract_df["place_of_perform_county_na"] = np.where(contract_df["place_of_perform_county_na"].isnull(),
+                                                           contract_df["county_name"],
+                                                           contract_df["place_of_perform_county_na"])
 
     del ppop_zips_df
 
     # Drop all ppop-based extra columns we've created through merges
-    contract_data = contract_data.drop(["country_code", "country_name", "county_code", "county_number", "county_name", "state_code", "state_name"], axis=1)
+    contract_df = contract_df.drop(["country_code", "country_name", "county_code", "county_number", "county_name", "state_code", "state_name"], axis=1)
 
-    return contract_data
+    return contract_df
 
 
-def calculate_legal_entity_fields(sess, contract_data, county_df, state_df, country_df):
+def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, country_df):
     """Calculate values that aren't in any feed (or haven't been provided properly) for legal entity
 
     Args:
         sess: sqlalchemy session
-        contract_data: dataframe to update with derivations
+        contract_df: dataframe to update with derivations
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
 
     Returns:
-        The contract_data dataframe with legal entity derivations
+        The contract_df dataframe with legal entity derivations
     """
     # Change US territories to the USA country code and name
-    le_us_mask = contract_data["legal_entity_country_code"].isin(list(country_code_map.keys()))
-    le_territory_mask =  (le_us_mask & (contract_data["legal_entity_country_code"] != "USA"))
-    contract_data["legal_entity_state_code"] = contract_data.apply(lambda row: country_code_map[row["legal_entity_country_code"]] if row["legal_entity_country_code"] in country_code_map and row["legal_entity_country_code"] != "USA" else row["legal_entity_state_code"], axis=1)
-    contract_data = contract_data.merge(state_df, how="left", left_on="legal_entity_state_code", right_on="state_code")
+    le_us_mask = contract_df["legal_entity_country_code"].isin(list(country_code_map.keys()))
+    le_territory_mask =  (le_us_mask & (contract_df["legal_entity_country_code"] != "USA"))
+    contract_df["legal_entity_state_code"] = contract_df.apply(lambda row: country_code_map[row["legal_entity_country_code"]] if row["legal_entity_country_code"] in country_code_map and row["legal_entity_country_code"] != "USA" else row["legal_entity_state_code"], axis=1)
+    contract_df = contract_df.merge(state_df, how="left", left_on="legal_entity_state_code", right_on="state_code")
     # updating both blank states and those that were changed due to the territory updates
-    contract_data["legal_entity_state_descrip"] = np.where(le_territory_mask | (contract_data["legal_entity_state_descrip"].isnull()), contract_data["state_name"], contract_data["legal_entity_state_descrip"])
-    contract_data["legal_entity_country_name"] = np.where(le_territory_mask, "UNITED STATES", contract_data["legal_entity_country_name"])
-    contract_data["legal_entity_country_code"] = np.where(le_territory_mask, "USA", contract_data["legal_entity_country_code"])
+    contract_df["legal_entity_state_descrip"] = np.where(le_territory_mask | (contract_df["legal_entity_state_descrip"].isnull()), contract_df["state_name"], contract_df["legal_entity_state_descrip"])
+    contract_df["legal_entity_country_name"] = np.where(le_territory_mask, "UNITED STATES", contract_df["legal_entity_country_name"])
+    contract_df["legal_entity_country_code"] = np.where(le_territory_mask, "USA", contract_df["legal_entity_country_code"])
 
     # Derive legal entity country name
-    contract_data = contract_data.merge(country_df, how="left", left_on="legal_entity_country_code", right_on="country_code")
-    contract_data["legal_entity_country_name"] = np.where(
-        contract_data["legal_entity_country_name"].isnull(), contract_data["country_name"],
-        contract_data["legal_entity_country_name"])
+    contract_df = contract_df.merge(country_df, how="left", left_on="legal_entity_country_code", right_on="country_code")
+    contract_df["legal_entity_country_name"] = np.where(
+        contract_df["legal_entity_country_name"].isnull(), contract_df["country_name"],
+        contract_df["legal_entity_country_name"])
 
     # Drop all legal entity-based extra columns we've created through merges
-    contract_data = contract_data.drop(["country_code", "country_name", "state_code", "state_name"], axis=1)
+    contract_df = contract_df.drop(["country_code", "country_name", "state_code", "state_name"], axis=1)
 
-    le_valid_zip_mask = (contract_data["legal_entity_zip4"].str.match(r"^\d{5}(-?\d{4})?$")) & le_us_mask
+    le_valid_zip_mask = (contract_df["legal_entity_zip4"].str.match(r"^\d{5}(-?\d{4})?$")) & le_us_mask
     # If we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
-    contract_data["legal_entity_zip5"] = np.where(le_valid_zip_mask, contract_data["legal_entity_zip4"].str[:5], np.nan)
-    contract_data["legal_entity_zip_last4"] = np.where(le_valid_zip_mask & (contract_data["legal_entity_zip4"].str.len() > 5), contract_data["legal_entity_zip4"].str[-4:], np.nan)
+    contract_df["legal_entity_zip5"] = np.where(le_valid_zip_mask, contract_df["legal_entity_zip4"].str[:5], np.nan)
+    contract_df["legal_entity_zip_last4"] = np.where(le_valid_zip_mask & (contract_df["legal_entity_zip4"].str.len() > 5), contract_df["legal_entity_zip4"].str[-4:], np.nan)
 
     # Derive le county data
-    le_zips_df = contract_data[["legal_entity_zip5", "legal_entity_zip_last4"]][~contract_data["legal_entity_zip5"].isnull()].drop_duplicates()
+    le_zips_df = contract_df[["legal_entity_zip5", "legal_entity_zip_last4"]][~contract_df["legal_entity_zip5"].isnull()].drop_duplicates()
     le_zips_df["legal_entity_county_code"] = np.nan
     le_zips_df.to_sql("tmp_zips_df", con=sess.connection(), if_exists="replace", index=False, dtype={"legal_entity_zip5": types.TEXT(), "legal_entity_zip_last4": types.TEXT(), "legal_entity_county_code": types.TEXT()})
     # Get 9-digit-related county code
@@ -709,23 +709,23 @@ def calculate_legal_entity_fields(sess, contract_data, county_df, state_df, coun
     )
     le_zips_df = pd.read_sql("SELECT * FROM tmp_zips_df", sess.connection())
     # Get county code
-    contract_data = contract_data.merge(le_zips_df, how="left")
+    contract_df = contract_df.merge(le_zips_df, how="left")
     # Get county name
-    contract_data = contract_data.merge(county_df, how="left", left_on=["legal_entity_state_code", "legal_entity_county_code"], right_on=["state_code", "county_number"]).drop(["state_code", "county_number"], axis=1).rename(columns={"county_name": "legal_entity_county_name"})
+    contract_df = contract_df.merge(county_df, how="left", left_on=["legal_entity_state_code", "legal_entity_county_code"], right_on=["state_code", "county_number"]).drop(["state_code", "county_number"], axis=1).rename(columns={"county_name": "legal_entity_county_name"})
     # Delete larger unneeded DFs to save some space
     del le_zips_df
 
-    return contract_data
+    return contract_df
 
 
-def derive_transaction_unique(contract_data):
+def derive_transaction_unique(contract_df):
     """Derive the unique transaction key. Pulled out so it can be shared by deletes and updates
 
     Args:
-        contract_data: dataframe to update with derivations
+        contract_df: dataframe to update with derivations
 
     Returns:
-        The contract_data dataframe with completed derivations
+        The contract_df dataframe with completed derivations
 
     """
     key_list = [
@@ -737,19 +737,19 @@ def derive_transaction_unique(contract_data):
         "transaction_number",
     ]
     idv_list = ["agency_id", "piid", "award_modification_amendme"]
-    contract_data["detached_award_proc_unique"] = contract_data.apply(lambda row: "_".join(
+    contract_df["detached_award_proc_unique"] = contract_df.apply(lambda row: "_".join(
         [row[key] if (row["pulled_from"] == "AWARD" or key in idv_list) and pd.notnull(row[key]) else "-none-" for key in
          key_list]), axis=1)
 
-    return contract_data
+    return contract_df
 
 
-def derive_remaining_fields(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
+def derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
     """Derive fields that aren't passed from SAM or that might be blank in their data, but we can derive them anyway
 
     Args:
         sess: sqlalchemy session
-        contract_data: dataframe to update with derivations
+        contract_df: dataframe to update with derivations
         contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
         sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
         county_df: a dataframe containing all county codes and names by state
@@ -758,36 +758,36 @@ def derive_remaining_fields(sess, contract_data, contract_type, sub_tier_df, cou
         exec_comp_df: a dataframe containing all the data for Executive Compensation
 
     Returns:
-        The contract_data dataframe with completed derivations
+        The contract_df dataframe with completed derivations
     """
     # Calculate awarding/funding agency codes/names based on awarding/funding sub tier agency codes
-    contract_data = contract_data.merge(sub_tier_df, how="left", left_on="awarding_sub_tier_agency_c", right_on="sub_tier_agency_c").drop("sub_tier_agency_c", axis=1).rename(columns={"agency_code": "awarding_agency_code", "agency_name": "awarding_agency_name"})
-    contract_data = contract_data.merge(sub_tier_df, how="left", left_on="funding_sub_tier_agency_co",
+    contract_df = contract_df.merge(sub_tier_df, how="left", left_on="awarding_sub_tier_agency_c", right_on="sub_tier_agency_c").drop("sub_tier_agency_c", axis=1).rename(columns={"agency_code": "awarding_agency_code", "agency_name": "awarding_agency_name"})
+    contract_df = contract_df.merge(sub_tier_df, how="left", left_on="funding_sub_tier_agency_co",
                                         right_on="sub_tier_agency_c").drop("sub_tier_agency_c", axis=1).rename(
         columns={"agency_code": "funding_agency_code", "agency_name": "funding_agency_name"})
 
     # Do place of performance calculations only if we have SOME country code. If we have none at all the merge fails
-    if contract_data["place_of_perform_country_c"].notnull().any():
-        contract_data = calculate_ppop_fields(sess, contract_data, county_df, state_df, country_df)
+    if contract_df["place_of_perform_country_c"].notnull().any():
+        contract_df = calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df)
 
     # Do legal entity calculations only if we have SOME country code. If we have none at all the merge fails
-    if contract_data["legal_entity_country_code"].notnull().any():
-        contract_data = calculate_legal_entity_fields(sess, contract_data, county_df, state_df, country_df)
+    if contract_df["legal_entity_country_code"].notnull().any():
+        contract_df = calculate_legal_entity_fields(sess, contract_df, county_df, state_df, country_df)
 
     # Make sure there are no np.NaNs that could mess up the business_categories calculations
-    contract_data[boolean_fields] = contract_data[boolean_fields].replace({np.NaN: "NO"})
+    contract_df[boolean_fields] = contract_df[boolean_fields].replace({np.NaN: "NO"})
 
     # Calculate business categories
-    contract_data["business_categories"] = contract_data.apply(lambda row: get_business_categories(row=row, data_type="fpds"), axis=1)
+    contract_df["business_categories"] = contract_df.apply(lambda row: get_business_categories(row=row, data_type="fpds"), axis=1)
 
     # Calculate executive compensation data for the entry. UPPER the UEI just in case it comes in lowercase
-    contract_data["awardee_or_recipient_uei"] = contract_data["awardee_or_recipient_uei"].str.upper()
-    contract_data = contract_data.merge(exec_comp_df, how="left", left_on="awardee_or_recipient_uei", right_on="uei").drop("uei", axis=1)
+    contract_df["awardee_or_recipient_uei"] = contract_df["awardee_or_recipient_uei"].str.upper()
+    contract_df = contract_df.merge(exec_comp_df, how="left", left_on="awardee_or_recipient_uei", right_on="uei").drop("uei", axis=1)
 
     # Fill in 999s for all blank values in awarding/funding codes and add them to cgac_errors
-    contract_data = contract_data.fillna({'awarding_agency_code':'999', 'funding_agency_code':'999'})
-    awarding_cgac_errors_df = contract_data[contract_data["awarding_agency_code"] == "999"][["awarding_sub_tier_agency_c", "awarding_sub_tier_agency_n"]].drop_duplicates("awarding_sub_tier_agency_c")
-    funding_cgac_errors_df = contract_data[contract_data["funding_agency_code"] == "999"][
+    contract_df = contract_df.fillna({'awarding_agency_code':'999', 'funding_agency_code':'999'})
+    awarding_cgac_errors_df = contract_df[contract_df["awarding_agency_code"] == "999"][["awarding_sub_tier_agency_c", "awarding_sub_tier_agency_n"]].drop_duplicates("awarding_sub_tier_agency_c")
+    funding_cgac_errors_df = contract_df[contract_df["funding_agency_code"] == "999"][
         ["funding_sub_tier_agency_co", "funding_sub_tier_agency_na"]].drop_duplicates("funding_sub_tier_agency_co")
     if not awarding_cgac_errors_df.empty:
         awarding_cgac_errors_json = awarding_cgac_errors_df.set_index("awarding_sub_tier_agency_c")["awarding_sub_tier_agency_n"].to_dict()
@@ -812,11 +812,11 @@ def derive_remaining_fields(sess, contract_data, contract_type, sub_tier_df, cou
     del funding_cgac_errors_df
 
     # Combine additional_reporting into one column
-    contract_data["additional_reporting"] = contract_data.apply(lambda row: row["additional_reporting_code"] + ": " + row["additional_reporting_name"] if pd.notnull(row["additional_reporting_code"]) else None, axis=1)
-    contract_data = contract_data.drop(["additional_reporting_code", "additional_reporting_name"], axis=1)
+    contract_df["additional_reporting"] = contract_df.apply(lambda row: row["additional_reporting_code"] + ": " + row["additional_reporting_name"] if pd.notnull(row["additional_reporting_code"]) else None, axis=1)
+    contract_df = contract_df.drop(["additional_reporting_code", "additional_reporting_name"], axis=1)
 
     # Two columns were combined in the feed. For now, just combine them and decide how to handle it later
-    contract_data["vendor_legal_org_name"] = contract_data["uei_legal_business_name"]
+    contract_df["vendor_legal_org_name"] = contract_df["uei_legal_business_name"]
 
     # Calculate the unique award key
     if contract_type == "award":
@@ -826,20 +826,20 @@ def derive_remaining_fields(sess, contract_data, contract_type, sub_tier_df, cou
         prefix_list = ["CONT_IDV"]
         key_list = ["piid", "agency_id"]
 
-    contract_data["unique_award_key"] = contract_data.apply(lambda row: "_".join(
+    contract_df["unique_award_key"] = contract_df.apply(lambda row: "_".join(
         prefix_list + [row[key] if pd.notnull(row[key]) else "-none-" for key in key_list]).upper(), axis=1)
 
-    contract_data = derive_transaction_unique(contract_data)
-    return contract_data
+    contract_df = derive_transaction_unique(contract_df)
+    return contract_df
 
 
-def process_data(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
+def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
     """Process the provided data by performing derivations, making sure all columns exist, and cleaning up column names
     then insert the data into the database or update existing data
 
     Args:
         sess: sqlalchemy session
-        contract_data: dataframe to update with derivations
+        contract_df: dataframe to update with derivations
         contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
         sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
         county_df: a dataframe containing all county codes and names by state
@@ -854,61 +854,61 @@ def process_data(sess, contract_data, contract_type, sub_tier_df, county_df, sta
         contract_mappings = contract_mappings | AWARD_MAPPINGS
 
     # Remove columns from dataframe that aren't in our existing mapping (we don't want them)
-    contract_data = contract_data[contract_data.columns.intersection(list(contract_mappings.keys()))]
+    contract_df = contract_df[contract_df.columns.intersection(list(contract_mappings.keys()))]
 
     # Add blank columns to complete the mappings for derivations and missing columns from the file
-    contract_data = contract_data.reindex(columns=contract_data.columns.tolist() + list(contract_mappings.keys() - contract_data.columns))
+    contract_df = contract_df.reindex(columns=contract_df.columns.tolist() + list(contract_mappings.keys() - contract_df.columns))
 
     # Lowercase all contract_mappings now that we've sorted through what we've gotten from the files
     contract_mappings = {k.lower(): v for k, v in contract_mappings.items()}
 
-    contract_data = clean_data(
-        contract_data,
+    contract_df = clean_data(
+        contract_df,
         DetachedAwardProcurement,
         contract_mappings,
         {"place_of_perform_county_co": {"pad_to_length": 3, "keep_null": True}},
     )
 
-    contract_data = derive_remaining_fields(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
+    contract_df = derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
 
     # Insert the data
-    insert_into_db(sess, contract_data)
+    insert_into_db(sess, contract_df)
 
     # Dropping tables that shouldn't remain
     sess.execute("DROP TABLE IF EXISTS tmp_zips_df")
 
 
-def process_deletes(sess, contract_data):
+def process_deletes(sess, contract_df):
     """Process the deletes data coming in by adding required columns, cleaning up column names, and deleting the data.
     The only value that needs to be derived is the unique transaction key for matching against existing data.
 
     Args:
         sess: sqlalchemy session
-        contract_data: dataframe to update with derivations
+        contract_df: dataframe to update with derivations
     """
     delete_start = datetime.datetime.now()
     logger.info(f"Starting delete processing at: {str(delete_start)}")
     # Remove columns from dataframe that aren't in our existing mapping (we don't want them)
-    contract_data = contract_data[contract_data.columns.intersection(list(SAM_CONTRACT_MAPPINGS.keys()))]
+    contract_df = contract_df[contract_df.columns.intersection(list(SAM_CONTRACT_MAPPINGS.keys()))]
 
     # Add blank columns to complete the mappings for derivations and missing columns from the file
-    contract_data = contract_data.reindex(
-        columns=contract_data.columns.tolist() + list(SAM_CONTRACT_MAPPINGS.keys() - contract_data.columns))
+    contract_df = contract_df.reindex(
+        columns=contract_df.columns.tolist() + list(SAM_CONTRACT_MAPPINGS.keys() - contract_df.columns))
 
     # Lowercase all contract_mappings now that we've sorted through what we've gotten from the files
     contract_mappings = {k.lower(): v for k, v in SAM_CONTRACT_MAPPINGS.items()}
 
-    contract_data = clean_data(
-        contract_data,
+    contract_df = clean_data(
+        contract_df,
         DetachedAwardProcurement,
         contract_mappings,
         {},
     )
 
-    contract_data = derive_transaction_unique(contract_data)
+    contract_df = derive_transaction_unique(contract_df)
 
     # Delete the data using a temporary table
-    contract_data.to_sql("tmp_contract_delete", con=sess.connection(), if_exists="replace", index=False)
+    contract_df.to_sql("tmp_contract_delete", con=sess.connection(), if_exists="replace", index=False)
     sess.execute(
         """
             DELETE FROM detached_award_procurement USING tmp_contract_delete
@@ -962,20 +962,20 @@ def get_data(
     """
     arg_string = "delete" if delete else contract_type.lower()
     test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{arg_string}.csv")
-    contract_data = []
+    contract_df = []
 
     if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT") or delete:
         # We might need to use chunksize later on, but it also won't be in this "if"
-        contract_data = pd.read_csv(test_file, dtype=str)
+        contract_df = pd.read_csv(test_file, dtype=str)
 
-    if len(contract_data) > 0:
+    if len(contract_df) > 0:
         if not delete:
             specific_feed_start = datetime.datetime.now()
             logger.info(f"Starting {contract_type} {award_type} processing at: {str(specific_feed_start)}")
-            process_data(sess, contract_data, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
+            process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
             logger.info(f"Finishing {contract_type} {award_type} processing at: {str(specific_feed_start)}. It took {str(datetime.datetime.now() - specific_feed_start)}")
         else:
-            process_deletes(sess, contract_data)
+            process_deletes(sess, contract_df)
 
 
 def create_lookups(sess):
