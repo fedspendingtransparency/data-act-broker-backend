@@ -531,15 +531,13 @@ def insert_into_db(sess, contract_df):
     #     """, header_cols, ','.join([str(i) for i in list(contract_df.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'"), ",\n".join(update_list)
     # )
     sess.execute(
-        text("""
-                INSERT INTO detached_award_procurement (:header_cols)
+        text(f"""
+                INSERT INTO detached_award_procurement {header_cols}
                 VALUES :values
-                ON CONFLICT (detached_award_proc_unique) DO UPDATE SET :update_cols;
-        """),
+                ON CONFLICT (detached_award_proc_unique) DO UPDATE SET {",\n".join(update_list)};
+        """).bindparam("values", expanding=True),
         {
-            "header_cols": header_cols,
-            "values": ','.join([str(i) for i in list(contract_df.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'"),
-            "update_cols": ",\n".join(update_list)
+            "values": ','.join([str(i) for i in list(contract_df.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'")
         }
     )
 
