@@ -15,7 +15,7 @@ import re
 import json
 import math
 
-from sqlalchemy import func, and_, case, or_, types
+from sqlalchemy import func, and_, case, or_, types, text
 
 from dateutil.relativedelta import relativedelta
 from distutils.util import strtobool
@@ -522,14 +522,25 @@ def insert_into_db(sess, contract_df):
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
     # Execute SQL
+    # sess.execute(
+    #     f"""
+    #         INSERT INTO detached_award_procurement
+    #         (%s)
+    #         VALUES %s
+    #         ON CONFLICT (detached_award_proc_unique) DO UPDATE SET %s;
+    #     """, header_cols, ','.join([str(i) for i in list(contract_df.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'"), ",\n".join(update_list)
+    # )
     sess.execute(
-        f"""
-            INSERT INTO detached_award_procurement
-            ({header_cols})
-            VALUES {','.join([str(i) for i in list(contract_df.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'")}
-            ON CONFLICT (detached_award_proc_unique) DO UPDATE SET
-            {",\n".join(update_list)};
-        """
+        text("""
+                INSERT INTO detached_award_procurement (:header_cols)
+                VALUES :values
+                ON CONFLICT (detached_award_proc_unique) DO UPDATE SET :update_cols;
+        """),
+        {
+            "header_cols": header_cols,
+            "values": ','.join([str(i) for i in list(contract_df.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'"),
+            "update_cols": ",\n".join(update_list)
+        }
     )
 
 
@@ -684,7 +695,7 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
     le_zips_df.to_sql("tmp_zips_df", con=sess.connection(), if_exists="replace", index=False, dtype={"legal_entity_zip5": types.TEXT(), "legal_entity_zip_last4": types.TEXT(), "legal_entity_county_code": types.TEXT()})
     # Get 9-digit-related county code
     sess.execute(
-        f"""
+        """
             UPDATE tmp_zips_df
             SET legal_entity_county_code = county_number
             FROM zips
@@ -695,7 +706,7 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
 
     # Get 5-digit-related county code
     sess.execute(
-        f"""
+        """
             UPDATE tmp_zips_df
             SET legal_entity_county_code = county_number
             FROM (
@@ -1181,27 +1192,28 @@ def main():
 
     parser = argparse.ArgumentParser(description="Pull data from SAM Contracts API.")
     parser.add_argument(
-        "-del",
-        "--delete",
-        help="Used to only run the delete feed. Must be used in conjunction with the dates argument",
-        action="store_true",
-        required=False,
-        default=False,
+        "-f",
+        "--feed",
+        help="Whether to run inserts, deletes, or both",
+        choices=['add', 'delete', 'both'],
+        default='both',
     )
     parser.add_argument(
-        "-p",
-        "--piid",
-        help="Specify specific PIID to pull",
+        "--start_date",
+        help="Specify start date in YYYY-MM-DD format to compare to mod date. Overrides --auto option.",
         nargs=1,
         type=str,
     )
     parser.add_argument(
-        "-da",
-        "--dates",
-        help="Used to specify dates to gather updates from. "
-             "Must have 2 arguments, first and last day, formatted YYYY-mm-dd",
-        nargs=2,
+        "--end_date",
+        help="Specify end date in YYYY-MM-DD format to compare to mod date. Inclusive. " + "Overrides --auto option.",
+        nargs=1,
         type=str,
+    )
+    parser.add_argument(
+        "--auto",
+        help="Polls SAM for the latest contract data.",
+        action="store_true",
     )
     parser.add_argument(
         "-p",
@@ -1212,10 +1224,6 @@ def main():
     )
     parser.add_argument("-l", "--local_file", type=str, default=None, help="Local filename to load. If not provided, run remotely.")
     args = parser.parse_args()
-
-    if args.delete and not args.dates:
-        logger.error("Delete argument may only be used in conjunction with the dates argument.")
-        raise ValueError("Delete argument may only be used in conjunction with the dates argument.")
 
     award_types_award = ["Delivery Order", "BPA Call", "Definitive Contract", "Purchase Order"]
     award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
@@ -1232,11 +1240,12 @@ def main():
 
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = create_lookups(sess)
 
-    start_date, end_date, auto = (None, None, True) if not args.dates else ([args.dates[0]], [args.dates[1]], False)
-    start_date, end_date = validate_load_dates(start_date, end_date, auto, 'fpds', arg_date_format="%Y-%m-%d",
+    start_date, end_date = validate_load_dates(args.start_date, args.end_date, args.auto, 'fpds', arg_date_format="%Y-%m-%d",
                                                output_date_format="%m/%d/%Y")
+    if args.piid:
+        start_date, end_date, auto = (None, None, False)
 
-    if not args.delete:
+    if args.feed in ['add', 'both']:
         insert_start = get_utc_now()
         logger.info(f"Starting data collection at: {str(insert_start)}")
 
@@ -1279,23 +1288,25 @@ def main():
         sess.commit()
         logger.info(f"Finishing data collection at: {str(get_utc_now())}. It took {str(get_utc_now() - insert_start)}")
 
-    # We also need to process the delete feed
-    get_data(
-        sess,
-        sub_tier_df,
-        county_df,
-        state_df,
-        country_df,
-        exec_comp_df,
-        delete=True,
-        start_date=start_date,
-        end_date=end_date,
-        piid=args.piid,
-        local_file=args.local_file,
-        metrics=metrics_json,
-    )
+    if args.feed in ['delete', 'both']:
+        # We also need to process the delete feed
+        get_data(
+            sess,
+            sub_tier_df,
+            county_df,
+            state_df,
+            country_df,
+            exec_comp_df,
+            delete=True,
+            start_date=start_date,
+            end_date=end_date,
+            piid=args.piid,
+            local_file=args.local_file,
+            metrics=metrics_json,
+        )
+
     # Only update load date if dates weren't specified
-    if not args.dates:
+    if arg.auto and args.feed == 'both' and args.piid is None:
         update_external_data_load_date(now, get_utc_now(), "fpds")
 
     sess.commit()
