@@ -374,6 +374,36 @@ def test_derive_remaining_fields(database):
     remove_metrics_file()
 
 
+def test_updates(database):
+    """Test that values are properly updated if an update comes in"""
+    sess = database.session
+    prep_data(sess)
+    contract_df_award = get_file("award")
+    sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
+
+    # Create an existing entry with one easily specified value to compare
+    existing_contract = DetachedAwardProcurement(detached_award_procurement_id=999, detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4", action_type="Z")
+    sess.add(existing_contract)
+    sess.commit()
+
+    load_sam_contract.process_data(sess,
+                                   contract_df_award,
+                                   "award",
+                                   sub_tier_df,
+                                   county_df,
+                                   state_df,
+                                   country_df,
+                                   exec_comp_df)
+
+    row1 = sess.query(DetachedAwardProcurement).filter_by(
+        detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4").one_or_none()
+
+    # Make sure the action type updated. If it did everything other than the ID did
+    assert row1.action_type == "C"
+    # Make sure the ID was excluded
+    assert row1.detached_award_procurement_id == 999
+
+
 def test_deletes(database):
     """Test that deleting works correctly"""
     sess = database.session
