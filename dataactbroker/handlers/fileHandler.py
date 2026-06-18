@@ -267,15 +267,20 @@ class FileHandler:
                 existing_submission = None
                 existing_submission_obj = None
 
-            for request_field, submission_field in request_submission_mapping.items():
-                if request_field in request_params:
-                    request_value = request_params[request_field]
-                    submission_data[submission_field] = request_value
-                # all of those fields are required unless existing_submission_id is present
-                elif "existing_submission_id" not in request_params:
-                    raise ResponseError("{} is required".format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+            # Just defining test_submission so we can pass it in to create_submission if it's an existing submission
+            test_submission = False
 
+            # existing submissions don't need any of this processing
             if not existing_submission:
+                # Get all the mappings from the request
+                for request_field, submission_field in request_submission_mapping.items():
+                    if request_field in request_params:
+                        request_value = request_params[request_field]
+                        submission_data[submission_field] = request_value
+                    # all of those fields are required unless existing_submission_id is present
+                    elif "existing_submission_id" not in request_params:
+                        raise ResponseError("{} is required".format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+
                 # Stripping off all extra whitespace so we don't create bad cgac/frec references. If it results in an
                 # empty string, set it to None
                 code_types = ["cgac_code", "frec_code"]
@@ -296,26 +301,25 @@ class FileHandler:
                         "New DABS submissions must have either a CGAC or a FREC code", StatusCode.CLIENT_ERROR
                     )
 
-            # make sure submission dates are valid
-            formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
-                submission_data.get("reporting_start_date"),
-                submission_data.get("reporting_end_date"),
-                str(submission_data.get("is_quarter_format")).upper() == "TRUE",
-                existing_submission_obj,
-            )
-            submission_data["reporting_start_date"] = formatted_start_date
-            submission_data["reporting_end_date"] = formatted_end_date
-            if submission_data.get("is_quarter_format"):
-                submission_data["is_quarter_format"] = str(submission_data.get("is_quarter_format")).upper() == "TRUE"
+                # make sure submission dates are valid
+                formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
+                    submission_data.get("reporting_start_date"),
+                    submission_data.get("reporting_end_date"),
+                    str(submission_data.get("is_quarter_format")).upper() == "TRUE",
+                    existing_submission_obj,
+                )
+                submission_data["reporting_start_date"] = formatted_start_date
+                submission_data["reporting_end_date"] = formatted_end_date
+                if submission_data.get("is_quarter_format"):
+                    submission_data["is_quarter_format"] = str(submission_data.get("is_quarter_format")).upper() == "TRUE"
 
-            reporting_fiscal_period = generate_fiscal_period(submission_data["reporting_end_date"])
-            reporting_fiscal_year = generate_fiscal_year(submission_data["reporting_end_date"])
+                reporting_fiscal_period = generate_fiscal_period(submission_data["reporting_end_date"])
+                reporting_fiscal_year = generate_fiscal_year(submission_data["reporting_end_date"])
 
-            test_submission = request_params.get("test_submission")
-            test_submission = str(test_submission).upper() == "TRUE"
+                test_submission = request_params.get("test_submission")
+                test_submission = str(test_submission).upper() == "TRUE"
 
-            # set published_submission_ids for new submissions
-            if not existing_submission:
+                # set published_submission_ids
                 pub_subs = get_submissions_in_period(
                     submission_data["cgac_code"],
                     submission_data["frec_code"],
