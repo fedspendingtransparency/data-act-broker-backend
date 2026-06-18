@@ -311,7 +311,9 @@ class FileHandler:
                 submission_data["reporting_start_date"] = formatted_start_date
                 submission_data["reporting_end_date"] = formatted_end_date
                 if submission_data.get("is_quarter_format"):
-                    submission_data["is_quarter_format"] = str(submission_data.get("is_quarter_format")).upper() == "TRUE"
+                    submission_data["is_quarter_format"] = (
+                        str(submission_data.get("is_quarter_format")).upper() == "TRUE"
+                    )
 
                 reporting_fiscal_period = generate_fiscal_period(submission_data["reporting_end_date"])
                 reporting_fiscal_year = generate_fiscal_year(submission_data["reporting_end_date"])
