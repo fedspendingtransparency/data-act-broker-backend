@@ -2,10 +2,21 @@ import os
 import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.domainModels import SubTierAgency, CGAC, FREC, Zips, ZipsGrouped, CountryCode, States, CountyCode, SAMRecipient
+from dataactcore.models.domainModels import (
+    SubTierAgency,
+    CGAC,
+    FREC,
+    Zips,
+    ZipsGrouped,
+    CountryCode,
+    States,
+    CountyCode,
+    SAMRecipient,
+)
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 
 from dataactcore.scripts.pipeline import load_sam_contract
+
 
 def remove_metrics_file():
     """Remove the metrics file that's created when running parts of the script"""
@@ -19,15 +30,18 @@ def prep_data(sess):
     zip_code1 = Zips(zip5="12345", zip_last4="6789", county_number="000")
     zip_code2 = Zips(zip5="54321", zip_last4=None, county_number="001")
 
-    zips_grouped = ZipsGrouped(zip5 = "12345", county_number="002")
+    zips_grouped = ZipsGrouped(zip5="12345", county_number="002")
 
     # Add agency data to the database
     cgac1 = CGAC(cgac_id=1, cgac_code="170", agency_name="test CGAC")
     cgac2 = CGAC(cgac_id=2, cgac_code="123", agency_name="FREC CGAC")
     frec = FREC(frec_id=1, cgac_id=2, frec_code="1234", agency_name="test FREC")
-    sub_tier1 = SubTierAgency(sub_tier_agency_code="0001", cgac_id=1, frec_id=1, sub_tier_agency_name="CGAC SUBTIER", is_frec=False)
-    sub_tier2 = SubTierAgency(sub_tier_agency_code="0002", cgac_id=2, frec_id=1, sub_tier_agency_name="FREC SUBTIER",
-                              is_frec=True)
+    sub_tier1 = SubTierAgency(
+        sub_tier_agency_code="0001", cgac_id=1, frec_id=1, sub_tier_agency_name="CGAC SUBTIER", is_frec=False
+    )
+    sub_tier2 = SubTierAgency(
+        sub_tier_agency_code="0002", cgac_id=2, frec_id=1, sub_tier_agency_name="FREC SUBTIER", is_frec=True
+    )
 
     # Add country data to the database
     country1 = CountryCode(country_code="USA", country_name="UNITED STATES")
@@ -44,25 +58,69 @@ def prep_data(sess):
     county3 = CountyCode(county_number="049", county_name="A Derived Name (CA)", state_code="KS")
 
     # Add SAM Recipient data to the database
-    sam1 = SAMRecipient(uei="ABCDEFG", high_comp_officer1_full_na="Name 1", high_comp_officer1_amount="2",
-        high_comp_officer2_full_na="Name 2", high_comp_officer2_amount="5",
-        high_comp_officer3_full_na="Name 3", high_comp_officer3_amount="14",
-        high_comp_officer4_full_na="Name 4", high_comp_officer4_amount="9",
-        high_comp_officer5_full_na="Name 5", high_comp_officer5_amount="11")
-    sam2 = SAMRecipient(uei="ZYXWVUT", high_comp_officer1_full_na="Name 1a", high_comp_officer1_amount="10",
-        high_comp_officer2_full_na="Name 2a", high_comp_officer2_amount="7",
-        high_comp_officer3_full_na=None, high_comp_officer3_amount=None,
-        high_comp_officer4_full_na=None, high_comp_officer4_amount=None,
-        high_comp_officer5_full_na=None, high_comp_officer5_amount=None)
-    sess.add_all([zip_code1, zip_code2, zips_grouped, cgac1, cgac2, frec, sub_tier1, sub_tier2, country1, country2,
-                  states1, states2, states3, county1, county2, county3, sam1, sam2])
+    sam1 = SAMRecipient(
+        uei="ABCDEFG",
+        high_comp_officer1_full_na="Name 1",
+        high_comp_officer1_amount="2",
+        high_comp_officer2_full_na="Name 2",
+        high_comp_officer2_amount="5",
+        high_comp_officer3_full_na="Name 3",
+        high_comp_officer3_amount="14",
+        high_comp_officer4_full_na="Name 4",
+        high_comp_officer4_amount="9",
+        high_comp_officer5_full_na="Name 5",
+        high_comp_officer5_amount="11",
+    )
+    sam2 = SAMRecipient(
+        uei="ZYXWVUT",
+        high_comp_officer1_full_na="Name 1a",
+        high_comp_officer1_amount="10",
+        high_comp_officer2_full_na="Name 2a",
+        high_comp_officer2_amount="7",
+        high_comp_officer3_full_na=None,
+        high_comp_officer3_amount=None,
+        high_comp_officer4_full_na=None,
+        high_comp_officer4_amount=None,
+        high_comp_officer5_full_na=None,
+        high_comp_officer5_amount=None,
+    )
+    sess.add_all(
+        [
+            zip_code1,
+            zip_code2,
+            zips_grouped,
+            cgac1,
+            cgac2,
+            frec,
+            sub_tier1,
+            sub_tier2,
+            country1,
+            country2,
+            states1,
+            states2,
+            states3,
+            county1,
+            county2,
+            county3,
+            sam1,
+            sam2,
+        ]
+    )
     sess.commit()
 
 
 def get_file(contract_type):
     """Get test file data based on contract_type"""
     # Get the test file
-    contract_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{contract_type}.csv")
+    contract_file = os.path.join(
+        CONFIG_BROKER["path"],
+        "tests",
+        "unit",
+        "data",
+        "fake_sam_files",
+        "contract",
+        f"sam_contract_{contract_type}.csv",
+    )
     contract_df = pd.read_csv(contract_file, dtype=str)
     return contract_df
 
@@ -73,39 +131,49 @@ def test_create_lookups(database):
     prep_data(sess)
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
     # Subtier
-    expected_sub_tier_df = pd.DataFrame({"sub_tier_agency_c": ["0001", "0002"],
-                                         "agency_code": ["170", "1234"],
-                                         "agency_name": ["test CGAC", "test FREC"]})
+    expected_sub_tier_df = pd.DataFrame(
+        {
+            "sub_tier_agency_c": ["0001", "0002"],
+            "agency_code": ["170", "1234"],
+            "agency_name": ["test CGAC", "test FREC"],
+        }
+    )
     pd.testing.assert_frame_equal(sub_tier_df, expected_sub_tier_df)
 
     # Country
-    expected_country_df = pd.DataFrame({"country_code": ["USA", "KEN"],
-                                         "country_name": ["UNITED STATES", "KENYA"]})
+    expected_country_df = pd.DataFrame({"country_code": ["USA", "KEN"], "country_name": ["UNITED STATES", "KENYA"]})
     pd.testing.assert_frame_equal(country_df, expected_country_df)
 
     # State: capitalizing names
-    expected_state_df = pd.DataFrame({"state_code": ["KS", "VA", "GU"],
-                                        "state_name": ["KANSAS", "VIRGINIA", "GUAM"]})
+    expected_state_df = pd.DataFrame({"state_code": ["KS", "VA", "GU"], "state_name": ["KANSAS", "VIRGINIA", "GUAM"]})
     pd.testing.assert_frame_equal(state_df, expected_state_df)
 
     # County: capitalizing names and removing " (CA)" and trimming
-    expected_county_df = pd.DataFrame({"county_number": ["000", "000", "049"],
-                                      "state_code": ["AL", "VA", "KS"],
-                                       "county_name": ["TEST NAME", "TEST NAME VA 000", "A DERIVED NAME"]})
+    expected_county_df = pd.DataFrame(
+        {
+            "county_number": ["000", "000", "049"],
+            "state_code": ["AL", "VA", "KS"],
+            "county_name": ["TEST NAME", "TEST NAME VA 000", "A DERIVED NAME"],
+        }
+    )
     pd.testing.assert_frame_equal(county_df, expected_county_df)
 
     # Executive compensation information
-    expected_exec_comp_df = pd.DataFrame({"high_comp_officer1_full_na": ["Name 1", "Name 1a"],
-                                       "high_comp_officer1_amount": ["2", "10"],
-                                       "high_comp_officer2_full_na": ["Name 2", "Name 2a"],
-                                          "high_comp_officer2_amount": ["5", "7"],
-                                          "high_comp_officer3_full_na": ["Name 3", None],
-                                          "high_comp_officer3_amount": ["14", None],
-                                          "high_comp_officer4_full_na": ["Name 4", None],
-                                          "high_comp_officer4_amount": ["9", None],
-                                          "high_comp_officer5_full_na": ["Name 5", None],
-                                          "high_comp_officer5_amount": ["11", None],
-                                          "uei": ["ABCDEFG", "ZYXWVUT"]})
+    expected_exec_comp_df = pd.DataFrame(
+        {
+            "high_comp_officer1_full_na": ["Name 1", "Name 1a"],
+            "high_comp_officer1_amount": ["2", "10"],
+            "high_comp_officer2_full_na": ["Name 2", "Name 2a"],
+            "high_comp_officer2_amount": ["5", "7"],
+            "high_comp_officer3_full_na": ["Name 3", None],
+            "high_comp_officer3_amount": ["14", None],
+            "high_comp_officer4_full_na": ["Name 4", None],
+            "high_comp_officer4_amount": ["9", None],
+            "high_comp_officer5_full_na": ["Name 5", None],
+            "high_comp_officer5_amount": ["11", None],
+            "uei": ["ABCDEFG", "ZYXWVUT"],
+        }
+    )
     pd.testing.assert_frame_equal(exec_comp_df, expected_exec_comp_df)
 
     remove_metrics_file()
@@ -117,23 +185,35 @@ def test_calculate_ppop_fields(database):
     prep_data(sess)
     contract_df = get_file("award")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(sess,
-                                   contract_df,
-        "award",
-        sub_tier_df,
-        county_df,
-        state_df,
-        country_df,
-        exec_comp_df)
-    
-    row1 = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4").one_or_none()
-    row2 = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique="1234_-none-_ABCPIID2_ABC32_-none-_0").one_or_none()
-    row3 = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique="1234_-none-_ABCPIID3_0_-none-_1").one_or_none()
-    row4 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID4_0_-none-_0").one_or_none()
-    row5 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID5_-none-_-none-_0").one_or_none()
+    load_sam_contract.process_data(
+        sess, contract_df, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    )
 
+    row1 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4")
+        .one_or_none()
+    )
+    row2 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID2_ABC32_-none-_0")
+        .one_or_none()
+    )
+    row3 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID3_0_-none-_1")
+        .one_or_none()
+    )
+    row4 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID4_0_-none-_0")
+        .one_or_none()
+    )
+    row5 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID5_-none-_-none-_0")
+        .one_or_none()
+    )
 
     # 9-digit zip matches DB for county
     assert row1.place_of_perform_country_c == "USA"
@@ -192,25 +272,35 @@ def test_calculate_legal_entity_fields(database):
     prep_data(sess)
     contract_df = get_file("award")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(sess,
-                                   contract_df,
-                                   "award",
-                                   sub_tier_df,
-                                   county_df,
-                                   state_df,
-                                   country_df,
-                                   exec_comp_df)
+    load_sam_contract.process_data(
+        sess, contract_df, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    )
 
-    row1 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4").one_or_none()
-    row2 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID2_ABC32_-none-_0").one_or_none()
-    row3 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID3_0_-none-_1").one_or_none()
-    row4 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID4_0_-none-_0").one_or_none()
-    row5 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID5_-none-_-none-_0").one_or_none()
+    row1 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4")
+        .one_or_none()
+    )
+    row2 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID2_ABC32_-none-_0")
+        .one_or_none()
+    )
+    row3 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID3_0_-none-_1")
+        .one_or_none()
+    )
+    row4 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID4_0_-none-_0")
+        .one_or_none()
+    )
+    row5 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID5_-none-_-none-_0")
+        .one_or_none()
+    )
 
     # 9-digit zip matches the one in the DB
     assert row1.legal_entity_country_code == "USA"
@@ -261,40 +351,46 @@ def test_calculate_legal_entity_fields(database):
 
 
 def test_derive_remaining_fields(database):
-    """Test that derive_remaining_fields properly derives the relevant fields (ignores ppop and le because other tests deal with those)"""
+    """Test that derive_remaining_fields properly derives the relevant fields (ignores ppop and le because other tests
+    deal with those)"""
     sess = database.session
     prep_data(sess)
     contract_df_award = get_file("award")
     contract_df_idv = get_file("idv")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(sess,
-                                   contract_df_award,
-                                   "award",
-                                   sub_tier_df,
-                                   county_df,
-                                   state_df,
-                                   country_df,
-                                   exec_comp_df)
-    load_sam_contract.process_data(sess,
-                                   contract_df_idv,
-                                   "idv",
-                                   sub_tier_df,
-                                   county_df,
-                                   state_df,
-                                   country_df,
-                                   exec_comp_df)
+    load_sam_contract.process_data(
+        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    )
+    load_sam_contract.process_data(
+        sess, contract_df_idv, "idv", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    )
 
-    row1 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4").one_or_none()
-    row2 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID2_ABC32_-none-_0").one_or_none()
-    row3 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID3_0_-none-_1").one_or_none()
-    row4 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID4_0_-none-_0").one_or_none()
+    row1 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4")
+        .one_or_none()
+    )
+    row2 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID2_ABC32_-none-_0")
+        .one_or_none()
+    )
+    row3 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID3_0_-none-_1")
+        .one_or_none()
+    )
+    row4 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID4_0_-none-_0")
+        .one_or_none()
+    )
     # IDV row
-    row5 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_CONTPIID1_NUM001_-none-_-none-").one_or_none()
+    row5 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_CONTPIID1_NUM001_-none-_-none-")
+        .one_or_none()
+    )
 
     assert row1.awarding_agency_code == "170"
     assert row1.awarding_agency_name == "test CGAC"
@@ -303,7 +399,16 @@ def test_derive_remaining_fields(database):
     assert row1.city_local_government is True
     # This is not a test to see if the business categories function works, that is tested elsewhere, this is only
     # testing to make sure it got put in the right place
-    assert sorted(row1.business_categories) == ['category_business', 'corporate_entity_not_tax_exempt', 'government', 'local_government', 'manufacturer_of_goods', 'other_than_small_business', 'special_designations', 'us_owned_business']
+    assert sorted(row1.business_categories) == [
+        "category_business",
+        "corporate_entity_not_tax_exempt",
+        "government",
+        "local_government",
+        "manufacturer_of_goods",
+        "other_than_small_business",
+        "special_designations",
+        "us_owned_business",
+    ]
     assert row1.high_comp_officer1_full_na == "Name 1"
     assert row1.high_comp_officer1_amount == "2"
     assert row1.high_comp_officer2_full_na == "Name 2"
@@ -382,21 +487,23 @@ def test_updates(database):
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
 
     # Create an existing entry with one easily specified value to compare
-    existing_contract = DetachedAwardProcurement(detached_award_procurement_id=999, detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4", action_type="Z")
+    existing_contract = DetachedAwardProcurement(
+        detached_award_procurement_id=999,
+        detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4",
+        action_type="Z",
+    )
     sess.add(existing_contract)
     sess.commit()
 
-    load_sam_contract.process_data(sess,
-                                   contract_df_award,
-                                   "award",
-                                   sub_tier_df,
-                                   county_df,
-                                   state_df,
-                                   country_df,
-                                   exec_comp_df)
+    load_sam_contract.process_data(
+        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    )
 
-    row1 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4").one_or_none()
+    row1 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4")
+        .one_or_none()
+    )
 
     # Make sure the action type updated. If it did everything other than the ID did
     assert row1.action_type == "C"
@@ -412,34 +519,39 @@ def test_deletes(database):
     contract_df_idv = get_file("idv")
     contract_df_deletes = get_file("delete")
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(sess,
-                                   contract_df_award,
-                                   "award",
-                                   sub_tier_df,
-                                   county_df,
-                                   state_df,
-                                   country_df,
-                                   exec_comp_df)
-    load_sam_contract.process_data(sess,
-                                   contract_df_idv,
-                                   "idv",
-                                   sub_tier_df,
-                                   county_df,
-                                   state_df,
-                                   country_df,
-                                   exec_comp_df)
+    load_sam_contract.process_data(
+        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    )
+    load_sam_contract.process_data(
+        sess, contract_df_idv, "idv", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    )
     load_sam_contract.process_deletes(sess, contract_df_deletes)
 
-    row1 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4").one_or_none()
-    row2 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_CONTPIID1_NUM001_-none-_-none-").one_or_none()
-    row3 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_DELETEPIID1_ABC32_-none-_0").one_or_none()
-    row4 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_DELETEPIID2_NUM001_-none-_-none-").one_or_none()
-    row5 = sess.query(DetachedAwardProcurement).filter_by(
-        detached_award_proc_unique="1234_-none-_SOMENEWDELETEPIID_NUM001_-none-_-none-").one_or_none()
+    row1 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_ABCPIID1_0101_-none-_4")
+        .one_or_none()
+    )
+    row2 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_CONTPIID1_NUM001_-none-_-none-")
+        .one_or_none()
+    )
+    row3 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_DELETEPIID1_ABC32_-none-_0")
+        .one_or_none()
+    )
+    row4 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_DELETEPIID2_NUM001_-none-_-none-")
+        .one_or_none()
+    )
+    row5 = (
+        sess.query(DetachedAwardProcurement)
+        .filter_by(detached_award_proc_unique="1234_-none-_SOMENEWDELETEPIID_NUM001_-none-_-none-")
+        .one_or_none()
+    )
 
     # Entries exist in the delete file but the lastModified for these entries in the database is later than the one in
     # the delete file, meaning they've been re-added since and shouldn't be deleted

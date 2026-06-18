@@ -754,7 +754,9 @@ def request_sam_contracts_api(filters, download_url=None, stream=False, custom_e
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["contract"]["api_url"]
-    return _request_sam_api(url, request_type="get", params=filters, stream=stream, custom_error_check=custom_error_check)
+    return _request_sam_api(
+        url, request_type="get", params=filters, stream=stream, custom_error_check=custom_error_check
+    )
 
 
 def request_sam_iqaas_uei_api(filters):
@@ -859,7 +861,14 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None, st
         return ValueError("request_type must be 'get' or 'post'")
     auth = (CONFIG_BROKER["sam"]["account_user_id"], CONFIG_BROKER["sam"]["account_password"])
     r = requests.request(
-        request_type.upper(), url, headers=headers, params=params, json=json.dumps(body), auth=auth, timeout=60, stream=stream
+        request_type.upper(),
+        url,
+        headers=headers,
+        params=params,
+        json=json.dumps(body),
+        auth=auth,
+        timeout=60,
+        stream=stream,
     )
     # raise for server HTTP errors (requests.exceptions.HTTPError) asides from connection issues
     r.raise_for_status()
