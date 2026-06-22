@@ -1309,6 +1309,9 @@ def get_data(
 
     records_received = 0
     usas_delete_df = pd.DataFrame()
+
+    specific_feed_start = get_utc_now()
+    logger.info(f"Starting {contract_type}: {award_type} processing at: {str(specific_feed_start)}")
     with pd.read_csv(sam_contract_file, chunksize=CHUNK_SIZE, dtype=str) as reader_obj:
         for contract_df in reader_obj:
             records_received += len(contract_df)
@@ -1317,18 +1320,17 @@ def get_data(
 
             if len(contract_df) > 0:
                 if not delete:
-                    specific_feed_start = get_utc_now()
-                    logger.info(f"Starting {contract_type} {award_type} processing at: {str(specific_feed_start)}")
                     process_data(
                         sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df
-                    )
-                    logger.info(
-                        f"Finishing {contract_type} {award_type} processing at: {str(specific_feed_start)}."
-                        f" It took {str(get_utc_now() - specific_feed_start)}"
                     )
                 else:
                     chunk_delete_df = process_deletes(sess, contract_df)
                     usas_delete_df = pd.concat([usas_delete_df, chunk_delete_df], ignore_index=True)
+                logger.info(f"Successfully processed {len(contract_df)}. Total processed: {records_received}")
+    logger.info(
+        f"Finishing {contract_type}: {award_type} processing at: {str(specific_feed_start)}."
+        f" It took {str(get_utc_now() - specific_feed_start)}. Total records {records_received}."
+    )
 
     # Remove the file after processing if remote
     if not local_file and CONFIG_BROKER["use_aws"]:
