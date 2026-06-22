@@ -1,35 +1,19 @@
-import boto3
 import logging
 import argparse
-import requests
-import xmltodict
-import asyncio
 import os
 import numpy as np
 import pandas as pd
 
 import datetime
-import time
-import re
 import json
-import math
 
-from sqlalchemy import func, and_, case, or_, types
+from sqlalchemy import func, case, types
 
-from dateutil.relativedelta import relativedelta
-from distutils.util import strtobool
-
-from requests.exceptions import ConnectionError, ReadTimeout
-from urllib3.exceptions import ReadTimeoutError
-
-from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand, validate_load_dates
+from dataactbroker.helpers.script_helper import validate_load_dates
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.loader_utils import clean_data, insert_dataframe
-
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError
+from dataactcore.utils.loader_utils import clean_data
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
@@ -40,19 +24,15 @@ from dataactcore.models.domainModels import (
     CountryCode,
     States,
     CountyCode,
-    Zips,
     SAMRecipient,
-    ExternalDataLoadDate,
 )
 from dataactcore.models.stagingModels import DetachedAwardProcurement
-from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 
 from dataactcore.utils.business_categories import get_business_categories
 from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://api.sam.gov/contract-awards/v1/search?"
 
@@ -73,9 +53,14 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.acquisitionData.contractFinancing.name": "contract_financing_descrip",
     "coreData.acquisitionData.majorProgramCode": "major_program",
     "coreData.acquisitionData.multipleOrSingleAwardIdc.code": "multiple_or_single_award_i",
-    "coreData.acquisitionData.multipleOrSingleAwardIdc.name": "multiple_or_single_aw_desc", # data is blank for this column for some reason
-    "coreData.acquisitionData.multiyearContract.code": "multi_year_contract", # MISSING, multiYearContract, has data and isn't split but shouldn't have data, even when it should have data it isn't split and only provides the desc
-    "coreData.acquisitionData.multiyearContract.name": "multi_year_contract_desc", # multiYearContract, has data and isn't split but shouldn't have data, even when it should have data it isn't split and only provides the desc
+    # data is blank for this column for some reason
+    "coreData.acquisitionData.multipleOrSingleAwardIdc.name": "multiple_or_single_aw_desc",
+    # MISSING, multiYearContract, has data and isn't split but shouldn't have data
+    # even when it should have data it isn't split and only provides the desc
+    "coreData.acquisitionData.multiyearContract.code": "multi_year_contract",
+    # multiYearContract, has data and isn't split but shouldn't have data
+    # even when it should have data it isn't split and only provides the desc
+    "coreData.acquisitionData.multiyearContract.name": "multi_year_contract_desc",
     "coreData.acquisitionData.nationalInterestAction.code": "national_interest_action",
     "coreData.acquisitionData.nationalInterestAction.name": "national_interest_desc",
     "coreData.acquisitionData.performanceBasedServiceContract.code": "performance_based_service",
@@ -90,14 +75,18 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.competitionInformation.a76Action.name": "a_76_fair_act_action_desc",
     "coreData.competitionInformation.extentCompeted.code": "extent_competed",
     "coreData.competitionInformation.extentCompeted.name": "extent_compete_description",
-    "coreData.competitionInformation.IDVnumberOfOffersReceived": "idv_number_of_offers_recie", # 0 entries in our DB with data so no way to test, going to have to go on faith
+    # 0 entries in our DB with data so no way to test, going to have to go on faith
+    "coreData.competitionInformation.IDVnumberOfOffersReceived": "idv_number_of_offers_recie",
     "coreData.competitionInformation.localAreaSetAside.code": "local_area_set_aside",
     "coreData.competitionInformation.localAreaSetAside.name": "local_area_set_aside_desc",
     "coreData.competitionInformation.otherThanFullAndOpenCompetition.code": "other_than_full_and_open_c",
     "coreData.competitionInformation.otherThanFullAndOpenCompetition.name": "other_than_full_and_o_desc",
     "coreData.competitionInformation.sbirSTTR.code": "research",
     "coreData.competitionInformation.sbirSTTR.name": "research_description",
-    "coreData.competitionInformation.smallBusinessCompetitivenessDemonstrationProgram.name": "small_business_competitive", # has data in SAM but doesn't have data in FPDS at least sometimes
+    # has data in SAM but doesn't have data in FPDS at least sometimes
+    "coreData.competitionInformation.smallBusinessCompetitivenessDemonstrationProgram.name": (
+        "small_business_competitive"
+    ),
     "coreData.competitionInformation.solicitationProcedures.code": "solicitation_procedures",
     "coreData.competitionInformation.solicitationProcedures.name": "solicitation_procedur_desc",
     "coreData.competitionInformation.sourceSelectionProcess.code": "source_selection_process",
@@ -146,8 +135,12 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.productOrServiceInformation.dodClaimantProgram.name": "dod_claimant_prog_cod_desc",
     "coreData.productOrServiceInformation.gfeGfp.code": "government_furnished_prope",
     "coreData.productOrServiceInformation.gfeGfp.name": "government_furnished_desc",
-    "coreData.productOrServiceInformation.informationTechnologyCommercialItemCategory.code": "information_technology_com",
-    "coreData.productOrServiceInformation.informationTechnologyCommercialItemCategory.name": "information_technolog_desc",
+    "coreData.productOrServiceInformation.informationTechnologyCommercialItemCategory.code": (
+        "information_technology_com"
+    ),
+    "coreData.productOrServiceInformation.informationTechnologyCommercialItemCategory.name": (
+        "information_technolog_desc"
+    ),
     "coreData.productOrServiceInformation.principalNaics[0].code": "naics",
     "coreData.productOrServiceInformation.principalNaics[0].name": "naics_description",
     "coreData.productOrServiceInformation.productOrService.code": "product_or_service_code",
@@ -157,13 +150,25 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.solicitationDate": "solicitation_date",
     "coreData.solicitationId": "solicitation_identifier",
     "awardDetails.awardeeData.awardeeAlternateSiteCode": "vendor_alternate_site_code",
-    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.corporateEntityNotTaxExempt": "corporate_entity_not_tax_e",
-    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.corporateEntityTaxExempt": "corporate_entity_tax_exemp",
-    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.internationalOrganization": "international_organization",
-    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.partnershipOrLimitedLiabilityPartnership": "partnership_or_limited_lia",
-    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.smallAgriculturalCooperative": "small_agricultural_coopera",
+    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.corporateEntityNotTaxExempt": (
+        "corporate_entity_not_tax_e"
+    ),
+    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.corporateEntityTaxExempt": (
+        "corporate_entity_tax_exemp"
+    ),
+    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.internationalOrganization": (
+        "international_organization"
+    ),
+    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.partnershipOrLimitedLiabilityPartnership": (
+        "partnership_or_limited_lia"
+    ),
+    "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.smallAgriculturalCooperative": (
+        "small_agricultural_coopera"
+    ),
     "awardDetails.awardeeData.awardeeBusinessTypes.businessOrOrganization.soleProprietorship": "sole_proprietorship",
-    "awardDetails.awardeeData.awardeeBusinessTypes.communityDevelopmentCorporationOwnedConcern": "community_developed_corpor",
+    "awardDetails.awardeeData.awardeeBusinessTypes.communityDevelopmentCorporationOwnedConcern": (
+        "community_developed_corpor"
+    ),
     "awardDetails.awardeeData.awardeeBusinessTypes.foreignGovernment": "foreign_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.city": "city_local_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.county": "county_local_government",
@@ -175,36 +180,46 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.usLocalGovernment": "us_local_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.usStateGovernment": "us_state_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.federalAgency": "federal_agency",
-    "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.federallyFundedResearchAndDevelopmentCorp": "federally_funded_research",
+    "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.federallyFundedResearchAndDevelopmentCorp": (
+        "federally_funded_research"
+    ),
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.usFederalGovernment": "us_federal_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.laborSurplusAreaFirm": "labor_surplus_area_firm",
     "awardDetails.awardeeData.awardeeBusinessTypes.usGovernmentEntity": "us_government_entity",
     "awardDetails.awardeeData.awardeeBusinessTypes.usTribalGovernment": "us_tribal_government",
     "awardDetails.awardeeData.awardeeHeader.awardeeAlternateName": "vendor_alternate_name",
     "awardDetails.awardeeData.awardeeHeader.awardeeDoingBusinessAsName": "vendor_doing_as_business_n",
-    "awardDetails.awardeeData.awardeeHeader.awardeeEnabled": "vendor_enabled", # 0 entries in our DB with data so no way to test, going to have to go on faith
+    # 0 entries in our DB with data so no way to test, going to have to go on faith
+    "awardDetails.awardeeData.awardeeHeader.awardeeEnabled": "vendor_enabled",
     "awardDetails.awardeeData.awardeeHeader.awardeeName": "awardee_or_recipient_legal",
     "awardDetails.awardeeData.awardeeHeader.legalBusinessName": "uei_legal_business_name",
     "awardDetails.awardeeData.awardeeLocation.awardeeDataSource": "entity_data_source",
-    "awardDetails.awardeeData.awardeeLocation.awardeeLocationDisabledFlag": "vendor_location_disabled_f", # 0 entries in our DB with data so no way to test, going to have to go on faith
+    # 0 entries in our DB with data so no way to test, going to have to go on faith
+    "awardDetails.awardeeData.awardeeLocation.awardeeLocationDisabledFlag": "vendor_location_disabled_f",
     "awardDetails.awardeeData.awardeeLocation.city": "legal_entity_city_name",
     "awardDetails.awardeeData.awardeeLocation.congressionalDistrict": "legal_entity_congressional",
     "awardDetails.awardeeData.awardeeLocation.country.code": "legal_entity_country_code",
     "awardDetails.awardeeData.awardeeLocation.country.name": "legal_entity_country_name",
     "awardDetails.awardeeData.awardeeLocation.faxNumber": "vendor_fax_number",
     "awardDetails.awardeeData.awardeeLocation.phoneNumber": "vendor_phone_number",
-    "awardDetails.awardeeData.awardeeLocation.state.code": "legal_entity_state_code", # NULL if foreign
-    "awardDetails.awardeeData.awardeeLocation.state.name": "legal_entity_state_descrip", # use awardDetails.awardeeData.awardeeLocation.state.code if foreign
+    # NULL if foreign
+    "awardDetails.awardeeData.awardeeLocation.state.code": "legal_entity_state_code",
+    # use awardDetails.awardeeData.awardeeLocation.state.code if foreign
+    "awardDetails.awardeeData.awardeeLocation.state.name": "legal_entity_state_descrip",
     "awardDetails.awardeeData.awardeeLocation.streetAddress1": "legal_entity_address_line1",
     "awardDetails.awardeeData.awardeeLocation.streetAddress2": "legal_entity_address_line2",
     "awardDetails.awardeeData.awardeeLocation.streetAddress3": "legal_entity_address_line3",
     "awardDetails.awardeeData.awardeeLocation.zip": "legal_entity_zip4",
     "awardDetails.awardeeData.awardeeRegistrationDetails.divisionName": "division_name",
     "awardDetails.awardeeData.awardeeRegistrationDetails.divisionNumberOrOfficeCode": "division_number_or_office",
-    "awardDetails.awardeeData.awardeeUEIInformation.awardeeDomesticParentUEI": "domestic_parent_uei", # No data in our DB, going to have to go on faith
-    "awardDetails.awardeeData.awardeeUEIInformation.awardeeDomesticParentName": "domestic_parent_uei_name", # No data in our DB, going to have to go on faith
-    "awardDetails.awardeeData.awardeeUEIInformation.awardeeImmediateParentName": "immediate_parent_uei_name", # 0 entries in our DB with data so no way to test, going to have to go on faith
-    "awardDetails.awardeeData.awardeeUEIInformation.awardeeImmediateParentUEI": "immediate_parent_uei", # 0 entries in our DB with data so no way to test, going to have to go on faith
+    # No data in our DB, going to have to go on faith
+    "awardDetails.awardeeData.awardeeUEIInformation.awardeeDomesticParentUEI": "domestic_parent_uei",
+    # No data in our DB, going to have to go on faith
+    "awardDetails.awardeeData.awardeeUEIInformation.awardeeDomesticParentName": "domestic_parent_uei_name",
+    # 0 entries in our DB with data so no way to test, going to have to go on faith
+    "awardDetails.awardeeData.awardeeUEIInformation.awardeeImmediateParentName": "immediate_parent_uei_name",
+    # 0 entries in our DB with data so no way to test, going to have to go on faith
+    "awardDetails.awardeeData.awardeeUEIInformation.awardeeImmediateParentUEI": "immediate_parent_uei",
     "awardDetails.awardeeData.awardeeUEIInformation.awardeeUltimateParentName": "ultimate_parent_legal_enti",
     "awardDetails.awardeeData.awardeeUEIInformation.awardeeUltimateParentUniqueEntityId": "ultimate_parent_uei",
     "awardDetails.awardeeData.awardeeUEIInformation.cageCode": "cage_code",
@@ -212,7 +227,9 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.certifications.dotCertifiedDisadvantagedBusinessEnterprise": "dot_certified_disadvantage",
     "awardDetails.awardeeData.certifications.sbaCertified8aJointVenture": "sba_certified_8_a_joint_ve",
     "awardDetails.awardeeData.certifications.sbaCertified8aProgramParticipant": "c8a_program_participant",
-    "awardDetails.awardeeData.certifications.sbaCertifiedEconomicallyDisadvantagedWomenOwnedSmallBusiness": "sba_cert_econ_disadv_wosb",
+    "awardDetails.awardeeData.certifications.sbaCertifiedEconomicallyDisadvantagedWomenOwnedSmallBusiness": (
+        "sba_cert_econ_disadv_wosb"
+    ),
     "awardDetails.awardeeData.certifications.sbaCertifiedHubZoneFirm": "historically_underutilized",
     "awardDetails.awardeeData.certifications.sbaCertifiedSmallDisadvantagedBusiness": "small_disadvantaged_busine",
     "awardDetails.awardeeData.certifications.sbaCertifiedWomenOwnedSmallBusiness": "sba_cert_women_own_small_bus",
@@ -227,7 +244,9 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.educationalEntities.nativeHawaiianServicingInstitution": "native_hawaiian_servicing",
     "awardDetails.awardeeData.educationalEntities.privateUniversityOrCollege": "private_university_or_coll",
     "awardDetails.awardeeData.educationalEntities.schoolOfForestry": "school_of_forestry",
-    "awardDetails.awardeeData.educationalEntities.stateControlledInstitutionOfHigherLearning": "state_controlled_instituti",
+    "awardDetails.awardeeData.educationalEntities.stateControlledInstitutionOfHigherLearning": (
+        "state_controlled_instituti"
+    ),
     "awardDetails.awardeeData.educationalEntities.tribalCollege": "tribal_college",
     "awardDetails.awardeeData.educationalEntities.veterinaryCollege": "veterinary_college",
     "awardDetails.awardeeData.far41102Exception.code": "sam_exception",
@@ -245,7 +264,9 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.organizationFactors.organizationType": "organizational_type",
     "awardDetails.awardeeData.organizationFactors.profitStructure.forProfitOrganization": "for_profit_organization",
     "awardDetails.awardeeData.organizationFactors.profitStructure.nonProfitOrganization": "nonprofit_organization",
-    "awardDetails.awardeeData.organizationFactors.profitStructure.otherNotForProfitOrganization": "other_not_for_profit_organ",
+    "awardDetails.awardeeData.organizationFactors.profitStructure.otherNotForProfitOrganization": (
+        "other_not_for_profit_organ"
+    ),
     "awardDetails.awardeeData.organizationFactors.subchapterSCorporation": "subchapter_s_corporation",
     "awardDetails.awardeeData.organizationFactors.theAbilityOneProgram": "the_ability_one_program",
     "awardDetails.awardeeData.otherGovernmentalEntities.airportAuthority": "airport_authority",
@@ -260,20 +281,40 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.relationshipWithFederalGovernment.federalassistanceawards": "grants",
     "awardDetails.awardeeData.socioEconomicData.alaskanNativeCorporationOwnedFirm": "alaskan_native_owned_corpo",
     "awardDetails.awardeeData.socioEconomicData.americanIndianOwned": "american_indian_owned_busi",
-    "awardDetails.awardeeData.socioEconomicData.economicallyDisadvantagedWomenOwnedSmallBusiness": "economically_disadvantaged",
-    "awardDetails.awardeeData.socioEconomicData.economicallyDisadvantagedWomenOwnedSmallBusinessJointVenture": "joint_venture_economically",
+    "awardDetails.awardeeData.socioEconomicData.economicallyDisadvantagedWomenOwnedSmallBusiness": (
+        "economically_disadvantaged"
+    ),
+    "awardDetails.awardeeData.socioEconomicData.economicallyDisadvantagedWomenOwnedSmallBusinessJointVenture": (
+        "joint_venture_economically"
+    ),
     "awardDetails.awardeeData.socioEconomicData.emergingSmallBusiness": "emerging_small_business",
     "awardDetails.awardeeData.socioEconomicData.indianTribeFederallyRecognized": "indian_tribe_federally_rec",
-    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.asianPacificAmericanOwned": "asian_pacific_american_own",
-    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.blackAmericanOwned": "black_american_owned_busin",
-    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.hispanicAmericanOwned": "hispanic_american_owned_bu",
-    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.individualOrConcernOtherThanOneOfThePreceding": "other_minority_owned_busin",
-    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.minorityOwnedBusiness": "minority_owned_business",
-    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.nativeAmericanOwned": "native_american_owned_busi",
-    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.subcontinentAsianAsianIndianAmericanOwned": "subcontinent_asian_asian_i",
+    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.asianPacificAmericanOwned": (
+        "asian_pacific_american_own"
+    ),
+    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.blackAmericanOwned": (
+        "black_american_owned_busin"
+    ),
+    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.hispanicAmericanOwned": (
+        "hispanic_american_owned_bu"
+    ),
+    # splitting this over two lines, too long for black and flake8
+    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness."
+    "individualOrConcernOtherThanOneOfThePreceding": "other_minority_owned_busin",
+    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.minorityOwnedBusiness": (
+        "minority_owned_business"
+    ),
+    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.nativeAmericanOwned": (
+        "native_american_owned_busi"
+    ),
+    "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.subcontinentAsianAsianIndianAmericanOwned": (
+        "subcontinent_asian_asian_i"
+    ),
     "awardDetails.awardeeData.socioEconomicData.nativeHawaiianOrganizationOwnedFirm": "native_hawaiian_owned_busi",
     "awardDetails.awardeeData.socioEconomicData.serviceDisabledVeteranOwnedBusiness": "service_disabled_veteran_o",
-    "awardDetails.awardeeData.socioEconomicData.serviceDisabledVeteranOwnedBusinessJointVenture": "ser_disabvet_own_bus_join_ven",
+    "awardDetails.awardeeData.socioEconomicData.serviceDisabledVeteranOwnedBusinessJointVenture": (
+        "ser_disabvet_own_bus_join_ven"
+    ),
     "awardDetails.awardeeData.socioEconomicData.smallBusinessJointVenture": "small_business_joint_venture",
     "awardDetails.awardeeData.socioEconomicData.triballyOwnedFirm": "tribally_owned_business",
     "awardDetails.awardeeData.socioEconomicData.veteranOwnedBusiness": "veteran_owned_business",
@@ -282,8 +323,12 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.socioEconomicData.womenOwnedSmallBusinessJointVenture": "joint_venture_women_owned",
     "awardDetails.competitionInformation.commercialItemTestProgram.code": "commercial_item_test_progr",
     "awardDetails.competitionInformation.commercialItemTestProgram.name": "commercial_item_test_desc",
-    "awardDetails.competitionInformation.commercialProductsAndServicesAcquisitionProcedures.code" : "commercial_item_acquisitio",
-    "awardDetails.competitionInformation.commercialProductsAndServicesAcquisitionProcedures.name" : "commercial_item_acqui_desc",
+    "awardDetails.competitionInformation.commercialProductsAndServicesAcquisitionProcedures.code": (
+        "commercial_item_acquisitio"
+    ),
+    "awardDetails.competitionInformation.commercialProductsAndServicesAcquisitionProcedures.name": (
+        "commercial_item_acqui_desc"
+    ),
     "awardDetails.competitionInformation.contractOpportunitiesNotice.code": "fed_biz_opps",
     "awardDetails.competitionInformation.contractOpportunitiesNotice.name": "fed_biz_opps_description",
     "awardDetails.competitionInformation.evaluatedPreference.code": "evaluated_preference",
@@ -298,11 +343,15 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.contractData.emergencyAcquisition.name": "contingency_humanitar_desc",
     "awardDetails.contractData.natureOfServices.code": "inherently_government_func",
     "awardDetails.contractData.natureOfServices.name": "inherently_government_desc",
-    "awardDetails.contractData.numberOfActions": "number_of_actions", # has data in SAM but doesn't have data in FPDS at least sometimes
-    "awardDetails.contractData.purchaseCardAsPaymentMethod.code": "purchase_card_as_payment_m", # MISSING EVEN WHEN DATA SHOULD EXIST (ex: PIID: HC102818F1281) (purchaseCardAsPaymentMethod)
-    "awardDetails.contractData.purchaseCardAsPaymentMethod.name": "purchase_card_as_paym_desc", # have already found bad data in it that shouldn't exist
+    # has data in SAM but doesn't have data in FPDS at least sometimes
+    "awardDetails.contractData.numberOfActions": "number_of_actions",
+    # MISSING EVEN WHEN DATA SHOULD EXIST (ex: PIID: HC102818F1281) (purchaseCardAsPaymentMethod)
+    "awardDetails.contractData.purchaseCardAsPaymentMethod.code": "purchase_card_as_payment_m",
+    # have already found bad data in it that shouldn't exist
+    "awardDetails.contractData.purchaseCardAsPaymentMethod.name": "purchase_card_as_paym_desc",
     "awardDetails.contractData.referencedIDVMultipleOrSingle.code": "referenced_mult_or_single",
-    "awardDetails.contractData.referencedIDVMultipleOrSingle.name": "referenced_mult_or_si_desc", # have already found bad data in it that shouldn't exist
+    # have already found bad data in it that shouldn't exist
+    "awardDetails.contractData.referencedIDVMultipleOrSingle.name": "referenced_mult_or_si_desc",
     "awardDetails.contractData.referencedIDVType.code": "referenced_idv_type",
     "awardDetails.contractData.referencedIDVType.name": "referenced_idv_type_desc",
     "awardDetails.contractData.undefinitizedAction.code": "undefinitized_action",
@@ -319,8 +368,12 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.dollars.totalEstimatedOrderValue": "total_estimated_order_val",
     "awardDetails.legislativeMandates.additionalReporting.code": "additional_reporting_code",
     "awardDetails.legislativeMandates.additionalReporting.name": "additional_reporting_name",
-    "awardDetails.preferenceProgramsInformation.contractingOfficerBusinessSizeDetermination[0].code": "contracting_officers_deter",
-    "awardDetails.preferenceProgramsInformation.contractingOfficerBusinessSizeDetermination[0].name": "contracting_officers_desc",
+    "awardDetails.preferenceProgramsInformation.contractingOfficerBusinessSizeDetermination[0].code": (
+        "contracting_officers_deter"
+    ),
+    "awardDetails.preferenceProgramsInformation.contractingOfficerBusinessSizeDetermination[0].name": (
+        "contracting_officers_desc"
+    ),
     "awardDetails.preferenceProgramsInformation.subcontractPlan.code": "subcontracting_plan",
     "awardDetails.preferenceProgramsInformation.subcontractPlan.name": "subcontracting_plan_desc",
     "awardDetails.productOrServiceInformation.descriptionOfContractRequirement": "award_description",
@@ -338,7 +391,7 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.transactionData.approvedDate": "approved_date",
     "awardDetails.transactionData.closedDate": "closed_date",
     "awardDetails.transactionData.createdDate": "initial_report_date",
-    "awardDetails.transactionData.lastModifiedDate": "last_modified"
+    "awardDetails.transactionData.lastModifiedDate": "last_modified",
 }
 
 AWARD_MAPPINGS = {
@@ -454,7 +507,7 @@ date_fields = [
     "period_of_perf_potential_e",
     "period_of_performance_curr",
     "period_of_performance_star",
-    "solicitation_date"
+    "solicitation_date",
 ]
 
 country_code_map = {
@@ -508,20 +561,23 @@ def insert_into_db(sess, contract_df):
     contract_df = contract_df.replace({np.NaN: "NULL"})
 
     # Update list columns to be strings for the insert
-    contract_df["business_categories"] = contract_df.apply(lambda row: "{" + ",".join(row["business_categories"]) + "}", axis=1)
+    contract_df["business_categories"] = contract_df.apply(
+        lambda row: "{" + ",".join(row["business_categories"]) + "}", axis=1
+    )
 
     # Escape all single quotes in dataframe
-    contract_df = contract_df.astype(str).replace("'","''", regex=True)
+    contract_df = contract_df.astype(str).replace("'", "''", regex=True)
 
     # Remove the T and Z from date columns
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
+    values_list = [str(i) for i in list(contract_df.to_records(index=False))]
     # Execute SQL
     sess.execute(
         f"""
             INSERT INTO detached_award_procurement
             ({header_cols})
-            VALUES {','.join([str(i) for i in list(contract_df.to_records(index=False))]).replace("'NULL'", "NULL").replace('"', "'")}
+            VALUES {','.join(values_list).replace("'NULL'", "NULL").replace('"', "'")}
             ON CONFLICT (detached_award_proc_unique) DO UPDATE SET
             {",\n".join(update_list)};
         """
@@ -546,45 +602,68 @@ def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
     ppop_territory_mask = ppop_us_mask & (contract_df["place_of_perform_country_c"] != "USA")
 
     contract_df["place_of_performance_state"] = contract_df.apply(
-        lambda row: country_code_map[row["place_of_perform_country_c"]] if row[
-                                                                               "place_of_perform_country_c"] in country_code_map and
-                                                                           row[
-                                                                               "place_of_perform_country_c"] != "USA" else
-        row["place_of_performance_state"], axis=1)
-    contract_df = contract_df.merge(state_df, how="left", left_on="place_of_performance_state",
-                                        right_on="state_code").drop("state_code", axis=1)
+        lambda row: (
+            country_code_map[row["place_of_perform_country_c"]]
+            if row["place_of_perform_country_c"] in country_code_map and row["place_of_perform_country_c"] != "USA"
+            else row["place_of_performance_state"]
+        ),
+        axis=1,
+    )
+    contract_df = contract_df.merge(
+        state_df, how="left", left_on="place_of_performance_state", right_on="state_code"
+    ).drop("state_code", axis=1)
     # updating both blank states and those that were changed due to the territory updates
     contract_df["place_of_perfor_state_desc"] = np.where(
-        ppop_territory_mask | (contract_df["place_of_perfor_state_desc"].isnull()), contract_df["state_name"],
-        contract_df["place_of_perfor_state_desc"])
+        ppop_territory_mask | (contract_df["place_of_perfor_state_desc"].isnull()),
+        contract_df["state_name"],
+        contract_df["place_of_perfor_state_desc"],
+    )
 
-    contract_df["place_of_perf_country_desc"] = np.where(ppop_territory_mask, "UNITED STATES",
-                                                           contract_df["place_of_perf_country_desc"])
-    contract_df["place_of_perform_country_c"] = np.where(ppop_territory_mask, "USA",
-                                                           contract_df["place_of_perform_country_c"])
+    contract_df["place_of_perf_country_desc"] = np.where(
+        ppop_territory_mask, "UNITED STATES", contract_df["place_of_perf_country_desc"]
+    )
+    contract_df["place_of_perform_country_c"] = np.where(
+        ppop_territory_mask, "USA", contract_df["place_of_perform_country_c"]
+    )
 
     # Derive ppop country name
-    contract_df = contract_df.merge(country_df, how="left", left_on="place_of_perform_country_c",
-                                        right_on="country_code")
+    contract_df = contract_df.merge(
+        country_df, how="left", left_on="place_of_perform_country_c", right_on="country_code"
+    )
     contract_df["place_of_perf_country_desc"] = np.where(
-        contract_df["place_of_perf_country_desc"].isnull(), contract_df["country_name"],
-        contract_df["place_of_perf_country_desc"])
+        contract_df["place_of_perf_country_desc"].isnull(),
+        contract_df["country_name"],
+        contract_df["place_of_perf_country_desc"],
+    )
 
     ppop_valid_zip_mask = (contract_df["place_of_performance_zip4a"].str.match(r"^\d{5}(-?\d{4})?$")) & ppop_us_mask
     # if we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
-    contract_df["place_of_performance_zip5"] = np.where(ppop_valid_zip_mask, contract_df["place_of_performance_zip4a"].str[:5], np.nan)
+    contract_df["place_of_performance_zip5"] = np.where(
+        ppop_valid_zip_mask, contract_df["place_of_performance_zip4a"].str[:5], np.nan
+    )
     contract_df["place_of_perform_zip_last4"] = np.where(
         ppop_valid_zip_mask & (contract_df["place_of_performance_zip4a"].str.len() > 5),
-        contract_df["place_of_performance_zip4a"].str[-4:], np.nan)
+        contract_df["place_of_performance_zip4a"].str[-4:],
+        np.nan,
+    )
 
     # Derive ppop county data
     # Use zip codes to derive remaining possible county codes
     ppop_zips_df = contract_df[["place_of_performance_zip5", "place_of_perform_zip_last4"]][
-        (~contract_df["place_of_performance_zip5"].isnull()) & (contract_df["place_of_perform_county_co"].isnull())].drop_duplicates()
+        (~contract_df["place_of_performance_zip5"].isnull()) & (contract_df["place_of_perform_county_co"].isnull())
+    ].drop_duplicates()
     ppop_zips_df["county_code"] = np.nan
-    ppop_zips_df.to_sql("tmp_zips_df", con=sess.connection(), if_exists="replace", index=False,
-                      dtype={"place_of_performance_zip5": types.TEXT(), "place_of_perform_zip_last4": types.TEXT(),
-                             "county_code": types.TEXT()})
+    ppop_zips_df.to_sql(
+        "tmp_zips_df",
+        con=sess.connection(),
+        if_exists="replace",
+        index=False,
+        dtype={
+            "place_of_performance_zip5": types.TEXT(),
+            "place_of_perform_zip_last4": types.TEXT(),
+            "county_code": types.TEXT(),
+        },
+    )
     # Get 9-digit-related county code
     sess.execute(
         """
@@ -618,20 +697,31 @@ def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
     ppop_zips_df = pd.read_sql("SELECT * FROM tmp_zips_df", sess.connection())
     # Get county code
     contract_df = contract_df.merge(ppop_zips_df, how="left")
-    contract_df["place_of_perform_county_co"] = np.where(contract_df["place_of_perform_county_co"].isnull(),
-        contract_df["county_code"], contract_df["place_of_perform_county_co"])
+    contract_df["place_of_perform_county_co"] = np.where(
+        contract_df["place_of_perform_county_co"].isnull(),
+        contract_df["county_code"],
+        contract_df["place_of_perform_county_co"],
+    )
     # Get county name
-    contract_df = contract_df.merge(county_df, how="left",
-                                        left_on=["place_of_performance_state", "place_of_perform_county_co"],
-                                        right_on=["state_code", "county_number"])
-    contract_df["place_of_perform_county_na"] = np.where(contract_df["place_of_perform_county_na"].isnull(),
-                                                           contract_df["county_name"],
-                                                           contract_df["place_of_perform_county_na"])
+    contract_df = contract_df.merge(
+        county_df,
+        how="left",
+        left_on=["place_of_performance_state", "place_of_perform_county_co"],
+        right_on=["state_code", "county_number"],
+    )
+    contract_df["place_of_perform_county_na"] = np.where(
+        contract_df["place_of_perform_county_na"].isnull(),
+        contract_df["county_name"],
+        contract_df["place_of_perform_county_na"],
+    )
 
     del ppop_zips_df
 
     # Drop all ppop-based extra columns we've created through merges
-    contract_df = contract_df.drop(["country_code", "country_name", "county_code", "county_number", "county_name", "state_code", "state_name"], axis=1)
+    contract_df = contract_df.drop(
+        ["country_code", "country_name", "county_code", "county_number", "county_name", "state_code", "state_name"],
+        axis=1,
+    )
 
     return contract_df
 
@@ -651,19 +741,38 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
     """
     # Change US territories to the USA country code and name
     le_us_mask = contract_df["legal_entity_country_code"].isin(list(country_code_map.keys()))
-    le_territory_mask =  (le_us_mask & (contract_df["legal_entity_country_code"] != "USA"))
-    contract_df["legal_entity_state_code"] = contract_df.apply(lambda row: country_code_map[row["legal_entity_country_code"]] if row["legal_entity_country_code"] in country_code_map and row["legal_entity_country_code"] != "USA" else row["legal_entity_state_code"], axis=1)
+    le_territory_mask = le_us_mask & (contract_df["legal_entity_country_code"] != "USA")
+    contract_df["legal_entity_state_code"] = contract_df.apply(
+        lambda row: (
+            country_code_map[row["legal_entity_country_code"]]
+            if row["legal_entity_country_code"] in country_code_map and row["legal_entity_country_code"] != "USA"
+            else row["legal_entity_state_code"]
+        ),
+        axis=1,
+    )
     contract_df = contract_df.merge(state_df, how="left", left_on="legal_entity_state_code", right_on="state_code")
     # updating both blank states and those that were changed due to the territory updates
-    contract_df["legal_entity_state_descrip"] = np.where(le_territory_mask | (contract_df["legal_entity_state_descrip"].isnull()), contract_df["state_name"], contract_df["legal_entity_state_descrip"])
-    contract_df["legal_entity_country_name"] = np.where(le_territory_mask, "UNITED STATES", contract_df["legal_entity_country_name"])
-    contract_df["legal_entity_country_code"] = np.where(le_territory_mask, "USA", contract_df["legal_entity_country_code"])
+    contract_df["legal_entity_state_descrip"] = np.where(
+        le_territory_mask | (contract_df["legal_entity_state_descrip"].isnull()),
+        contract_df["state_name"],
+        contract_df["legal_entity_state_descrip"],
+    )
+    contract_df["legal_entity_country_name"] = np.where(
+        le_territory_mask, "UNITED STATES", contract_df["legal_entity_country_name"]
+    )
+    contract_df["legal_entity_country_code"] = np.where(
+        le_territory_mask, "USA", contract_df["legal_entity_country_code"]
+    )
 
     # Derive legal entity country name
-    contract_df = contract_df.merge(country_df, how="left", left_on="legal_entity_country_code", right_on="country_code")
+    contract_df = contract_df.merge(
+        country_df, how="left", left_on="legal_entity_country_code", right_on="country_code"
+    )
     contract_df["legal_entity_country_name"] = np.where(
-        contract_df["legal_entity_country_name"].isnull(), contract_df["country_name"],
-        contract_df["legal_entity_country_name"])
+        contract_df["legal_entity_country_name"].isnull(),
+        contract_df["country_name"],
+        contract_df["legal_entity_country_name"],
+    )
 
     # Drop all legal entity-based extra columns we've created through merges
     contract_df = contract_df.drop(["country_code", "country_name", "state_code", "state_name"], axis=1)
@@ -671,15 +780,31 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
     le_valid_zip_mask = (contract_df["legal_entity_zip4"].str.match(r"^\d{5}(-?\d{4})?$")) & le_us_mask
     # If we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
     contract_df["legal_entity_zip5"] = np.where(le_valid_zip_mask, contract_df["legal_entity_zip4"].str[:5], np.nan)
-    contract_df["legal_entity_zip_last4"] = np.where(le_valid_zip_mask & (contract_df["legal_entity_zip4"].str.len() > 5), contract_df["legal_entity_zip4"].str[-4:], np.nan)
+    contract_df["legal_entity_zip_last4"] = np.where(
+        le_valid_zip_mask & (contract_df["legal_entity_zip4"].str.len() > 5),
+        contract_df["legal_entity_zip4"].str[-4:],
+        np.nan,
+    )
 
     # Derive le county data
-    le_zips_df = contract_df[["legal_entity_zip5", "legal_entity_zip_last4"]][~contract_df["legal_entity_zip5"].isnull()].drop_duplicates()
+    le_zips_df = contract_df[["legal_entity_zip5", "legal_entity_zip_last4"]][
+        ~contract_df["legal_entity_zip5"].isnull()
+    ].drop_duplicates()
     le_zips_df["legal_entity_county_code"] = np.nan
-    le_zips_df.to_sql("tmp_zips_df", con=sess.connection(), if_exists="replace", index=False, dtype={"legal_entity_zip5": types.TEXT(), "legal_entity_zip_last4": types.TEXT(), "legal_entity_county_code": types.TEXT()})
+    le_zips_df.to_sql(
+        "tmp_zips_df",
+        con=sess.connection(),
+        if_exists="replace",
+        index=False,
+        dtype={
+            "legal_entity_zip5": types.TEXT(),
+            "legal_entity_zip_last4": types.TEXT(),
+            "legal_entity_county_code": types.TEXT(),
+        },
+    )
     # Get 9-digit-related county code
     sess.execute(
-        f"""
+        """
             UPDATE tmp_zips_df
             SET legal_entity_county_code = county_number
             FROM zips
@@ -690,7 +815,7 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
 
     # Get 5-digit-related county code
     sess.execute(
-        f"""
+        """
             UPDATE tmp_zips_df
             SET legal_entity_county_code = county_number
             FROM (
@@ -711,7 +836,16 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
     # Get county code
     contract_df = contract_df.merge(le_zips_df, how="left")
     # Get county name
-    contract_df = contract_df.merge(county_df, how="left", left_on=["legal_entity_state_code", "legal_entity_county_code"], right_on=["state_code", "county_number"]).drop(["state_code", "county_number"], axis=1).rename(columns={"county_name": "legal_entity_county_name"})
+    contract_df = (
+        contract_df.merge(
+            county_df,
+            how="left",
+            left_on=["legal_entity_state_code", "legal_entity_county_code"],
+            right_on=["state_code", "county_number"],
+        )
+        .drop(["state_code", "county_number"], axis=1)
+        .rename(columns={"county_name": "legal_entity_county_name"})
+    )
     # Delete larger unneeded DFs to save some space
     del le_zips_df
 
@@ -737,14 +871,22 @@ def derive_transaction_unique(contract_df):
         "transaction_number",
     ]
     idv_list = ["agency_id", "piid", "award_modification_amendme"]
-    contract_df["detached_award_proc_unique"] = contract_df.apply(lambda row: "_".join(
-        [row[key] if (row["pulled_from"] == "AWARD" or key in idv_list) and pd.notnull(row[key]) else "-none-" for key in
-         key_list]), axis=1)
+    contract_df["detached_award_proc_unique"] = contract_df.apply(
+        lambda row: "_".join(
+            [
+                row[key] if (row["pulled_from"] == "AWARD" or key in idv_list) and pd.notnull(row[key]) else "-none-"
+                for key in key_list
+            ]
+        ),
+        axis=1,
+    )
 
     return contract_df
 
 
-def derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
+def derive_remaining_fields(
+    sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df
+):
     """Derive fields that aren't passed from SAM or that might be blank in their data, but we can derive them anyway
 
     Args:
@@ -761,10 +903,16 @@ def derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, count
         The contract_df dataframe with completed derivations
     """
     # Calculate awarding/funding agency codes/names based on awarding/funding sub tier agency codes
-    contract_df = contract_df.merge(sub_tier_df, how="left", left_on="awarding_sub_tier_agency_c", right_on="sub_tier_agency_c").drop("sub_tier_agency_c", axis=1).rename(columns={"agency_code": "awarding_agency_code", "agency_name": "awarding_agency_name"})
-    contract_df = contract_df.merge(sub_tier_df, how="left", left_on="funding_sub_tier_agency_co",
-                                        right_on="sub_tier_agency_c").drop("sub_tier_agency_c", axis=1).rename(
-        columns={"agency_code": "funding_agency_code", "agency_name": "funding_agency_name"})
+    contract_df = (
+        contract_df.merge(sub_tier_df, how="left", left_on="awarding_sub_tier_agency_c", right_on="sub_tier_agency_c")
+        .drop("sub_tier_agency_c", axis=1)
+        .rename(columns={"agency_code": "awarding_agency_code", "agency_name": "awarding_agency_name"})
+    )
+    contract_df = (
+        contract_df.merge(sub_tier_df, how="left", left_on="funding_sub_tier_agency_co", right_on="sub_tier_agency_c")
+        .drop("sub_tier_agency_c", axis=1)
+        .rename(columns={"agency_code": "funding_agency_code", "agency_name": "funding_agency_name"})
+    )
 
     # Do place of performance calculations only if we have SOME country code. If we have none at all the merge fails
     if contract_df["place_of_perform_country_c"].notnull().any():
@@ -778,19 +926,28 @@ def derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, count
     contract_df[boolean_fields] = contract_df[boolean_fields].replace({np.NaN: "NO"})
 
     # Calculate business categories
-    contract_df["business_categories"] = contract_df.apply(lambda row: get_business_categories(row=row, data_type="fpds"), axis=1)
+    contract_df["business_categories"] = contract_df.apply(
+        lambda row: get_business_categories(row=row, data_type="fpds"), axis=1
+    )
 
     # Calculate executive compensation data for the entry. UPPER the UEI just in case it comes in lowercase
     contract_df["awardee_or_recipient_uei"] = contract_df["awardee_or_recipient_uei"].str.upper()
-    contract_df = contract_df.merge(exec_comp_df, how="left", left_on="awardee_or_recipient_uei", right_on="uei").drop("uei", axis=1)
+    contract_df = contract_df.merge(exec_comp_df, how="left", left_on="awardee_or_recipient_uei", right_on="uei").drop(
+        "uei", axis=1
+    )
 
     # Fill in 999s for all blank values in awarding/funding codes and add them to cgac_errors
-    contract_df = contract_df.fillna({'awarding_agency_code':'999', 'funding_agency_code':'999'})
-    awarding_cgac_errors_df = contract_df[contract_df["awarding_agency_code"] == "999"][["awarding_sub_tier_agency_c", "awarding_sub_tier_agency_n"]].drop_duplicates("awarding_sub_tier_agency_c")
+    contract_df = contract_df.fillna({"awarding_agency_code": "999", "funding_agency_code": "999"})
+    awarding_cgac_errors_df = contract_df[contract_df["awarding_agency_code"] == "999"][
+        ["awarding_sub_tier_agency_c", "awarding_sub_tier_agency_n"]
+    ].drop_duplicates("awarding_sub_tier_agency_c")
     funding_cgac_errors_df = contract_df[contract_df["funding_agency_code"] == "999"][
-        ["funding_sub_tier_agency_co", "funding_sub_tier_agency_na"]].drop_duplicates("funding_sub_tier_agency_co")
+        ["funding_sub_tier_agency_co", "funding_sub_tier_agency_na"]
+    ].drop_duplicates("funding_sub_tier_agency_co")
     if not awarding_cgac_errors_df.empty:
-        awarding_cgac_errors_json = awarding_cgac_errors_df.set_index("awarding_sub_tier_agency_c")["awarding_sub_tier_agency_n"].to_dict()
+        awarding_cgac_errors_json = awarding_cgac_errors_df.set_index("awarding_sub_tier_agency_c")[
+            "awarding_sub_tier_agency_n"
+        ].to_dict()
         for key, value in awarding_cgac_errors_json.items():
             logger.info(
                 f"WARNING: MissingSubtierCGAC: The awarding sub-tier cgac_code: {key} does not exist in cgac table. "
@@ -799,7 +956,9 @@ def derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, count
             )
             cgac_errors[key] = str(value)
     if not funding_cgac_errors_df.empty:
-        funding_cgac_errors_json = funding_cgac_errors_df.set_index("funding_sub_tier_agency_co")["funding_sub_tier_agency_na"].to_dict()
+        funding_cgac_errors_json = funding_cgac_errors_df.set_index("funding_sub_tier_agency_co")[
+            "funding_sub_tier_agency_na"
+        ].to_dict()
         for key, value in funding_cgac_errors_json.items():
             logger.info(
                 f"WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: {key} does not exist in cgac table. "
@@ -812,7 +971,14 @@ def derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, count
     del funding_cgac_errors_df
 
     # Combine additional_reporting into one column
-    contract_df["additional_reporting"] = contract_df.apply(lambda row: row["additional_reporting_code"] + ": " + row["additional_reporting_name"] if pd.notnull(row["additional_reporting_code"]) else None, axis=1)
+    contract_df["additional_reporting"] = contract_df.apply(
+        lambda row: (
+            row["additional_reporting_code"] + ": " + row["additional_reporting_name"]
+            if pd.notnull(row["additional_reporting_code"])
+            else None
+        ),
+        axis=1,
+    )
     contract_df = contract_df.drop(["additional_reporting_code", "additional_reporting_name"], axis=1)
 
     # Two columns were combined in the feed. For now, just combine them and decide how to handle it later
@@ -826,8 +992,12 @@ def derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, count
         prefix_list = ["CONT_IDV"]
         key_list = ["piid", "agency_id"]
 
-    contract_df["unique_award_key"] = contract_df.apply(lambda row: "_".join(
-        prefix_list + [row[key] if pd.notnull(row[key]) else "-none-" for key in key_list]).upper(), axis=1)
+    contract_df["unique_award_key"] = contract_df.apply(
+        lambda row: "_".join(
+            prefix_list + [row[key] if pd.notnull(row[key]) else "-none-" for key in key_list]
+        ).upper(),
+        axis=1,
+    )
 
     contract_df = derive_transaction_unique(contract_df)
     return contract_df
@@ -857,7 +1027,9 @@ def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state
     contract_df = contract_df[contract_df.columns.intersection(list(contract_mappings.keys()))]
 
     # Add blank columns to complete the mappings for derivations and missing columns from the file
-    contract_df = contract_df.reindex(columns=contract_df.columns.tolist() + list(contract_mappings.keys() - contract_df.columns))
+    contract_df = contract_df.reindex(
+        columns=contract_df.columns.tolist() + list(contract_mappings.keys() - contract_df.columns)
+    )
 
     # Lowercase all contract_mappings now that we've sorted through what we've gotten from the files
     contract_mappings = {k.lower(): v for k, v in contract_mappings.items()}
@@ -869,7 +1041,9 @@ def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state
         {"place_of_perform_county_co": {"pad_to_length": 3, "keep_null": True}},
     )
 
-    contract_df = derive_remaining_fields(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
+    contract_df = derive_remaining_fields(
+        sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    )
 
     # Insert the data
     insert_into_db(sess, contract_df)
@@ -893,7 +1067,8 @@ def process_deletes(sess, contract_df):
 
     # Add blank columns to complete the mappings for derivations and missing columns from the file
     contract_df = contract_df.reindex(
-        columns=contract_df.columns.tolist() + list(SAM_CONTRACT_MAPPINGS.keys() - contract_df.columns))
+        columns=contract_df.columns.tolist() + list(SAM_CONTRACT_MAPPINGS.keys() - contract_df.columns)
+    )
 
     # Lowercase all contract_mappings now that we've sorted through what we've gotten from the files
     contract_mappings = {k.lower(): v for k, v in SAM_CONTRACT_MAPPINGS.items()}
@@ -912,7 +1087,8 @@ def process_deletes(sess, contract_df):
     sess.execute(
         """
             DELETE FROM detached_award_procurement USING tmp_contract_delete
-            WHERE UPPER(detached_award_procurement.detached_award_proc_unique) = UPPER(tmp_contract_delete.detached_award_proc_unique)
+            WHERE UPPER(detached_award_procurement.detached_award_proc_unique)
+                    = UPPER(tmp_contract_delete.detached_award_proc_unique)
                 AND detached_award_procurement.last_modified < tmp_contract_delete.last_modified
         """
     )
@@ -920,25 +1096,19 @@ def process_deletes(sess, contract_df):
     # Remove the temporary table. Include IF EXISTS just in case something happened above although this should only
     # be called if there is data in the delete data anyway.
     sess.execute("DROP TABLE IF EXISTS tmp_contract_delete")
-    logger.info(f"Deletes finished processing at: {str(datetime.datetime.now())}. It took {str(datetime.datetime.now() - delete_start)}")
+    logger.info(f"Deletes finished processing at: {str(get_utc_now())}. It took {str(get_utc_now() - delete_start)}")
 
 
 def get_data(
-        contract_type,
-        award_type,
-        delete,
-        sess,
-        sub_tier_df,
-        county_df,
-        state_df,
-        country_df,
-        exec_comp_df,
-        start_date,
-        end_date,
-        piid,
-        extra_filters=None,
-        local_file=None,
-        metrics=None,
+    contract_type,
+    award_type,
+    delete,
+    sess,
+    sub_tier_df,
+    county_df,
+    state_df,
+    country_df,
+    exec_comp_df,
 ):
     """Get the data from the atom feed based on contract/award type and the last time the script was run or provided
     dates and other filters.
@@ -953,15 +1123,11 @@ def get_data(
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
         exec_comp_df: a dataframe containing all the data for Executive Compensation
-        start_date: a date indicating the first date to pull from (must be provided with end_date)
-        end_date: a date indicating the last date to pull from (must be provided with start_date)
-        piid: a specific piid to filter on
-        extra_filters: current dict of request filters that will be used to pull the data from the API
-        local_file: skip downloading the file and work from a local file if provided
-        metrics: a dictionary to gather metrics for the script in
     """
     arg_string = "delete" if delete else contract_type.lower()
-    test_file = os.path.join(CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{arg_string}.csv")
+    test_file = os.path.join(
+        CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{arg_string}.csv"
+    )
     contract_df = []
 
     if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT") or delete:
@@ -973,7 +1139,10 @@ def get_data(
             specific_feed_start = datetime.datetime.now()
             logger.info(f"Starting {contract_type} {award_type} processing at: {str(specific_feed_start)}")
             process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
-            logger.info(f"Finishing {contract_type} {award_type} processing at: {str(specific_feed_start)}. It took {str(datetime.datetime.now() - specific_feed_start)}")
+            logger.info(
+                f"Finishing {contract_type}: {award_type} processing."
+                f" It took {str(get_utc_now() - specific_feed_start)}."
+            )
         else:
             process_deletes(sess, contract_df)
 
@@ -990,35 +1159,57 @@ def create_lookups(sess):
     """
 
     # Get and create dataframe of sub tier agencies
-    sub_tier_df = pd.read_sql(sess.query(
+    sub_tier_df = pd.read_sql(
+        sess.query(
             SubTierAgency.sub_tier_agency_code.label("sub_tier_agency_c"),
             case((SubTierAgency.is_frec, FREC.frec_code), else_=CGAC.cgac_code).label("agency_code"),
-            case((SubTierAgency.is_frec, FREC.agency_name), else_=CGAC.agency_name).label("agency_name")
+            case((SubTierAgency.is_frec, FREC.agency_name), else_=CGAC.agency_name).label("agency_name"),
         )
         .join(CGAC, SubTierAgency.cgac_id == CGAC.cgac_id)
         .join(FREC, SubTierAgency.frec_id == FREC.frec_id)
         .statement,
-        sess.connection()
+        sess.connection(),
     )
 
     # Get and create dataframe of countries
-    country_df = pd.read_sql(sess.query(CountryCode.country_code, CountryCode.country_name).statement, sess.connection())
+    country_df = pd.read_sql(
+        sess.query(CountryCode.country_code, CountryCode.country_name).statement, sess.connection()
+    )
 
     # Get and create dataframe of states
-    state_df = pd.read_sql(sess.query(States.state_code, func.upper(States.state_name).label("state_name")).statement, sess.connection())
+    state_df = pd.read_sql(
+        sess.query(States.state_code, func.upper(States.state_name).label("state_name")).statement, sess.connection()
+    )
 
     # Get and create dataframe of counties
-    county_df = pd.read_sql(sess.query(CountyCode.county_number, CountyCode.state_code, func.trim(func.regexp_replace(func.upper(CountyCode.county_name), r" \(CA\)", "")).label("county_name")).statement, sess.connection())
+    county_df = pd.read_sql(
+        sess.query(
+            CountyCode.county_number,
+            CountyCode.state_code,
+            func.trim(func.regexp_replace(func.upper(CountyCode.county_name), r" \(CA\)", "")).label("county_name"),
+        ).statement,
+        sess.connection(),
+    )
 
     # Get and create dataframe of all exec comps and their associated UEIs
     exec_comp_df = pd.read_sql(
-        sess.query(SAMRecipient.high_comp_officer1_full_na, SAMRecipient.high_comp_officer1_amount,
-                   SAMRecipient.high_comp_officer2_full_na, SAMRecipient.high_comp_officer2_amount,
-                   SAMRecipient.high_comp_officer3_full_na, SAMRecipient.high_comp_officer3_amount,
-                   SAMRecipient.high_comp_officer4_full_na, SAMRecipient.high_comp_officer4_amount,
-                   SAMRecipient.high_comp_officer5_full_na, SAMRecipient.high_comp_officer5_amount,
-                   func.upper(SAMRecipient.uei).label("uei")).filter(SAMRecipient.high_comp_officer1_full_na.isnot(None), SAMRecipient.uei.isnot(None)).statement,
-                            sess.connection())
+        sess.query(
+            SAMRecipient.high_comp_officer1_full_na,
+            SAMRecipient.high_comp_officer1_amount,
+            SAMRecipient.high_comp_officer2_full_na,
+            SAMRecipient.high_comp_officer2_amount,
+            SAMRecipient.high_comp_officer3_full_na,
+            SAMRecipient.high_comp_officer3_amount,
+            SAMRecipient.high_comp_officer4_full_na,
+            SAMRecipient.high_comp_officer4_amount,
+            SAMRecipient.high_comp_officer5_full_na,
+            SAMRecipient.high_comp_officer5_amount,
+            func.upper(SAMRecipient.uei).label("uei"),
+        )
+        .filter(SAMRecipient.high_comp_officer1_full_na.isnot(None), SAMRecipient.uei.isnot(None))
+        .statement,
+        sess.connection(),
+    )
 
     return sub_tier_df, country_df, state_df, county_df, exec_comp_df
 
@@ -1033,7 +1224,7 @@ def main():
         "-da",
         "--dates",
         help="Used to specify dates to gather updates from. "
-             "Must have 2 arguments, first and last day, formatted YYYY-mm-dd",
+        "Must have 2 arguments, first and last day, formatted YYYY-mm-dd",
         nargs=2,
         type=str,
     )
@@ -1052,8 +1243,9 @@ def main():
         nargs=1,
         type=str,
     )
-    parser.add_argument("-l", "--local_file", type=str, default=None,
-                        help="Local filename to load. If not provided, run remotely.")
+    parser.add_argument(
+        "-l", "--local_file", type=str, default=None, help="Local filename to load. If not provided, run remotely."
+    )
     args = parser.parse_args()
 
     if args.delete and not args.dates:
@@ -1077,8 +1269,9 @@ def main():
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = create_lookups(sess)
 
     start_date, end_date, auto = (None, None, True) if not args.dates else ([args.dates[0]], [args.dates[1]], False)
-    start_date, end_date = validate_load_dates(start_date, end_date, auto, 'fpds', arg_date_format="%Y-%m-%d",
-                                               output_date_format="%m/%d/%Y")
+    start_date, end_date = validate_load_dates(
+        start_date, end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
+    )
 
     if not args.delete:
         insert_start = datetime.datetime.now()
@@ -1095,11 +1288,6 @@ def main():
                 state_df,
                 country_df,
                 exec_comp_df,
-                start_date=start_date,
-                end_date=end_date,
-                piid=args.piid,
-                local_file=args.local_file,
-                metrics=metrics_json,
             )
 
         for award_type in award_types_award:
@@ -1113,20 +1301,15 @@ def main():
                 state_df,
                 country_df,
                 exec_comp_df,
-                start_date=start_date,
-                end_date=end_date,
-                piid=args.piid,
-                local_file=args.local_file,
-                metrics=metrics_json,
             )
 
         sess.commit()
-        logger.info(f"Finishing data collection at: {str(datetime.datetime.now())}. It took {str(datetime.datetime.now() - insert_start)}")
+        logger.info(f"Finishing data collection at: {str(get_utc_now())}. It took {str(get_utc_now() - insert_start)}")
 
     # We also need to process the delete feed
     get_data(
-        '',
-        '',
+        "",
+        "",
         True,
         sess,
         sub_tier_df,
@@ -1134,11 +1317,6 @@ def main():
         state_df,
         country_df,
         exec_comp_df,
-        start_date=start_date,
-        end_date=end_date,
-        piid=args.piid,
-        local_file=args.local_file,
-        metrics=metrics_json,
     )
     # Only update load date if dates weren't specified
     if not args.dates:
