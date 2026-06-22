@@ -535,7 +535,7 @@ country_code_map = {
 S3_ARCHIVE = CONFIG_BROKER["sam"]["recipient"]["csv_archive_bucket"]
 
 # Used to determine if it's possible we didn't get all the records in this pull and chunk it
-CHUNK_SIZE = 10000
+CHUNK_SIZE = 5000
 SAM_MAX_FILE_LENGTH = 1000000
 
 # Used for tracking cgac errors for output later
