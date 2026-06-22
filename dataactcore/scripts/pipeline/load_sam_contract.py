@@ -1311,7 +1311,7 @@ def get_data(
     usas_delete_df = pd.DataFrame()
 
     specific_feed_start = get_utc_now()
-    logger.info(f"Starting {contract_type}: {award_type} processing at: {str(specific_feed_start)}")
+    logger.info(f"Starting {contract_type}: {award_type} processing.")
     with pd.read_csv(sam_contract_file, chunksize=CHUNK_SIZE, dtype=str) as reader_obj:
         for contract_df in reader_obj:
             records_received += len(contract_df)
@@ -1328,8 +1328,8 @@ def get_data(
                     usas_delete_df = pd.concat([usas_delete_df, chunk_delete_df], ignore_index=True)
                 logger.info(f"Successfully processed {len(contract_df)}. Total processed: {records_received}")
     logger.info(
-        f"Finishing {contract_type}: {award_type} processing at: {str(specific_feed_start)}."
-        f" It took {str(get_utc_now() - specific_feed_start)}. Total records {records_received}."
+        f"Finishing {contract_type}: {award_type} processing."
+        f" It took {str(get_utc_now() - specific_feed_start)}. Total records: {records_received}."
     )
 
     # Remove the file after processing if remote
