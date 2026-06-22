@@ -1183,6 +1183,13 @@ def get_sam_contract_file(
 
     logger.info(f"Extracted {local_sam_file_name}.csv")
 
+    # Host the file in S3 for traceability
+    if CONFIG_BROKER["use_aws"]:
+        s3 = boto3.client("s3", region_name="us-gov-west-1")
+        s3.upload_file(
+            local_sam_file_path, S3_ARCHIVE, os.path.join("Contracts", os.path.basename(local_sam_file_path))
+        )
+
     return local_sam_file_path
 
 
@@ -1322,6 +1329,11 @@ def get_data(
                 else:
                     chunk_delete_df = process_deletes(sess, contract_df)
                     usas_delete_df = pd.concat([usas_delete_df, chunk_delete_df], ignore_index=True)
+
+    # Remove the file after processing if remote
+    if not local_file and CONFIG_BROKER["use_aws"]:
+        os.remove(sam_contract_file)
+
     if not delete:
         metrics["records_received"] += records_received
     else:
@@ -1340,12 +1352,6 @@ def get_data(
         os.remove(usas_delete_file)
 
         metrics["deletes_received"] += records_received
-
-    # Host the file in S3 after processing it for traceability
-    if not local_file and CONFIG_BROKER["use_aws"]:
-        s3 = boto3.client("s3", region_name="us-gov-west-1")
-        s3.upload_file(sam_contract_file, S3_ARCHIVE, os.path.join("Contracts", os.path.basename(sam_contract_file)))
-        os.remove(sam_contract_file)
 
 
 def create_lookups(sess):
