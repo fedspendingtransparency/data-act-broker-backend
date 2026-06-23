@@ -1,22 +1,25 @@
-import logging
 import argparse
+import datetime
+import json
+import logging
 import os
+import tempfile
+
+from requests.exceptions import RequestException
+
+import boto3
 import numpy as np
 import pandas as pd
 
-import datetime
-import json
-
-from sqlalchemy import func, case, types, Boolean
+from sqlalchemy import func, case, types, text, Boolean
 
 from dataactbroker.helpers.script_helper import validate_load_dates
+from dataactbroker.helpers.generic_helper import unzip
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.loader_utils import clean_data
-
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
+from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now, get_timestamp
 from dataactcore.models.domainModels import (
     SubTierAgency,
     CGAC,
@@ -26,15 +29,15 @@ from dataactcore.models.domainModels import (
     CountyCode,
     SAMRecipient,
 )
-from dataactcore.models.stagingModels import DetachedAwardProcurement
-
-from dataactcore.utils.business_categories import get_business_categories
 from dataactcore.models.jobModels import Submission  # noqa
+from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.userModel import User  # noqa
+from dataactcore.utils.loader_utils import clean_data
+from dataactcore.utils.sam_recipient import request_sam_contracts_api
+from dataactcore.utils.business_categories import get_business_categories
 
 from dataactvalidator.health_check import create_app
 
-feed_url = "https://api.sam.gov/contract-awards/v1/search?"
 
 SAM_CONTRACT_MAPPINGS = {
     "contractId.modificationNumber": "award_modification_amendme",
@@ -393,7 +396,6 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.transactionData.createdDate": "initial_report_date",
     "awardDetails.transactionData.lastModifiedDate": "last_modified",
 }
-
 AWARD_MAPPINGS = {
     "coreData.awardOrIDVType.code": "contract_award_type",
     "coreData.awardOrIDVType.name": "contract_award_type_desc",
@@ -437,15 +439,17 @@ country_code_map = {
     "XWK": "UM",
 }
 
+S3_ARCHIVE = CONFIG_BROKER["sam"]["recipient"]["csv_archive_bucket"]
+
 # Used to determine if it's possible we didn't get all the records in this pull and chunk it
-CHUNK_SIZE = 10000
+CHUNK_SIZE = 5000
 SAM_MAX_FILE_LENGTH = 1000000
 
 # Used for tracking cgac errors for output later
 cgac_errors = {}
 
+feed_url = "https://api.sam.gov/contract-awards/v1/search?"
 logger = logging.getLogger(__name__)
-logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 def insert_into_db(sess, contract_df):
@@ -478,16 +482,31 @@ def insert_into_db(sess, contract_df):
     # Remove the T and Z from date columns
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
-    values_list = [str(i) for i in list(contract_df.to_records(index=False))]
     # Execute SQL
+    params_dict = {}
+    values_list = []
+    index = 1
+    # take each row from the dataframe
+    for row in list(contract_df.to_records(index=False)):
+        row_values = []
+        # split it up by value for sql injection checking
+        for value in row:
+            params_dict[f"param{index}"] = str(value).replace('"', "'") if value != "NULL" else None
+            row_values.append(f":param{index}")
+            index += 1
+        # build the row of *params* that will be populated by the binding params_dict
+        # and then each *row* needs commas in between them
+        values_list.append(f"({','.join(row_values)})")
+
     sess.execute(
-        f"""
-            INSERT INTO detached_award_procurement
-            ({header_cols})
-            VALUES {','.join(values_list).replace("'NULL'", "NULL").replace('"', "'")}
-            ON CONFLICT (detached_award_proc_unique) DO UPDATE SET
-            {",\n".join(update_list)};
+        text(
+            f"""
+            INSERT INTO detached_award_procurement ({header_cols})
+            VALUES {','.join(values_list)}
+            ON CONFLICT (detached_award_proc_unique) DO UPDATE SET {",\n".join(update_list)};
         """
+        ),
+        params_dict,
     )
 
 
@@ -959,6 +978,128 @@ def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state
     sess.execute("DROP TABLE IF EXISTS tmp_zips_df")
 
 
+def get_sam_contract_file(
+    contract_type=None, award_type=None, delete=False, start_date=None, end_date=None, piid=None, extra_filters=None
+):
+    """Get the data from the atom feed based on the filters provided
+
+    Note: This wIll simply download the file onto the running machine. It's the responsibility of the caller to
+          delete the file after processing it to conserve space.
+
+    Args:
+        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+        award_type: a string indicating what the award type of the feed being checked is
+        delete: boolean representing whether to pull from the delete feed
+        start_date: a date indicating the first date to pull from (must be provided with end_date)
+        end_date: a date indicating the last date to pull from (must be provided with start_date)
+        piid: a specific piid to filter on
+        extra_filters: current dict of request filters that will be used to pull the data from the API
+    """
+    filename_list = ["SAM", "CONTRACT", "UPDATE" if not delete else "DELETE"]
+    if contract_type:
+        filename_list.append(contract_type.upper())
+    if award_type:
+        filename_list.append(award_type.upper())
+    if start_date and end_date:
+        for date_string in [start_date, end_date]:
+            # convert to iso8601 for easier filename sorting
+            filename_list.append(datetime.datetime.strptime(date_string, "%m/%d/%Y").strftime("%Y%m%d"))
+    if piid:
+        filename_list.append(f"PIID_{piid}")
+    local_sam_file_name = f"{'_'.join(filename_list)}"
+    local_sam_file_zipped = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.zip")
+    local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
+
+    filters = {
+        "api_key": CONFIG_BROKER["sam"]["api_key"],
+        "deletedStatus": "yes" if delete else "no",
+        "format": "csv",
+        "emailId": "No",
+    }
+    if start_date and end_date:
+        filters["lastModifiedDate"] = f"[{start_date},{end_date}]"
+    if contract_type:
+        filters["awardOrIDV"] = contract_type
+    if award_type:
+        filters["awardOrIDVTypeName"] = award_type.upper()
+    if piid:
+        filters["piid"] = piid
+    if extra_filters is not None:
+        filters.update(extra_filters)
+
+    # TODO: Refactor with load_sam_recipient.download_sam_file.
+    #       Just needs to account for two separate API urls with different API contracts.
+
+    # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
+    # so we don't need to add any additional sleeping here.
+    def file_ready_check(response):
+        if "The specified key does not exist" in response.text:
+            raise RequestException("The specified key does not exist.")
+
+    def extract_sam_contracts_file():
+        logger.info(f"Requesting file: {local_sam_file_name}")
+        resp = request_sam_contracts_api(filters)
+        resp_content = json.loads(resp.content.decode("utf-8"))
+
+        if resp_content.get("presignedUrl") is None:
+            logger.info(resp_content.get("message"))
+            return None
+
+        # just use the presignedUrl provided, includes the params we need (token, api key)
+        logger.info(f"File requested, waiting for file to generate (token: {resp_content.get('exportToken')})")
+        download_url = resp_content.get("presignedUrl").replace("REPLACE_WITH_API_KEY", CONFIG_BROKER["sam"]["api_key"])
+
+        return request_sam_contracts_api(
+            filters=None, download_url=download_url, stream=True, custom_error_check=file_ready_check
+        )
+
+    # Anytime we request a custom extract from SAM via tokens, the success rate is hit or miss to varying degrees.
+    # Despite the additional backoff logic when pinging for the downloadable file, this is an attempt to retry the
+    # *whole request* multiple times as sometimes it'll generate in seconds and other times it will not in an hour.
+    attempt_count = 0
+    max_attempts = 10
+    file_content = None
+    while attempt_count < max_attempts:
+        try:
+            file_content = extract_sam_contracts_file()
+            break
+        except RequestException:
+            attempt_count += 1
+            logger.info(f"Retrying (attempt count: {attempt_count})")
+    if attempt_count == max_attempts and not file_content:
+        raise RequestException(f"Couldn't generate the requested file after {attempt_count} attempts.")
+    elif not file_content:
+        logger.info("No data found for the requested filters.")
+        return None
+
+    logger.info("Downloading zip of request")
+    try:
+        with open(local_sam_file_zipped, mode="wb") as local_sam_zip:
+            for chunk in file_content.iter_content(chunk_size=8192):
+                if chunk:
+                    local_sam_zip.write(chunk)
+    finally:
+        file_content.close()
+
+    logger.info("Downloaded file. Extracting zip.")
+    extracted_files = unzip(local_sam_file_zipped)
+    if len(extracted_files) > 1:
+        raise ValueError(f"Multiple files found in the zip: {extracted_files}")
+    os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
+    os.remove(local_sam_file_zipped)
+
+    logger.info(f"Extracted {local_sam_file_name}.csv")
+
+    # Host the file in S3 for traceability
+    if CONFIG_BROKER["use_aws"]:
+        s3 = boto3.client("s3", region_name="us-gov-west-1")
+        s3.upload_file(
+            local_sam_file_path, S3_ARCHIVE, os.path.join("Contracts", os.path.basename(local_sam_file_path))
+        )
+
+    return local_sam_file_path
+
+
 def process_deletes(sess, contract_df):
     """Process the deletes data coming in by adding required columns, cleaning up column names, and deleting the data.
     The only value that needs to be derived is the unique transaction key for matching against existing data.
@@ -966,11 +1107,16 @@ def process_deletes(sess, contract_df):
     Args:
         sess: sqlalchemy session
         contract_df: dataframe to update with derivations
+
+    Returns:
+        dataframe of chunked data for usas to delete
     """
-    delete_start = datetime.datetime.now()
+    delete_start = get_utc_now()
     logger.info(f"Starting delete processing at: {str(delete_start)}")
     # Remove columns from dataframe that aren't in our existing mapping (we don't want them)
-    contract_df = contract_df[contract_df.columns.intersection(list(SAM_CONTRACT_MAPPINGS.keys()))]
+    contract_df = contract_df[
+        contract_df.columns.intersection(list(SAM_CONTRACT_MAPPINGS.keys()) + ["detached_award_procurement_id"])
+    ]
 
     # Add blank columns to complete the mappings for derivations and missing columns from the file
     contract_df = contract_df.reindex(
@@ -988,9 +1134,19 @@ def process_deletes(sess, contract_df):
     )
 
     contract_df = derive_transaction_unique(contract_df)
+    contract_df["detached_award_procurement_id"] = np.nan
 
     # Delete the data using a temporary table
     contract_df.to_sql("tmp_contract_delete", con=sess.connection(), if_exists="replace", index=False)
+    sess.execute(
+        """
+            UPDATE tmp_contract_delete
+                SET detached_award_procurement_id = detached_award_procurement.detached_award_procurement_id
+                FROM detached_award_procurement
+                WHERE UPPER(detached_award_procurement.detached_award_proc_unique) =
+                    UPPER(tmp_contract_delete.detached_award_proc_unique)
+        """
+    )
     sess.execute(
         """
             DELETE FROM detached_award_procurement USING tmp_contract_delete
@@ -1002,56 +1158,116 @@ def process_deletes(sess, contract_df):
 
     # Remove the temporary table. Include IF EXISTS just in case something happened above although this should only
     # be called if there is data in the delete data anyway.
+    usas_delete_data = pd.read_sql(
+        "SELECT detached_award_procurement_id, detached_award_proc_unique FROM tmp_contract_delete", sess.connection()
+    )
     sess.execute("DROP TABLE IF EXISTS tmp_contract_delete")
     logger.info(f"Deletes finished processing at: {str(get_utc_now())}. It took {str(get_utc_now() - delete_start)}")
 
+    return usas_delete_data
+
 
 def get_data(
-    contract_type,
-    award_type,
-    delete,
     sess,
     sub_tier_df,
     county_df,
     state_df,
     country_df,
     exec_comp_df,
+    contract_type=None,
+    award_type=None,
+    delete=False,
+    start_date=None,
+    end_date=None,
+    piid=None,
+    extra_filters=None,
+    local_file=None,
+    metrics=None,
 ):
     """Get the data from the atom feed based on contract/award type and the last time the script was run or provided
     dates and other filters.
 
     Args:
-        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
-        award_type: a string indicating what the award type of the feed being checked is
-        delete: boolean representing whether to pull from the delete feed
         sess: the database connection
         sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
         exec_comp_df: a dataframe containing all the data for Executive Compensation
+        contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+        award_type: a string indicating what the award type of the feed being checked is
+        delete: boolean representing whether to pull from the delete feed
+        start_date: a date indicating the first date to pull from (must be provided with end_date)
+        end_date: a date indicating the last date to pull from (must be provided with start_date)
+        piid: a specific piid to filter on
+        extra_filters: current dict of request filters that will be used to pull the data from the API
+        local_file: skip downloading the file and work from a local file if provided
+        metrics: a dictionary to gather metrics for the script in
     """
-    arg_string = "delete" if delete else contract_type.lower()
-    test_file = os.path.join(
-        CONFIG_BROKER["path"], "tests", "unit", "data", "fake_sam_files", "contract", f"sam_contract_{arg_string}.csv"
+    sam_contract_file = (
+        local_file
+        if local_file
+        else get_sam_contract_file(
+            contract_type=contract_type,
+            award_type=award_type,
+            delete=delete,
+            start_date=start_date,
+            end_date=end_date,
+            piid=piid,
+            extra_filters=extra_filters,
+        )
     )
-    contract_df = []
+    if not sam_contract_file:
+        logger.info("No file found to process data. Skipping.")
+        return
 
-    if award_type.upper() in ("GWAC", "DEFINITIVE CONTRACT") or delete:
-        # We might need to use chunksize later on, but it also won't be in this "if"
-        contract_df = pd.read_csv(test_file, dtype=str)
+    records_received = 0
+    usas_delete_df = pd.DataFrame()
 
-    if len(contract_df) > 0:
-        if not delete:
-            specific_feed_start = datetime.datetime.now()
-            logger.info(f"Starting {contract_type} {award_type} processing at: {str(specific_feed_start)}")
-            process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df)
-            logger.info(
-                f"Finishing {contract_type}: {award_type} processing."
-                f" It took {str(get_utc_now() - specific_feed_start)}."
-            )
-        else:
-            process_deletes(sess, contract_df)
+    specific_feed_start = get_utc_now()
+    logger.info(f"Starting {contract_type}: {award_type} processing.")
+    with pd.read_csv(sam_contract_file, chunksize=CHUNK_SIZE, dtype=str) as reader_obj:
+        for contract_df in reader_obj:
+            records_received += len(contract_df)
+            if records_received >= SAM_MAX_FILE_LENGTH:
+                raise Exception(f"Downloaded file contains at least {SAM_MAX_FILE_LENGTH} records. Erroring.")
+
+            if len(contract_df) > 0:
+                if not delete:
+                    process_data(
+                        sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df
+                    )
+                else:
+                    chunk_delete_df = process_deletes(sess, contract_df)
+                    usas_delete_df = pd.concat([usas_delete_df, chunk_delete_df], ignore_index=True)
+                logger.info(f"Successfully processed {len(contract_df)}. Total processed: {records_received}")
+    logger.info(
+        f"Finishing {contract_type}: {award_type} processing."
+        f" It took {str(get_utc_now() - specific_feed_start)}. Total records: {records_received}."
+    )
+
+    # Remove the file after processing if remote
+    if not local_file and CONFIG_BROKER["use_aws"]:
+        os.remove(sam_contract_file)
+
+    if not delete:
+        metrics["records_received"] += records_received
+    else:
+        # Writing the file for USAS
+        # TODO: Potentially update based on downstream effects for operations and USAS
+        usas_delete_file = get_utc_now().strftime("%m-%d-%Y") + "_delete_records_award" + "_" + get_timestamp() + ".csv"
+        metrics["deleted_{}_records_file".format(contract_type).lower()] = usas_delete_file
+        usas_delete_df.to_csv(usas_delete_file, index=False)
+        if CONFIG_BROKER["use_aws"]:
+            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            # # add headers
+            # contents = bytes((",".join(headers) + "\n").encode())
+            # for key, value in delete_dict.items():
+            #     contents += bytes("{},{}\n".format(key, value).encode())
+            s3.upload_file(usas_delete_file, CONFIG_BROKER["fpds_delete_bucket"], usas_delete_file)
+        os.remove(usas_delete_file)
+
+        metrics["deletes_received"] += records_received
 
 
 def create_lookups(sess):
@@ -1123,25 +1339,32 @@ def create_lookups(sess):
 
 def main():
     sess = GlobalDB.db().session
-
-    now = datetime.datetime.now()
+    now = get_utc_now()
 
     parser = argparse.ArgumentParser(description="Pull data from SAM Contracts API.")
     parser.add_argument(
-        "-da",
-        "--dates",
-        help="Used to specify dates to gather updates from. "
-        "Must have 2 arguments, first and last day, formatted YYYY-mm-dd",
-        nargs=2,
+        "-f",
+        "--feed",
+        help="Whether to run inserts, deletes, or both",
+        choices=["add", "delete", "both"],
+        default="both",
+    )
+    parser.add_argument(
+        "--start_date",
+        help="Specify start date in YYYY-MM-DD format to compare to mod date. Overrides --auto option.",
+        nargs=1,
         type=str,
     )
     parser.add_argument(
-        "-del",
-        "--delete",
-        help="Used to only run the delete feed. Must be used in conjunction with the dates argument",
+        "--end_date",
+        help="Specify end date in YYYY-MM-DD format to compare to mod date. Inclusive. " + "Overrides --auto option.",
+        nargs=1,
+        type=str,
+    )
+    parser.add_argument(
+        "--auto",
+        help="Polls SAM for the latest contract data.",
         action="store_true",
-        required=False,
-        default=False,
     )
     parser.add_argument(
         "-p",
@@ -1155,10 +1378,6 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.delete and not args.dates:
-        logger.error("Delete argument may only be used in conjunction with the dates argument.")
-        raise ValueError("Delete argument may only be used in conjunction with the dates argument.")
-
     award_types_award = ["Delivery Order", "BPA Call", "Definitive Contract", "Purchase Order"]
     award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
     metrics_json = {
@@ -1166,7 +1385,6 @@ def main():
         "start_time": str(now),
         "records_received": 0,
         "deletes_received": 0,
-        "records_deleted": 0,
         "deleted_award_records_file": "",
         "deleted_idv_records_file": "",
         "start_date": "",
@@ -1175,63 +1393,81 @@ def main():
 
     sub_tier_df, country_df, state_df, county_df, exec_comp_df = create_lookups(sess)
 
-    start_date, end_date, auto = (None, None, True) if not args.dates else ([args.dates[0]], [args.dates[1]], False)
-    start_date, end_date = validate_load_dates(
-        start_date, end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
-    )
+    auto = args.auto
+    if args.piid or args.local_file:
+        start_date, end_date, auto = (None, None, False)
+    else:
+        start_date, end_date = validate_load_dates(
+            args.start_date, args.end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
+        )
 
-    if not args.delete:
-        insert_start = datetime.datetime.now()
+    if args.feed in ["add", "both"]:
+        insert_start = get_utc_now()
         logger.info(f"Starting data collection at: {str(insert_start)}")
 
         for award_type in award_types_idv:
             get_data(
-                "IDV",
-                award_type,
-                False,
                 sess,
                 sub_tier_df,
                 county_df,
                 state_df,
                 country_df,
                 exec_comp_df,
+                contract_type="IDV",
+                award_type=award_type,
+                delete=False,
+                start_date=start_date,
+                end_date=end_date,
+                piid=args.piid,
+                local_file=args.local_file,
+                metrics=metrics_json,
             )
 
         for award_type in award_types_award:
             get_data(
-                "award",
-                award_type,
-                False,
                 sess,
                 sub_tier_df,
                 county_df,
                 state_df,
                 country_df,
                 exec_comp_df,
+                contract_type="award",
+                award_type=award_type,
+                delete=False,
+                start_date=start_date,
+                end_date=end_date,
+                piid=args.piid,
+                local_file=args.local_file,
+                metrics=metrics_json,
             )
 
         sess.commit()
         logger.info(f"Finishing data collection at: {str(get_utc_now())}. It took {str(get_utc_now() - insert_start)}")
 
-    # We also need to process the delete feed
-    get_data(
-        "",
-        "",
-        True,
-        sess,
-        sub_tier_df,
-        county_df,
-        state_df,
-        country_df,
-        exec_comp_df,
-    )
+    if args.feed in ["delete", "both"]:
+        # We also need to process the delete feed
+        get_data(
+            sess,
+            sub_tier_df,
+            county_df,
+            state_df,
+            country_df,
+            exec_comp_df,
+            delete=True,
+            start_date=start_date,
+            end_date=end_date,
+            piid=args.piid,
+            local_file=args.local_file,
+            metrics=metrics_json,
+        )
+
     # Only update load date if dates weren't specified
-    if not args.dates:
-        update_external_data_load_date(now, datetime.datetime.now(), "fpds")
+    if auto and args.feed == "both" and args.piid is None:
+        update_external_data_load_date(now, get_utc_now(), "fpds")
 
     sess.commit()
 
-    metrics_json["duration"] = str(datetime.datetime.now() - now)
+    metrics_json["duration"] = str(get_utc_now() - now)
 
     with open("load_sam_contract_metrics.json", "w+") as metrics_file:
         json.dump(metrics_json, metrics_file)
