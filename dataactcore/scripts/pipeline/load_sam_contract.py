@@ -303,7 +303,7 @@ SAM_CONTRACT_MAPPINGS = {
     ),
     # splitting this over two lines, too long for black and flake8
     "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness."
-    "individualOrConcernOtherThanOneOfThePreceding": ("other_minority_owned_busin"),
+    "individualOrConcernOtherThanOneOfThePreceding": "other_minority_owned_busin",
     "awardDetails.awardeeData.socioEconomicData.isMinorityOwnedBusiness.minorityOwnedBusiness": (
         "minority_owned_business"
     ),
