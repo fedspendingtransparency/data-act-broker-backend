@@ -1188,6 +1188,12 @@ def get_data(
     dates and other filters.
 
     Args:
+        sess: the database connection
+        sub_tier_df: a dataframe containing all the sub tier agency codes and their associated top tiers
+        county_df: a dataframe containing all county codes and names by state
+        state_df: a dataframe containing all state codes and names
+        country_df: a dataframe containing all country codes and names
+        exec_comp_df: a dataframe containing all the data for Executive Compensation
         contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
         award_type: a string indicating what the award type of the feed being checked is
         delete: boolean representing whether to pull from the delete feed
