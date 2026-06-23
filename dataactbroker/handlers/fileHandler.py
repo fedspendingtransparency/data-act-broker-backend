@@ -244,6 +244,8 @@ class FileHandler:
                 "is_quarter": "is_quarter_format",
             }
 
+            # Just defining test_submission so we can pass it in to create_submission if it's an existing submission
+            test_submission = False
             submission_data = {}
             existing_submission_id = request_params.get("existing_submission_id")
             if existing_submission_id:
@@ -267,11 +269,7 @@ class FileHandler:
                 existing_submission = None
                 existing_submission_obj = None
 
-            # Just defining test_submission so we can pass it in to create_submission if it's an existing submission
-            test_submission = False
-
-            # existing submissions don't need any of this processing
-            if not existing_submission:
+                # existing submissions don't need any of this processing
                 # Get all the mappings from the request
                 for request_field, submission_field in request_submission_mapping.items():
                     if request_field in request_params:
@@ -306,7 +304,6 @@ class FileHandler:
                     submission_data.get("reporting_start_date"),
                     submission_data.get("reporting_end_date"),
                     str(submission_data.get("is_quarter_format")).upper() == "TRUE",
-                    existing_submission_obj,
                 )
                 submission_data["reporting_start_date"] = formatted_start_date
                 submission_data["reporting_end_date"] = formatted_end_date
