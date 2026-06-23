@@ -1227,7 +1227,7 @@ def process_deletes(sess, contract_df):
     )
 
     contract_df = derive_transaction_unique(contract_df)
-    contract_df['detached_award_procurement_id'] = np.nan
+    contract_df["detached_award_procurement_id"] = np.nan
 
     # Delete the data using a temporary table
     contract_df.to_sql("tmp_contract_delete", con=sess.connection(), if_exists="replace", index=False)
