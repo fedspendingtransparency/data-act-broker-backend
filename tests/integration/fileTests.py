@@ -344,7 +344,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(submission.test_submission, True)
 
     def test_update_submission(self):
-        """Test upload_dabs_files with an existing submission ID"""
+        """Test upload_dabs_files with an existing submission ID, nothing should update except the file path"""
         self.call_file_submission()
         # note: this is a quarterly test submission, so updated dates must still reflect a quarter
         file_path = (
@@ -379,9 +379,9 @@ class FileTests(BaseTestAPI):
 
             submission_id = update_response.json["submission_id"]
             submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
-            self.assertEqual(submission.cgac_code, "SYS")  # Should not have changed agency name
-            self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "04/2016")
-            self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "06/2016")
+            self.assertEqual(submission.cgac_code, "SYS")
+            self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "01/2001")
+            self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "03/2001")
             self.assertEqual(submission.publish_status_id, PUBLISH_STATUS_DICT["updated"])
             self.assertEqual(submission.test_submission, False)
 
