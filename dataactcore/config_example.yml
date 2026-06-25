@@ -103,6 +103,10 @@ broker:
         account_user_id: example
         account_password: example
 
+        # used in load_sam_contract.py
+        contract:
+            api_url: https://api.sam.gov/contract-awards/v1/search?api_key={}
+
         # used in load_federal_hierarchy.py
         federal_hierarchy:
             api_url: https://api.sam.gov/prod/federalorganizations/v1/orgs?api_key={}
