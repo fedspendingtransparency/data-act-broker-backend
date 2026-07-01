@@ -64,7 +64,7 @@ def create_app():
     if local and not os.path.exists(broker_file_path):
         os.makedirs(broker_file_path)
 
-    JsonResponse.debugMode = flask_app.debug
+    JsonResponse.debug_mode = flask_app.debug
 
     if CONFIG_SERVICES["cross_origin_url"] == "*":
         CORS(flask_app, supports_credentials=False, allow_headers="*", expose_headers="X-Session-Id")
@@ -131,7 +131,9 @@ def create_app():
 
     @flask_app.errorhandler(Exception)
     def handle_exception(exception):
-        wrapped = ResponseError(str(exception), StatusCode.INTERNAL_ERROR, type(exception))
+        logger.exception("Unhandled exception in request.")
+        message = str(exception) if JsonResponse.debug_mode else "An unexpected error occurred."
+        wrapped = ResponseError(message, StatusCode.INTERNAL_ERROR, type(exception))
         return JsonResponse.error(wrapped, wrapped.status)
 
     # Add routes for modules here
