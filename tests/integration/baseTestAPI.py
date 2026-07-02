@@ -15,7 +15,7 @@ from dataactcore.scripts.setup.setup_job_tracker_db import setup_job_tracker_db
 from dataactcore.scripts.setup.setup_error_db import setup_error_db
 from dataactcore.scripts.setup.setup_validation_db import setup_validation_db
 from dataactcore.scripts.setup.database_setup import create_database, run_migrations
-from dataactcore.config import CONFIG_BROKER, CONFIG_DB
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB
 import dataactcore.config
 from dataactcore.scripts.setup.setup_emails import setup_emails
 from dataactvalidator.health_check import create_app as create_validator_app
@@ -124,11 +124,12 @@ class BaseTestAPI(unittest.TestCase):
         cls.admin_password = admin_password
         cls.local = CONFIG_BROKER["local"]
 
-    def setUp(self):
+    def setUp(self, debug=False):
         """Set up broker unit tests."""
+        CONFIG_SERVICES["debug"] = debug
         app = create_broker_app()
         app.config["TESTING"] = True
-        app.config["DEBUG"] = False
+        app.config["DEBUG"] = debug
         self.app = TestApp(app)
 
     @classmethod
