@@ -181,7 +181,6 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.schooldistrict": "school_district_local_gove",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.township": "township_local_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.usLocalGovernment": "us_local_government",
-    "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.usStateGovernment": "us_state_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.federalAgency": "federal_agency",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.federallyFundedResearchAndDevelopmentCorp": (
         "federally_funded_research"
@@ -189,6 +188,7 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.usFederalGovernment": "us_federal_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.laborSurplusAreaFirm": "labor_surplus_area_firm",
     "awardDetails.awardeeData.awardeeBusinessTypes.usGovernmentEntity": "us_government_entity",
+    "awardDetails.awardeeData.awardeeBusinessTypes.usStateGovernment": "us_state_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.usTribalGovernment": "us_tribal_government",
     "awardDetails.awardeeData.awardeeHeader.awardeeAlternateName": "vendor_alternate_name",
     "awardDetails.awardeeData.awardeeHeader.awardeeDoingBusinessAsName": "vendor_doing_as_business_n",
@@ -475,9 +475,6 @@ def insert_into_db(sess, contract_df):
     contract_df["business_categories"] = contract_df.apply(
         lambda row: "{" + ",".join(row["business_categories"]) + "}", axis=1
     )
-
-    # Escape all single quotes in dataframe
-    contract_df = contract_df.astype(str).replace("'", "''", regex=True)
 
     # Remove the T and Z from date columns
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
@@ -862,8 +859,11 @@ def derive_remaining_fields(
         "uei", axis=1
     )
 
-    # Fill in 999s for all blank values in awarding/funding codes and add them to cgac_errors
-    contract_df = contract_df.fillna({"awarding_agency_code": "999", "funding_agency_code": "999"})
+    # Fill in 999s for all blank values in awarding/funding codes that have subtiers and add them to cgac_errors
+    contract_df["awarding_agency_code"] = np.where(contract_df["awarding_agency_code"].isnull() & contract_df["awarding_sub_tier_agency_c"].notnull(), "999", contract_df["awarding_agency_code"])
+    contract_df["funding_agency_code"] = np.where(
+        contract_df["funding_agency_code"].isnull() & contract_df["funding_sub_tier_agency_co"].notnull(), "999",
+        contract_df["funding_agency_code"])
     awarding_cgac_errors_df = contract_df[contract_df["awarding_agency_code"] == "999"][
         ["awarding_sub_tier_agency_c", "awarding_sub_tier_agency_n"]
     ].drop_duplicates("awarding_sub_tier_agency_c")
