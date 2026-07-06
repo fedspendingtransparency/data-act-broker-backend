@@ -1269,6 +1269,8 @@ def get_data(
 
         metrics["deletes_received"] += records_received
 
+    sess.commit()
+
 
 def create_lookups(sess):
     """Create the lookups used for contract derivations.
