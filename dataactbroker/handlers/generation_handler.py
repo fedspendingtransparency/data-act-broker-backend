@@ -266,6 +266,6 @@ def check_detached_generation(job_id):
     Returns:
         Response object with keys job_id, status, file_type, url, message, start, and end.
     """
-    response_dict = generation_helper.check_file_generation(job_id)
+    response_dict = generation_helper.check_file_generation(job_id, detached=True)
 
     return JsonResponse.create(StatusCode.OK, response_dict)
