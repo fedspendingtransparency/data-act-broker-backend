@@ -29,6 +29,7 @@ from dataactbroker.helpers.validation_helper import (
     clean_frame_vectorized,
     derive_unique_id_vectorized,
     update_val_progress,
+    sanitize_csv_vectorized,
 )
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -893,6 +894,9 @@ class ValidationManager:
             # Cleaning up numbers so they can be inserted properly
             for field in self.parsed_fields["number"]:
                 clean_numbers_vectorized(chunk_df[field])
+            # Sanitize for csv injection (ignores numbers)
+            for field in self.fields:
+                sanitize_csv_vectorized(chunk_df[field.name_short])
 
             if self.is_fabs:
                 chunk_df["is_valid"] = False

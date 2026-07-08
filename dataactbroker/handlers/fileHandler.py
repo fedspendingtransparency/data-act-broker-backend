@@ -27,7 +27,7 @@ from dataactbroker.handlers.submission_handler import (
 )
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
-from dataactbroker.helpers.generic_helper import zip_dir
+from dataactbroker.helpers.generic_helper import sanitize_for_csv, zip_dir
 from dataactbroker.permissions import active_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -1604,7 +1604,9 @@ def update_submission_comments(submission, comment_request, is_local):
     json = comment_request or {}
     # clean input
     comments_json = {
-        key.upper(): value.strip() for key, value in json.items() if isinstance(value, str) and value.strip()
+        key.upper(): sanitize_for_csv(value.strip())
+        for key, value in json.items()
+        if isinstance(value, str) and value.strip()
     }
 
     sess = GlobalDB.db().session
