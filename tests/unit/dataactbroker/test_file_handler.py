@@ -8,6 +8,7 @@ import shutil
 from collections import namedtuple
 from datetime import date, datetime, timedelta
 from flask import Flask
+from pathlib import Path
 from unittest.mock import Mock
 from zipfile import ZipFile
 
@@ -852,6 +853,29 @@ def test_get_submission_zip(database):
     assert test_files == main_files
     assert test_warning_files == warning_files
 
+    # Test caching with a file that already exists, especially if two files have the same prefix
+    pub_history_id_1 = 9
+    expected_zip_name_1 = (
+        f"Broker_SubID-{pub_dabs_sub.submission_id}_PubID-{pub_history_id_1}_{filename_fyp_sub_format(pub_dabs_sub)}"
+    )
+    pub_history_id_2 = 90
+    expected_zip_name_2 = (
+        f"Broker_SubID-{pub_dabs_sub.submission_id}_PubID-{pub_history_id_2}_{filename_fyp_sub_format(pub_dabs_sub)}"
+    )
+
+    for expected_zip in (expected_zip_name_1, expected_zip_name_2):
+        Path(os.path.join(CONFIG_BROKER["broker_files"], expected_zip)).touch()
+
+    resp = fileHandler.get_submission_zip(pub_dabs_sub, pub_history_id_1, None, True)
+    assert resp.status_code == 200
+    resp = json.loads(resp.get_data().decode("UTF-8"))
+    assert expected_zip_name_1 in resp["url"]
+
+    resp = fileHandler.get_submission_zip(pub_dabs_sub, pub_history_id_2, None, True)
+    assert resp.status_code == 200
+    resp = json.loads(resp.get_data().decode("UTF-8"))
+    assert expected_zip_name_2 in resp["url"]
+
     # cleanup
     shutil.rmtree(expected_zip_name)
     os.remove(generated_zip)
@@ -859,6 +883,8 @@ def test_get_submission_zip(database):
         os.remove(file_name)
     for file_content, file_name in test_warning_files.items():
         os.remove(file_name)
+    for dup_file in (expected_zip_name_1, expected_zip_name_2):
+        os.remove(os.path.join(CONFIG_BROKER["broker_files"], dup_file))
 
 
 good_dates = [
