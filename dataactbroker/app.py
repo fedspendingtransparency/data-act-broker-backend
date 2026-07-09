@@ -106,7 +106,7 @@ def create_app():
         content_type = request.headers.get("Content-Type")
 
         # If the request is a POST we want to log the request body
-        if request.method == "POST" and content_type and "login" not in request.url.lower():
+        if request.method == "POST" and content_type and "login" not in request.base_url.lower():
             request_body = {}
 
             # If request is json, turn it into a dict
