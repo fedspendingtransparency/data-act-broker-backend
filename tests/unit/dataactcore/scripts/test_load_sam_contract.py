@@ -325,7 +325,7 @@ def test_calculate_legal_entity_fields(database):
     assert row3.legal_entity_country_code == "KEN"
     assert row3.legal_entity_country_name == "KENYA"
     assert row3.legal_entity_state_code is None
-    assert row3.legal_entity_state_descrip is None
+    assert row3.legal_entity_state_descrip == "NAIROBI"
     # Not deriving zip-based data because it is a foreign location
     assert row3.legal_entity_zip5 is None
     assert row3.legal_entity_zip_last4 is None
@@ -419,7 +419,7 @@ def test_derive_remaining_fields(database):
     assert row1.high_comp_officer4_amount == "9"
     assert row1.high_comp_officer5_full_na == "Name 5"
     assert row1.high_comp_officer5_amount == "11"
-    assert row1.additional_reporting == "NONE: NONE OF THE ABOVE"
+    assert row1.additional_reporting == "S: Test; N: Options (stuff. here)"
     # vendor_legal_org_name should be the same as uei_legal_business_name because they've been combined into one
     assert row1.vendor_legal_org_name == row1.uei_legal_business_name
     assert row1.unique_award_key == "CONT_AWD_ABCPIID1_1234_-NONE-_-NONE-"
@@ -439,6 +439,7 @@ def test_derive_remaining_fields(database):
     assert row2.high_comp_officer4_amount is None
     assert row2.high_comp_officer5_full_na is None
     assert row2.high_comp_officer5_amount is None
+    assert row2.additional_reporting == "A: JUST"
     assert row2.unique_award_key == "CONT_AWD_ABCPIID2_1234_-NONE-_-NONE-"
 
     assert row3.awarding_agency_code == "999"
