@@ -171,9 +171,7 @@ class AccountHandler:
             redirect_uri = safe_dictionary.get_value("redirect_uri")
 
             if redirect_uri != CONFIG_BROKER["caia"]["redirect_uri"]:
-                raise ValueError(
-                    "The redirect_uri provided doesn't match the redirect_uri expected."
-                )
+                raise ValueError("The redirect_uri provided doesn't match the redirect_uri expected.")
 
             # Get the access tokens and user data from the code
             caia_tokens = get_caia_tokens(code, redirect_uri)
