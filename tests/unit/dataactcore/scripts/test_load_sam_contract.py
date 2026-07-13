@@ -53,7 +53,7 @@ def prep_data(sess):
     states3 = States(state_code="GU", state_name="Guam")
 
     # Add county data to the database
-    county1 = CountyCode(county_number="000", county_name="Test Name", state_code="AL")
+    county1 = CountyCode(county_number="000", county_name="Test Name With Apo'strophe", state_code="AL")
     county2 = CountyCode(county_number="000", county_name=" Test Name VA 000", state_code="VA")
     county3 = CountyCode(county_number="049", county_name="A Derived Name (CA)", state_code="KS")
 
@@ -153,7 +153,7 @@ def test_create_lookups(database):
         {
             "county_number": ["000", "000", "049"],
             "state_code": ["AL", "VA", "KS"],
-            "county_name": ["TEST NAME", "TEST NAME VA 000", "A DERIVED NAME"],
+            "county_name": ["TEST NAME WITH APO'STROPHE", "TEST NAME VA 000", "A DERIVED NAME"],
         }
     )
     pd.testing.assert_frame_equal(county_df, expected_county_df)
@@ -223,7 +223,7 @@ def test_calculate_ppop_fields(database):
     assert row1.place_of_performance_zip5 == "12345"
     assert row1.place_of_perform_zip_last4 == "6789"
     assert row1.place_of_perform_county_co == "000"
-    assert row1.place_of_perform_county_na == "TEST NAME"
+    assert row1.place_of_perform_county_na == "TEST NAME WITH APO'STROPHE"
 
     assert row2.place_of_perform_country_c == "KEN"
     assert row2.place_of_perf_country_desc == "KENYA"
@@ -325,7 +325,7 @@ def test_calculate_legal_entity_fields(database):
     assert row3.legal_entity_country_code == "KEN"
     assert row3.legal_entity_country_name == "KENYA"
     assert row3.legal_entity_state_code is None
-    assert row3.legal_entity_state_descrip is None
+    assert row3.legal_entity_state_descrip == "NAIROBI"
     # Not deriving zip-based data because it is a foreign location
     assert row3.legal_entity_zip5 is None
     assert row3.legal_entity_zip_last4 is None
@@ -419,7 +419,7 @@ def test_derive_remaining_fields(database):
     assert row1.high_comp_officer4_amount == "9"
     assert row1.high_comp_officer5_full_na == "Name 5"
     assert row1.high_comp_officer5_amount == "11"
-    assert row1.additional_reporting == "NONE: NONE OF THE ABOVE"
+    assert row1.additional_reporting == "S: Test; N: Options (stuff. here)"
     # vendor_legal_org_name should be the same as uei_legal_business_name because they've been combined into one
     assert row1.vendor_legal_org_name == row1.uei_legal_business_name
     assert row1.unique_award_key == "CONT_AWD_ABCPIID1_1234_-NONE-_-NONE-"
@@ -439,6 +439,7 @@ def test_derive_remaining_fields(database):
     assert row2.high_comp_officer4_amount is None
     assert row2.high_comp_officer5_full_na is None
     assert row2.high_comp_officer5_amount is None
+    assert row2.additional_reporting == "A: JUST"
     assert row2.unique_award_key == "CONT_AWD_ABCPIID2_1234_-NONE-_-NONE-"
 
     assert row3.awarding_agency_code == "999"
@@ -460,6 +461,9 @@ def test_derive_remaining_fields(database):
     assert row3.high_comp_officer5_amount is None
     assert row3.unique_award_key == "CONT_AWD_ABCPIID3_1234_-NONE-_-NONE-"
 
+    # no subtier provided, shouldn't populate with 999 if there's nothing to match against
+    assert row4.awarding_agency_code is None
+    assert row4.funding_agency_code is None
     # No UEI provided
     assert row4.high_comp_officer1_full_na is None
     assert row4.high_comp_officer1_amount is None

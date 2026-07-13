@@ -1,3 +1,4 @@
+import json
 from dataactcore.interfaces.db import GlobalDB
 
 from dataactvalidator.health_check import create_app
@@ -109,6 +110,18 @@ class SettingsTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2")
 
+        # Wrong location
+        rule_settings_params = {"agency_code": "097", "file": "B"}
+        response = self.app.request(
+            "/v1/rule_settings/",
+            method="GET",
+            body=json.dumps(rule_settings_params).encode("utf-8"),
+            headers={"x-session-id": self.session_id},
+            expect_errors=True,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Missing required parameter: agency_code")
+
     def test_get_rule_settings_permissions_error(self):
         """Test permission error for generate submission"""
         self.login_user()
@@ -199,6 +212,15 @@ class SettingsTests(BaseTestAPI):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2")
+
+        # Wrong location
+        response = self.app.post(
+            "/v1/save_rule_settings/?agency_code=097&file=B",
+            headers={"x-session-id": self.session_id},
+            expect_errors=True,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Missing required parameter: agency_code")
 
     def test_save_rule_settings_permission_error(self):
         """Test permission error for generate submission"""

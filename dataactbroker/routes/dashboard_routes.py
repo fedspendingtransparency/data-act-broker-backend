@@ -54,7 +54,7 @@ def add_dashboard_routes(app):
     @use_kwargs(
         {
             "page": webargs_fields.Int(load_default=1),
-            "limit": webargs_fields.Int(load_default=5),
+            "limit": webargs_fields.Int(validate=webargs_validate.Range(min=1, max=1000), load_default=5),
             "sort": webargs_fields.String(load_default="period"),
             "order": webargs_fields.String(load_default="desc"),
             "filters": webargs_fields.Dict(keys=webargs_fields.String(), required=True),
@@ -166,7 +166,7 @@ def add_dashboard_routes(app):
                 load_default="warning",
             ),
             "page": webargs_fields.Int(load_default=1),
-            "limit": webargs_fields.Int(load_default=5),
+            "limit": webargs_fields.Int(validate=webargs_validate.Range(min=1, max=1000), load_default=5),
             "sort": webargs_fields.String(load_default="significance"),
             "order": webargs_fields.String(load_default="asc"),
         },
