@@ -28,8 +28,8 @@ def setup_emails():
         # Submission Review
         template = (
             "[REV_USER_NAME] has shared a Data Broker submission with you from [REV_AGENCY]. Click "
-            "<a href='[REV_URL]'>here</a> to review their submission. For questions or comments, please visit "
-            "the Service Desk at https://servicedesk.usaspending.gov/ or e-mail DATAPMO@fiscal.treasury.gov."
+            "<a href='[REV_URL]'>here</a> to review their submission. For questions, please contact the USAspending "
+            "Service Desk at usaspending.help@fiscal.treasury.gov"
         )
         load_email_template(sess, "Data Broker - Submission Ready for Review", template, "review_submission")
 
