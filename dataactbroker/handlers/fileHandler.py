@@ -1708,14 +1708,19 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
         )
 
     # Determine if we need to generate the zip or reuse an older one
+
+    # Adding an underscore after the zip_filename when looking up via the prefix to prevent pulling more than one file.
+    # (ex. Broker_SubID-1_PubID-3 and Broker_SubID-1_PubID-31 both start the same)
+    prefix_check = f"{zip_filename}_"
+
     if is_local:
-        zips = [path for path in os.listdir(CONFIG_BROKER["broker_files"]) if path.startswith(zip_filename)]
+        zips = [path for path in os.listdir(CONFIG_BROKER["broker_files"]) if path.startswith(prefix_check)]
         sub_zip = zips[0] if len(zips) == 1 else None
     else:
         s3 = boto3.resource("s3", region_name=CONFIG_BROKER["aws_region"])
         zip_bucket = s3.Bucket(CONFIG_BROKER["sub_zips_bucket"])
         zips = [
-            obj.key for obj in zip_bucket.objects.filter(Prefix=zip_filename).all() if obj.key.startswith(zip_filename)
+            obj.key for obj in zip_bucket.objects.filter(Prefix=prefix_check).all() if obj.key.startswith(prefix_check)
         ]
         sub_zip = zips[0] if len(zips) == 1 else None
 
@@ -1799,7 +1804,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
             sub_file_paths.append(published_file.warning_filename)
     if not sub_file_paths:
         raise ValueError("No submission files found.")
-    zip_filename = "{}_{}".format(zip_filename, fyp)
+    zip_filename = f"{zip_filename}_{fyp}"
 
     # Note: not using tempfile.TemporaryDirectory as we need to name the directory
     tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
