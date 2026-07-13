@@ -685,6 +685,11 @@ def test_check_submission_d_file_generation(database):
     assert response_dict["status"] == "failed"
     assert response_dict["message"] == "Generated file had file-level errors"
 
+    # Detached D File Generation but providing a job id tied to a submission
+    response_dict = check_file_generation(job.job_id, detached=True)
+    assert response_dict["status"] == "invalid"
+    assert response_dict["message"] == "Job ID not associated with a detached file generation."
+
 
 @pytest.mark.usefixtures("job_constants")
 def test_copy_file_generation_to_job_detached(monkeypatch, database):
