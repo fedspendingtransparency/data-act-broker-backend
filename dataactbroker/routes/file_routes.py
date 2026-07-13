@@ -104,7 +104,7 @@ def add_file_routes(app, is_local, server_path):
     @parser.use_kwargs(
         {
             "page": webargs_fields.Int(load_default=1),
-            "limit": webargs_fields.Int(load_default=5),
+            "limit": webargs_fields.Int(validate=webargs_validate.Range(min=1, max=1000), load_default=5),
             "published": webargs_fields.String(
                 required=True, validate=webargs_validate.OneOf(("mixed", "true", "false"))
             ),
