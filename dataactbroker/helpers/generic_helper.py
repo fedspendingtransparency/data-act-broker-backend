@@ -198,7 +198,7 @@ def sanitize_for_csv(value):
         return value
 
     # Characters that spreadsheet software parses as the start of a formula
-    formula_chars = r"^\s*[=+\-@|](?!\d+)"
+    formula_chars = r"^\s*[=+\-@|](?![\d.,]+$)"
 
     # Prepend an apostrophe if a formula-triggering character is detected
     if re.match(formula_chars, value):

@@ -189,7 +189,7 @@ def sanitize_csv_vectorized(series: pd.Series):
     Returns:
         None (in-place update of given Series)
     """
-    formula_pattern = r"^\s*[=+\-@|](?!\d+)"
+    formula_pattern = r"^\s*[=+\-@|](?![\d.,]+$)"
 
     # Get subset of values in series that need to be sanitized
     needs_escape = series.str.contains(formula_pattern, regex=True, na=False)
