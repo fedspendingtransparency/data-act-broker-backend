@@ -137,7 +137,7 @@ def create_app():
         return JsonResponse.error(wrapped, wrapped.status)
 
     # Add routes for modules here
-    add_login_routes(flask_app, bcrypt)
+    add_login_routes(flask_app, local, bcrypt)
 
     add_file_routes(flask_app, local, broker_file_path)
     add_generation_routes(flask_app, local, broker_file_path)
