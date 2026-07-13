@@ -71,8 +71,8 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.acquisitionData.programAcronym": "program_acronym",
     "coreData.acquisitionData.typeOfContractPricing.code": "type_of_contract_pricing",
     "coreData.acquisitionData.typeOfContractPricing.name": "type_of_contract_pric_desc",
-    "coreData.acquisitionData.typeOfIDC.code": "type_of_idc",
-    "coreData.acquisitionData.typeOfIDC.name": "type_of_idc_description",
+    "coreData.acquisitionData.typeOfIdc.code": "type_of_idc",
+    "coreData.acquisitionData.typeOfIdc.name": "type_of_idc_description",
     "coreData.awardOrIDV": "pulled_from",
     "coreData.competitionInformation.a76Action.code": "a_76_fair_act_action",
     "coreData.competitionInformation.a76Action.name": "a_76_fair_act_action_desc",
@@ -181,7 +181,6 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.schooldistrict": "school_district_local_gove",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.township": "township_local_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.usLocalGovernment": "us_local_government",
-    "awardDetails.awardeeData.awardeeBusinessTypes.isUsLocalGovernment.usStateGovernment": "us_state_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.federalAgency": "federal_agency",
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.federallyFundedResearchAndDevelopmentCorp": (
         "federally_funded_research"
@@ -189,6 +188,7 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.awardeeBusinessTypes.isUsFederalGovernment.usFederalGovernment": "us_federal_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.laborSurplusAreaFirm": "labor_surplus_area_firm",
     "awardDetails.awardeeData.awardeeBusinessTypes.usGovernmentEntity": "us_government_entity",
+    "awardDetails.awardeeData.awardeeBusinessTypes.usStateGovernment": "us_state_government",
     "awardDetails.awardeeData.awardeeBusinessTypes.usTribalGovernment": "us_tribal_government",
     "awardDetails.awardeeData.awardeeHeader.awardeeAlternateName": "vendor_alternate_name",
     "awardDetails.awardeeData.awardeeHeader.awardeeDoingBusinessAsName": "vendor_doing_as_business_n",
@@ -476,9 +476,6 @@ def insert_into_db(sess, contract_df):
         lambda row: "{" + ",".join(row["business_categories"]) + "}", axis=1
     )
 
-    # Escape all single quotes in dataframe
-    contract_df = contract_df.astype(str).replace("'", "''", regex=True)
-
     # Remove the T and Z from date columns
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
@@ -690,6 +687,16 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
         le_territory_mask, "USA", contract_df["legal_entity_country_code"]
     )
 
+    # Move foreign state names from the "code" to the "description" slots
+    contract_df["legal_entity_state_descrip"] = np.where(
+        (contract_df["legal_entity_country_code"] != "USA") & (contract_df["legal_entity_state_code"].notnull()),
+        contract_df["legal_entity_state_code"],
+        contract_df["legal_entity_state_descrip"],
+    )
+    contract_df["legal_entity_state_code"] = np.where(
+        contract_df["legal_entity_country_code"] != "USA", np.nan, contract_df["legal_entity_state_code"]
+    )
+
     # Derive legal entity country name
     contract_df = contract_df.merge(
         country_df, how="left", left_on="legal_entity_country_code", right_on="country_code"
@@ -862,8 +869,17 @@ def derive_remaining_fields(
         "uei", axis=1
     )
 
-    # Fill in 999s for all blank values in awarding/funding codes and add them to cgac_errors
-    contract_df = contract_df.fillna({"awarding_agency_code": "999", "funding_agency_code": "999"})
+    # Fill in 999s for all blank values in awarding/funding codes that have subtiers and add them to cgac_errors
+    contract_df["awarding_agency_code"] = np.where(
+        contract_df["awarding_agency_code"].isnull() & contract_df["awarding_sub_tier_agency_c"].notnull(),
+        "999",
+        contract_df["awarding_agency_code"],
+    )
+    contract_df["funding_agency_code"] = np.where(
+        contract_df["funding_agency_code"].isnull() & contract_df["funding_sub_tier_agency_co"].notnull(),
+        "999",
+        contract_df["funding_agency_code"],
+    )
     awarding_cgac_errors_df = contract_df[contract_df["awarding_agency_code"] == "999"][
         ["awarding_sub_tier_agency_c", "awarding_sub_tier_agency_n"]
     ].drop_duplicates("awarding_sub_tier_agency_c")
@@ -899,7 +915,14 @@ def derive_remaining_fields(
     # Combine additional_reporting into one column
     contract_df["additional_reporting"] = contract_df.apply(
         lambda row: (
-            row["additional_reporting_code"] + ": " + row["additional_reporting_name"]
+            "; ".join(
+                [
+                    row["additional_reporting_code"].split(",")[i].strip()
+                    + ": "
+                    + row["additional_reporting_name"].split(",")[i].strip()
+                    for i in range(len(row["additional_reporting_code"].split(",")))
+                ]
+            )
             if pd.notnull(row["additional_reporting_code"])
             else None
         ),
@@ -1268,6 +1291,8 @@ def get_data(
         os.remove(usas_delete_file)
 
         metrics["deletes_received"] += records_received
+
+    sess.commit()
 
 
 def create_lookups(sess):

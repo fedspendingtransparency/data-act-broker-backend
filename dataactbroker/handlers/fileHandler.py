@@ -1,12 +1,13 @@
 import boto3
 import calendar
+import csv
 import logging
 import os
+import re
 import requests
-import threading
-import csv
-import tempfile
 import shutil
+import tempfile
+import threading
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -2085,7 +2086,7 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             # Make a list of all the names we're filtering on
             file_array = []
             for file_name in file_list:
-                file_regex = r".+\/.*" + str(file_name).upper() + r"[^\/]*$"
+                file_regex = r".+\/.*" + re.escape(str(file_name).upper()) + r"[^\/]*$"
                 file_array.append(func.upper(Job.filename).op("~")(file_regex))
 
             # Create a subquery to get all submission IDs related to upload jobs (every type except cross-file has an
