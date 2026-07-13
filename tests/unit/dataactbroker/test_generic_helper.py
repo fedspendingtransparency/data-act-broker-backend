@@ -9,6 +9,7 @@ from sqlalchemy import func, or_
 from dataactbroker.helpers.generic_helper import (
     year_period_to_dates,
     generate_raw_quoted_query,
+    sanitize_for_csv,
     fy,
     batch as batcher,
     zip_dir,
@@ -118,6 +119,19 @@ def test_generate_raw_quoted_query(database):
     q = sess.query(func.max(FileGeneration.file_generation_id).label("Test Label"))
     expected = 'SELECT max(file_generation.file_generation_id) AS "Test Label"  ' "FROM file_generation"
     assert generate_raw_quoted_query(q) == expected
+
+
+def test_sanitize_for_csv():
+    assert sanitize_for_csv("+not fine") == "'+not fine"
+    assert sanitize_for_csv(" -not fine") == "' -not fine"
+    assert sanitize_for_csv("@not fine") == "'@not fine"
+    assert sanitize_for_csv(" =not fine") == "' =not fine"
+    assert sanitize_for_csv(" +123") == " +123"
+    assert sanitize_for_csv("-1.23") == "-1.23"
+    assert sanitize_for_csv(" @12,500") == " @12,500"
+    assert sanitize_for_csv(" fine") == " fine"
+    assert sanitize_for_csv(123) == 123
+    assert sanitize_for_csv(None) is None
 
 
 @pytest.mark.parametrize("raw_date, expected_fy", legal_dates.items())

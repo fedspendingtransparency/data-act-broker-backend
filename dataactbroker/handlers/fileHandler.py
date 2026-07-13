@@ -1,12 +1,13 @@
 import boto3
 import calendar
+import csv
 import logging
 import os
+import re
 import requests
-import threading
-import csv
-import tempfile
 import shutil
+import tempfile
+import threading
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -27,7 +28,7 @@ from dataactbroker.handlers.submission_handler import (
 )
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
-from dataactbroker.helpers.generic_helper import zip_dir
+from dataactbroker.helpers.generic_helper import sanitize_for_csv, zip_dir
 from dataactbroker.permissions import active_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -1604,7 +1605,9 @@ def update_submission_comments(submission, comment_request, is_local):
     json = comment_request or {}
     # clean input
     comments_json = {
-        key.upper(): value.strip() for key, value in json.items() if isinstance(value, str) and value.strip()
+        key.upper(): sanitize_for_csv(value.strip())
+        for key, value in json.items()
+        if isinstance(value, str) and value.strip()
     }
 
     sess = GlobalDB.db().session
@@ -2088,7 +2091,7 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             # Make a list of all the names we're filtering on
             file_array = []
             for file_name in file_list:
-                file_regex = r".+\/.*" + str(file_name).upper() + r"[^\/]*$"
+                file_regex = r".+\/.*" + re.escape(str(file_name).upper()) + r"[^\/]*$"
                 file_array.append(func.upper(Job.filename).op("~")(file_regex))
 
             # Create a subquery to get all submission IDs related to upload jobs (every type except cross-file has an
