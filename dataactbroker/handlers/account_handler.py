@@ -1,3 +1,4 @@
+import hmac
 import json
 import logging
 from operator import attrgetter
@@ -119,7 +120,7 @@ class AccountHandler:
             roles = safe_dictionary.get_value("roles")
             token = safe_dictionary.get_value("token")
 
-            if token != CONFIG_BROKER["api_proxy_token"]:
+            if not hmac.compare_digest(token, CONFIG_BROKER["api_proxy_token"]):
                 raise ValueError("Invalid token")
 
             user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()

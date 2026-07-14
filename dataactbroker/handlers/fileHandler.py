@@ -1,12 +1,13 @@
 import boto3
 import calendar
+import csv
 import logging
 import os
+import re
 import requests
-import threading
-import csv
-import tempfile
 import shutil
+import tempfile
+import threading
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -27,7 +28,7 @@ from dataactbroker.handlers.submission_handler import (
 )
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
-from dataactbroker.helpers.generic_helper import zip_dir
+from dataactbroker.helpers.generic_helper import sanitize_for_csv, zip_dir
 from dataactbroker.permissions import active_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -1604,7 +1605,9 @@ def update_submission_comments(submission, comment_request, is_local):
     json = comment_request or {}
     # clean input
     comments_json = {
-        key.upper(): value.strip() for key, value in json.items() if isinstance(value, str) and value.strip()
+        key.upper(): sanitize_for_csv(value.strip())
+        for key, value in json.items()
+        if isinstance(value, str) and value.strip()
     }
 
     sess = GlobalDB.db().session
@@ -1705,14 +1708,19 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
         )
 
     # Determine if we need to generate the zip or reuse an older one
+
+    # Adding an underscore after the zip_filename when looking up via the prefix to prevent pulling more than one file.
+    # (ex. Broker_SubID-1_PubID-3 and Broker_SubID-1_PubID-31 both start the same)
+    prefix_check = f"{zip_filename}_"
+
     if is_local:
-        zips = [path for path in os.listdir(CONFIG_BROKER["broker_files"]) if path.startswith(zip_filename)]
+        zips = [path for path in os.listdir(CONFIG_BROKER["broker_files"]) if path.startswith(prefix_check)]
         sub_zip = zips[0] if len(zips) == 1 else None
     else:
         s3 = boto3.resource("s3", region_name=CONFIG_BROKER["aws_region"])
         zip_bucket = s3.Bucket(CONFIG_BROKER["sub_zips_bucket"])
         zips = [
-            obj.key for obj in zip_bucket.objects.filter(Prefix=zip_filename).all() if obj.key.startswith(zip_filename)
+            obj.key for obj in zip_bucket.objects.filter(Prefix=prefix_check).all() if obj.key.startswith(prefix_check)
         ]
         sub_zip = zips[0] if len(zips) == 1 else None
 
@@ -1796,7 +1804,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
             sub_file_paths.append(published_file.warning_filename)
     if not sub_file_paths:
         raise ValueError("No submission files found.")
-    zip_filename = "{}_{}".format(zip_filename, fyp)
+    zip_filename = f"{zip_filename}_{fyp}"
 
     # Note: not using tempfile.TemporaryDirectory as we need to name the directory
     tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
@@ -2083,7 +2091,7 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             # Make a list of all the names we're filtering on
             file_array = []
             for file_name in file_list:
-                file_regex = r".+\/.*" + str(file_name).upper() + r"[^\/]*$"
+                file_regex = r".+\/.*" + re.escape(str(file_name).upper()) + r"[^\/]*$"
                 file_array.append(func.upper(Job.filename).op("~")(file_regex))
 
             # Create a subquery to get all submission IDs related to upload jobs (every type except cross-file has an
