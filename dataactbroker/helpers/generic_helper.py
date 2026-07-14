@@ -185,6 +185,28 @@ def generate_raw_quoted_query(queryset):
     )
 
 
+def sanitize_for_csv(value):
+    """Checks for and neutralizes potential CSV formula injection, exception of numbers
+
+    Args:
+        value: string to sanitize
+
+    Returns:
+        sanitized string (single quote in front if applicable)
+    """
+    if not value or not isinstance(value, str):
+        return value
+
+    # Characters that spreadsheet software parses as the start of a formula
+    formula_chars = r"^\s*[=+\-@|](?![\d.,]+$)"
+
+    # Prepend an apostrophe if a formula-triggering character is detected
+    if re.match(formula_chars, value):
+        return f"'{value}"
+
+    return value
+
+
 def fy(raw_date):
     """Get fiscal year from date, datetime, or date string
 

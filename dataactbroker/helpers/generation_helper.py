@@ -194,11 +194,12 @@ def start_dabs_generation(job, start_date, end_date, agency_code):
     logger.debug(log_data)
 
 
-def check_file_generation(job_id):
+def check_file_generation(job_id, detached=False):
     """Check the status of a file generation
 
     Args:
         job_id: upload Job ID
+        detached: whether the job_id provided should be detached or not
     Return:
         Dict with keys: job_id, status, file_type, message, url, start, end
     """
@@ -222,6 +223,12 @@ def check_file_generation(job_id):
         response_dict["end"] = ""
         response_dict["status"] = "invalid"
         response_dict["message"] = "No generation job found with the specified ID"
+        return response_dict
+    if detached and upload_job.submission_id is not None:
+        response_dict["start"] = ""
+        response_dict["end"] = ""
+        response_dict["status"] = "invalid"
+        response_dict["message"] = "Job ID not associated with a detached file generation."
         return response_dict
 
     response_dict["file_type"] = lookups.FILE_TYPE_DICT_LETTER[upload_job.file_type_id]

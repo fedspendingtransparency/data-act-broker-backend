@@ -224,12 +224,13 @@ def requires_agency_perms(perm):
     return inner
 
 
-def requires_agency_code_perms(perm):
+def requires_agency_code_perms(perm, location=None):
     """Decorator that checks the current user's permissions and validates them against the agency code. It expects an
      agency_code parameter on top of the function arguments.
 
     Args:
         perm: the type of permission we are checking for
+        location: the location to check for the agency code ('query' or 'json')
 
     Returns:
         The args/kwargs that were initially provided
@@ -243,13 +244,10 @@ def requires_agency_code_perms(perm):
         @requires_login
         @wraps(fn)
         def wrapped(*args, **kwargs):
-            for location in ["query", "json"]:
-                req_args = webargs_parser.parse(
-                    {"agency_code": webargs_fields.String(load_default=None)}, request, location=location
-                )
-                agency_code = req_args.get("agency_code", None)
-                if agency_code is not None:
-                    break
+            req_args = webargs_parser.parse(
+                {"agency_code": webargs_fields.String(load_default=None)}, request, location=location
+            )
+            agency_code = req_args.get("agency_code", None)
             # Ensure there is an agency_code
             if agency_code is None:
                 raise ResponseError("Missing required parameter: agency_code", StatusCode.CLIENT_ERROR)

@@ -106,7 +106,7 @@ def create_app():
         content_type = request.headers.get("Content-Type")
 
         # If the request is a POST we want to log the request body
-        if request.method == "POST" and content_type and "login" not in request.url.lower():
+        if request.method == "POST" and content_type and "login" not in request.base_url.lower():
             request_body = {}
 
             # If request is json, turn it into a dict
@@ -137,7 +137,7 @@ def create_app():
         return JsonResponse.error(wrapped, wrapped.status)
 
     # Add routes for modules here
-    add_login_routes(flask_app, bcrypt)
+    add_login_routes(flask_app, local, bcrypt)
 
     add_file_routes(flask_app, local, broker_file_path)
     add_generation_routes(flask_app, local, broker_file_path)

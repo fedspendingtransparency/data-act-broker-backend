@@ -180,6 +180,24 @@ def clean_numbers_vectorized(series: pd.Series, convert_to_str=False):
     series.update(replacements[cleanable])
 
 
+def sanitize_csv_vectorized(series: pd.Series):
+    """In-place sanitization of strings that start with +/-/=/@, exception of numbers
+
+    Args:
+        series: the series that will be cleaned (updated in-place)
+
+    Returns:
+        None (in-place update of given Series)
+    """
+    formula_pattern = r"^\s*[=+\-@|](?![\d.,]+$)"
+
+    # Get subset of values in series that need to be sanitized
+    needs_escape = series.str.contains(formula_pattern, regex=True, na=False)
+
+    # Update in place
+    series.loc[needs_escape] = "'" + series.loc[needs_escape].astype(str)
+
+
 def concat_flex(row):
     """Concatenates the headers and contents of all the flex cells in one row of a submission and joins the list
     on commas
