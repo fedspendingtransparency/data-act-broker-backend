@@ -154,6 +154,7 @@ broker:
         url_root: https://caia.treasury.gov
         client_id: sample
         client_secret: sample
+        redirect_uri: sample
 
 services:
     debug: true

@@ -4,6 +4,7 @@ from sqlalchemy import func
 
 from tests.unit.dataactbroker.test_account_handler import make_caia_user_dict, make_caia_token_dict
 import dataactbroker.handlers.account_handler as account_handler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.interfaces.db import GlobalDB
 
@@ -139,7 +140,7 @@ def test_proxy_login_invalid_token(create_session_mock, monkeypatch):
 
 def caia_login_func(create_session_mock, revoke_caia_mock, caia_token_mock, caia_dict_mock, monkeypatch, caia_response):
     def json_return():
-        return {"code": "12345", "redirect_uri": "https://some.url.gov"}
+        return {"code": "12345", "redirect_uri": CONFIG_BROKER["caia"]["redirect_uri"]}
 
     request = type(
         "Request",

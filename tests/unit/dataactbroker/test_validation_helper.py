@@ -192,6 +192,30 @@ def test_clean_numbers_vectorized_mixed_types():
     assert_frame_equal(df_under_test, expected_df)
 
 
+def test_csv_sanitize_vectorized_all_strings():
+    df_under_test = pd.DataFrame(
+        [
+            ["+not fine", "-not_Fine", "=not_fine", "@NOT FINE"],
+            [" fine", " +123", " @123", "-123"],
+            [" +not fine too", "=123", None, np.NaN],
+        ],
+        columns=list("ABCD"),
+    )
+
+    for col in df_under_test.columns:
+        validation_helper.sanitize_csv_vectorized(df_under_test[col])
+
+    expected_df = pd.DataFrame(
+        [
+            ["'+not fine", "'-not_Fine", "'=not_fine", "'@NOT FINE"],
+            [" fine", " +123", " @123", "-123"],
+            ["' +not fine too", "=123", None, np.NaN],
+        ],
+        columns=list("ABCD"),
+    )
+    assert_frame_equal(df_under_test, expected_df)
+
+
 def test_concat_flex():
     # Tests a blank value, column sorting, ignoring row number, and the basic functionality
     flex_row = {"row_number": "4", "col 3": None, "col 2": "B", "col 1": "A"}

@@ -56,5 +56,7 @@ This route checks the username and password against a credentials file. It is us
 ## Errors
 Possible HTTP Status Codes:
 
-- 400: Missing parameters
+- 400: 
+  - Missing parameters
+  - Attempted to call it non-locally
 - 401: Invalid username or password

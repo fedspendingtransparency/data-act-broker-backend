@@ -117,8 +117,7 @@ def write_query_to_file(
     )
 
     # run the psql command and cleanup
-    database_string = str(sess.bind.url)
-    execute_psql(temp_sql_file_path, local_filename, database_string)
+    execute_psql(sess, temp_sql_file_path, local_filename)
     os.remove(temp_sql_file_path)
 
 
@@ -178,13 +177,13 @@ def generate_temp_query_file(query, header=True, delimiter=","):
     return temp_sql_file, temp_sql_file_path
 
 
-def execute_psql(temp_sql_file_path, source_path, database_string):
+def execute_psql(sess, temp_sql_file_path, source_path):
     """Executes the sql located in the temporary sql
 
     Args:
+        sess: database connection
         temp_sql_file_path: the file path to temporarily store the copy SQL
         source_path: output path of the csv
-        database_string: connection string to the database
     """
     try:
         log_time = time.time()
@@ -192,19 +191,28 @@ def execute_psql(temp_sql_file_path, source_path, database_string):
         source_file = open(source_path, "a")
         # pass the command to the psql process
         cat_command = subprocess.Popen(["cat", temp_sql_file_path], stdout=subprocess.PIPE)
+
+        # safely setup creds for psql command
+        pg_env = os.environ.copy()
+        pg_env["PGHOST"] = sess.bind.url.host
+        pg_env["PGPORT"] = str(sess.bind.url.port)
+        pg_env["PGUSER"] = sess.bind.url.username
+        pg_env["PGPASSWORD"] = sess.bind.url.password
+        pg_env["PGDATABASE"] = sess.bind.url.database
+
         # psql appends to source_path
-        subprocess.call(
-            ["psql", database_string, "-v", "ON_ERROR_STOP=1"],
+        subprocess.run(
+            ["psql", "-v", "ON_ERROR_STOP=1"],
+            env=pg_env,
             stdin=cat_command.stdout,
             stderr=subprocess.STDOUT,
             stdout=source_file,
+            check=True,
         )
         source_file.close()
 
         logger.debug("Wrote {}, took {} seconds".format(os.path.basename(source_path), time.time() - log_time))
     except subprocess.CalledProcessError as e:
-        # Not logging the command as it can contain the database connection string
-        e.cmd = "[redacted]"
         logger.error(e)
         # temp file contains '\copy ([SQL]) To STDOUT with CSV HEADER' so the SQL is 7 chars in up to the last 27 chars
         sql = subprocess.check_output(["cat", temp_sql_file_path]).decode()[7:-27]
