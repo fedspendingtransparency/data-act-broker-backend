@@ -11,7 +11,7 @@ def add_login_routes(app, is_local, bcrypt):
     @app.route("/v1/login/", methods=["POST"])
     def login():
         if not is_local:
-            return JsonResponse.error("Login route can only be used locally.", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(Exception("Login route can only be used locally."), StatusCode.CLIENT_ERROR)
         account_manager = AccountHandler(request, bcrypt=bcrypt)
         return account_manager.login(session)
 
