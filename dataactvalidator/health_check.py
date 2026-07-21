@@ -18,7 +18,7 @@ def create_app():
         """Confirm server running."""
         return "Validator is running"
 
-    JsonResponse.debugMode = flask_app.debug
+    JsonResponse.debug_mode = flask_app.debug
 
     return flask_app
 

@@ -5,11 +5,13 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.account_handler import AccountHandler, logout
 
 
-def add_login_routes(app, bcrypt):
+def add_login_routes(app, is_local, bcrypt):
     """Create routes related to login"""
 
     @app.route("/v1/login/", methods=["POST"])
     def login():
+        if not is_local:
+            return JsonResponse.error(Exception("Login route can only be used locally."), StatusCode.CLIENT_ERROR)
         account_manager = AccountHandler(request, bcrypt=bcrypt)
         return account_manager.login(session)
 

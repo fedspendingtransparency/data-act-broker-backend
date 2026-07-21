@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import Mock
 
 from dataactbroker.handlers import account_handler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_SHORT_DICT
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -41,8 +42,14 @@ def test_caia_login_success_normal_login(monkeypatch):
     ah = account_handler.AccountHandler(Mock())
 
     mock_dict = Mock()
-    mock_dict.return_value.exists.return_value = False
-    mock_dict.return_value.safeDictionary.side_effect = {"code": "", "redirect_url": ""}
+
+    # code is blank here but we'll fake the CAIA success
+    def mock_get_value(*args):
+        if args[0] == "redirect_uri":
+            return CONFIG_BROKER["caia"]["redirect_uri"]
+        return ""
+
+    mock_dict.return_value.get_value.side_effect = mock_get_value
     monkeypatch.setattr(account_handler, "RequestDictionary", mock_dict)
 
     caia_tokens_dict = make_caia_token_dict("123456789")
@@ -51,8 +58,8 @@ def test_caia_login_success_normal_login(monkeypatch):
     monkeypatch.setattr(account_handler, "revoke_caia_access", Mock())
 
     # Testing with just the admin role - note that with a singular role, CAIA drops the brackets
-    caia_user_dict = make_caia_user_dict("admin")
-    monkeypatch.setattr(account_handler, "get_caia_user_dict", Mock(return_value=caia_user_dict))
+    caia_admin_dict = make_caia_user_dict("admin")
+    monkeypatch.setattr(account_handler, "get_caia_user_dict", Mock(return_value=caia_admin_dict))
 
     # If it gets to this point, that means the user was in all the right groups aka successful login
     monkeypatch.setattr(
@@ -64,36 +71,40 @@ def test_caia_login_success_normal_login(monkeypatch):
 
     assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))["message"]
 
-    # Testing with several roles
-    caia_user_dict = make_caia_user_dict(
-        "[admin, CGAC-123-R," " AppApprover-Data_Act_Broker, AppOwner-Data_Act_Broker-CGAC-123]"
+    # Testing again with several roles
+    caia_roles_dict = make_caia_user_dict(
+        "[admin, CGAC-123-R, AppApprover-Data_Act_Broker, AppOwner-Data_Act_Broker-CGAC-123]"
     )
-    monkeypatch.setattr(account_handler, "get_caia_user_dict", Mock(return_value=caia_user_dict))
-
-    # If it gets to this point, that means the user was in all the right groups aka successful login
-    monkeypatch.setattr(
-        ah,
-        "create_session_and_response",
-        Mock(return_value=JsonResponse.create(StatusCode.OK, {"message": "Login successful"})),
-    )
+    monkeypatch.setattr(account_handler, "get_caia_user_dict", Mock(return_value=caia_roles_dict))
     json_response = ah.caia_login(Mock())
-
     assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))["message"]
 
 
 def test_caia_login_failure_normal_login(monkeypatch):
     ah = account_handler.AccountHandler(Mock())
 
+    # Test if redirect_uri is wrong
     mock_dict = Mock()
-    mock_dict.return_value.exists.return_value = False
-    mock_dict.return_value.safeDictionary.side_effect = {"code": "", "redirect_uri": ""}
+    mock_dict.return_value.get_value.side_effect = ["", ""]
+    monkeypatch.setattr(account_handler, "RequestDictionary", mock_dict)
+
+    caia_tokens_dict = {}
+    monkeypatch.setattr(account_handler, "get_caia_tokens", Mock(return_value=caia_tokens_dict))
+    json_response = ah.caia_login(Mock())
+    error_message = "The redirect_uri provided doesn't match the redirect_uri expected."
+
+    assert error_message == json.loads(json_response.get_data().decode("utf-8"))["message"]
+
+    # Test if code is wrong
+    mock_dict = Mock()
+    mock_dict.return_value.get_value.side_effect = ["", CONFIG_BROKER["caia"]["redirect_uri"]]
     monkeypatch.setattr(account_handler, "RequestDictionary", mock_dict)
 
     caia_tokens_dict = {}
     monkeypatch.setattr(account_handler, "get_caia_tokens", Mock(return_value=caia_tokens_dict))
     json_response = ah.caia_login(Mock())
     error_message = (
-        "The CAIA endpoint was unable to locate your session " "using the code/redirect_uri combination you provided."
+        "The CAIA endpoint was unable to locate your session using the code/redirect_uri combination you provided."
     )
 
     # Did not get a successful response from CAIA

@@ -12,7 +12,7 @@ def add_settings_routes(app):
     """Create routes related to settings"""
 
     @app.route("/v1/rule_settings/", methods=["GET"])
-    @requires_agency_code_perms("submitter")
+    @requires_agency_code_perms("submitter", location="query")
     @use_kwargs(
         {
             "agency_code": webargs_fields.String(required=True),
@@ -32,7 +32,7 @@ def add_settings_routes(app):
         return list_rule_settings(agency_code, file)
 
     @app.route("/v1/save_rule_settings/", methods=["POST"])
-    @requires_agency_code_perms("submitter")
+    @requires_agency_code_perms("submitter", location="json")
     @use_kwargs(
         {
             "agency_code": webargs_fields.String(required=True),

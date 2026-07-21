@@ -1,3 +1,4 @@
+import hmac
 import json
 import logging
 from operator import attrgetter
@@ -119,7 +120,7 @@ class AccountHandler:
             roles = safe_dictionary.get_value("roles")
             token = safe_dictionary.get_value("token")
 
-            if token != CONFIG_BROKER["api_proxy_token"]:
+            if not hmac.compare_digest(token, CONFIG_BROKER["api_proxy_token"]):
                 raise ValueError("Invalid token")
 
             user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
@@ -169,6 +170,9 @@ class AccountHandler:
 
             code = safe_dictionary.get_value("code")
             redirect_uri = safe_dictionary.get_value("redirect_uri")
+
+            if redirect_uri != CONFIG_BROKER["caia"]["redirect_uri"]:
+                raise ValueError("The redirect_uri provided doesn't match the redirect_uri expected.")
 
             # Get the access tokens and user data from the code
             caia_tokens = get_caia_tokens(code, redirect_uri)

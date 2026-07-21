@@ -49,6 +49,8 @@ def setup_db():
 
 def create_admin():
     """Create initial admin user."""
+    if CONFIG_BROKER["use_aws"]:
+        raise Exception("Create admin can only be used locally")
     logger.info("Creating admin user")
     admin_email = CONFIG_BROKER["admin_email"]
     admin_pass = CONFIG_BROKER["admin_password"]

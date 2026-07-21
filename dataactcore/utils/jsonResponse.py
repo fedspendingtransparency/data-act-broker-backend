@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class JsonResponse:
     """Used to create an http response object containing JSON"""
 
-    debug_mode = True
+    debug_mode = False
 
     @staticmethod
     def create(code, dictionary_data):
