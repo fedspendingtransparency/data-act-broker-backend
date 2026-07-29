@@ -18,32 +18,32 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """Test AwardingOfficeCode must be submitted for new awards (ActionType = A) or mixed aggregate records
-    (ActionType = E) whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either
+    """Test AwardingOfficeCode must be submitted for new awards (ActionType = A1/A2) or mixed aggregate records
+    (ActionType = G1) whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either
     Blank or C.
     """
 
     # All factors as stated
     fabs_1 = FABSFactory(
-        awarding_office_code="AAAAAA", action_type="A", action_date="10/01/2018", correction_delete_indicatr=""
+        awarding_office_code="AAAAAA", action_type="A1", action_date="10/01/2018", correction_delete_indicatr=""
     )
     fabs_2 = FABSFactory(
-        awarding_office_code="111111", action_type="e", action_date="10/01/2018", correction_delete_indicatr="C"
+        awarding_office_code="111111", action_type="g1", action_date="10/01/2018", correction_delete_indicatr="C"
     )
 
     # Rule ignored for earlier dates
     fabs_3 = FABSFactory(
-        awarding_office_code="", action_type="E", action_date="10/01/2017", correction_delete_indicatr="C"
+        awarding_office_code="", action_type="G1", action_date="10/01/2017", correction_delete_indicatr="C"
     )
 
     # Rule ignored for other action types
     fabs_4 = FABSFactory(
-        awarding_office_code=None, action_type="B", action_date="10/01/2018", correction_delete_indicatr=""
+        awarding_office_code=None, action_type="B1", action_date="10/01/2018", correction_delete_indicatr=""
     )
 
     # Rule ignored for CorrectionDeleteIndicator of D
     fabs_5 = FABSFactory(
-        awarding_office_code=None, action_type="A", action_date="10/01/2018", correction_delete_indicatr="D"
+        awarding_office_code=None, action_type="A2", action_date="10/01/2018", correction_delete_indicatr="D"
     )
 
     # Rule ignored for action type is None
@@ -59,16 +59,16 @@ def test_success(database):
 
 
 def test_failure(database):
-    """Test failure AwardingOfficeCode must be submitted for new awards (ActionType = A) or mixed aggregate records
-    (ActionType = E) whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either
+    """Test failure AwardingOfficeCode must be submitted for new awards (ActionType = A1/A2) or mixed aggregate records
+    (ActionType = G1) whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either
     Blank or C.
     """
 
     fabs_1 = FABSFactory(
-        awarding_office_code="", action_type="A", action_date="10/01/2018", correction_delete_indicatr=""
+        awarding_office_code="", action_type="A2", action_date="10/01/2018", correction_delete_indicatr=""
     )
     fabs_2 = FABSFactory(
-        awarding_office_code=None, action_type="e", action_date="10/02/2018", correction_delete_indicatr="C"
+        awarding_office_code=None, action_type="g1", action_date="10/02/2018", correction_delete_indicatr="C"
     )
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2
