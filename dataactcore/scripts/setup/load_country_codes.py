@@ -27,27 +27,29 @@ CC_NAMESPACES = {
 }
 
 TERRITORY_LIST = [
-    "ASM",
-    "FSM",
-    "GUM",
-    "MHL",
-    "MNP",
-    "PLW",
-    "PRI",
-    "VIR",
-    "XBK",
-    "XHO",
-    "XJA",
-    "XJV",
-    "XKR",
-    "XMW",
-    "XNV",
-    "XPL",
-    "XWK",
+    "ASM", # American Samoa
+    "GUM", # Guam
+    "MNP", # Mariana Islands
+    "PRI", # Puerto Rico
+    "VIR", # Virgin Islands
+    "XBK", # Baker Island
+    "XHO", # Howland Island
+    "XJA", # Johnston Atoll
+    "XJV", # Jarvis Island
+    "XKR", # Kingman Reef
+    "XMW", # Midway Islands
+    "XNV", # Navassa Island
+    "XPL", # Palmyra Atoll
+    "XWK", # Wake Island
+]
+FREELY_ASSOCIATED_STATES = [
+    "FSM", # Micronesia
+    "MHL", # Marshall Islands
+    "PLW", # Palau
 ]
 
 
-def convert_territory_bool_to_str(row):
+def convert_bool_to_str(row):
     return str(row["territory_free_state"])
 
 
@@ -85,7 +87,8 @@ def load_country_codes(force_reload=False):
                     "country_name": country["name"],
                     "country_code": country["encoding"]["char3Code"],
                     "country_code_2_char": country["encoding"]["char2Code"],
-                    "territory_free_state": country["encoding"]["char3Code"] in TERRITORY_LIST,
+                    "territory": country["encoding"]["char3Code"] in TERRITORY_LIST,
+                    "free_state": country["encoding"]["char3Code"] in FREELY_ASSOCIATED_STATES,
                 }
             )
 
@@ -97,7 +100,8 @@ def load_country_codes(force_reload=False):
                 "country_code": "country_code",
                 "country_name": "country_name",
                 "country_code_2_char": "country_code_2_char",
-                "territory_free_state": "territory_free_state",
+                "territory": "territory",
+                "free_state": "free_state",
             },
             {},
         )
@@ -106,7 +110,8 @@ def load_country_codes(force_reload=False):
             CountryCode,
             ["country_code_id"],
             ["country_code"],
-            lambda_funcs=[("territory_free_state", convert_territory_bool_to_str)],
+            lambda_funcs=[("territory", lambda row: str(row['territory'])),
+                          ("free_state", lambda row: str(row['free_state']))],
         )
 
         # insert to db if reload required
@@ -130,7 +135,7 @@ def load_country_codes(force_reload=False):
                     index=False,
                     quoting=csv.QUOTE_ALL,
                     header=True,
-                    columns=["country_code", "country_code_2_char", "country_name", "territory_free_state"],
+                    columns=["country_code", "country_code_2_char", "country_name", "territory", "free_state"],
                 )
 
                 logger.info("Uploading {} to {}".format(cc_filename, CONFIG_BROKER["public_files_bucket"]))
