@@ -16,30 +16,29 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """Test IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, 09, F003, F004, and F005."""
+    """Test IndirectCostFederalShareAmount must be blank or 0 for AssistanceType F003, F004, and F005."""
 
-    fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type="09")
+    fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type="F003")
     fabs_2 = FABSFactory(indirect_federal_sharing=0, assistance_type="F005")
 
     # Doesn't care about other assistance types
-    fabs_3 = FABSFactory(indirect_federal_sharing=123, assistance_type="02")
+    fabs_3 = FABSFactory(indirect_federal_sharing=123, assistance_type="F002")
     fabs_4 = FABSFactory(indirect_federal_sharing=456, assistance_type="")
 
     # Still doesn't trigger when blank for other assistance types
-    fabs_5 = FABSFactory(indirect_federal_sharing=None, assistance_type="03")
+    fabs_5 = FABSFactory(indirect_federal_sharing=None, assistance_type="F007")
 
     # Ignore when CorrectionDeleteIndicator is D
-    fabs_6 = FABSFactory(indirect_federal_sharing=123, assistance_type="09", correction_delete_indicatr="d")
+    fabs_6 = FABSFactory(indirect_federal_sharing=123, assistance_type="F004", correction_delete_indicatr="d")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6])
     assert errors == 0
 
 
 def test_failure(database):
-    """Test failure IndirectCostFederalShareAmount must be blank or 0 for AssistanceType 07, 08, 09, F003, F004, and
-    F005."""
+    """Test failure IndirectCostFederalShareAmount must be blank or 0 for AssistanceType F003, F004, and F005."""
 
-    fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type="08")
+    fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type="F003")
     fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type="F004")
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2
