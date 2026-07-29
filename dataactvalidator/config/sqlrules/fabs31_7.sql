@@ -1,6 +1,7 @@
--- When ActionDate is after October 1, 2010 and ActionType = B, C, or D, AwardeeOrRecipientUEI should (when provided)
--- have an active registration in SAM as of the ActionDate, except where FederalActionObligation is <=0 and
--- ActionType = D, or, when ActionDate is after October 1, 2024, LegalEntityCountryCode is a foreign country.
+-- When ActionDate is after October 1, 2010 and ActionType = B1, C1, C2, C3, C4, D1, E1, EX, or FX,
+-- AwardeeOrRecipientUEI should (when provided) have an active registration in SAM as of the ActionDate, except where
+-- FederalActionObligation is <=0 and ActionType = D1, or, when ActionDate is after October 1, 2024,
+-- LegalEntityCountryCode is a foreign country.
 
 WITH fabs31_7_{0} AS
     (SELECT row_number,
@@ -15,12 +16,12 @@ WITH fabs31_7_{0} AS
     FROM fabs
     WHERE submission_id = {0}
         AND COALESCE(uei, '') <> ''
-        AND UPPER(action_type) IN ('B', 'C', 'D')
+        AND UPPER(action_type) IN ('B1', 'C1', 'C2', 'C3', 'C4', 'D1', 'E1', 'EX', 'FX')
         AND (CASE WHEN is_date(COALESCE(action_date, '0'))
              THEN CAST(action_date AS DATE)
              END) > CAST('10/01/2010' AS DATE)
         AND NOT (federal_action_obligation <= 0
-                    AND UPPER(action_type) = 'D')
+                    AND UPPER(action_type) = 'D1')
         AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'),
 active_recipient_{0} AS
     (SELECT *
