@@ -26,7 +26,7 @@ def test_success(database):
     fabs_10 = FABSFactory(assistance_type="F010", correction_delete_indicatr="")
 
     # Ignore correction delete indicator of D
-    fabs_21 = FABSFactory(assistance_type="Thing", correction_delete_indicatr="d")
+    fabs_11 = FABSFactory(assistance_type="Thing", correction_delete_indicatr="d")
 
     errors = number_of_errors(
         _FILE,
@@ -42,6 +42,7 @@ def test_success(database):
             fabs_8,
             fabs_9,
             fabs_10,
+            fabs_11,
         ],
     )
     assert errors == 0
