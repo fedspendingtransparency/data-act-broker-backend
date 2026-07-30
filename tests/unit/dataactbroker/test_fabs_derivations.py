@@ -1255,13 +1255,13 @@ def test_derive_labels(database):
 
     # Testing for valid values of each
     submission_id = initialize_test_row(
-        database, cdi="c", action_type="a", assist_type="02", busi_type="d", busi_fund="non", submission_id=3
+        database, cdi="c", action_type="a", assist_type="F002", busi_type="d", busi_fund="non", submission_id=3
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.action_type_description == ACTION_TYPE_DICT["A"]
-    assert fabs_obj.assistance_type_desc == ASSISTANCE_TYPE_DICT["02"]
+    assert fabs_obj.assistance_type_desc == ASSISTANCE_TYPE_DICT["F002"]
     assert fabs_obj.correction_delete_ind_desc == CORRECTION_DELETE_IND_DICT["C"]
     assert fabs_obj.record_type_description == RECORD_TYPE_DICT[2]
     assert fabs_obj.business_types_desc == BUSINESS_TYPE_DICT["D"]
@@ -1272,7 +1272,7 @@ def test_derive_labels(database):
         database,
         cdi="f",
         action_type="z",
-        assist_type="01",
+        assist_type="F012",
         record_type=5,
         busi_type="Z",
         busi_fund="ab",
@@ -1290,7 +1290,7 @@ def test_derive_labels(database):
 
     # Test multiple business types (2 valid, 1 invalid)
     submission_id = initialize_test_row(
-        database, cdi="f", action_type="z", assist_type="01", record_type=5, busi_type="azb", submission_id=5
+        database, cdi="f", action_type="z", assist_type="F012", record_type=5, busi_type="azb", submission_id=5
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
