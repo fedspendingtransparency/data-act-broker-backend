@@ -16,8 +16,8 @@ def test_success(database):
     Associated States must be submitted with country code = USA and their state/territory code; they cannot be
     submitted with their GENC country code.
     """
-    cc_1 = CountryCode(country_code="USA", country_name="United States", territory_free_state=False)
-    cc_2 = CountryCode(country_code="UKR", country_name="Ukraine", territory_free_state=False)
+    cc_1 = CountryCode(country_code="USA", country_name="United States", territory=False, free_state=False)
+    cc_2 = CountryCode(country_code="UKR", country_name="Ukraine", territory=False, free_state=False)
     fabs = FABSFactory(legal_entity_country_code="USA", correction_delete_indicatr="")
     fabs_2 = FABSFactory(legal_entity_country_code="uKr", correction_delete_indicatr="c")
     # Ignore correction delete indicator of D
@@ -32,7 +32,7 @@ def test_failure(database):
     Associated States must be submitted with country code = USA and their state/territory code; they cannot be
     submitted with their GENC country code.
     """
-    cc_1 = CountryCode(country_code="ASM", country_name="AMERICAN SAMOA", territory_free_state=True)
+    cc_1 = CountryCode(country_code="ASM", country_name="AMERICAN SAMOA", territory=True, free_state=True)
     fabs = FABSFactory(legal_entity_country_code="xyz", correction_delete_indicatr="c")
     fabs_2 = FABSFactory(legal_entity_country_code="ABCD", correction_delete_indicatr="")
     fabs_3 = FABSFactory(legal_entity_country_code="ASM", correction_delete_indicatr="")

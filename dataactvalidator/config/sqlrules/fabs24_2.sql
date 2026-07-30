@@ -13,6 +13,7 @@ WHERE submission_id={0}
         SELECT 1
         FROM country_code AS cc
         WHERE UPPER(fabs.place_of_perform_country_c) = UPPER(cc.country_code)
-            AND cc.territory_free_state IS FALSE
+            AND cc.territory IS FALSE
+            -- AND cc.free_state IS FALSE
     )
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
