@@ -419,26 +419,6 @@ date_fields = [
     "solicitation_date",
 ]
 
-country_code_map = {
-    "USA": "US",
-    "ASM": "AS",
-    "GUM": "GU",
-    "MNP": "MP",
-    "PRI": "PR",
-    "VIR": "VI",
-    "FSM": "FM",
-    "MHL": "MH",
-    "PLW": "PW",
-    "XBK": "UM",
-    "XHO": "UM",
-    "XJV": "UM",
-    "XJA": "UM",
-    "XKR": "UM",
-    "XPL": "UM",
-    "XMW": "UM",
-    "XWK": "UM",
-}
-
 S3_ARCHIVE = CONFIG_BROKER["sam"]["recipient"]["csv_archive_bucket"]
 
 # Used to determine if it's possible we didn't get all the records in this pull and chunk it
@@ -507,7 +487,7 @@ def insert_into_db(sess, contract_df):
     )
 
 
-def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
+def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df, us_territories_df):
     """Calculate values that aren't in any feed (or haven't been provided properly) for place of performance
 
     Args:
@@ -516,18 +496,19 @@ def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
+        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
 
     Returns:
         The contract_df dataframe with legal entity derivations
     """
     # Change US territories to the USA country code and name
-    ppop_us_mask = contract_df["place_of_perform_country_c"].isin(list(country_code_map.keys()))
+    ppop_us_mask = contract_df["place_of_perform_country_c"].isin(list(us_territories_df.keys()))
     ppop_territory_mask = ppop_us_mask & (contract_df["place_of_perform_country_c"] != "USA")
 
     contract_df["place_of_performance_state"] = contract_df.apply(
         lambda row: (
-            country_code_map[row["place_of_perform_country_c"]]
-            if row["place_of_perform_country_c"] in country_code_map and row["place_of_perform_country_c"] != "USA"
+            us_territories_df[row["place_of_perform_country_c"]]
+            if row["place_of_perform_country_c"] in us_territories_df and row["place_of_perform_country_c"] != "USA"
             else row["place_of_performance_state"]
         ),
         axis=1,
@@ -649,7 +630,7 @@ def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
     return contract_df
 
 
-def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, country_df):
+def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, country_df, us_territories_df):
     """Calculate values that aren't in any feed (or haven't been provided properly) for legal entity
 
     Args:
@@ -658,17 +639,18 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
+        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
 
     Returns:
         The contract_df dataframe with legal entity derivations
     """
     # Change US territories to the USA country code and name
-    le_us_mask = contract_df["legal_entity_country_code"].isin(list(country_code_map.keys()))
+    le_us_mask = contract_df["legal_entity_country_code"].isin(list(us_territories_df.keys()))
     le_territory_mask = le_us_mask & (contract_df["legal_entity_country_code"] != "USA")
     contract_df["legal_entity_state_code"] = contract_df.apply(
         lambda row: (
-            country_code_map[row["legal_entity_country_code"]]
-            if row["legal_entity_country_code"] in country_code_map and row["legal_entity_country_code"] != "USA"
+            us_territories_df[row["legal_entity_country_code"]]
+            if row["legal_entity_country_code"] in us_territories_df and row["legal_entity_country_code"] != "USA"
             else row["legal_entity_state_code"]
         ),
         axis=1,
@@ -818,7 +800,7 @@ def derive_transaction_unique(contract_df):
 
 
 def derive_remaining_fields(
-    sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
 ):
     """Derive fields that aren't passed from SAM or that might be blank in their data, but we can derive them anyway
 
@@ -830,6 +812,7 @@ def derive_remaining_fields(
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
+        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_df: a dataframe containing all the data for Executive Compensation
 
     Returns:
@@ -849,11 +832,11 @@ def derive_remaining_fields(
 
     # Do place of performance calculations only if we have SOME country code. If we have none at all the merge fails
     if contract_df["place_of_perform_country_c"].notnull().any():
-        contract_df = calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df)
+        contract_df = calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df, us_territories_df)
 
     # Do legal entity calculations only if we have SOME country code. If we have none at all the merge fails
     if contract_df["legal_entity_country_code"].notnull().any():
-        contract_df = calculate_legal_entity_fields(sess, contract_df, county_df, state_df, country_df)
+        contract_df = calculate_legal_entity_fields(sess, contract_df, county_df, state_df, country_df, us_territories_df)
 
     # Make sure there are no np.NaNs that could mess up the business_categories calculations
     contract_df[boolean_fields] = contract_df[boolean_fields].replace({np.NaN: "NO"})
@@ -952,7 +935,7 @@ def derive_remaining_fields(
     return contract_df
 
 
-def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df):
+def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df):
     """Process the provided data by performing derivations, making sure all columns exist, and cleaning up column names
     then insert the data into the database or update existing data
 
@@ -964,6 +947,7 @@ def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
+        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_df: a dataframe containing all the data for Executive Compensation
     """
     contract_mappings = SAM_CONTRACT_MAPPINGS
@@ -991,7 +975,7 @@ def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state
     )
 
     contract_df = derive_remaining_fields(
-        sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df
+        sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
     )
 
     # Insert the data
@@ -1196,6 +1180,7 @@ def get_data(
     county_df,
     state_df,
     country_df,
+    us_territories_df,
     exec_comp_df,
     contract_type=None,
     award_type=None,
@@ -1216,6 +1201,7 @@ def get_data(
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
+        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_df: a dataframe containing all the data for Executive Compensation
         contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
         award_type: a string indicating what the award type of the feed being checked is
@@ -1258,7 +1244,7 @@ def get_data(
             if len(contract_df) > 0:
                 if not delete:
                     process_data(
-                        sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, exec_comp_df
+                        sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
                     )
                 else:
                     chunk_delete_df = process_deletes(sess, contract_df)
@@ -1323,6 +1309,10 @@ def create_lookups(sess):
     country_df = pd.read_sql(
         sess.query(CountryCode.country_code, CountryCode.country_name).statement, sess.connection()
     )
+    # Get and create dataframe of us and territories
+    us_territories_df = pd.read_sql(
+        sess.query(CountryCode.country_code, CountryCode.country_code_2_char).filter_by(territory=True).statement, sess.connection()
+    )
 
     # Get and create dataframe of states
     state_df = pd.read_sql(
@@ -1359,7 +1349,7 @@ def create_lookups(sess):
         sess.connection(),
     )
 
-    return sub_tier_df, country_df, state_df, county_df, exec_comp_df
+    return sub_tier_df, country_df, us_territories_df, state_df, county_df, exec_comp_df
 
 
 def main():
@@ -1416,7 +1406,7 @@ def main():
         "end_date": "",
     }
 
-    sub_tier_df, country_df, state_df, county_df, exec_comp_df = create_lookups(sess)
+    sub_tier_df, country_df, us_territories_df, state_df, county_df, exec_comp_df = create_lookups(sess)
 
     auto = args.auto
     if args.piid or args.local_file:
@@ -1437,6 +1427,7 @@ def main():
                 county_df,
                 state_df,
                 country_df,
+                us_territories_df,
                 exec_comp_df,
                 contract_type="IDV",
                 award_type=award_type,
@@ -1455,6 +1446,7 @@ def main():
                 county_df,
                 state_df,
                 country_df,
+                us_territories_df,
                 exec_comp_df,
                 contract_type="award",
                 award_type=award_type,
@@ -1477,6 +1469,7 @@ def main():
             county_df,
             state_df,
             country_df,
+            us_territories_df,
             exec_comp_df,
             delete=True,
             start_date=start_date,
