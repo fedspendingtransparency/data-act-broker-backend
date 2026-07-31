@@ -75,7 +75,6 @@ def load_country_codes(base_path=None, force_reload=False):
 
         genc_file_name = "genc.xml"
         if CONFIG_BROKER["use_aws"]:
-            logger.info('pulling from s3')
             s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
             s3.download_file(
                 Bucket=CONFIG_BROKER["public_files_bucket"],
@@ -103,8 +102,6 @@ def load_country_codes(base_path=None, force_reload=False):
             )
 
         data = pd.DataFrame(country_list)
-        logger.info(data)
-        exit()
         data = clean_data(
             data,
             CountryCode,
