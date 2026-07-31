@@ -75,6 +75,7 @@ def load_country_codes(base_path=None, force_reload=False):
 
         genc_file_name = "genc.xml"
         if CONFIG_BROKER["use_aws"]:
+            logger.info('pulling from s3')
             s3 = boto3.client("s3")
             s3.download_file(
                 Bucket=CONFIG_BROKER["public_files_bucket"],
@@ -124,6 +125,9 @@ def load_country_codes(base_path=None, force_reload=False):
                 ("free_state", lambda row: str(row["free_state"])),
             ],
         )
+
+        logger.info(data)
+        exit()
 
         # insert to db if reload required
         if force_reload or diff_found:
