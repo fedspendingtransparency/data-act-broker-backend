@@ -70,6 +70,7 @@ def load_country_codes(base_path=None, force_reload=False):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
+        # File copied from https://nsgreg-api.nga.mil/geo-political/GENC/3/now (sitting behind a captcha)
         genc_file_name = "genc.xml"
         if CONFIG_BROKER["use_aws"]:
             s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
