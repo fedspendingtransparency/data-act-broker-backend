@@ -103,6 +103,8 @@ def load_country_codes(base_path=None, force_reload=False):
             )
 
         data = pd.DataFrame(country_list)
+        logger.info(data)
+        exit()
         data = clean_data(
             data,
             CountryCode,
@@ -125,9 +127,6 @@ def load_country_codes(base_path=None, force_reload=False):
                 ("free_state", lambda row: str(row["free_state"])),
             ],
         )
-
-        logger.info(data)
-        exit()
 
         # insert to db if reload required
         if force_reload or diff_found:
