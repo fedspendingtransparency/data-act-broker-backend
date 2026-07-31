@@ -26,6 +26,7 @@ CC_NAMESPACES = {
     "http://api.nsgreg.nga.mil/schema/genc/3.0/genc-cmn": None,
 }
 
+# Based on https://www.doi.gov/oia/islands
 TERRITORY_LIST = [
     "ASM",  # American Samoa
     "GUM",  # Guam
