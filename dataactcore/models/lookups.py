@@ -182,11 +182,18 @@ SUBMISSION_TYPE = [
 SUBMISSION_TYPE_DICT = {item.name: item.id for item in SUBMISSION_TYPE}
 
 ACTION_TYPE = [
-    LookupType(1, "A", "New"),
-    LookupType(2, "B", "Continuation"),
-    LookupType(3, "C", "Revision"),
-    LookupType(4, "D", "Adjustment to Completed Project"),
-    LookupType(4, "E", "Aggregate Mixed"),
+    LookupType(1, "A1", "New Award"),
+    LookupType(2, "A2", "Renewal Award"),
+    LookupType(3, "B1", "Continuation"),
+    LookupType(4, "C1", "Termination Initiated: Material Failure to Comply"),
+    LookupType(5, "C2", "Termination Initiated: Mutual Consent"),
+    LookupType(6, "C3", "Termination Initiated: Recipient-Initiated"),
+    LookupType(7, "C4", "Termination Initiated: No Longer Effectuates Program Goals or Agency Priorities"),
+    LookupType(8, "D1", "Closeout"),
+    LookupType(9, "E1", "Recipient Change"),
+    LookupType(10, "EX", "Other Action, Non-Financial"),
+    LookupType(11, "FX", "Other Action, Financial"),
+    LookupType(12, "G1", "Mixed Aggregate"),
 ]
 ACTION_TYPE_DICT = {item.name: item.desc for item in ACTION_TYPE}
 
