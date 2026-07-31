@@ -49,10 +49,6 @@ FREELY_ASSOCIATED_STATES = [
 ]
 
 
-def convert_bool_to_str(row):
-    return str(row["territory_free_state"])
-
-
 def load_country_codes(base_path=None, force_reload=False):
     """Load Country Codes into the database.
 
