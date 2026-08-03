@@ -20,16 +20,16 @@ def test_column_headers(database):
 
 
 def test_published_date_success(database):
-    """Test success for when ActionDate is after October 1, 2010 and ActionType = B, C, or D, AwardeeOrRecipientUEI
-    should (when provided) have an active registration in SAM as of the ActionDate, except where
-    FederalActionObligation is <=0 and ActionType = D, or, when ActionDate is after October 1, 2024,
+    """Test success for when ActionDate is after October 1, 2010 and ActionType = B1, C1, C2, C3, C4, D1, E1, EX, or FX,
+    AwardeeOrRecipientUEI should (when provided) have an active registration in SAM as of the ActionDate, except where
+    FederalActionObligation is <=0 and ActionType = D1, or, when ActionDate is after October 1, 2024,
     LegalEntityCountryCode is a foreign country.
     """
     recipient = SAMRecipient(uei="11111111111E", registration_date="01/01/2017", expiration_date="01/01/2018")
     exception_recipient = SAMRecipientUnregistered(uei="EEEEEEEEEEEE")
     fabs_1 = FABSFactory(
         uei=recipient.uei,
-        action_type="b",
+        action_type="b1",
         action_date="06/22/2017",
         federal_action_obligation=10,
         correction_delete_indicatr="",
@@ -37,7 +37,7 @@ def test_published_date_success(database):
     # Ignore different action type
     fabs_2 = FABSFactory(
         uei="12345",
-        action_type="a",
+        action_type="a2",
         action_date="06/20/2017",
         federal_action_obligation=10,
         correction_delete_indicatr="",
@@ -45,7 +45,7 @@ def test_published_date_success(database):
     # Ignore FOA <= 0 and ActionType D
     fabs_3 = FABSFactory(
         uei="12345",
-        action_type="d",
+        action_type="d1",
         action_date="06/20/2017",
         federal_action_obligation=-10,
         correction_delete_indicatr="",
@@ -53,7 +53,7 @@ def test_published_date_success(database):
     # Ignore Before October 1, 2010
     fabs_4 = FABSFactory(
         uei="12345",
-        action_type="B",
+        action_type="B1",
         action_date="09/30/2010",
         federal_action_obligation=10,
         correction_delete_indicatr=None,
@@ -61,7 +61,7 @@ def test_published_date_success(database):
     # Ignore correction delete indicator of D
     fabs_5 = FABSFactory(
         uei="12345",
-        action_type="c",
+        action_type="c1",
         action_date="06/20/2020",
         federal_action_obligation=10,
         correction_delete_indicatr="d",
@@ -69,7 +69,7 @@ def test_published_date_success(database):
     # Special Unregistered Recipient Exception (action date, legal entity country, unregistered table)
     fabs_6 = FABSFactory(
         uei="EEEEEEEEEEEE",
-        action_type="c",
+        action_type="c3",
         assistance_type="01",
         action_date="10/02/2024",
         correction_delete_indicatr="",
@@ -84,16 +84,16 @@ def test_published_date_success(database):
 
 
 def test_published_date_failure(database):
-    """Test failure for when ActionDate is after October 1, 2010 and ActionType = B, C, or D, AwardeeOrRecipientUEI
-    should (when provided) have an active registration in SAM as of the ActionDate, except where
-    FederalActionObligation is <=0 and ActionType = D, or, when ActionDate is after October 1, 2024,
+    """Test failure for when ActionDate is after October 1, 2010 and ActionType = B1, C1, C2, C3, C4, D1, E1, EX, or FX,
+    AwardeeOrRecipientUEI should (when provided) have an active registration in SAM as of the ActionDate, except where
+    FederalActionObligation is <=0 and ActionType = D1, or, when ActionDate is after October 1, 2024,
     LegalEntityCountryCode is a foreign country.
     """
     recipient = SAMRecipient(uei="11111111111E", registration_date="01/01/2017", expiration_date="01/01/2018")
     exception_recipient = SAMRecipientUnregistered(uei="EEEEEEEEEEEE")
     fabs_1 = FABSFactory(
         uei="12345",
-        action_type="b",
+        action_type="b1",
         action_date="06/20/2020",
         federal_action_obligation=10,
         correction_delete_indicatr="",
@@ -101,14 +101,14 @@ def test_published_date_failure(database):
     # FOA <= 0 and ActionType D checks individually
     fabs_2 = FABSFactory(
         uei="12345",
-        action_type="d",
+        action_type="d1",
         action_date="06/20/2020",
         federal_action_obligation=1,
         correction_delete_indicatr="",
     )
     fabs_3 = FABSFactory(
         uei="12345",
-        action_type="b",
+        action_type="b1",
         action_date="06/20/2020",
         federal_action_obligation=0,
         correction_delete_indicatr="",
@@ -117,7 +117,7 @@ def test_published_date_failure(database):
     # older action date
     fabs_4 = FABSFactory(
         uei="EEEEEEEEEEEE",
-        action_type="d",
+        action_type="d1",
         assistance_type="06",
         action_date="04/05/2022",
         correction_delete_indicatr=None,
@@ -127,7 +127,7 @@ def test_published_date_failure(database):
     # not foreign country code
     fabs_5 = FABSFactory(
         uei="EEEEEEEEEEEE",
-        action_type="c",
+        action_type="c2",
         assistance_type="06",
         action_date="04/05/2024",
         correction_delete_indicatr=None,
@@ -137,7 +137,7 @@ def test_published_date_failure(database):
     # not unregistered
     fabs_6 = FABSFactory(
         uei="UNKNOWNEEEEE",
-        action_type="b",
+        action_type="b1",
         assistance_type="06",
         action_date="04/05/2024",
         correction_delete_indicatr=None,

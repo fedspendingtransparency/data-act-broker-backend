@@ -19,7 +19,7 @@ def test_column_headers(database):
 
 
 def test_published_date_success(database):
-    """Test success for when ActionDate is after October 1, 2010 and ActionType = A, AwardeeOrRecipientUEI should
+    """Test success for when ActionDate is after October 1, 2010 and ActionType = A1 or A2, AwardeeOrRecipientUEI should
     (when provided) have an active registration in SAM as of the ActionDate, unless, when ActionDate is after
     October 1, 2024, LegalEntityCountryCode is a foreign country.
     """
@@ -29,13 +29,13 @@ def test_published_date_success(database):
     # Ignore different action type
     fabs_2 = FABSFactory(uei="12345", action_type="B", action_date="06/20/2019", correction_delete_indicatr="")
     # Ignore Before October 1, 2010
-    fabs_3 = FABSFactory(uei="12345", action_type="a", action_date="09/30/2010", correction_delete_indicatr=None)
+    fabs_3 = FABSFactory(uei="12345", action_type="a1", action_date="09/30/2010", correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
-    fabs_4 = FABSFactory(uei="12345", action_type="A", action_date="06/20/2020", correction_delete_indicatr="d")
+    fabs_4 = FABSFactory(uei="12345", action_type="A2", action_date="06/20/2020", correction_delete_indicatr="d")
     # Special Unregistered Recipient Exception (action date, legal entity country, unregistered table)
     fabs_5 = FABSFactory(
         uei="EEEEEEEEEEEE",
-        action_type="A",
+        action_type="A1",
         assistance_type="01",
         action_date="10/02/2024",
         correction_delete_indicatr="",
@@ -50,18 +50,18 @@ def test_published_date_success(database):
 
 
 def test_published_date_failure(database):
-    """Test failure for when ActionDate is after October 1, 2010 and ActionType = A, AwardeeOrRecipientUEI should
+    """Test failure for when ActionDate is after October 1, 2010 and ActionType = A1 or A2, AwardeeOrRecipientUEI should
     (when provided) have an active registration in SAM as of the ActionDate, unless, when ActionDate is after
     October 1, 2024, LegalEntityCountryCode is a foreign country.
     """
     recipient = SAMRecipient(uei="111111111111", registration_date="01/01/2017", expiration_date="01/01/2018")
     exception_recipient = SAMRecipientUnregistered(uei="EEEEEEEEEEEE")
-    fabs_1 = FABSFactory(uei="12345", action_type="A", action_date="06/20/2020", correction_delete_indicatr="")
+    fabs_1 = FABSFactory(uei="12345", action_type="A2", action_date="06/20/2020", correction_delete_indicatr="")
     # Ensuring that parts of the special exception on their own still fail. Only successful when combined.
     # older action date
     fabs_2 = FABSFactory(
         uei="EEEEEEEEEEEE",
-        action_type="A",
+        action_type="A1",
         assistance_type="06",
         action_date="04/05/2016",
         correction_delete_indicatr=None,
@@ -71,7 +71,7 @@ def test_published_date_failure(database):
     # not foreign country code
     fabs_3 = FABSFactory(
         uei="EEEEEEEEEEEE",
-        action_type="A",
+        action_type="A2",
         assistance_type="06",
         action_date="04/05/2024",
         correction_delete_indicatr="C",
@@ -81,7 +81,7 @@ def test_published_date_failure(database):
     # not unregistered
     fabs_4 = FABSFactory(
         uei="UNKNOWNEEEEE",
-        action_type="A",
+        action_type="A1",
         assistance_type="06",
         action_date="04/05/2024",
         correction_delete_indicatr=None,
