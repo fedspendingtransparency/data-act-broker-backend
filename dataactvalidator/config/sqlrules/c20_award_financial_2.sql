@@ -16,12 +16,14 @@ WITH award_financial_records_filtered_{0} AS (
 award_financial_records_{0} AS (
     SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
         SUM(af.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_c,
+        SUM(af.ussgl480110_rein_undel_ord_cpe) AS ussgl480110_rein_undel_ord_cpe_sum_c,
         SUM(af.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_c,
         SUM(af.ussgl488100_upward_adjustm_cpe) AS ussgl488100_upward_adjustm_cpe_sum_c,
         SUM(af.obligations_undelivered_or_fyb) AS obligations_undelivered_or_fyb_sum_c,
         SUM(af.obligations_undelivered_or_cpe) AS obligations_undelivered_or_cpe_sum_c,
         SUM(af.ussgl490100_delivered_orde_fyb) AS ussgl490100_delivered_orde_fyb_sum_c,
         SUM(af.ussgl490100_delivered_orde_cpe) AS ussgl490100_delivered_orde_cpe_sum_c,
+        SUM(af.ussgl490110_rein_deliv_ord_cpe) AS ussgl490110_rein_deliv_ord_cpe_sum_c,
         SUM(af.ussgl493100_delivered_orde_cpe) AS ussgl493100_delivered_orde_cpe_sum_c,
         SUM(af.ussgl498100_upward_adjustm_cpe) AS ussgl498100_upward_adjustm_cpe_sum_c,
         SUM(af.obligations_delivered_orde_fyb) AS obligations_delivered_orde_fyb_sum_c,
@@ -70,12 +72,14 @@ award_financial_records_{0} AS (
 object_class_records_{0} AS (
     SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_b,
+        SUM(op.ussgl480110_rein_undel_ord_cpe) AS ussgl480110_rein_undel_ord_cpe_sum_b,
         SUM(op.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_b,
         SUM(op.ussgl488100_upward_adjustm_cpe) AS ussgl488100_upward_adjustm_cpe_sum_b,
         SUM(op.obligations_undelivered_or_fyb) AS obligations_undelivered_or_fyb_sum_b,
         SUM(op.obligations_undelivered_or_cpe) AS obligations_undelivered_or_cpe_sum_b,
         SUM(op.ussgl490100_delivered_orde_fyb) AS ussgl490100_delivered_orde_fyb_sum_b,
         SUM(op.ussgl490100_delivered_orde_cpe) AS ussgl490100_delivered_orde_cpe_sum_b,
+        SUM(op.ussgl490110_rein_deliv_ord_cpe) AS ussgl490110_rein_deliv_ord_cpe_sum_b,
         SUM(op.ussgl493100_delivered_orde_cpe) AS ussgl493100_delivered_orde_cpe_sum_b,
         SUM(op.ussgl498100_upward_adjustm_cpe) AS ussgl498100_upward_adjustm_cpe_sum_b,
         SUM(op.obligations_delivered_orde_fyb) AS obligations_delivered_orde_fyb_sum_b,
@@ -123,12 +127,14 @@ SELECT NULL AS "source_row_number",
     afr.by_direct_reimbursable_fun AS "source_value_by_direct_reimbursable_fun",
     ussgl480100_undelivered_or_fyb_sum_c AS "source_value_ussgl480100_undelivered_or_fyb_sum_c",
     ussgl480100_undelivered_or_cpe_sum_c AS "source_value_ussgl480100_undelivered_or_cpe_sum_c",
+    ussgl480110_rein_undel_ord_cpe_sum_c AS "source_value_ussgl480110_rein_undel_ord_cpe_sum_c",
     ussgl483100_undelivered_or_cpe_sum_c AS "source_value_ussgl483100_undelivered_or_cpe_sum_c",
     ussgl488100_upward_adjustm_cpe_sum_c AS "source_value_ussgl488100_upward_adjustm_cpe_sum_c",
     obligations_undelivered_or_fyb_sum_c AS "source_value_obligations_undelivered_or_fyb_sum_c",
     obligations_undelivered_or_cpe_sum_c AS "source_value_obligations_undelivered_or_cpe_sum_c",
     ussgl490100_delivered_orde_fyb_sum_c AS "source_value_ussgl490100_delivered_orde_fyb_sum_c",
     ussgl490100_delivered_orde_cpe_sum_c AS "source_value_ussgl490100_delivered_orde_cpe_sum_c",
+    ussgl490110_rein_deliv_ord_cpe_sum_c AS "source_value_ussgl490110_rein_deliv_ord_cpe_sum_c",
     ussgl493100_delivered_orde_cpe_sum_c AS "source_value_ussgl493100_delivered_orde_cpe_sum_c",
     ussgl498100_upward_adjustm_cpe_sum_c AS "source_value_ussgl498100_upward_adjustm_cpe_sum_c",
     obligations_delivered_orde_fyb_sum_c AS "source_value_obligations_delivered_orde_fyb_sum_c",
@@ -157,12 +163,14 @@ SELECT NULL AS "source_row_number",
     deobligations_recov_by_awa_cpe_sum_c AS "source_value_deobligations_recov_by_awa_cpe_sum_c",
     ussgl480100_undelivered_or_fyb_sum_b AS "target_value_ussgl480100_undelivered_or_fyb_sum_b",
     ussgl480100_undelivered_or_cpe_sum_b AS "target_value_ussgl480100_undelivered_or_cpe_sum_b",
+    ussgl480110_rein_undel_ord_cpe_sum_b AS "target_value_ussgl480110_rein_undel_ord_cpe_sum_b",
     ussgl483100_undelivered_or_cpe_sum_b AS "target_value_ussgl483100_undelivered_or_cpe_sum_b",
     ussgl488100_upward_adjustm_cpe_sum_b AS "target_value_ussgl488100_upward_adjustm_cpe_sum_b",
     obligations_undelivered_or_fyb_sum_b AS "target_value_obligations_undelivered_or_fyb_sum_b",
     obligations_undelivered_or_cpe_sum_b AS "target_value_obligations_undelivered_or_cpe_sum_b",
     ussgl490100_delivered_orde_fyb_sum_b AS "target_value_ussgl490100_delivered_orde_fyb_sum_b",
     ussgl490100_delivered_orde_cpe_sum_b AS "target_value_ussgl490100_delivered_orde_cpe_sum_b",
+    ussgl490110_rein_deliv_ord_cpe_sum_b AS "target_value_ussgl490110_rein_deliv_ord_cpe_sum_b",
     ussgl493100_delivered_orde_cpe_sum_b AS "target_value_ussgl493100_delivered_orde_cpe_sum_b",
     ussgl498100_upward_adjustm_cpe_sum_b AS "target_value_ussgl498100_upward_adjustm_cpe_sum_b",
     obligations_delivered_orde_fyb_sum_b AS "target_value_obligations_delivered_orde_fyb_sum_b",
@@ -200,6 +208,11 @@ SELECT NULL AS "source_row_number",
             THEN 'ussgl480100_undelivered_or_cpe_sum: ' || (ussgl480100_undelivered_or_cpe_sum_c - ussgl480100_undelivered_or_cpe_sum_b)
             ELSE NULL
             END,
+        CASE WHEN ussgl480110_rein_undel_ord_cpe_sum_c < ussgl480110_rein_undel_ord_cpe_sum_b
+                AND COALESCE(ussgl480110_rein_undel_ord_cpe_sum_c - ussgl480110_rein_undel_ord_cpe_sum_b, 0) != 0
+            THEN 'ussgl480110_rein_undel_ord_cpe_sum: ' || (ussgl480110_rein_undel_ord_cpe_sum_c - ussgl480110_rein_undel_ord_cpe_sum_b)
+            ELSE NULL
+            END,
         CASE WHEN ussgl483100_undelivered_or_cpe_sum_c < ussgl483100_undelivered_or_cpe_sum_b
                 AND COALESCE(ussgl483100_undelivered_or_cpe_sum_c - ussgl483100_undelivered_or_cpe_sum_b, 0) != 0
             THEN 'ussgl483100_undelivered_or_cpe_sum: ' || (ussgl483100_undelivered_or_cpe_sum_c - ussgl483100_undelivered_or_cpe_sum_b)
@@ -228,6 +241,11 @@ SELECT NULL AS "source_row_number",
         CASE WHEN ussgl490100_delivered_orde_cpe_sum_c < ussgl490100_delivered_orde_cpe_sum_b
                 AND COALESCE(ussgl490100_delivered_orde_cpe_sum_c - ussgl490100_delivered_orde_cpe_sum_b, 0) != 0
             THEN 'ussgl490100_delivered_orde_cpe_sum: ' || (ussgl490100_delivered_orde_cpe_sum_c - ussgl490100_delivered_orde_cpe_sum_b)
+            ELSE NULL
+            END,
+        CASE WHEN ussgl490110_rein_deliv_ord_cpe_sum_c < ussgl490110_rein_deliv_ord_cpe_sum_b
+                AND COALESCE(ussgl490110_rein_deliv_ord_cpe_sum_c - ussgl490110_rein_deliv_ord_cpe_sum_b, 0) != 0
+            THEN 'ussgl490110_rein_deliv_ord_cpe_sum: ' || (ussgl490110_rein_deliv_ord_cpe_sum_c - ussgl490110_rein_deliv_ord_cpe_sum_b)
             ELSE NULL
             END,
         CASE WHEN ussgl493100_delivered_orde_cpe_sum_c < ussgl493100_delivered_orde_cpe_sum_b
@@ -374,12 +392,14 @@ FULL OUTER JOIN object_class_records_{0} AS ocr
 -- in numeric value
 WHERE ussgl480100_undelivered_or_fyb_sum_c < ussgl480100_undelivered_or_fyb_sum_b
     OR ussgl480100_undelivered_or_cpe_sum_c < ussgl480100_undelivered_or_cpe_sum_b
+    OR ussgl480110_rein_undel_ord_cpe_sum_c < ussgl480110_rein_undel_ord_cpe_sum_b
     OR ussgl483100_undelivered_or_cpe_sum_c < ussgl483100_undelivered_or_cpe_sum_b
     OR ussgl488100_upward_adjustm_cpe_sum_c < ussgl488100_upward_adjustm_cpe_sum_b
     OR obligations_undelivered_or_fyb_sum_c < obligations_undelivered_or_fyb_sum_b
     OR obligations_undelivered_or_cpe_sum_c < obligations_undelivered_or_cpe_sum_b
     OR ussgl490100_delivered_orde_fyb_sum_c < ussgl490100_delivered_orde_fyb_sum_b
     OR ussgl490100_delivered_orde_cpe_sum_c < ussgl490100_delivered_orde_cpe_sum_b
+    OR ussgl490110_rein_deliv_ord_cpe_sum_c < ussgl490110_rein_deliv_ord_cpe_sum_b
     OR ussgl493100_delivered_orde_cpe_sum_c < ussgl493100_delivered_orde_cpe_sum_b
     OR ussgl498100_upward_adjustm_cpe_sum_c < ussgl498100_upward_adjustm_cpe_sum_b
     OR obligations_delivered_orde_fyb_sum_c < obligations_delivered_orde_fyb_sum_b
