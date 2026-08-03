@@ -502,17 +502,19 @@ def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df, us
         The contract_df dataframe with legal entity derivations
     """
     # Change US territories to the USA country code and name
-    ppop_us_mask = contract_df["place_of_perform_country_c"].isin(list(us_territories_df.keys()))
+    us_territories = list(us_territories_df["country_code"])
+    ppop_us_mask = contract_df["place_of_perform_country_c"].isin(us_territories)
     ppop_territory_mask = ppop_us_mask & (contract_df["place_of_perform_country_c"] != "USA")
 
-    contract_df["place_of_performance_state"] = contract_df.apply(
-        lambda row: (
-            us_territories_df[row["place_of_perform_country_c"]]
-            if row["place_of_perform_country_c"] in us_territories_df and row["place_of_perform_country_c"] != "USA"
-            else row["place_of_performance_state"]
-        ),
-        axis=1,
+    contract_df = contract_df.merge(
+        us_territories_df, how="left", left_on="place_of_perform_country_c", right_on="country_code"
+    ).drop("country_code", axis=1)
+    contract_df["place_of_performance_state"] = np.where(
+        ppop_territory_mask,
+        contract_df["country_code_2_char"],
+        contract_df["place_of_performance_state"],
     )
+
     contract_df = contract_df.merge(
         state_df, how="left", left_on="place_of_performance_state", right_on="state_code"
     ).drop("state_code", axis=1)
@@ -623,7 +625,16 @@ def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df, us
 
     # Drop all ppop-based extra columns we've created through merges
     contract_df = contract_df.drop(
-        ["country_code", "country_name", "county_code", "county_number", "county_name", "state_code", "state_name"],
+        [
+            "country_code",
+            "country_code_2_char",
+            "country_name",
+            "county_code",
+            "county_number",
+            "county_name",
+            "state_code",
+            "state_name",
+        ],
         axis=1,
     )
 
@@ -645,15 +656,17 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
         The contract_df dataframe with legal entity derivations
     """
     # Change US territories to the USA country code and name
-    le_us_mask = contract_df["legal_entity_country_code"].isin(list(us_territories_df.keys()))
+    us_territories = list(us_territories_df["country_code"])
+    le_us_mask = contract_df["legal_entity_country_code"].isin(us_territories)
     le_territory_mask = le_us_mask & (contract_df["legal_entity_country_code"] != "USA")
-    contract_df["legal_entity_state_code"] = contract_df.apply(
-        lambda row: (
-            us_territories_df[row["legal_entity_country_code"]]
-            if row["legal_entity_country_code"] in us_territories_df and row["legal_entity_country_code"] != "USA"
-            else row["legal_entity_state_code"]
-        ),
-        axis=1,
+
+    contract_df = contract_df.merge(
+        us_territories_df, how="left", left_on="legal_entity_country_code", right_on="country_code"
+    ).drop("country_code", axis=1)
+    contract_df["legal_entity_state_code"] = np.where(
+        le_territory_mask,
+        contract_df["country_code_2_char"],
+        contract_df["legal_entity_state_code"],
     )
     contract_df = contract_df.merge(state_df, how="left", left_on="legal_entity_state_code", right_on="state_code")
     # updating both blank states and those that were changed due to the territory updates
@@ -690,7 +703,9 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
     )
 
     # Drop all legal entity-based extra columns we've created through merges
-    contract_df = contract_df.drop(["country_code", "country_name", "state_code", "state_name"], axis=1)
+    contract_df = contract_df.drop(
+        ["country_code", "country_code_2_char", "country_name", "state_code", "state_name"], axis=1
+    )
 
     le_valid_zip_mask = (contract_df["legal_entity_zip4"].str.match(r"^\d{5}(-?\d{4})?$")) & le_us_mask
     # If we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
@@ -1326,6 +1341,7 @@ def create_lookups(sess):
         sess.query(CountryCode.country_code, CountryCode.country_code_2_char).filter_by(territory=True).statement,
         sess.connection(),
     )
+    us_territories_df.loc[len(us_territories_df)] = ["USA", "US"]
 
     # Get and create dataframe of states
     state_df = pd.read_sql(
