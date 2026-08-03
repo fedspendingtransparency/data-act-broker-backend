@@ -836,7 +836,9 @@ def derive_remaining_fields(
 
     # Do legal entity calculations only if we have SOME country code. If we have none at all the merge fails
     if contract_df["legal_entity_country_code"].notnull().any():
-        contract_df = calculate_legal_entity_fields(sess, contract_df, county_df, state_df, country_df, us_territories_df)
+        contract_df = calculate_legal_entity_fields(
+            sess, contract_df, county_df, state_df, country_df, us_territories_df
+        )
 
     # Make sure there are no np.NaNs that could mess up the business_categories calculations
     contract_df[boolean_fields] = contract_df[boolean_fields].replace({np.NaN: "NO"})
@@ -935,7 +937,9 @@ def derive_remaining_fields(
     return contract_df
 
 
-def process_data(sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df):
+def process_data(
+    sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
+):
     """Process the provided data by performing derivations, making sure all columns exist, and cleaning up column names
     then insert the data into the database or update existing data
 
@@ -1244,7 +1248,15 @@ def get_data(
             if len(contract_df) > 0:
                 if not delete:
                     process_data(
-                        sess, contract_df, contract_type, sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
+                        sess,
+                        contract_df,
+                        contract_type,
+                        sub_tier_df,
+                        county_df,
+                        state_df,
+                        country_df,
+                        us_territories_df,
+                        exec_comp_df,
                     )
                 else:
                     chunk_delete_df = process_deletes(sess, contract_df)
@@ -1311,7 +1323,8 @@ def create_lookups(sess):
     )
     # Get and create dataframe of us and territories
     us_territories_df = pd.read_sql(
-        sess.query(CountryCode.country_code, CountryCode.country_code_2_char).filter_by(territory=True).statement, sess.connection()
+        sess.query(CountryCode.country_code, CountryCode.country_code_2_char).filter_by(territory=True).statement,
+        sess.connection(),
     )
 
     # Get and create dataframe of states

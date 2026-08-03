@@ -1075,7 +1075,16 @@ def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, co
 
 
 def calculate_remaining_fields(
-    obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list, us_territories, exec_comp_dict, atom_type
+    obj,
+    sess,
+    sub_tier_list,
+    county_by_name,
+    county_by_code,
+    state_code_list,
+    country_list,
+    us_territories,
+    exec_comp_dict,
+    atom_type,
 ):
     """Calculate values that aren't in any feed but can be calculated.
 
@@ -1209,7 +1218,16 @@ def calculate_remaining_fields(
 
 
 def process_data(
-    data, sess, atom_type, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list, us_territories, exec_comp_dict
+    data,
+    sess,
+    atom_type,
+    sub_tier_list,
+    county_by_name,
+    county_by_code,
+    state_code_list,
+    country_list,
+    us_territories,
+    exec_comp_dict,
 ):
     """Process the data coming in.
 
@@ -2114,7 +2132,7 @@ def create_lookups(sess):
     # get and create list of country 3-code -> country name, us and territory 3-code -> country 2-code mappings.
     countries = sess.query(CountryCode).all()
     country_list = {}
-    us_territories = {'USA': 'US'}
+    us_territories = {"USA": "US"}
 
     for country in countries:
         country_list[country.country_code] = country.country_name
@@ -2224,7 +2242,9 @@ def main():
         "end_date": "",
     }
 
-    sub_tier_list, country_list, us_territories, state_code_list, county_by_name, county_by_code, exec_comp_dict = create_lookups(sess)
+    sub_tier_list, country_list, us_territories, state_code_list, county_by_name, county_by_code, exec_comp_dict = (
+        create_lookups(sess)
+    )
 
     if args.all:
         if (not args.delivery and not args.other) or (args.delivery and args.other):
