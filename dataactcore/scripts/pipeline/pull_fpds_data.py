@@ -564,7 +564,7 @@ def relevant_contract_dates_values(data, obj):
     return obj
 
 
-def vendor_values(data, obj):
+def vendor_values(data, obj, us_territories):
     """Get values from the vendor level of the xml"""
     # base vendor level
     value_map = {
@@ -611,12 +611,12 @@ def vendor_values(data, obj):
     except KeyError:
         data["vendorSiteDetails"] = {}
     # vendorSiteDetails sub-level (there are a lot so it gets its own function)
-    obj = vendor_site_details_values(data["vendorSiteDetails"], obj)
+    obj = vendor_site_details_values(data["vendorSiteDetails"], obj, us_territories)
 
     return obj
 
 
-def vendor_site_details_values(data, obj):
+def vendor_site_details_values(data, obj, us_territories):
     """Get values from the vendorSiteDetails level of the xml (sub-level of vendor)"""
     # base vendorSiteDetails level
     value_map = {
@@ -825,7 +825,7 @@ def vendor_site_details_values(data, obj):
 
     # differentiating between US and foreign states
     key = "legal_entity_state_code"
-    if obj["legal_entity_country_code"] not in country_code_map:
+    if obj["legal_entity_country_code"] not in us_territories:
         key = "legal_entity_state_descrip"
         # need to set this even if we're not going to be having a code because we need to access it later
         obj["legal_entity_state_code"] = None
@@ -1341,7 +1341,7 @@ def process_data(
         data["vendor"]
     except KeyError:
         data["vendor"] = {}
-    obj = vendor_values(data["vendor"], obj)
+    obj = vendor_values(data["vendor"], obj, us_territories)
 
     # make sure key exists before passing it
     try:
