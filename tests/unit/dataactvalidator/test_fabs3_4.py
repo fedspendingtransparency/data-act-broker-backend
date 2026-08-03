@@ -17,12 +17,12 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ActionType = E is only valid for mixed aggregate records (RecordType = 1)."""
-    fabs_1 = FABSFactory(record_type=1, action_type="E", correction_delete_indicatr=None)
-    fabs_2 = FABSFactory(record_type=1, action_type="e", correction_delete_indicatr="C")
+    """ActionType = G1 is only valid for mixed aggregate records (RecordType = 1)."""
+    fabs_1 = FABSFactory(record_type=1, action_type="G1", correction_delete_indicatr=None)
+    fabs_2 = FABSFactory(record_type=1, action_type="g1", correction_delete_indicatr="C")
 
     # Ignore delete record
-    fabs_3 = FABSFactory(record_type=2, action_type="e", correction_delete_indicatr="D")
+    fabs_3 = FABSFactory(record_type=2, action_type="g1", correction_delete_indicatr="D")
 
     # Can have whatever we want for other record types for this rule
     fabs_4 = FABSFactory(record_type=2, action_type="a", correction_delete_indicatr="")
@@ -35,9 +35,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """Fail ActionType = E is only valid for mixed aggregate records (RecordType = 1)."""
+    """Fail ActionType = G1 is only valid for mixed aggregate records (RecordType = 1)."""
 
-    fabs_1 = FABSFactory(record_type=2, action_type="e", correction_delete_indicatr="c")
+    fabs_1 = FABSFactory(record_type=2, action_type="g1", correction_delete_indicatr="c")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1])
     assert errors == 1
