@@ -394,7 +394,8 @@ class CountryCode(Base):
     country_code = Column(Text, nullable=False, index=True, unique=True)
     country_code_2_char = Column(Text, index=True)
     country_name = Column(Text, nullable=False)
-    territory_free_state = Column(Boolean, nullable=False, default=False, server_default="False")
+    territory = Column(Boolean, nullable=False, default=False, server_default="False")
+    free_state = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
 Index("ix_dap_awardee_or_recipient_uei_upper", sa.func.upper(CountryCode.country_code))

@@ -1,4 +1,4 @@
--- For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically,
+-- For new (ActionType = A1/A2) or mixed aggregate (ActionType = G1) assistance awards specifically,
 -- the AssistanceListingNumber must be active as of the ActionDate. This does not apply to correction records
 -- (those with CorrectionDeleteIndicator = C and delete records).
 
@@ -20,7 +20,7 @@ SELECT
     action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs37_1_{0} AS fabs
-WHERE UPPER(fabs.action_type) IN ('A', 'E')
+WHERE UPPER(fabs.action_type) IN ('A1', 'A2', 'G1')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) NOT IN ('C', 'D')
     AND fabs.row_number NOT IN (
         SELECT DISTINCT sub_fabs.row_number
