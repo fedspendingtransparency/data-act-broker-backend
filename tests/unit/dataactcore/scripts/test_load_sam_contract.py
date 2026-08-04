@@ -44,8 +44,18 @@ def prep_data(sess):
     )
 
     # Add country data to the database
-    country1 = CountryCode(country_code="USA", country_name="UNITED STATES")
-    country2 = CountryCode(country_code="KEN", country_name="KENYA")
+    country1 = CountryCode(
+        country_code="USA", country_code_2_char="US", country_name="UNITED STATES", free_state=False, territory=False
+    )
+    country2 = CountryCode(
+        country_code="KEN", country_code_2_char="KE", country_name="KENYA", free_state=False, territory=False
+    )
+    country3 = CountryCode(
+        country_code="GUM", country_code_2_char="GU", country_name="GUAM", free_state=False, territory=True
+    )
+    country4 = CountryCode(
+        country_code="PRI", country_code_2_char="PR", country_name="PUERTO RICO", free_state=False, territory=True
+    )
 
     # Add state data to the database
     states1 = States(state_code="KS", state_name="Kansas")
@@ -96,6 +106,8 @@ def prep_data(sess):
             sub_tier2,
             country1,
             country2,
+            country3,
+            country4,
             states1,
             states2,
             states3,
@@ -129,7 +141,9 @@ def test_create_lookups(database):
     """Test the creation of lookups to make sure they are acting as we expect"""
     sess = database.session
     prep_data(sess)
-    sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
+    sub_tier_df, country_df, us_territories_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(
+        sess
+    )
     # Subtier
     expected_sub_tier_df = pd.DataFrame(
         {
@@ -141,7 +155,12 @@ def test_create_lookups(database):
     pd.testing.assert_frame_equal(sub_tier_df, expected_sub_tier_df)
 
     # Country
-    expected_country_df = pd.DataFrame({"country_code": ["USA", "KEN"], "country_name": ["UNITED STATES", "KENYA"]})
+    expected_country_df = pd.DataFrame(
+        {
+            "country_code": ["USA", "KEN", "GUM", "PRI"],
+            "country_name": ["UNITED STATES", "KENYA", "GUAM", "PUERTO RICO"],
+        }
+    )
     pd.testing.assert_frame_equal(country_df, expected_country_df)
 
     # State: capitalizing names
@@ -184,9 +203,11 @@ def test_calculate_ppop_fields(database):
     sess = database.session
     prep_data(sess)
     contract_df = get_file("award")
-    sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
+    sub_tier_df, country_df, us_territories_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(
+        sess
+    )
     load_sam_contract.process_data(
-        sess, contract_df, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+        sess, contract_df, "award", sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
     )
 
     row1 = (
@@ -271,9 +292,11 @@ def test_calculate_legal_entity_fields(database):
     sess = database.session
     prep_data(sess)
     contract_df = get_file("award")
-    sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
+    sub_tier_df, country_df, us_territories_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(
+        sess
+    )
     load_sam_contract.process_data(
-        sess, contract_df, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+        sess, contract_df, "award", sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
     )
 
     row1 = (
@@ -357,12 +380,14 @@ def test_derive_remaining_fields(database):
     prep_data(sess)
     contract_df_award = get_file("award")
     contract_df_idv = get_file("idv")
-    sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(
-        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    sub_tier_df, country_df, us_territories_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(
+        sess
     )
     load_sam_contract.process_data(
-        sess, contract_df_idv, "idv", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
+    )
+    load_sam_contract.process_data(
+        sess, contract_df_idv, "idv", sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
     )
 
     row1 = (
@@ -488,7 +513,9 @@ def test_updates(database):
     sess = database.session
     prep_data(sess)
     contract_df_award = get_file("award")
-    sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
+    sub_tier_df, country_df, us_territories_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(
+        sess
+    )
 
     # Create an existing entry with one easily specified value to compare
     existing_contract = DetachedAwardProcurement(
@@ -500,7 +527,7 @@ def test_updates(database):
     sess.commit()
 
     load_sam_contract.process_data(
-        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
     )
 
     row1 = (
@@ -522,12 +549,14 @@ def test_deletes(database):
     contract_df_award = get_file("award")
     contract_df_idv = get_file("idv")
     contract_df_deletes = get_file("delete")
-    sub_tier_df, country_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(sess)
-    load_sam_contract.process_data(
-        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+    sub_tier_df, country_df, us_territories_df, state_df, county_df, exec_comp_df = load_sam_contract.create_lookups(
+        sess
     )
     load_sam_contract.process_data(
-        sess, contract_df_idv, "idv", sub_tier_df, county_df, state_df, country_df, exec_comp_df
+        sess, contract_df_award, "award", sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
+    )
+    load_sam_contract.process_data(
+        sess, contract_df_idv, "idv", sub_tier_df, county_df, state_df, country_df, us_territories_df, exec_comp_df
     )
     load_sam_contract.process_deletes(sess, contract_df_deletes)
 
