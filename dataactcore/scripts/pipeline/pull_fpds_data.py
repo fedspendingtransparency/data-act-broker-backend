@@ -50,25 +50,6 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.3&q="
 delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.5.3&q="
-country_code_map = {
-    "USA": "US",
-    "ASM": "AS",
-    "GUM": "GU",
-    "MNP": "MP",
-    "PRI": "PR",
-    "VIR": "VI",
-    "FSM": "FM",
-    "MHL": "MH",
-    "PLW": "PW",
-    "XBK": "UM",
-    "XHO": "UM",
-    "XJV": "UM",
-    "XJA": "UM",
-    "XKR": "UM",
-    "XPL": "UM",
-    "XMW": "UM",
-    "XWK": "UM",
-}
 
 FPDS_NAMESPACES = {
     "http://www.fpdsng.com/FPDS": None,
@@ -583,7 +564,7 @@ def relevant_contract_dates_values(data, obj):
     return obj
 
 
-def vendor_values(data, obj):
+def vendor_values(data, obj, us_territories):
     """Get values from the vendor level of the xml"""
     # base vendor level
     value_map = {
@@ -630,12 +611,12 @@ def vendor_values(data, obj):
     except KeyError:
         data["vendorSiteDetails"] = {}
     # vendorSiteDetails sub-level (there are a lot so it gets its own function)
-    obj = vendor_site_details_values(data["vendorSiteDetails"], obj)
+    obj = vendor_site_details_values(data["vendorSiteDetails"], obj, us_territories)
 
     return obj
 
 
-def vendor_site_details_values(data, obj):
+def vendor_site_details_values(data, obj, us_territories):
     """Get values from the vendorSiteDetails level of the xml (sub-level of vendor)"""
     # base vendorSiteDetails level
     value_map = {
@@ -844,7 +825,7 @@ def vendor_site_details_values(data, obj):
 
     # differentiating between US and foreign states
     key = "legal_entity_state_code"
-    if obj["legal_entity_country_code"] not in country_code_map:
+    if obj["legal_entity_country_code"] not in us_territories:
         key = "legal_entity_state_descrip"
         # need to set this even if we're not going to be having a code because we need to access it later
         obj["legal_entity_state_code"] = None
@@ -996,14 +977,14 @@ def generic_values(data, obj):
     return obj
 
 
-def calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list):
+def calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list, us_territories):
     """calculate values that aren't in any feed (or haven't been provided properly) for place of performance"""
     # only do any of these calculation if the country code is in the list of US territories
-    if obj["place_of_perform_country_c"] in country_code_map:
+    if obj["place_of_perform_country_c"] in us_territories:
         # If it's in the list but not USA, find its state code in the list and put that in the state code spot, get
         # the state name, then replace country code and country description with USA and UNITED STATES respectively
         if obj["place_of_perform_country_c"] != "USA":
-            obj["place_of_performance_state"] = country_code_map[obj["place_of_perform_country_c"]]
+            obj["place_of_performance_state"] = us_territories[obj["place_of_perform_country_c"]]
             if obj["place_of_performance_state"] in state_code_list:
                 obj["place_of_perfor_state_desc"] = state_code_list[obj["place_of_performance_state"]]
             obj["place_of_perform_country_c"] = "USA"
@@ -1050,14 +1031,14 @@ def calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_
         obj["place_of_perf_country_desc"] = country_list[obj["place_of_perform_country_c"]]
 
 
-def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list):
+def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list, us_territories):
     """calculate values that aren't in any feed (or haven't been provided properly) for legal entity"""
     # do legal entity derivations only if legal entity country code is in a US territory of any kind
-    if obj["legal_entity_country_code"] in country_code_map:
+    if obj["legal_entity_country_code"] in us_territories:
         # if it's in the list but not USA, find its state code in the list and put that in the state code spot, get
         # the state name, then replace country code and country description with USA and UNITED STATES respectively
         if obj["legal_entity_country_code"] != "USA":
-            obj["legal_entity_state_code"] = country_code_map[obj["legal_entity_country_code"]]
+            obj["legal_entity_state_code"] = us_territories[obj["legal_entity_country_code"]]
             if obj["legal_entity_state_code"] in state_code_list:
                 obj["legal_entity_state_descrip"] = state_code_list[obj["legal_entity_state_code"]]
             obj["legal_entity_country_code"] = "USA"
@@ -1094,7 +1075,16 @@ def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, co
 
 
 def calculate_remaining_fields(
-    obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list, exec_comp_dict, atom_type
+    obj,
+    sess,
+    sub_tier_list,
+    county_by_name,
+    county_by_code,
+    state_code_list,
+    country_list,
+    us_territories,
+    exec_comp_dict,
+    atom_type,
 ):
     """Calculate values that aren't in any feed but can be calculated.
 
@@ -1106,6 +1096,7 @@ def calculate_remaining_fields(
         county_by_code: a dictionary containing all county names, keyed by state and county code
         state_code_list: a dictionary containing all state names, keyed by state code
         country_list: a dictionary containing all country names, keyed by country code
+        us_territories: a dictionary containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
         atom_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
 
@@ -1166,11 +1157,11 @@ def calculate_remaining_fields(
 
     # do place of performance calculations only if we have SOME country code
     if obj["place_of_perform_country_c"]:
-        calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list)
+        calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list, us_territories)
 
     # do legal entity calculations only if we have SOME country code
     if obj["legal_entity_country_code"]:
-        calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list)
+        calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list, us_territories)
 
     # calculate business categories
     obj["business_categories"] = get_business_categories(row=obj, data_type="fpds")
@@ -1227,7 +1218,16 @@ def calculate_remaining_fields(
 
 
 def process_data(
-    data, sess, atom_type, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list, exec_comp_dict
+    data,
+    sess,
+    atom_type,
+    sub_tier_list,
+    county_by_name,
+    county_by_code,
+    state_code_list,
+    country_list,
+    us_territories,
+    exec_comp_dict,
 ):
     """Process the data coming in.
 
@@ -1240,6 +1240,7 @@ def process_data(
         county_by_code: a dictionary containing all county names, keyed by state and county code
         state_code_list: a dictionary containing all state names, keyed by state code
         country_list: a dictionary containing all country names, keyed by country code
+        us_territories: a dictionary containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
 
     Returns:
@@ -1358,7 +1359,7 @@ def process_data(
         data["vendor"]
     except KeyError:
         data["vendor"] = {}
-    obj = vendor_values(data["vendor"], obj)
+    obj = vendor_values(data["vendor"], obj, us_territories)
 
     # make sure key exists before passing it
     try:
@@ -1382,6 +1383,7 @@ def process_data(
         county_by_code,
         state_code_list,
         country_list,
+        us_territories,
         exec_comp_dict,
         atom_type,
     )
@@ -1588,6 +1590,7 @@ def create_processed_data_list(
     county_by_code,
     state_code_list,
     country_list,
+    us_territories,
     exec_comp_dict,
 ):
     """Create a list of processed data
@@ -1601,6 +1604,7 @@ def create_processed_data_list(
         county_by_code: a dictionary containing all county names, keyed by state and county code
         state_code_list: a dictionary containing all state names, keyed by state code
         country_list: a dictionary containing all country names, keyed by country code
+        us_territories: a dictionary containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
 
     Returns:
@@ -1617,6 +1621,7 @@ def create_processed_data_list(
             county_by_code=county_by_code,
             state_code_list=state_code_list,
             country_list=country_list,
+            us_territories=us_territories,
             exec_comp_dict=exec_comp_dict,
         )
         data_list.append(tmp_obj)
@@ -1650,6 +1655,7 @@ def process_and_add(
     county_by_code,
     state_code_list,
     country_list,
+    us_territories,
     exec_comp_dict,
     now,
     threaded=False,
@@ -1665,6 +1671,7 @@ def process_and_add(
         county_by_code: a dictionary containing all county names, keyed by state and county code
         state_code_list: a dictionary containing all state names, keyed by state code
         country_list: a dictionary containing all country names, keyed by country code
+        us_territories: a dictionary containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
         now: a timestamp indicating the time to set the updated_at to
         threaded: a boolean indicating whether the process is running as a thread or not
@@ -1680,6 +1687,7 @@ def process_and_add(
                 county_by_code=county_by_code,
                 state_code_list=state_code_list,
                 country_list=country_list,
+                us_territories=us_territories,
                 exec_comp_dict=exec_comp_dict,
             )
             tmp_obj["updated_at"] = now
@@ -1701,6 +1709,7 @@ def process_and_add(
                 county_by_code=county_by_code,
                 state_code_list=state_code_list,
                 country_list=country_list,
+                us_territories=us_territories,
                 exec_comp_dict=exec_comp_dict,
             )
 
@@ -1772,6 +1781,7 @@ def get_data(
     county_by_code,
     state_code_list,
     country_list,
+    us_territories,
     exec_comp_dict,
     last_run=None,
     threaded=False,
@@ -1792,6 +1802,7 @@ def get_data(
         county_by_code: a dictionary containing all county names, keyed by state and county code
         state_code_list: a dictionary containing all state names, keyed by state code
         country_list: a dictionary containing all country names, keyed by country code
+        us_territories: a dictionary containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by UEI number
         last_run: a date indicating the last time the pull was run
         threaded: a boolean indicating whether the process is running as a thread or not
@@ -1885,6 +1896,7 @@ def get_data(
                         county_by_code,
                         state_code_list,
                         country_list,
+                        us_territories,
                         exec_comp_dict,
                     )
                 )
@@ -1926,6 +1938,7 @@ def get_data(
                     county_by_code,
                     state_code_list,
                     country_list,
+                    us_territories,
                     exec_comp_dict,
                     utcnow,
                     threaded,
@@ -2116,12 +2129,15 @@ def create_lookups(sess):
     for sub_tier in sub_tiers:
         sub_tier_list[sub_tier.sub_tier_agency_code] = sub_tier
 
-    # get and create list of country code -> country name mappings.
+    # get and create list of country 3-code -> country name, us and territory 3-code -> country 2-code mappings.
     countries = sess.query(CountryCode).all()
     country_list = {}
+    us_territories = {"USA": "US"}
 
     for country in countries:
         country_list[country.country_code] = country.country_name
+        if country.territory:
+            us_territories[country.country_code] = country.country_code_2_char
 
     # get and create list of state code -> state name mappings. Prime the county lists with state codes
     county_by_name = {}
@@ -2173,7 +2189,7 @@ def create_lookups(sess):
         }
     del sam_recipient_list
 
-    return sub_tier_list, country_list, state_code_list, county_by_name, county_by_code, exec_comp_dict
+    return sub_tier_list, country_list, us_territories, state_code_list, county_by_name, county_by_code, exec_comp_dict
 
 
 def main():
@@ -2226,7 +2242,9 @@ def main():
         "end_date": "",
     }
 
-    sub_tier_list, country_list, state_code_list, county_by_name, county_by_code, exec_comp_dict = create_lookups(sess)
+    sub_tier_list, country_list, us_territories, state_code_list, county_by_name, county_by_code, exec_comp_dict = (
+        create_lookups(sess)
+    )
 
     if args.all:
         if (not args.delivery and not args.other) or (args.delivery and args.other):
@@ -2252,6 +2270,7 @@ def main():
                     county_by_code,
                     state_code_list,
                     country_list,
+                    us_territories,
                     exec_comp_dict,
                     metrics=metrics_json,
                 )
@@ -2267,6 +2286,7 @@ def main():
                         county_by_code,
                         state_code_list,
                         country_list,
+                        us_territories,
                         exec_comp_dict,
                         metrics=metrics_json,
                     )
@@ -2282,6 +2302,7 @@ def main():
                 county_by_code,
                 state_code_list,
                 country_list,
+                us_territories,
                 exec_comp_dict,
                 metrics=metrics_json,
             )
@@ -2328,6 +2349,7 @@ def main():
                 county_by_code,
                 state_code_list,
                 country_list,
+                us_territories,
                 exec_comp_dict,
                 last_update,
                 start_date=start_date,
@@ -2346,6 +2368,7 @@ def main():
                 county_by_code,
                 state_code_list,
                 country_list,
+                us_territories,
                 exec_comp_dict,
                 last_update,
                 start_date=start_date,
