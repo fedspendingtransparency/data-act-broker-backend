@@ -496,7 +496,7 @@ def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df, us
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
-        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
+        us_territories_df: a dataframe containing all the us and territory 2-char country codes, keyed by country code
 
     Returns:
         The contract_df dataframe with legal entity derivations
@@ -650,7 +650,7 @@ def calculate_legal_entity_fields(sess, contract_df, county_df, state_df, countr
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
-        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
+        us_territories_df: a dataframe containing all the us and territory 2-char country codes, keyed by country code
 
     Returns:
         The contract_df dataframe with legal entity derivations
@@ -827,7 +827,7 @@ def derive_remaining_fields(
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
-        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
+        us_territories_df: a dataframe containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_df: a dataframe containing all the data for Executive Compensation
 
     Returns:
@@ -966,7 +966,7 @@ def process_data(
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
-        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
+        us_territories_df: a dataframe containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_df: a dataframe containing all the data for Executive Compensation
     """
     contract_mappings = SAM_CONTRACT_MAPPINGS
@@ -1220,7 +1220,7 @@ def get_data(
         county_df: a dataframe containing all county codes and names by state
         state_df: a dataframe containing all state codes and names
         country_df: a dataframe containing all country codes and names
-        us_territories_df: a dictionary containing all the us and territory 2-char country codes, keyed by country code
+        us_territories_df: a dataframe containing all the us and territory 2-char country codes, keyed by country code
         exec_comp_df: a dataframe containing all the data for Executive Compensation
         contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
         award_type: a string indicating what the award type of the feed being checked is
