@@ -1,14 +1,14 @@
 """distinguish territories and freely associated states in country codes
 
 Revision ID: 02c7c16ddfc6
-Revises: e10ecbfda17f
+Revises: 186c77a3662e
 Create Date: 2026-07-28 23:25:29.327593
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '02c7c16ddfc6'
-down_revision = 'e10ecbfda17f'
+down_revision = '186c77a3662e'
 branch_labels = None
 depends_on = None
 
