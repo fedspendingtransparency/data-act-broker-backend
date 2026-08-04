@@ -18,24 +18,23 @@ def test_column_headers(database):
 
 def test_success(database):
     """Test IndirectCostFederalShareAmount is required for grants and cooperative agreements
-    (AssistanceType = 02, 03, 04, 05, F001, or F002). This only applies to award actions with ActionDate on or after
-    April 4, 2022.
+    (AssistanceType = F001 or F002). This only applies to award actions with ActionDate on or after April 4, 2022.
     """
 
-    fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type="02", action_date="05/05/2022")
+    fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type="F002", action_date="05/05/2022")
     fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type="F001", action_date="05/05/2022")
 
     # Doesn't care about other assistance types
-    fabs_3 = FABSFactory(indirect_federal_sharing=None, assistance_type="09", action_date="05/05/2022")
+    fabs_3 = FABSFactory(indirect_federal_sharing=None, assistance_type="F009", action_date="05/05/2022")
 
     # Doesn't care about earlier dates
-    fabs_4 = FABSFactory(indirect_federal_sharing=None, assistance_type="03", action_date="05/05/2021")
+    fabs_4 = FABSFactory(indirect_federal_sharing=None, assistance_type="F001", action_date="05/05/2021")
 
     # Still doesn't trigger when not blank for other assistance types
-    fabs_5 = FABSFactory(indirect_federal_sharing=123, assistance_type="09")
+    fabs_5 = FABSFactory(indirect_federal_sharing=123, assistance_type="F009")
 
     # Ignore when CorrectionDeleteIndicator is D
-    fabs_6 = FABSFactory(indirect_federal_sharing=123, assistance_type="09", correction_delete_indicatr="d")
+    fabs_6 = FABSFactory(indirect_federal_sharing=123, assistance_type="F009", correction_delete_indicatr="d")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6])
     assert errors == 0
@@ -43,11 +42,10 @@ def test_success(database):
 
 def test_failure(database):
     """Test failure IndirectCostFederalShareAmount is required for grants and cooperative agreements
-    (AssistanceType = 02, 03, 04, 05, F001, or F002). This only applies to award actions with ActionDate on or after
-    April 4, 2022.
+    (AssistanceType = F001 or F002). This only applies to award actions with ActionDate on or after April 4, 2022.
     """
 
-    fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type="02", action_date="05/05/2022")
+    fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type="F002", action_date="05/05/2022")
     fabs_2 = FABSFactory(indirect_federal_sharing=None, assistance_type="F001", action_date="05/05/2022")
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2

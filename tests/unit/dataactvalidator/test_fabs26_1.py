@@ -16,22 +16,22 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """FederalActionObligation must be blank for loans (i.e., when AssistanceType = 07, 08, F003, or F004)."""
+    """FederalActionObligation must be blank for loans (i.e., when AssistanceType = F003 or F004)."""
 
-    fabs = FABSFactory(assistance_type="07", federal_action_obligation=None, correction_delete_indicatr="")
-    fabs_2 = FABSFactory(assistance_type="08", federal_action_obligation=None, correction_delete_indicatr="c")
+    fabs = FABSFactory(assistance_type="F003", federal_action_obligation=None, correction_delete_indicatr="")
+    fabs_2 = FABSFactory(assistance_type="F004", federal_action_obligation=None, correction_delete_indicatr="c")
     fabs_3 = FABSFactory(assistance_type="F003", federal_action_obligation=0, correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
-    fabs_4 = FABSFactory(assistance_type="08", federal_action_obligation=20, correction_delete_indicatr="d")
+    fabs_4 = FABSFactory(assistance_type="F004", federal_action_obligation=20, correction_delete_indicatr="d")
 
     errors = number_of_errors(_FILE, database, models=[fabs, fabs_2, fabs_3, fabs_4])
     assert errors == 0
 
 
 def test_failure(database):
-    """FederalActionObligation must be blank for loans (i.e., when AssistanceType = 07, 08, F003, or F004)."""
+    """FederalActionObligation must be blank for loans (i.e., when AssistanceType = F003 or F004)."""
 
-    fabs = FABSFactory(assistance_type="08", federal_action_obligation=20, correction_delete_indicatr="")
+    fabs = FABSFactory(assistance_type="F003", federal_action_obligation=20, correction_delete_indicatr="")
 
     errors = number_of_errors(_FILE, database, models=[fabs])
     assert errors == 1
