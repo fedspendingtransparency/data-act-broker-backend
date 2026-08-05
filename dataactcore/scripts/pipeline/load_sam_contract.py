@@ -1427,7 +1427,7 @@ def main():
             args.start_date, args.end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
         )
         if not end_date:
-            end_date = get_utc_now().date() - relativedelta(days=1)
+            end_date = (get_utc_now().date() - relativedelta(days=1)).strftime("%m/%d/%Y")
 
     if args.feed in ["add", "both"]:
         insert_start = get_utc_now()
