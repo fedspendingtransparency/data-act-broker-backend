@@ -1425,6 +1425,8 @@ def main():
         start_date, end_date = validate_load_dates(
             args.start_date, args.end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
         )
+        if not end_date:
+            end_date = get_utc_now().date() - relativedelta(days=1)
 
     if args.feed in ["add", "both"]:
         insert_start = get_utc_now()
