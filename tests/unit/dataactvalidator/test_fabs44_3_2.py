@@ -32,7 +32,7 @@ def test_success(database):
         legal_entity_zip5="12345",
         legal_entity_congressional="01",
         correction_delete_indicatr="c",
-        action_date="20230104",
+        action_date="20230103",
     )
     fabs_2 = FABSFactory(
         legal_entity_zip5="23456",
