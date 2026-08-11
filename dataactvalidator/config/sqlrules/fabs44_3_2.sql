@@ -32,4 +32,4 @@ WHERE submission_id = {0}
                 WHERE zc_2.zip_code = fabs.legal_entity_zip5
                     AND COALESCE(sc_2.census_year, 2020) >= 2020) < 2)
     )
-    AND cast_as_date(action_date) > '01/03/2023';
+    AND cast_as_date(action_date) >= '01/03/2023';
