@@ -374,6 +374,16 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument("-u", "--unlinked", help="Pull only unlinked records.", action="store_true")
+    parser.add_argument(
+        "-m", "--load_missing", help="Pull any remaining raw records into the subaward table", action="store_true"
+    )
+    parser.add_argument(
+        "-aid",
+        "--award_id",
+        help="Pull in subawards under a specific piid/fain. Ignored with unlinked runs.",
+        type=str,
+        nargs=1,
+    )
     parser.add_argument("--auto", help="Pull records since the last load.", action="store_true")
     parser.add_argument("-i", "--ignore_db", help="Do not update the DB tables", action="store_true")
 
@@ -389,68 +399,98 @@ if __name__ == "__main__":
             "grant_subawards": 0,
         }
 
-        start_date, end_date = validate_load_dates(
-            args.start_date, args.end_date, args.auto, "subaward", "%Y-%m-%d", "%Y-%m-%d"
-        )
-        if args.auto:
-            yesterday = get_utc_now().date() - relativedelta(days=1)
-            end_date = yesterday.strftime("%Y-%m-%d")
         data_types = ["contract", "assistance"] if args.data_type == "both" else [args.data_type]
         load_types = ["published", "deleted"] if args.load_type == "both" else [args.load_type]
 
-        # there may be more transaction data since we've last run, let's fix any links before importing new data
-        last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
-        if last_updated_at:
-            for data_type in data_types:
-                fix_broken_links(sess, data_type)
+        if not args.load_missing:
+            start_date, end_date = validate_load_dates(
+                args.start_date, args.end_date, args.auto, "subaward", "%Y-%m-%d", "%Y-%m-%d"
+            )
+            if args.auto:
+                yesterday = get_utc_now().date() - relativedelta(days=1)
+                end_date = yesterday.strftime("%Y-%m-%d")
+
+            award_id = None
+            if args.award_id and args.data_type == "both":
+                raise ValueError(
+                    "When using award_id argument, specify data_type must be assistance or contract, not both."
+                )
+            elif args.award_id:
+                award_id = args.award_id[0]
+
+            # there may be more transaction data since we've last run, let's fix any links before importing new data
+            last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()[0]
+            if last_updated_at:
+                for data_type in data_types:
+                    fix_broken_links(sess, data_type)
 
         start_ingestion_datetime = get_utc_now()
         pulled_report_nums = {}
-        for data_type in data_types:
-            for load_type in load_types:
-                if args.unlinked and load_type != "deleted":
-                    type_table = "grant" if data_type == "assistance" else "contract"
-                    unlinked_ids = sess.execute(
-                        f"""
-                            SELECT DISTINCT SPLIT_PART(ss.unique_award_key, '_', 3) AS award_id
-                            FROM subaward
-                            JOIN sam_sub{type_table} ss on subaward.internal_id=ss.subaward_report_number
-                            WHERE subaward.unique_award_key IS NULL;
-                        """
-                    ).fetchall()
 
-                    for unlinked_id in unlinked_ids:
-                        logger.info(
-                            f"Loading SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}"
-                        )
+        if not args.load_missing:
+            for data_type in data_types:
+                for load_type in load_types:
+                    if args.unlinked and load_type != "deleted":
+                        type_table = "grant" if data_type == "assistance" else "contract"
+                        unlinked_ids = sess.execute(
+                            f"""
+                                SELECT DISTINCT SPLIT_PART(ss.unique_award_key, '_', 3) AS award_id
+                                FROM subaward
+                                JOIN sam_sub{type_table} ss on subaward.internal_id=ss.subaward_report_number
+                                WHERE subaward.unique_award_key IS NULL;
+                            """
+                        ).fetchall()
+
+                        for unlinked_id in unlinked_ids:
+                            logger.info(
+                                f"Loading SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}"
+                            )
+                            report_nums = load_subawards(
+                                sess,
+                                data_type,
+                                load_type=load_type,
+                                start_load_date=start_date,
+                                end_load_date=end_date,
+                                award_id=unlinked_id.award_id,
+                                update_db=not args.ignore_db,
+                                metrics=metrics_json,
+                            )
+                            pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
+                            logger.info(
+                                f"Loaded SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}"
+                            )
+                    else:
+                        logger.info(f"Loading {load_type} SAM Subaward reports for {data_type}")
                         report_nums = load_subawards(
                             sess,
                             data_type,
                             load_type=load_type,
                             start_load_date=start_date,
                             end_load_date=end_date,
-                            award_id=unlinked_id.award_id,
+                            award_id=award_id,
                             update_db=not args.ignore_db,
                             metrics=metrics_json,
                         )
                         pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
-                        logger.info(f"Loaded SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}")
-                else:
-                    logger.info(f"Loading {load_type} SAM Subaward reports for {data_type}")
-                    report_nums = load_subawards(
-                        sess,
-                        data_type,
-                        load_type=load_type,
-                        start_load_date=start_date,
-                        end_load_date=end_date,
-                        update_db=not args.ignore_db,
-                        metrics=metrics_json,
-                    )
-                    pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
-                    logger.info(f"Loaded {load_type} SAM Subaward reports for {data_type}")
+                        logger.info(f"Loaded {load_type} SAM Subaward reports for {data_type}")
+        else:
+            for data_type in data_types:
+                type_table = SAMSubgrant if data_type == "assistance" else SAMSubcontract
+                missing_subs = (
+                    sess.query(type_table.subaward_report_number)
+                    .outerjoin(Subaward, type_table.subaward_report_number == Subaward.internal_id)
+                    .filter(Subaward.id.is_(None))
+                    .all()
+                )
+                pulled_report_nums[f"published-{data_type}"] = [
+                    missing_sub.subaward_report_number for missing_sub in missing_subs
+                ]
 
         logger.info("Populating subaward table based off new data")
         for loader_portion, report_nums in pulled_report_nums.items():
+            if not report_nums:
+                logger.info(f"No {loader_portion} records to process.")
+                continue
             load_type, data_type = tuple(loader_portion.split("-"))
 
             # For all scenarios, we're deleting the existing records. Only for additions, we're repopulating them.
@@ -460,7 +500,12 @@ if __name__ == "__main__":
 
             if load_type != "deleted":
                 logger.info(f"Populating {load_type}-{data_type} records to the subaward table")
-                populate_subaward_table(sess, data_type, min_date=start_ingestion_datetime, report_nums=report_nums)
+                populate_subaward_table(
+                    sess,
+                    data_type,
+                    min_date=start_ingestion_datetime if not args.load_missing else None,
+                    report_nums=report_nums,
+                )
 
         if args.auto:
             update_external_data_load_date(now, datetime.datetime.now(), "subaward")
