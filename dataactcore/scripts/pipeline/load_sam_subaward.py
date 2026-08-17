@@ -57,8 +57,8 @@ def main(
 
     Args:
         sess: Current DB session.
-        data_types: list of "contract", "assistance", or both
         load_types: list of "published", "deleted", or both
+        data_types: list of "contract", "assistance", or both
         start_date: earliest reportUpdatedDate to pull from, None for beginning of time
         end_date: latest reportUpdatedDate to pull from, None for the present
         award_id: which award id to pull
