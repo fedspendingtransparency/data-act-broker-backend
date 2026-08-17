@@ -488,7 +488,7 @@ def insert_into_db(sess, contract_df):
         row_values = []
         # split it up by value for sql injection checking
         for value in row:
-            params_dict[f"param{index}"] = str(value).replace('"', "'") if value != "NULL" else None
+            params_dict[f"param{index}"] = str(value) if value != "NULL" else None
             row_values.append(f":param{index}")
             index += 1
         # build the row of *params* that will be populated by the binding params_dict
