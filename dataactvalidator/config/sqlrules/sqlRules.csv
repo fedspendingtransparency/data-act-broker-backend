@@ -124,6 +124,7 @@ FABS4.1,"ActionDate must follow YYYYMMDD format, where YYYY is the year, MM the 
 FABS4.2,"Value of ActionDate must be between 19991001 and 20991231 (i.e., a date between 10/01/1999 and 12/31/2099).",n,fabs,fatal,,fabs4_2,"Between 10/1/1999 and 12/31/2099","accuracy",n
 FABS4.3,"A future ActionDate is valid only if it occurs within the current fiscal year",n,fabs,fatal,,fabs4_3,"Less than or equal to September 30 of the current fiscal year","accuracy",n
 FABS5.1,"AssistanceType field must contain one of the following values: ""F001"", ""F002"", ""F003"", ""F004"", ""F005"", ""F006"", ""F007"", ""F008"", ""F009"", or ""F010"".",n,fabs,fatal,,fabs5_1,"""F001"", ""F002"", ""F003"", ""F004"", ""F005"", ""F006"", ""F007"", ""F008"", ""F009"", or ""F010"".","accuracy",n
+FABS5.2,"When AssistanceType is a Grant or Cooperative Agreement (AssistanceType = F001 or F002) with an ActionDate on or after October 01, 2026, AwardAmountBasisCode and AwardRecipientBasisCode must be populated.",n,fabs,fatal,,fabs5_2,"(not blank)","completeness",n
 FABS6,"RecordType field must contain one of the following values: ""1"", ""2"", or ""3"".",n,fabs,fatal,,fabs6,"""1,"" ""2"" or ""3"".","accuracy",n
 FABS7,"URI is a required field for aggregate records (RecordType = 1).",n,fabs,fatal,,fabs7,"URI is required for this RecordType","completeness",n
 FABS9.1,"AwardeeOrRecipientLegalEntityName must contain ""MULTIPLE RECIPIENTS"" for aggregate records (RecordType = 1).",n,fabs,fatal,,fabs9_1,"MULTIPLE RECIPIENTS","accuracy",n
