@@ -126,6 +126,7 @@ FABS4.3,"A future ActionDate is valid only if it occurs within the current fisca
 FABS5.1,"AssistanceType field must contain one of the following values: ""F001"", ""F002"", ""F003"", ""F004"", ""F005"", ""F006"", ""F007"", ""F008"", ""F009"", or ""F010"".",n,fabs,fatal,,fabs5_1,"""F001"", ""F002"", ""F003"", ""F004"", ""F005"", ""F006"", ""F007"", ""F008"", ""F009"", or ""F010"".","accuracy",n
 FABS5.2,"When AssistanceType is a Grant or Cooperative Agreement (AssistanceType = F001 or F002) with an ActionDate on or after October 01, 2026, AwardAmountBasisCode and AwardRecipientBasisCode must be populated.",n,fabs,fatal,,fabs5_2,"(not blank)","completeness",n
 FABS5.3,"When provided, AwardAmountBasisCode must contain one of the values between ""A01"" and ""A04""",n,fabs,fatal,,fabs5_3,"""A01"", ""A02"", ""A03"", or ""A04""","accuracy",n
+FABS5.4,"When provided, AwardRecipientBasisCode must contain one of the values between ""R01"" and ""R04""",n,fabs,fatal,,fabs5_4,"""R01"", ""R02"", ""R03"", or ""R04""","accuracy",n
 FABS6,"RecordType field must contain one of the following values: ""1"", ""2"", or ""3"".",n,fabs,fatal,,fabs6,"""1,"" ""2"" or ""3"".","accuracy",n
 FABS7,"URI is a required field for aggregate records (RecordType = 1).",n,fabs,fatal,,fabs7,"URI is required for this RecordType","completeness",n
 FABS9.1,"AwardeeOrRecipientLegalEntityName must contain ""MULTIPLE RECIPIENTS"" for aggregate records (RecordType = 1).",n,fabs,fatal,,fabs9_1,"MULTIPLE RECIPIENTS","accuracy",n
