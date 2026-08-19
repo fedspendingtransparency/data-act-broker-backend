@@ -1761,7 +1761,7 @@ class FileTests(BaseTestAPI):
 
     def test_cross_file_status_reset_new_upload(self):
         """Test that cross-file resets when D file generation is called."""
-        submission = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+        submission = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT["unpublished"])
         self.session.add(submission)
         self.session.commit()
 
