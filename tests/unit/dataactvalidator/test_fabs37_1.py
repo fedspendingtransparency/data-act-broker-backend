@@ -78,7 +78,9 @@ def test_failure(database):
     """
 
     assistance_listing = AssistanceListing(program_number="12.340", published_date="20130427", archived_date="")
-    assistance_listing2 = AssistanceListing(program_number="12.341", published_date="20130427", archived_date="20140427")
+    assistance_listing2 = AssistanceListing(
+        program_number="12.341", published_date="20130427", archived_date="20140427"
+    )
     fabs_1 = FABSFactory(
         assistance_listing_number="12.340", action_date="20120111", action_type="e", correction_delete_indicatr="B"
     )
@@ -96,5 +98,7 @@ def test_failure(database):
         assistance_listing_number="12.341", action_date="20120111", action_type="E", correction_delete_indicatr=None
     )
 
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, assistance_listing, assistance_listing2])
+    errors = number_of_errors(
+        _FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, assistance_listing, assistance_listing2]
+    )
     assert errors == 5
