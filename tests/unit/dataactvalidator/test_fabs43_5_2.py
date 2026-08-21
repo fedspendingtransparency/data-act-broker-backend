@@ -25,6 +25,7 @@ def test_success(database):
     PrimaryPlaceOfPerformanceZIP+4 according to the current USPS source data.
     """
     zips = ZipsFactory(zip5="12345", zip_last4="6789", state_abbreviation="NY", congressional_district_no="01")
+    zips2 = ZipsFactory(zip5="12345", zip_last4="9876", state_abbreviation="NY", congressional_district_no="02")
 
     fabs_1 = FABSFactory(
         place_of_performance_code="Ny12345",
@@ -42,8 +43,8 @@ def test_success(database):
     )
     fabs_3 = FABSFactory(
         place_of_performance_code="NY12345",
-        place_of_performance_zip4a="12345-6789",
-        place_of_performance_congr="01",
+        place_of_performance_zip4a="12345-9876",
+        place_of_performance_congr="02",
         correction_delete_indicatr="c",
         action_date="20230830",
     )
@@ -94,7 +95,7 @@ def test_success(database):
     )
 
     errors = number_of_errors(
-        _FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8, fabs_9, zips]
+        _FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, fabs_7, fabs_8, fabs_9, zips, zips2]
     )
     assert errors == 0
 
@@ -106,6 +107,7 @@ def test_failure(database):
     PrimaryPlaceOfPerformanceZIP+4 according to the current USPS source data.
     """
     zips = ZipsFactory(zip5="12345", zip_last4="6789", state_abbreviation="NY", congressional_district_no="01")
+    zips2 = ZipsFactory(zip5="12345", zip_last4="9876", state_abbreviation="NY", congressional_district_no="02")
 
     fabs_1 = FABSFactory(
         place_of_performance_code="ny12345",
@@ -128,6 +130,14 @@ def test_failure(database):
         correction_delete_indicatr="c",
         action_date="20230830",
     )
+    # 9-digit code but for the wrong congressional district even though it exists for the 5-digit code
+    fabs_4 = FABSFactory(
+        place_of_performance_code="NY12345",
+        place_of_performance_zip4a="123456789",
+        place_of_performance_congr="02",
+        correction_delete_indicatr="c",
+        action_date="20230830",
+    )
 
-    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, zips])
-    assert errors == 3
+    errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, zips, zips2])
+    assert errors == 4
