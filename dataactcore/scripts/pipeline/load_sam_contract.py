@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import tempfile
+from io import StringIO
 
 from requests.exceptions import RequestException
 
@@ -11,7 +12,21 @@ import boto3
 import numpy as np
 import pandas as pd
 
-from sqlalchemy import func, case, types, text, Boolean
+from sqlalchemy import (
+    func,
+    case,
+    types,
+    Boolean,
+    Numeric,
+    ARRAY,
+    BigInteger,
+    Text,
+    Integer,
+    Float,
+    DateTime,
+    Date,
+)
+from sqlalchemy.inspection import inspect
 
 from dataactbroker.helpers.script_helper import validate_load_dates
 from dataactbroker.helpers.generic_helper import unzip
@@ -452,6 +467,51 @@ feed_url = "https://api.sam.gov/contract-awards/v1/search?"
 logger = logging.getLogger(__name__)
 
 
+def get_column_type_mapping(model_class):
+    """
+    Dynamically generate PostgreSQL type mapping from SQLAlchemy model
+
+    Args:
+        model_class: SQLAlchemy model class
+
+    Returns:
+        dict: Mapping of column names to PostgreSQL types
+    """
+    mapper = inspect(model_class)
+    type_mapping = {}
+
+    for column in mapper.columns:
+        col_name = column.name
+        col_type = column.type
+
+        # Map SQLAlchemy types to PostgreSQL types
+        if isinstance(col_type, Boolean):
+            type_mapping[col_name] = "BOOLEAN"
+        elif isinstance(col_type, Numeric):
+            type_mapping[col_name] = "NUMERIC"
+        elif isinstance(col_type, BigInteger):
+            type_mapping[col_name] = "BIGINT"
+        elif isinstance(col_type, Integer):
+            type_mapping[col_name] = "INTEGER"
+        elif isinstance(col_type, Float):
+            type_mapping[col_name] = "DOUBLE PRECISION"
+        elif isinstance(col_type, DateTime):
+            type_mapping[col_name] = "TIMESTAMP"
+        elif isinstance(col_type, Date):
+            type_mapping[col_name] = "DATE"
+        elif isinstance(col_type, ARRAY):
+            # Handle array types
+            if isinstance(col_type.item_type, Text):
+                type_mapping[col_name] = "TEXT[]"
+            else:
+                type_mapping[col_name] = f"{col_type.item_type}[]"
+        else:
+            # Default to TEXT for Text and other types
+            type_mapping[col_name] = "TEXT"
+
+    return type_mapping
+
+
 def insert_into_db(sess, contract_df):
     """Insert the dataframe into the database
 
@@ -459,52 +519,80 @@ def insert_into_db(sess, contract_df):
         sess: sqlalchemy session
         contract_df: dataframe to insert into the database
     """
-    # Header column list, remove all quotes and spaces created because we don't need them
-    header_cols = str(list(contract_df.columns))[1:-1].replace("'", "").replace(" ", "")
 
-    # Create list of all columns to update, we don't want to update created_at when upserting
-    update_list = []
-    for col in header_cols.split(","):
-        if col != "created_at":
-            update_list.append(f"{col} = EXCLUDED.{col}")
+    columns = contract_df.columns.tolist()
+    update_cols = [col for col in columns if col != "created_at"]
 
-    # Replace all nans with nulls
-    contract_df = contract_df.replace({np.NaN: "NULL"})
-
-    # Update list columns to be strings for the insert
-    contract_df["business_categories"] = contract_df.apply(
-        lambda row: "{" + ",".join(row["business_categories"]) + "}", axis=1
-    )
-
-    # Remove the T and Z from date columns
+    contract_df.replace({np.NaN: None}, inplace=True)
+    contract_df["business_categories"] = "{" + contract_df["business_categories"].str.join(",") + "}"
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
-    # Execute SQL
-    params_dict = {}
-    values_list = []
-    index = 1
-    # take each row from the dataframe
-    for row in list(contract_df.to_records(index=False)):
-        row_values = []
-        # split it up by value for sql injection checking
-        for value in row:
-            params_dict[f"param{index}"] = str(value) if value != "NULL" else None
-            row_values.append(f":param{index}")
-            index += 1
-        # build the row of *params* that will be populated by the binding params_dict
-        # and then each *row* needs commas in between them
-        values_list.append(f"({','.join(row_values)})")
+    # Get column type mapping from the sqas model
+    column_type_map = get_column_type_mapping(DetachedAwardProcurement)
 
-    sess.execute(
-        text(
-            f"""
-            INSERT INTO detached_award_procurement ({header_cols})
-            VALUES {','.join(values_list)}
-            ON CONFLICT (detached_award_proc_unique) DO UPDATE SET {",\n".join(update_list)};
-        """
-        ),
-        params_dict,
-    )
+    # Create temporary table
+    temp_table = "tmp_contract_staging"
+
+    # Build column definitions using only columns present in DataFrame
+    column_defs = [
+        f"{col} {column_type_map.get(col, 'TEXT')}"
+        for col in columns
+    ]
+
+    # Get raw connection
+    raw_conn = sess.connection().connection
+    cursor = raw_conn.cursor()
+
+    try:
+        # Create a temp table
+        cursor.execute(f"DROP TABLE IF EXISTS {temp_table};")
+        cursor.execute(f"""
+                CREATE TEMP TABLE {temp_table} (
+                    {', '.join(column_defs)}
+                ) ON COMMIT DELETE ROWS;
+            """)
+
+        # Send df to csv buffer
+        buffer = StringIO()
+        contract_df.to_csv(
+            buffer,
+            index=False,
+            header=False,
+            sep='\t',
+            na_rep='\\N',
+            escapechar='\\',
+            doublequote=False
+        )
+        buffer.seek(0)
+
+        # Insert csv buffer to temp table
+        cursor.copy_from(
+            buffer,
+            temp_table,
+            columns=columns,
+            sep='\t',
+            null='\\N'
+        )
+
+        # Upsert temp table to detached_award_procurement
+        column_list = ','.join(columns)
+        update_clause = ",".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
+        cursor.execute(f"""
+                INSERT INTO detached_award_procurement ({column_list})
+                SELECT {column_list} FROM {temp_table}
+                ON CONFLICT (detached_award_proc_unique) 
+                DO UPDATE SET {update_clause};
+            """)
+
+    except Exception as e:
+        logger.error(f"Error during bulk insert: {str(e)}")
+        raise
+    finally:
+        # clean up
+        cursor.close()
+        del contract_df
+        if 'buffer' in locals():
+            buffer.close()
 
 
 def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
