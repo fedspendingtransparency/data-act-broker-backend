@@ -27,7 +27,9 @@ def test_success(database):
     zips = ZipsHistoricalFactory(
         zip5="12345", zip_last4="6789", state_abbreviation="NY", congressional_district_no="01"
     )
-    zips2 = ZipsHistoricalFactory(zip5="12345", zip_last4="9876", state_abbreviation="NY", congressional_district_no="02")
+    zips2 = ZipsHistoricalFactory(
+        zip5="12345", zip_last4="9876", state_abbreviation="NY", congressional_district_no="02"
+    )
 
     fabs_1 = FABSFactory(
         place_of_performance_code="Ny12345",
