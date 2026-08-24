@@ -407,6 +407,26 @@ def create_jobs(upload_files, submission, existing_submission=False):
     sess = GlobalDB.db().session
     submission_id = submission.submission_id
 
+    if existing_submission:
+        # Re-verify the submission's publish status in the same transaction that swaps the job files. This
+        # closes the race window with a concurrent publish: if the submission started publishing/reverting
+        # after the handler's initial check, no rows match and we abort before any job filenames are changed.
+        # Setting publishable to False here (atomically) also prevents a publish from starting once the swap
+        # has been committed but before the new files have been validated.
+        updated_rows = (
+            sess.query(Submission)
+            .filter(
+                Submission.submission_id == submission_id,
+                Submission.publish_status_id.notin_(
+                    [PUBLISH_STATUS_DICT["publishing"], PUBLISH_STATUS_DICT["reverting"]]
+                ),
+            )
+            .update({"publishable": False}, synchronize_session=False)
+        )
+        if updated_rows == 0:
+            sess.rollback()
+            raise ValueError("Existing submission must not be publishing or reverting")
+
     # create the file upload and single-file validation jobs and
     # set up the dependencies between them
     # before starting, sort the incoming list of jobs by letter
