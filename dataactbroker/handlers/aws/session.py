@@ -31,6 +31,14 @@ class LoginSession:
             session: the Session object
             username: the id of the user
         """
+        # Rotate the session ID at authentication so that a pre-auth session id
+        # (potentially fixed by an attacker via the x-session-id header) never
+        # becomes an authenticated session id (prevents session fixation).
+        old_sid = session.get("sid")
+        session["sid"] = str(uuid4())
+        if old_sid is not None and old_sid != session["sid"]:
+            SessionTable.delete_session(old_sid)
+        LoginSession.reset_id(session)
         session["name"] = username
         session["login"] = True
 
@@ -125,11 +133,16 @@ class UserSessionInterface(SessionInterface):
                 expiration = get_utc_now() + timedelta(seconds=CONFIG_BROKER["session_timeout"])
         if "_uid" not in session:
             LoginSession.reset_id(session)
-        SessionTable.new_session(session["sid"], session, expiration)
-        SessionTable.clear_sessions()
 
-        # Return session ID as header x-session-id
-        response.headers["x-session-id"] = session["sid"]
+        # Only persist sessions that are authenticated or that already exist in the session table.
+        # Anonymous requests must not durably allocate server-side session rows (DoS via
+        # unauthenticated session-table flooding).
+        if session.get("login") or SessionTable.does_session_exist(session["sid"]):
+            SessionTable.new_session(session["sid"], session, expiration)
+            SessionTable.clear_sessions()
+
+            # Return session ID as header x-session-id
+            response.headers["x-session-id"] = session["sid"]
 
 
 class SessionTable:
@@ -204,4 +217,15 @@ class SessionTable:
             # Modify existing session
             user_session.data = dumps(data)
             user_session.expiration = to_unix_time(expiration)
+        sess.commit()
+
+    @staticmethod
+    def delete_session(uid):
+        """Removes the session with the given uid, if it exists
+
+        Args:
+            uid: the id of the session to remove
+        """
+        sess = GlobalDB.db().session
+        sess.query(SessionMap).filter_by(uid=uid).delete()
         sess.commit()
