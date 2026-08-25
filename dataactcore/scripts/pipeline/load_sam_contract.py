@@ -11,7 +11,7 @@ import boto3
 import numpy as np
 import pandas as pd
 
-from sqlalchemy import func, case, types, Boolean, text
+from sqlalchemy import func, case, types, text, Boolean
 
 from dataactbroker.helpers.script_helper import validate_load_dates
 from dataactbroker.helpers.generic_helper import unzip
@@ -459,7 +459,7 @@ def insert_into_db(sess, contract_df):
         sess: sqlalchemy session
         contract_df: dataframe to insert into the database
     """
-    contract_df.replace({np.NaN: None, "Null": None}, inplace=True)
+    contract_df.replace({np.NaN: None, "NULL": None}, inplace=True)
     contract_df["business_categories"] = "{" + contract_df["business_categories"].str.join(",") + "}"
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
