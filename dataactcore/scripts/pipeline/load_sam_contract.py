@@ -470,10 +470,10 @@ def insert_into_db(sess, contract_df):
         sess.execute(
             text(
                 f"""
-            CREATE TEMP TABLE {temp_table} 
-            (LIKE detached_award_procurement INCLUDING ALL)
-            ON COMMIT DROP;
-        """
+                    CREATE TEMP TABLE {temp_table}
+                    (LIKE detached_award_procurement INCLUDING ALL)
+                    ON COMMIT DROP;
+                """
             )
         )
 
@@ -493,11 +493,11 @@ def insert_into_db(sess, contract_df):
         sess.execute(
             text(
                 f"""
-            INSERT INTO detached_award_procurement ({column_list})
-            SELECT {column_list} FROM {temp_table}
-            ON CONFLICT (detached_award_proc_unique) 
-            DO UPDATE SET {update_clause};
-        """
+                    INSERT INTO detached_award_procurement ({column_list})
+                    SELECT {column_list} FROM {temp_table}
+                    ON CONFLICT (detached_award_proc_unique)
+                    DO UPDATE SET {update_clause};
+                """
             )
         )
     except Exception as e:
