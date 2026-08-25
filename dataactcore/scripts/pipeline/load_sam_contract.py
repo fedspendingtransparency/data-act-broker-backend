@@ -4,7 +4,6 @@ import json
 import logging
 import os
 import tempfile
-from io import StringIO
 
 from requests.exceptions import RequestException
 
@@ -20,7 +19,7 @@ from sqlalchemy import (
     Numeric,
     ARRAY,
     BigInteger,
-    Text,
+    text,
     Integer,
     Float,
     DateTime,
@@ -467,51 +466,6 @@ feed_url = "https://api.sam.gov/contract-awards/v1/search?"
 logger = logging.getLogger(__name__)
 
 
-def get_column_type_mapping(model_class):
-    """
-    Dynamically generate PostgreSQL type mapping from SQLAlchemy model
-
-    Args:
-        model_class: SQLAlchemy model class
-
-    Returns:
-        dict: Mapping of column names to PostgreSQL types
-    """
-    mapper = inspect(model_class)
-    type_mapping = {}
-
-    for column in mapper.columns:
-        col_name = column.name
-        col_type = column.type
-
-        # Map SQLAlchemy types to PostgreSQL types
-        if isinstance(col_type, Boolean):
-            type_mapping[col_name] = "BOOLEAN"
-        elif isinstance(col_type, Numeric):
-            type_mapping[col_name] = "NUMERIC"
-        elif isinstance(col_type, BigInteger):
-            type_mapping[col_name] = "BIGINT"
-        elif isinstance(col_type, Integer):
-            type_mapping[col_name] = "INTEGER"
-        elif isinstance(col_type, Float):
-            type_mapping[col_name] = "DOUBLE PRECISION"
-        elif isinstance(col_type, DateTime):
-            type_mapping[col_name] = "TIMESTAMP"
-        elif isinstance(col_type, Date):
-            type_mapping[col_name] = "DATE"
-        elif isinstance(col_type, ARRAY):
-            # Handle array types
-            if isinstance(col_type.item_type, Text):
-                type_mapping[col_name] = "TEXT[]"
-            else:
-                type_mapping[col_name] = f"{col_type.item_type}[]"
-        else:
-            # Default to TEXT for Text and other types
-            type_mapping[col_name] = "TEXT"
-
-    return type_mapping
-
-
 def insert_into_db(sess, contract_df):
     """Insert the dataframe into the database
 
@@ -519,80 +473,52 @@ def insert_into_db(sess, contract_df):
         sess: sqlalchemy session
         contract_df: dataframe to insert into the database
     """
-
-    columns = contract_df.columns.tolist()
-    update_cols = [col for col in columns if col != "created_at"]
-
-    contract_df.replace({np.NaN: None}, inplace=True)
+    contract_df.replace({np.NaN: None, "Null": None}, inplace=True)
     contract_df["business_categories"] = "{" + contract_df["business_categories"].str.join(",") + "}"
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
-    # Get column type mapping from the sqas model
-    column_type_map = get_column_type_mapping(DetachedAwardProcurement)
-
-    # Create temporary table
-    temp_table = "tmp_contract_staging"
-
-    # Build column definitions using only columns present in DataFrame
-    column_defs = [
-        f"{col} {column_type_map.get(col, 'TEXT')}"
-        for col in columns
-    ]
-
-    # Get raw connection
-    raw_conn = sess.connection().connection
-    cursor = raw_conn.cursor()
-
     try:
         # Create a temp table
-        cursor.execute(f"DROP TABLE IF EXISTS {temp_table};")
-        cursor.execute(f"""
-                CREATE TEMP TABLE {temp_table} (
-                    {', '.join(column_defs)}
-                ) ON COMMIT DELETE ROWS;
-            """)
-
-        # Send df to csv buffer
-        buffer = StringIO()
-        contract_df.to_csv(
-            buffer,
-            index=False,
-            header=False,
-            sep='\t',
-            na_rep='\\N',
-            escapechar='\\',
-            doublequote=False
+        temp_table = "tmp_contract_staging"
+        sess.execute(f"DROP TABLE IF EXISTS {temp_table};")
+        sess.execute(
+            text(
+                f"""
+            CREATE TEMP TABLE {temp_table} 
+            (LIKE detached_award_procurement INCLUDING ALL)
+            ON COMMIT DROP;
+        """
+            )
         )
-        buffer.seek(0)
 
-        # Insert csv buffer to temp table
-        cursor.copy_from(
-            buffer,
+        # Write contract_df to temp table
+        contract_df.to_sql(
             temp_table,
-            columns=columns,
-            sep='\t',
-            null='\\N'
+            con=sess.connection(),
+            if_exists="append",
+            index=False,
         )
 
         # Upsert temp table to detached_award_procurement
-        column_list = ','.join(columns)
+        columns = contract_df.columns.tolist()
+        update_cols = [col for col in columns if col != "created_at"]
+        column_list = ",".join(columns)
         update_clause = ",".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
-        cursor.execute(f"""
-                INSERT INTO detached_award_procurement ({column_list})
-                SELECT {column_list} FROM {temp_table}
-                ON CONFLICT (detached_award_proc_unique) 
-                DO UPDATE SET {update_clause};
-            """)
-
+        sess.execute(
+            text(
+                f"""
+            INSERT INTO detached_award_procurement ({column_list})
+            SELECT {column_list} FROM {temp_table}
+            ON CONFLICT (detached_award_proc_unique) 
+            DO UPDATE SET {update_clause};
+        """
+            )
+        )
     except Exception as e:
         logger.error(f"Error during bulk insert: {str(e)}")
         raise
     finally:
-        # clean up
-        cursor.close()
         del contract_df
-        if 'buffer' in locals():
-            buffer.close()
 
 
 def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
@@ -1518,7 +1444,7 @@ def main():
         insert_start = get_utc_now()
         logger.info(f"Starting data collection at: {str(insert_start)}")
 
-        for award_type in award_types_idv:
+        if args.local_file is not None:
             get_data(
                 sess,
                 sub_tier_df,
@@ -1527,7 +1453,7 @@ def main():
                 country_df,
                 exec_comp_df,
                 contract_type="IDV",
-                award_type=award_type,
+                award_type=None,
                 delete=False,
                 start_date=start_date,
                 end_date=end_date,
@@ -1535,24 +1461,43 @@ def main():
                 local_file=args.local_file,
                 metrics=metrics_json,
             )
+        else:
 
-        for award_type in award_types_award:
-            get_data(
-                sess,
-                sub_tier_df,
-                county_df,
-                state_df,
-                country_df,
-                exec_comp_df,
-                contract_type="award",
-                award_type=award_type,
-                delete=False,
-                start_date=start_date,
-                end_date=end_date,
-                piid=args.piid,
-                local_file=args.local_file,
-                metrics=metrics_json,
-            )
+            for award_type in award_types_idv:
+                get_data(
+                    sess,
+                    sub_tier_df,
+                    county_df,
+                    state_df,
+                    country_df,
+                    exec_comp_df,
+                    contract_type="IDV",
+                    award_type=award_type,
+                    delete=False,
+                    start_date=start_date,
+                    end_date=end_date,
+                    piid=args.piid,
+                    local_file=None,
+                    metrics=metrics_json,
+                )
+
+            for award_type in award_types_award:
+                get_data(
+                    sess,
+                    sub_tier_df,
+                    county_df,
+                    state_df,
+                    country_df,
+                    exec_comp_df,
+                    contract_type="award",
+                    award_type=award_type,
+                    delete=False,
+                    start_date=start_date,
+                    end_date=end_date,
+                    piid=args.piid,
+                    local_file=None,
+                    metrics=metrics_json,
+                )
 
         sess.commit()
         logger.info(f"Finishing data collection at: {str(get_utc_now())}. It took {str(get_utc_now() - insert_start)}")
