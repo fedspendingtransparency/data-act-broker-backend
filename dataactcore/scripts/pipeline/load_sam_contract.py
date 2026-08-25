@@ -11,21 +11,7 @@ import boto3
 import numpy as np
 import pandas as pd
 
-from sqlalchemy import (
-    func,
-    case,
-    types,
-    Boolean,
-    Numeric,
-    ARRAY,
-    BigInteger,
-    text,
-    Integer,
-    Float,
-    DateTime,
-    Date,
-)
-from sqlalchemy.inspection import inspect
+from sqlalchemy import func, case, types, Boolean, text
 
 from dataactbroker.helpers.script_helper import validate_load_dates
 from dataactbroker.helpers.generic_helper import unzip
@@ -1439,85 +1425,37 @@ def main():
         start_date, end_date = validate_load_dates(
             args.start_date, args.end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
         )
-
+    get_data_params = {
+        "sess": sess,
+        "sub_tier_df": sub_tier_df,
+        "country_df": country_df,
+        "state_df": state_df,
+        "county_df": county_df,
+        "exec_comp_df": exec_comp_df,
+        "start_date": start_date,
+        "end_date": end_date,
+        "piid": args.piid,
+        "local_file": args.local_file,
+        "metrics": metrics_json,
+    }
     if args.feed in ["add", "both"]:
         insert_start = get_utc_now()
         logger.info(f"Starting data collection at: {str(insert_start)}")
-
         if args.local_file is not None:
-            get_data(
-                sess,
-                sub_tier_df,
-                county_df,
-                state_df,
-                country_df,
-                exec_comp_df,
-                contract_type="IDV",
-                award_type=None,
-                delete=False,
-                start_date=start_date,
-                end_date=end_date,
-                piid=args.piid,
-                local_file=args.local_file,
-                metrics=metrics_json,
-            )
+            get_data(**get_data_params)
         else:
-
             for award_type in award_types_idv:
-                get_data(
-                    sess,
-                    sub_tier_df,
-                    county_df,
-                    state_df,
-                    country_df,
-                    exec_comp_df,
-                    contract_type="IDV",
-                    award_type=award_type,
-                    delete=False,
-                    start_date=start_date,
-                    end_date=end_date,
-                    piid=args.piid,
-                    local_file=None,
-                    metrics=metrics_json,
-                )
+                get_data(**get_data_params, contract_type="IDV", award_type=award_type)
 
             for award_type in award_types_award:
-                get_data(
-                    sess,
-                    sub_tier_df,
-                    county_df,
-                    state_df,
-                    country_df,
-                    exec_comp_df,
-                    contract_type="award",
-                    award_type=award_type,
-                    delete=False,
-                    start_date=start_date,
-                    end_date=end_date,
-                    piid=args.piid,
-                    local_file=None,
-                    metrics=metrics_json,
-                )
+                get_data(**get_data_params, contract_type="award", award_type=award_type)
 
         sess.commit()
         logger.info(f"Finishing data collection at: {str(get_utc_now())}. It took {str(get_utc_now() - insert_start)}")
 
     if args.feed in ["delete", "both"]:
         # We also need to process the delete feed
-        get_data(
-            sess,
-            sub_tier_df,
-            county_df,
-            state_df,
-            country_df,
-            exec_comp_df,
-            delete=True,
-            start_date=start_date,
-            end_date=end_date,
-            piid=args.piid,
-            local_file=args.local_file,
-            metrics=metrics_json,
-        )
+        get_data(**get_data_params, delete=True)
 
     # Only update load date if dates weren't specified
     if auto and args.feed == "both" and args.piid is None:
