@@ -256,9 +256,9 @@ def test_calculate_ppop_fields(database):
     assert row4.place_of_perform_county_co == "002"
     assert row4.place_of_perform_county_na is None
 
-    # Don't derive state or county name if given and not a territory situation, even if it's wrong
+    # Don't derive state or county name if given and not a territory situation, even if it's wrong, with quote
     assert row5.place_of_performance_state == "KS"
-    assert row5.place_of_perfor_state_desc == "WRONG"
+    assert row5.place_of_perfor_state_desc == 'WR"ONG'
     # Padding the county provided to 3 digits
     assert row5.place_of_perform_county_co == "049"
     assert row5.place_of_perform_county_na == "POTTAWATOMIE"
