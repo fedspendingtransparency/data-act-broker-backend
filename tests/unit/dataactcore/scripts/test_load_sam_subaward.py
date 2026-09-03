@@ -8,12 +8,13 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from dataactcore.models.subaward import SAMSubgrant, SAMSubcontract
+from dataactcore.models.subaward import SAMSubgrant, SAMSubcontract, Subaward
 from dataactcore.scripts.pipeline.load_sam_subaward import (
     ASSISTANCE_API_URL,
     delete_subawards,
     LIMIT,
     load_subawards,
+    main,
     parse_raw_subaward,
     pull_subawards,
     store_subawards,
@@ -248,6 +249,24 @@ def test_delete_subawards(data_type, database):
     # Attempt to delete subawards with no matches.  Expect to get all ids back in the list of not_matched_report_nums
     not_matched_report_nums = delete_subawards(session, new_subawards, model)
     assert set(not_matched_report_nums) == set(new_subawards.subaward_report_number)
+
+
+@pytest.mark.parametrize("data_type", ("assistance", "contract"))
+def test_load_missing(data_type, database):
+    model = SAMSubgrant if data_type == "assistance" else SAMSubcontract
+    new_subawards = pd.DataFrame({"subaward_report_number": [uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex]})
+    session = database.session
+
+    # Load subawards
+    store_subawards(session, new_subawards, model)
+    assert session.query(model).count() == len(new_subawards)
+
+    # Data is in the raw tables, but still not in the main subaward table - perfect for this test case
+    assert session.query(Subaward).count() == 0
+
+    main(session, ["published"], [data_type], load_missing=True)
+
+    assert session.query(Subaward).count() == len(new_subawards)
 
 
 @pytest.fixture()

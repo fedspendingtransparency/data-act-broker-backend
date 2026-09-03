@@ -792,23 +792,33 @@ class FileHandler:
 
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
-        # Check to make sure all jobs are finished
-        unfinished_jobs = (
-            sess.query(Job)
-            .filter(Job.submission_id == submission_id, Job.job_status_id != JOB_STATUS_DICT["finished"])
-            .count()
-        )
-        if unfinished_jobs > 0:
-            raise ResponseError("Submission has unfinished jobs and cannot be published", StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission that has only finished jobs, we can start the process
         log_derivation("Starting FABS submission publishing", submission_id)
 
-        # set publish_status to "publishing"
-        sess.query(Submission).filter_by(submission_id=submission_id).update(
-            {"publish_status_id": PUBLISH_STATUS_DICT["publishing"], "updated_at": get_utc_now()},
-            synchronize_session=False,
+        # set publish_status to "publishing" atomically, only if the submission is still unpublished and all of
+        # its jobs are still finished, so a concurrent upload or publish cannot slip in between the checks above
+        # and this status flip
+        unfinished_job_exists = (
+            sess.query(Job)
+            .filter(Job.submission_id == submission_id, Job.job_status_id != JOB_STATUS_DICT["finished"])
+            .exists()
         )
+        updated_rows = (
+            sess.query(Submission)
+            .filter(
+                Submission.submission_id == submission_id,
+                Submission.publish_status_id == PUBLISH_STATUS_DICT["unpublished"],
+                ~unfinished_job_exists,
+            )
+            .update(
+                {"publish_status_id": PUBLISH_STATUS_DICT["publishing"], "updated_at": get_utc_now()},
+                synchronize_session=False,
+            )
+        )
+        if updated_rows == 0:
+            sess.rollback()
+            raise ResponseError("Submission has unfinished jobs and cannot be published", StatusCode.CLIENT_ERROR)
         sess.commit()
 
         try:
