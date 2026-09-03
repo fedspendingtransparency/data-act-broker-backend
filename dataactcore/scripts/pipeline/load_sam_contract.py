@@ -459,52 +459,52 @@ def insert_into_db(sess, contract_df):
         sess: sqlalchemy session
         contract_df: dataframe to insert into the database
     """
-    # Header column list, remove all quotes and spaces created because we don't need them
-    header_cols = str(list(contract_df.columns))[1:-1].replace("'", "").replace(" ", "")
-
-    # Create list of all columns to update, we don't want to update created_at when upserting
-    update_list = []
-    for col in header_cols.split(","):
-        if col != "created_at":
-            update_list.append(f"{col} = EXCLUDED.{col}")
-
-    # Replace all nans with nulls
-    contract_df = contract_df.replace({np.NaN: "NULL"})
-
-    # Update list columns to be strings for the insert
-    contract_df["business_categories"] = contract_df.apply(
-        lambda row: "{" + ",".join(row["business_categories"]) + "}", axis=1
-    )
-
-    # Remove the T and Z from date columns
+    contract_df.replace({np.NaN: None, "NULL": None}, inplace=True)
+    contract_df["business_categories"] = "{" + contract_df["business_categories"].str.join(",") + "}"
     contract_df[date_fields] = contract_df[date_fields].replace({"T": " ", "Z": ""}, regex=True)
 
-    # Execute SQL
-    params_dict = {}
-    values_list = []
-    index = 1
-    # take each row from the dataframe
-    for row in list(contract_df.to_records(index=False)):
-        row_values = []
-        # split it up by value for sql injection checking
-        for value in row:
-            params_dict[f"param{index}"] = str(value) if value != "NULL" else None
-            row_values.append(f":param{index}")
-            index += 1
-        # build the row of *params* that will be populated by the binding params_dict
-        # and then each *row* needs commas in between them
-        values_list.append(f"({','.join(row_values)})")
+    try:
+        # Create a temp table
+        temp_table = "tmp_contract_staging"
+        sess.execute(f"DROP TABLE IF EXISTS {temp_table};")
+        sess.execute(
+            text(
+                f"""
+                    CREATE TEMP TABLE {temp_table}
+                    (LIKE detached_award_procurement INCLUDING ALL)
+                    ON COMMIT DROP;
+                """
+            )
+        )
 
-    sess.execute(
-        text(
-            f"""
-            INSERT INTO detached_award_procurement ({header_cols})
-            VALUES {','.join(values_list)}
-            ON CONFLICT (detached_award_proc_unique) DO UPDATE SET {",\n".join(update_list)};
-        """
-        ),
-        params_dict,
-    )
+        # Write contract_df to temp table
+        contract_df.to_sql(
+            temp_table,
+            con=sess.connection(),
+            if_exists="append",
+            index=False,
+        )
+
+        # Upsert temp table to detached_award_procurement
+        columns = contract_df.columns.tolist()
+        update_cols = [col for col in columns if col != "created_at"]
+        column_list = ",".join(columns)
+        update_clause = ",".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
+        sess.execute(
+            text(
+                f"""
+                    INSERT INTO detached_award_procurement ({column_list})
+                    SELECT {column_list} FROM {temp_table}
+                    ON CONFLICT (detached_award_proc_unique)
+                    DO UPDATE SET {update_clause};
+                """
+            )
+        )
+    except Exception as e:
+        logger.error(f"Error during bulk insert: {str(e)}")
+        raise
+    finally:
+        del contract_df
 
 
 def calculate_ppop_fields(sess, contract_df, county_df, state_df, country_df):
@@ -1425,66 +1425,35 @@ def main():
         start_date, end_date = validate_load_dates(
             args.start_date, args.end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
         )
-
+    get_data_params = {
+        "sess": sess,
+        "sub_tier_df": sub_tier_df,
+        "country_df": country_df,
+        "state_df": state_df,
+        "county_df": county_df,
+        "exec_comp_df": exec_comp_df,
+        "start_date": start_date,
+        "end_date": end_date,
+        "piid": args.piid,
+        "local_file": args.local_file,
+        "metrics": metrics_json,
+    }
     if args.feed in ["add", "both"]:
         insert_start = get_utc_now()
         logger.info(f"Starting data collection at: {str(insert_start)}")
 
         for award_type in award_types_idv:
-            get_data(
-                sess,
-                sub_tier_df,
-                county_df,
-                state_df,
-                country_df,
-                exec_comp_df,
-                contract_type="IDV",
-                award_type=award_type,
-                delete=False,
-                start_date=start_date,
-                end_date=end_date,
-                piid=args.piid,
-                local_file=args.local_file,
-                metrics=metrics_json,
-            )
+            get_data(**get_data_params, contract_type="IDV", award_type=award_type)
 
         for award_type in award_types_award:
-            get_data(
-                sess,
-                sub_tier_df,
-                county_df,
-                state_df,
-                country_df,
-                exec_comp_df,
-                contract_type="award",
-                award_type=award_type,
-                delete=False,
-                start_date=start_date,
-                end_date=end_date,
-                piid=args.piid,
-                local_file=args.local_file,
-                metrics=metrics_json,
-            )
+            get_data(**get_data_params, contract_type="award", award_type=award_type)
 
         sess.commit()
         logger.info(f"Finishing data collection at: {str(get_utc_now())}. It took {str(get_utc_now() - insert_start)}")
 
     if args.feed in ["delete", "both"]:
         # We also need to process the delete feed
-        get_data(
-            sess,
-            sub_tier_df,
-            county_df,
-            state_df,
-            country_df,
-            exec_comp_df,
-            delete=True,
-            start_date=start_date,
-            end_date=end_date,
-            piid=args.piid,
-            local_file=args.local_file,
-            metrics=metrics_json,
-        )
+        get_data(**get_data_params, delete=True)
 
     # Only update load date if dates weren't specified
     if auto and args.feed == "both" and args.piid is None:
