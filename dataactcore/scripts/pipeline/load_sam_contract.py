@@ -1441,14 +1441,12 @@ def main():
     if args.feed in ["add", "both"]:
         insert_start = get_utc_now()
         logger.info(f"Starting data collection at: {str(insert_start)}")
-        if args.local_file is not None:
-            get_data(**get_data_params)
-        else:
-            for award_type in award_types_idv:
-                get_data(**get_data_params, contract_type="IDV", award_type=award_type)
 
-            for award_type in award_types_award:
-                get_data(**get_data_params, contract_type="award", award_type=award_type)
+        for award_type in award_types_idv:
+            get_data(**get_data_params, contract_type="IDV", award_type=award_type)
+
+        for award_type in award_types_award:
+            get_data(**get_data_params, contract_type="award", award_type=award_type)
 
         sess.commit()
         logger.info(f"Finishing data collection at: {str(get_utc_now())}. It took {str(get_utc_now() - insert_start)}")
