@@ -56,13 +56,8 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.acquisitionData.contractFinancing.name": "contract_financing_descrip",
     "coreData.acquisitionData.majorProgramCode": "major_program",
     "coreData.acquisitionData.multipleOrSingleAwardIdc.code": "multiple_or_single_award_i",
-    # data is blank for this column for some reason
     "coreData.acquisitionData.multipleOrSingleAwardIdc.name": "multiple_or_single_aw_desc",
-    # MISSING, multiYearContract, has data and isn't split but shouldn't have data
-    # even when it should have data it isn't split and only provides the desc
     "coreData.acquisitionData.multiyearContract.code": "multi_year_contract",
-    # multiYearContract, has data and isn't split but shouldn't have data
-    # even when it should have data it isn't split and only provides the desc
     "coreData.acquisitionData.multiyearContract.name": "multi_year_contract_desc",
     "coreData.acquisitionData.nationalInterestAction.code": "national_interest_action",
     "coreData.acquisitionData.nationalInterestAction.name": "national_interest_desc",
@@ -78,7 +73,6 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.competitionInformation.a76Action.name": "a_76_fair_act_action_desc",
     "coreData.competitionInformation.extentCompeted.code": "extent_competed",
     "coreData.competitionInformation.extentCompeted.name": "extent_compete_description",
-    # 0 entries in our DB with data so no way to test, going to have to go on faith
     "coreData.competitionInformation.IDVnumberOfOffersReceived": "idv_number_of_offers_recie",
     "coreData.competitionInformation.localAreaSetAside.code": "local_area_set_aside",
     "coreData.competitionInformation.localAreaSetAside.name": "local_area_set_aside_desc",
@@ -86,7 +80,6 @@ SAM_CONTRACT_MAPPINGS = {
     "coreData.competitionInformation.otherThanFullAndOpenCompetition.name": "other_than_full_and_o_desc",
     "coreData.competitionInformation.sbirSTTR.code": "research",
     "coreData.competitionInformation.sbirSTTR.name": "research_description",
-    # has data in SAM but doesn't have data in FPDS at least sometimes
     "coreData.competitionInformation.smallBusinessCompetitivenessDemonstrationProgram.name": (
         "small_business_competitive"
     ),
@@ -192,12 +185,10 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.awardeeBusinessTypes.usTribalGovernment": "us_tribal_government",
     "awardDetails.awardeeData.awardeeHeader.awardeeAlternateName": "vendor_alternate_name",
     "awardDetails.awardeeData.awardeeHeader.awardeeDoingBusinessAsName": "vendor_doing_as_business_n",
-    # 0 entries in our DB with data so no way to test, going to have to go on faith
     "awardDetails.awardeeData.awardeeHeader.awardeeEnabled": "vendor_enabled",
     "awardDetails.awardeeData.awardeeHeader.awardeeName": "awardee_or_recipient_legal",
     "awardDetails.awardeeData.awardeeHeader.legalBusinessName": "uei_legal_business_name",
     "awardDetails.awardeeData.awardeeLocation.awardeeDataSource": "entity_data_source",
-    # 0 entries in our DB with data so no way to test, going to have to go on faith
     "awardDetails.awardeeData.awardeeLocation.awardeeLocationDisabledFlag": "vendor_location_disabled_f",
     "awardDetails.awardeeData.awardeeLocation.city": "legal_entity_city_name",
     "awardDetails.awardeeData.awardeeLocation.congressionalDistrict": "legal_entity_congressional",
@@ -205,9 +196,7 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.awardeeLocation.country.name": "legal_entity_country_name",
     "awardDetails.awardeeData.awardeeLocation.faxNumber": "vendor_fax_number",
     "awardDetails.awardeeData.awardeeLocation.phoneNumber": "vendor_phone_number",
-    # NULL if foreign
     "awardDetails.awardeeData.awardeeLocation.state.code": "legal_entity_state_code",
-    # use awardDetails.awardeeData.awardeeLocation.state.code if foreign
     "awardDetails.awardeeData.awardeeLocation.state.name": "legal_entity_state_descrip",
     "awardDetails.awardeeData.awardeeLocation.streetAddress1": "legal_entity_address_line1",
     "awardDetails.awardeeData.awardeeLocation.streetAddress2": "legal_entity_address_line2",
@@ -215,13 +204,9 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.awardeeData.awardeeLocation.zip": "legal_entity_zip4",
     "awardDetails.awardeeData.awardeeRegistrationDetails.divisionName": "division_name",
     "awardDetails.awardeeData.awardeeRegistrationDetails.divisionNumberOrOfficeCode": "division_number_or_office",
-    # No data in our DB, going to have to go on faith
     "awardDetails.awardeeData.awardeeUEIInformation.awardeeDomesticParentUEI": "domestic_parent_uei",
-    # No data in our DB, going to have to go on faith
     "awardDetails.awardeeData.awardeeUEIInformation.awardeeDomesticParentName": "domestic_parent_uei_name",
-    # 0 entries in our DB with data so no way to test, going to have to go on faith
     "awardDetails.awardeeData.awardeeUEIInformation.awardeeImmediateParentName": "immediate_parent_uei_name",
-    # 0 entries in our DB with data so no way to test, going to have to go on faith
     "awardDetails.awardeeData.awardeeUEIInformation.awardeeImmediateParentUEI": "immediate_parent_uei",
     "awardDetails.awardeeData.awardeeUEIInformation.awardeeUltimateParentName": "ultimate_parent_legal_enti",
     "awardDetails.awardeeData.awardeeUEIInformation.awardeeUltimateParentUniqueEntityId": "ultimate_parent_uei",
@@ -346,14 +331,10 @@ SAM_CONTRACT_MAPPINGS = {
     "awardDetails.contractData.emergencyAcquisition.name": "contingency_humanitar_desc",
     "awardDetails.contractData.natureOfServices.code": "inherently_government_func",
     "awardDetails.contractData.natureOfServices.name": "inherently_government_desc",
-    # has data in SAM but doesn't have data in FPDS at least sometimes
     "awardDetails.contractData.numberOfActions": "number_of_actions",
-    # MISSING EVEN WHEN DATA SHOULD EXIST (ex: PIID: HC102818F1281) (purchaseCardAsPaymentMethod)
     "awardDetails.contractData.purchaseCardAsPaymentMethod.code": "purchase_card_as_payment_m",
-    # have already found bad data in it that shouldn't exist
     "awardDetails.contractData.purchaseCardAsPaymentMethod.name": "purchase_card_as_paym_desc",
     "awardDetails.contractData.referencedIDVMultipleOrSingle.code": "referenced_mult_or_single",
-    # have already found bad data in it that shouldn't exist
     "awardDetails.contractData.referencedIDVMultipleOrSingle.name": "referenced_mult_or_si_desc",
     "awardDetails.contractData.referencedIDVType.code": "referenced_idv_type",
     "awardDetails.contractData.referencedIDVType.name": "referenced_idv_type_desc",

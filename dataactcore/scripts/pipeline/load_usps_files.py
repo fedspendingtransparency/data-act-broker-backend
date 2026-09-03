@@ -160,7 +160,7 @@ def extract_zip_from_tar_file(zip_file_path, usps_file_dir):
     for tar_file_obj in zips_tar:
 
         if tar_file_obj.name == zip_file_path:
-            zips_tar.extract(tar_file_obj, usps_file_dir)
+            zips_tar.extract(tar_file_obj, usps_file_dir, filter="data")
 
     zips_tar.close()
 
@@ -182,6 +182,9 @@ def extract_upload_zip4_text_files(zip_file_path, extract_file_path, s3_connecti
                 file_data = BytesIO(zip_nested.read())
                 with zipfile.ZipFile(file_data) as zip_text_files:
                     for zip_text in zip_text_files.namelist():
+                        if "../" in zip_text:
+                            logger.warning(f"Invalid path found in file name, skipping: {zip_text}")
+                            continue
                         logger.info("Extracting file {}".format(zip_text))
                         zip_text_files.extract(zip_text, extract_file_path, password.encode("utf-8"))
                         if s3_connection:
@@ -203,6 +206,9 @@ def extract_upload_city_state_text_file(zip_file_path, extract_file_path, s3_con
 
     with zipfile.ZipFile(os.path.join(extract_file_path, zip_file_path), "r") as zip_group:
         for zip_individual in zip_group.namelist():
+            if "../" in zip_individual:
+                logger.warning(f"Invalid path found in file name, skipping: {zip_individual}")
+                continue
             zip_group.extract(zip_individual, extract_file_path, password.encode("utf-8"))
             logger.info("Extracting file {}".format(zip_individual))
             if s3_connection:
