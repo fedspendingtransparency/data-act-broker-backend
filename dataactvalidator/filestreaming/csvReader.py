@@ -12,6 +12,8 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
+MAX_FLEX_FIELDS = 50
+
 
 class CsvReader(object):
     """
@@ -100,6 +102,13 @@ class CsvReader(object):
         header_row = list(normalize_headers(header_row, gsdm_headers, gsdm_to_short_dict, self.header_dict))
         # Storing the flex fields for easy access
         self.flex_fields = [header for header in header_row if header.startswith("flex_")]
+        if len(self.flex_fields) > MAX_FLEX_FIELDS:
+            raise ResponseError(
+                f"CSV file must have at max {MAX_FLEX_FIELDS} flex fields",
+                StatusCode.CLIENT_ERROR,
+                ValueError,
+                ValidationError.header_error,
+            )
 
         expected_header_counts = self.count_and_set_headers(csv_schema, header_row)
 
