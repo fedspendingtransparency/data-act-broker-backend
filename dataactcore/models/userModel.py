@@ -20,6 +20,7 @@ class User(Base):
     website_admin = Column(Boolean, default=False, nullable=False, server_default="False")
     affiliations = relationship("UserAffiliation", cascade="all, delete-orphan")
 
+
 Index("ix_users_upper_email_unique", func.upper(User.email), unique=True)
 
 

@@ -89,6 +89,7 @@ class RuleSetting(Base):
         Integer, ForeignKey("rule_impact.rule_impact_id", ondelete="CASCADE", name="fk_impact"), nullable=False
     )
 
+
 Index(
     "ix_rule_setting_code_file_label_unique",
     RuleSetting.agency_code,
