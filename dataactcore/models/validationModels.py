@@ -1,6 +1,6 @@
 """These classes define the ORM models to be used by sqlalchemy for the job tracker database"""
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Enum, Index
+from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Enum, Index, func
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -93,8 +93,8 @@ Index(
     "ix_rule_setting_code_file_label_unique",
     RuleSetting.agency_code,
     RuleSetting.file_id,
-    RuleSetting.target_file_id,
     RuleSetting.rule_label,
+    func.coalesce(RuleSetting.target_file_id, 0),
     unique=True,
 )
 

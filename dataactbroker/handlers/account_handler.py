@@ -74,7 +74,7 @@ class AccountHandler:
             password = safe_dictionary.get_value("password")
 
             try:
-                user = sess.query(User).filter(func.lower(User.email) == func.lower(username)).one()
+                user = sess.query(User).filter(func.upper(User.email) == func.upper(username)).one()
             except Exception:
                 raise ValueError("Invalid username and/or password")
 
@@ -124,7 +124,7 @@ class AccountHandler:
             if not hmac.compare_digest(token, CONFIG_BROKER["api_proxy_token"]):
                 raise ValueError("Invalid token")
 
-            user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
+            user = sess.query(User).filter(func.upper(User.email) == func.upper(email)).one_or_none()
             if not user:
                 raise ValueError("Invalid user")
 
@@ -199,7 +199,7 @@ class AccountHandler:
 
             except IntegrityError:
                 sess.rollback()
-                user = sess.query(User).filter(func.lower(User.email) == func.lower(email))
+                user = sess.query(User).filter(func.upper(User.email) == func.upper(email))
 
             first_name = user_info["given_name"]
             middle_name = user_info.get("middle_name")
