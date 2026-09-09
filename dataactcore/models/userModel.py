@@ -1,6 +1,6 @@
 """These classes define the ORM models to be used by sqlalchemy for the user database"""
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Index, UniqueConstraint
+from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Index, UniqueConstraint, func
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT_ID
@@ -19,6 +19,8 @@ class User(Base):
     skip_guide = Column(Boolean, default=False, nullable=False, server_default="False")
     website_admin = Column(Boolean, default=False, nullable=False, server_default="False")
     affiliations = relationship("UserAffiliation", cascade="all, delete-orphan")
+
+Index("ix_users_upper_email_unique", func.upper(User.email), unique=True)
 
 
 class PermissionType(Base):

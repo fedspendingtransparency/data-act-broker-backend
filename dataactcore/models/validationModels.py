@@ -1,6 +1,6 @@
 """These classes define the ORM models to be used by sqlalchemy for the job tracker database"""
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Enum
+from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Enum, Index
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -88,6 +88,15 @@ class RuleSetting(Base):
     impact_id = Column(
         Integer, ForeignKey("rule_impact.rule_impact_id", ondelete="CASCADE", name="fk_impact"), nullable=False
     )
+
+Index(
+    "ix_rule_setting_code_file_label_unique",
+    RuleSetting.agency_code,
+    RuleSetting.file_id,
+    RuleSetting.target_file_id,
+    RuleSetting.rule_label,
+    unique=True,
+)
 
 
 class RuleImpact(Base):
