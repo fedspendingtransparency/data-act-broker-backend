@@ -12,6 +12,7 @@ from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.interfaces.db import GlobalDB
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func, or_
 
@@ -188,35 +189,31 @@ class AccountHandler:
             revoke_caia_access(caia_tokens["refresh_token"])
 
             # Grab the email and list of groups from CAIA's response
+            sess = GlobalDB.db().session
             email = user_info["email"]
+            user = User(email=email)
+            sess.add(user)
 
             try:
-                sess = GlobalDB.db().session
-                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
-
-                # If the user does not exist, create them since they are allowed to access the site because they got
-                # past the above group membership checks
-                if user is None:
-                    user = User()
-                    user.email = email
-
-                first_name = user_info["given_name"]
-                middle_name = user_info.get("middle_name")
-                last_name = user_info["family_name"]
-                set_user_name(user, first_name, middle_name, last_name)
-
-                # role string format
-                #   - 'role1' or 'role:role1' for a singular role
-                #   - '[role1, role2]' or '[role:role1, role:role2]' for multiple roles
-                role_list_str = user_info["role"][1:-1] if user_info["role"][0] == "[" else user_info["role"]
-                role_list = [role[5:] if role.startswith("role:") else role for role in role_list_str.split(", ")]
-                set_caia_perms(user, role_list)
-
-                sess.add(user)
                 sess.commit()
 
-            except MultipleResultsFound:
-                raise ValueError("An error occurred during login.")
+            except IntegrityError:
+                sess.rollback()
+                user = sess.query(User).filter(func.lower(User.email) == func.lower(email))
+
+            first_name = user_info["given_name"]
+            middle_name = user_info.get("middle_name")
+            last_name = user_info["family_name"]
+            set_user_name(user, first_name, middle_name, last_name)
+
+            # role string format
+            #   - 'role1' or 'role:role1' for a singular role
+            #   - '[role1, role2]' or '[role:role1, role:role2]' for multiple roles
+            role_list_str = user_info["role"][1:-1] if user_info["role"][0] == "[" else user_info["role"]
+            role_list = [role[5:] if role.startswith("role:") else role for role in role_list_str.split(", ")]
+            set_caia_perms(user, role_list)
+
+            sess.commit()
 
             return self.create_session_and_response(session, user)
 
