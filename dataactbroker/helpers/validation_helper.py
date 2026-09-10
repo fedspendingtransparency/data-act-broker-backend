@@ -820,8 +820,10 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
 
     Returns:
         file_row_count: the number of lines in the file
-        short_rows: a list of row numbers that have too few fields
-        long_rows: a list of rows that have too many fields
+        short_pop_rows: a list of row numbers that have too few fields and there's data in them
+        long_pop_rows: a list of rows that have too many fields and there's data in them
+        short_null_rows: a list of row numbers that have too few fields and there's no data in them
+        long_null_rows: a list of rows that have too many fields and there's no data in them
     """
     # Count file rows: throws a File Level Error for non-UTF8 characters
     # Also getting short and long rows for formatting errors and pandas processing

@@ -555,6 +555,12 @@ class ValidationManager:
             on_bad_lines="skip",
             skiprows=skiprows,
         )
+        # Doing this once outside instead of multiple times with each chunk
+        reader_obj['short_row'] = reader_obj['row_number'].isin(self.short_rows)
+        # Increments +1 for every time a long_row appears
+        # which we can add to the row_number to get the *real* row_number
+        reader_obj['long_row_increment'] = reader_obj['row_number'].isin(self.long_rows).cumsum()
+
         # Setting this outside of reader/file type objects which may not be used during processing
         self.flex_fields = self.reader.flex_fields
         self.header_dict = self.reader.header_dict
@@ -816,8 +822,7 @@ class ValidationManager:
 
         # Increment row numbers if any were ignored being too long
         # This syncs the row numbers back to their original values
-        for row in sorted(self.long_rows):
-            chunk_df.loc[chunk_df["row_number"] >= row, "row_number"] = chunk_df["row_number"] + 1
+        chunk_df["row_number"] = chunk_df["row_number"] + chunk_df["long_row_increment"]
 
         logger.info(
             {
@@ -832,10 +837,10 @@ class ValidationManager:
         )
 
         # Drop rows that were too short and pandas filled in with Nones
-        chunk_df = chunk_df[~chunk_df["row_number"].isin(self.short_rows)]
+        chunk_df = chunk_df[~chunk_df["short_row"]]
 
-        # Drop the index column
-        chunk_df = chunk_df.drop(["index"], axis=1)
+        # Drop the index, short_row, and long_row_increment columns
+        chunk_df = chunk_df.drop(["index", "short_row", "long_row_increment"], axis=1)
 
         # Drop all rows that have 1 or less filled in values (row_number is always filled in so this is how
         # we have to drop all rows that are just empty)
