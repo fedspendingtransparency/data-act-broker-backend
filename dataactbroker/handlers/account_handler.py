@@ -13,7 +13,6 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func, or_
 
 from dataactcore.models.userModel import User, UserAffiliation
@@ -199,7 +198,7 @@ class AccountHandler:
 
             except IntegrityError:
                 sess.rollback()
-                user = sess.query(User).filter(func.upper(User.email) == func.upper(email))
+                user = sess.query(User).filter(func.upper(User.email) == func.upper(email)).one()
 
             first_name = user_info["given_name"]
             middle_name = user_info.get("middle_name")
