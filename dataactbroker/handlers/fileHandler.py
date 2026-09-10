@@ -1736,19 +1736,19 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
 
     # Make the zip if not cached
     if not sub_zip:
-        try:
-            generated_zip = zip_published_submission(
-                submission, publish_history_id, certify_history_id, zip_filename, is_local
-            )
-        except (ValueError, OSError) as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        sub_zip = os.path.basename(generated_zip)
-        if is_local:
-            shutil.copy(generated_zip, os.path.join(CONFIG_BROKER["broker_files"], sub_zip))
-        else:
-            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
-            s3.upload_file(generated_zip, CONFIG_BROKER["sub_zips_bucket"], sub_zip)
-        os.remove(generated_zip)
+        with tempfile.TemporaryDirectory(prefix="broker_zip_") as temp_build_dir:
+            try:
+                generated_zip = zip_published_submission(
+                    submission, publish_history_id, certify_history_id, zip_filename, is_local, temp_build_dir
+                )
+            except (ValueError, OSError) as e:
+                return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+            sub_zip = os.path.basename(generated_zip)
+            if is_local:
+                shutil.copy(generated_zip, os.path.join(CONFIG_BROKER["broker_files"], sub_zip))
+            else:
+                s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+                s3.upload_file(generated_zip, CONFIG_BROKER["sub_zips_bucket"], sub_zip)
 
     if is_local:
         url = os.path.join(CONFIG_BROKER["broker_files"], sub_zip)
@@ -1757,7 +1757,7 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
-def zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename, is_local):
+def zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename, is_local, build_dir="."):
     """Retrieve/generate the zip file for a specific submission. Currently only for published DABS submissions.
 
     Args:
@@ -1766,6 +1766,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
         certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
         zip_filename: the name of the zip to be created
         is_local: a boolean indicating whether the application is running locally or not
+        build_dir: path to directory to build in
 
     Returns:
         Path to zip containing the published submission files
@@ -1816,8 +1817,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
         raise ValueError("No submission files found.")
     zip_filename = f"{zip_filename}_{fyp}"
 
-    # Note: not using tempfile.TemporaryDirectory as we need to name the directory
-    tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
+    tmp_dir_path = os.path.join(build_dir, zip_filename)
     os.mkdir(tmp_dir_path)
     for sub_file_path in sub_file_paths:
         sub_filename = os.path.join(tmp_dir_path, os.path.basename(sub_file_path))
