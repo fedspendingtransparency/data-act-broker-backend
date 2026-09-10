@@ -50,6 +50,8 @@ These are derivations that can happen in any order.
 	- `record_type_desc.description` => `record_type_description`
 	- `business_funds_ind_description.description` => `business_funds_ind_desc`
 	- `business_type_desc.description` => `business_types_desc`
+    - `award_amount_basis.name` => `award_amount_basis_name`
+    - `award_recipient_basis.name` => `award_recipient_basis_name`
 - `derive_fabs_business_categories`
 	- `business_types` => `business_categories`
   

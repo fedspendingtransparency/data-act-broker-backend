@@ -211,6 +211,22 @@ ASSISTANCE_TYPE = [
 ]
 ASSISTANCE_TYPE_DICT = {item.name: item.desc for item in ASSISTANCE_TYPE}
 
+AWARD_AMOUNT_BASIS = [
+    LookupType(1, "A01", "Discretionary Award Amount Selection"),
+    LookupType(2, "A02", "Formula Award Amount Selection"),
+    LookupType(3, "A03", "Mandatory Award Amount Selection"),
+    LookupType(4, "A04", "Fixed Award Amount Selection"),
+]
+AWARD_AMOUNT_BASIS_DICT = {item.name: item.desc for item in AWARD_AMOUNT_BASIS}
+
+AWARD_RECIPIENT_BASIS = [
+    LookupType(1, "R01", "Discretionary and Competitive Recipient Selection Award"),
+    LookupType(2, "R02", "Discretionary and Non-Competitive Recipient Selection Award"),
+    LookupType(3, "R03", "Non-Discretionary and Competitive Recipient Selection Award"),
+    LookupType(4, "R04", "Non-Discretionary and Non-Competitive Recipient Selection Award"),
+]
+AWARD_RECIPIENT_BASIS_DICT = {item.name: item.desc for item in AWARD_RECIPIENT_BASIS}
+
 CORRECTION_DELETE_IND = [
     LookupType(1, "C", "Correct an Existing Record"),
     LookupType(2, "D", "Delete an Existing Record"),
