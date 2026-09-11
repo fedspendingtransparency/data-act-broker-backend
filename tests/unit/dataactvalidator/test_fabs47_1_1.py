@@ -37,7 +37,7 @@ def test_failure(database):
     (AssistanceType = F003, F004, F005, F006, F007, F008, F009, or F010).
     """
     fabs_1 = FABSFactory(funding_opportunity_number="123", assistance_type="F006", correction_delete_indicatr="C")
-    fabs_2 = FABSFactory(funding_opportunity_number="123", assistance_type="F006", correction_delete_indicatr="C")
+    fabs_2 = FABSFactory(funding_opportunity_number="123", assistance_type="f010", correction_delete_indicatr="C")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2

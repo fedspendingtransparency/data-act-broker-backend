@@ -9,5 +9,5 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(funding_opportunity_number, '') <> ''
-    AND COALESCE(assistance_type, '') IN ('F003', 'F004', 'F005', 'F006', 'F007', 'F008', 'F009', 'F010')
+    AND UPPER(COALESCE(assistance_type, '')) IN ('F003', 'F004', 'F005', 'F006', 'F007', 'F008', 'F009', 'F010')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
