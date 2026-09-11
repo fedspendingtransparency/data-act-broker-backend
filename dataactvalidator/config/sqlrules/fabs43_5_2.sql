@@ -24,12 +24,13 @@ SELECT
     action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs43_5_2_{0} AS fabs
-WHERE CASE WHEN place_of_performance_zip4a ~ '^\d\d\d\d\d(\-?\d\d\d\d)?$'
+WHERE CASE WHEN place_of_performance_zip4a ~ '^\d\d\d\d\d\-?\d\d\d\d$'
     THEN NOT EXISTS (
         SELECT 1
         FROM zips
         WHERE fabs.place_of_performance_congr = zips.congressional_district_no
             AND UPPER(LEFT(fabs.place_of_performance_zip4a, 5)) = zips.zip5
+            AND UPPER(RIGHT(fabs.place_of_performance_zip4a, 4)) = zips.zip_last4
             AND UPPER(COALESCE(LEFT(fabs.place_of_performance_code, 2), '')) = zips.state_abbreviation
         )
     ELSE NOT EXISTS (
@@ -37,7 +38,6 @@ WHERE CASE WHEN place_of_performance_zip4a ~ '^\d\d\d\d\d(\-?\d\d\d\d)?$'
         FROM zips
         WHERE fabs.place_of_performance_congr = zips.congressional_district_no
             AND UPPER(LEFT(fabs.place_of_performance_zip4a, 5)) = zips.zip5
-            AND UPPER(RIGHT(fabs.place_of_performance_zip4a, 4)) = zips.zip_last4
             AND UPPER(COALESCE(LEFT(fabs.place_of_performance_code, 2), '')) = zips.state_abbreviation
         )
     END

@@ -792,23 +792,33 @@ class FileHandler:
 
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
-        # Check to make sure all jobs are finished
-        unfinished_jobs = (
-            sess.query(Job)
-            .filter(Job.submission_id == submission_id, Job.job_status_id != JOB_STATUS_DICT["finished"])
-            .count()
-        )
-        if unfinished_jobs > 0:
-            raise ResponseError("Submission has unfinished jobs and cannot be published", StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission that has only finished jobs, we can start the process
         log_derivation("Starting FABS submission publishing", submission_id)
 
-        # set publish_status to "publishing"
-        sess.query(Submission).filter_by(submission_id=submission_id).update(
-            {"publish_status_id": PUBLISH_STATUS_DICT["publishing"], "updated_at": get_utc_now()},
-            synchronize_session=False,
+        # set publish_status to "publishing" atomically, only if the submission is still unpublished and all of
+        # its jobs are still finished, so a concurrent upload or publish cannot slip in between the checks above
+        # and this status flip
+        unfinished_job_exists = (
+            sess.query(Job)
+            .filter(Job.submission_id == submission_id, Job.job_status_id != JOB_STATUS_DICT["finished"])
+            .exists()
         )
+        updated_rows = (
+            sess.query(Submission)
+            .filter(
+                Submission.submission_id == submission_id,
+                Submission.publish_status_id == PUBLISH_STATUS_DICT["unpublished"],
+                ~unfinished_job_exists,
+            )
+            .update(
+                {"publish_status_id": PUBLISH_STATUS_DICT["publishing"], "updated_at": get_utc_now()},
+                synchronize_session=False,
+            )
+        )
+        if updated_rows == 0:
+            sess.rollback()
+            raise ResponseError("Submission has unfinished jobs and cannot be published", StatusCode.CLIENT_ERROR)
         sess.commit()
 
         try:
@@ -1726,19 +1736,19 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
 
     # Make the zip if not cached
     if not sub_zip:
-        try:
-            generated_zip = zip_published_submission(
-                submission, publish_history_id, certify_history_id, zip_filename, is_local
-            )
-        except (ValueError, OSError) as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        sub_zip = os.path.basename(generated_zip)
-        if is_local:
-            shutil.copy(generated_zip, os.path.join(CONFIG_BROKER["broker_files"], sub_zip))
-        else:
-            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
-            s3.upload_file(generated_zip, CONFIG_BROKER["sub_zips_bucket"], sub_zip)
-        os.remove(generated_zip)
+        with tempfile.TemporaryDirectory(prefix="broker_zip_") as temp_build_dir:
+            try:
+                generated_zip = zip_published_submission(
+                    submission, publish_history_id, certify_history_id, zip_filename, is_local, temp_build_dir
+                )
+            except (ValueError, OSError) as e:
+                return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+            sub_zip = os.path.basename(generated_zip)
+            if is_local:
+                shutil.copy(generated_zip, os.path.join(CONFIG_BROKER["broker_files"], sub_zip))
+            else:
+                s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+                s3.upload_file(generated_zip, CONFIG_BROKER["sub_zips_bucket"], sub_zip)
 
     if is_local:
         url = os.path.join(CONFIG_BROKER["broker_files"], sub_zip)
@@ -1747,7 +1757,7 @@ def get_submission_zip(submission, publish_history_id, certify_history_id, is_lo
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
-def zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename, is_local):
+def zip_published_submission(submission, publish_history_id, certify_history_id, zip_filename, is_local, build_dir="."):
     """Retrieve/generate the zip file for a specific submission. Currently only for published DABS submissions.
 
     Args:
@@ -1756,6 +1766,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
         certify_history_id: the ID of the CertifyHistory object that represents the certified submission to download
         zip_filename: the name of the zip to be created
         is_local: a boolean indicating whether the application is running locally or not
+        build_dir: path to directory to build in
 
     Returns:
         Path to zip containing the published submission files
@@ -1806,8 +1817,7 @@ def zip_published_submission(submission, publish_history_id, certify_history_id,
         raise ValueError("No submission files found.")
     zip_filename = f"{zip_filename}_{fyp}"
 
-    # Note: not using tempfile.TemporaryDirectory as we need to name the directory
-    tmp_dir_path = os.path.join(tempfile.gettempdir(), zip_filename)
+    tmp_dir_path = os.path.join(build_dir, zip_filename)
     os.mkdir(tmp_dir_path)
     for sub_file_path in sub_file_paths:
         sub_filename = os.path.join(tmp_dir_path, os.path.basename(sub_file_path))

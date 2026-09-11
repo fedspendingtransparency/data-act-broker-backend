@@ -379,10 +379,22 @@ def check_job_dependencies(job_id):
             if unfinished_prerequisites == 0:
                 # this job has no unfinished prerequisite jobs, so it is eligible to be set to a 'ready' status and
                 # added to the queue
-                mark_job_status(dep_job_id, "ready")
+                update_sql = """UPDATE job
+                    SET job_status_id = {new_status_id},
+                        error_message = NULL,
+                        progress = 100
+                    WHERE job_id={job_id}
+                        AND job_status_id={waiting_id}""".format(
+                    new_status_id=JOB_STATUS_DICT["ready"], job_id=dep_job_id, waiting_id=JOB_STATUS_DICT["waiting"]
+                )
+                updated_rows = sess.execute(update_sql)
+                sess.commit()
 
                 # Only want to send validation jobs to the queue, other job types should be forwarded
-                if dependency.dependent_job.job_type_name in ["csv_record_validation", "validation"]:
+                if updated_rows.rowcount == 1 and dependency.dependent_job.job_type_name in [
+                    "csv_record_validation",
+                    "validation",
+                ]:
                     # add dep_job_id to the SQS job queue
                     log_data["message_type"] = "CoreInfo"
                     log_data["message"] = "Sending job {} to job manager in sqs".format(dep_job_id)
@@ -406,6 +418,26 @@ def create_jobs(upload_files, submission, existing_submission=False):
     """
     sess = GlobalDB.db().session
     submission_id = submission.submission_id
+
+    if existing_submission:
+        # Re-verify the submission's publish status in the same transaction that swaps the job files. This
+        # closes the race window with a concurrent publish: if the submission started publishing/reverting
+        # after the handler's initial check, no rows match and we abort before any job filenames are changed.
+        # Setting publishable to False here (atomically) also prevents a publish from starting once the swap
+        # has been committed but before the new files have been validated.
+        updated_rows = (
+            sess.query(Submission)
+            .filter(
+                Submission.submission_id == submission_id,
+                Submission.publish_status_id.notin_(
+                    [PUBLISH_STATUS_DICT["publishing"], PUBLISH_STATUS_DICT["reverting"]]
+                ),
+            )
+            .update({"publishable": False}, synchronize_session=False)
+        )
+        if updated_rows == 0:
+            sess.rollback()
+            raise ValueError("Existing submission must not be publishing or reverting")
 
     # create the file upload and single-file validation jobs and
     # set up the dependencies between them
