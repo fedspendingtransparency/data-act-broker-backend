@@ -983,8 +983,27 @@ def process_dabs_publish(submission, file_manager):
     # Determine if this is the first time this submission is being published
     first_publish = submission.publish_status_id == PUBLISH_STATUS_DICT["unpublished"]
 
-    # set publish_status to "publishing"
-    submission.publish_status_id = PUBLISH_STATUS_DICT["publishing"]
+    # set publish_status to "publishing" atomically, only if the submission is still in the state verified by
+    # publish_checks.
+    updated_rows = (
+        sess.query(Submission)
+        .filter(
+            Submission.submission_id == submission.submission_id,
+            Submission.publishable.is_(True),
+            Submission.test_submission.is_(False),
+            Submission.publish_status_id.notin_(
+                [
+                    PUBLISH_STATUS_DICT["publishing"],
+                    PUBLISH_STATUS_DICT["reverting"],
+                    PUBLISH_STATUS_DICT["published"],
+                ]
+            ),
+        )
+        .update({"publish_status_id": PUBLISH_STATUS_DICT["publishing"]}, synchronize_session=False)
+    )
+    if updated_rows == 0:
+        sess.rollback()
+        raise ValueError("Submission was updated during publishing. Please revalidate before publishing.")
 
     # create the publish_history entry
     publish_history = PublishHistory(user_id=active_user_id, submission_id=submission.submission_id)

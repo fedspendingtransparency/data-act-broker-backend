@@ -1,14 +1,14 @@
 """Add new AwardBasis columns to fabs and published_fabs tables
 
 Revision ID: 186c77a3662e
-Revises: 9907f0bc45f4
+Revises: ad583d48ce5e
 Create Date: 2026-07-29 15:39:37.522869
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '186c77a3662e'
-down_revision = '9907f0bc45f4'
+down_revision = 'ad583d48ce5e'
 branch_labels = None
 depends_on = None
 
