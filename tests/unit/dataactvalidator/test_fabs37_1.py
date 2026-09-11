@@ -72,8 +72,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """Test invalid. For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically, the
-    AssistanceListingNumber must be active as of the ActionDate. This does not apply to correction records
+    """Test invalid. For new (ActionType = A1/A2) or mixed aggregate (ActionType = G1) assistance awards specifically,
+    the AssistanceListingNumber must be active as of the ActionDate. This does not apply to correction records
     (those with CorrectionDeleteIndicator = C and delete records).
     """
 
@@ -95,7 +95,7 @@ def test_failure(database):
     )
     # published action date before published in archived AL
     fabs_5 = FABSFactory(
-        assistance_listing_number="12.341", action_date="20120111", action_type="E", correction_delete_indicatr=None
+        assistance_listing_number="12.341", action_date="20120111", action_type="g1", correction_delete_indicatr=None
     )
 
     errors = number_of_errors(
