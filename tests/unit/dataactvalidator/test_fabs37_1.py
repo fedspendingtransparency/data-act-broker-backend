@@ -97,8 +97,14 @@ def test_failure(database):
     fabs_5 = FABSFactory(
         assistance_listing_number="12.341", action_date="20120111", action_type="g1", correction_delete_indicatr=None
     )
+    # afterwards
+    fabs_6 = FABSFactory(
+        assistance_listing_number="12.341", action_date="20140428", action_type="g1", correction_delete_indicatr=None
+    )
 
     errors = number_of_errors(
-        _FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, assistance_listing, assistance_listing2]
+        _FILE,
+        database,
+        models=[fabs_1, fabs_2, fabs_3, fabs_4, fabs_5, fabs_6, assistance_listing, assistance_listing2],
     )
-    assert errors == 5
+    assert errors == 6
