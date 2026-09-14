@@ -10,6 +10,6 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND UPPER(COALESCE(funding_opportunity_goals, '')) NOT IN ('', 'NOT APPLICABLE')
-    AND UPPER(COALESCE(assistance_type, '')) IN ('F001', 'F002')
+    AND UPPER(assistance_type) IN ('F001', 'F002')
     AND UPPER(COALESCE(award_recipient_basis_code, '')) IN ('R02', 'R03', 'R04')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

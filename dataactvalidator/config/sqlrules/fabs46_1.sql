@@ -7,5 +7,5 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(indirect_federal_sharing, 0) <> 0
-    AND COALESCE(assistance_type, '') IN ('F003', 'F004', 'F005')
+    AND UPPER(assistance_type) IN ('F003', 'F004', 'F005')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

@@ -6,7 +6,7 @@ SELECT
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs
 WHERE submission_id = {0}
-    AND assistance_type IN ('F003', 'F004')
+    AND UPPER(assistance_type) IN ('F003', 'F004')
     AND federal_action_obligation IS NOT NULL
     AND federal_action_obligation <> 0
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

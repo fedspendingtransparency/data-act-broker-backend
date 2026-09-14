@@ -6,6 +6,6 @@ SELECT
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs
 WHERE submission_id = {0}
-    AND assistance_type IN ('F003', 'F004')
+    AND UPPER(assistance_type) IN ('F003', 'F004')
     AND original_loan_subsidy_cost IS NULL
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

@@ -19,7 +19,7 @@ def test_success(database):
     """OriginalLoanSubsidyCost is required for loans (i.e., when AssistanceType = F003 or F004)."""
 
     fabs = FABSFactory(assistance_type="F003", original_loan_subsidy_cost=0, correction_delete_indicatr="")
-    fabs_2 = FABSFactory(assistance_type="F004", original_loan_subsidy_cost=20, correction_delete_indicatr="c")
+    fabs_2 = FABSFactory(assistance_type="f004", original_loan_subsidy_cost=20, correction_delete_indicatr="c")
     fabs_3 = FABSFactory(assistance_type="F003", original_loan_subsidy_cost=20, correction_delete_indicatr="c")
     # Ignore correction delete indicator of D
     fabs_4 = FABSFactory(assistance_type="F004", original_loan_subsidy_cost=None, correction_delete_indicatr="d")
@@ -31,7 +31,7 @@ def test_success(database):
 def test_failure(database):
     """OriginalLoanSubsidyCost is required for loans (i.e., when AssistanceType = F003 or F004)."""
 
-    fabs = FABSFactory(assistance_type="F003", original_loan_subsidy_cost=None, correction_delete_indicatr=None)
+    fabs = FABSFactory(assistance_type="f003", original_loan_subsidy_cost=None, correction_delete_indicatr=None)
     fabs_2 = FABSFactory(assistance_type="F004", original_loan_subsidy_cost=None, correction_delete_indicatr="C")
 
     errors = number_of_errors(_FILE, database, models=[fabs, fabs_2])

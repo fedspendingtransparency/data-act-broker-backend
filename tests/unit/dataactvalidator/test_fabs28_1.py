@@ -19,7 +19,7 @@ def test_success(database):
     """FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = F003 or F004)."""
 
     fabs = FABSFactory(assistance_type="F003", face_value_loan_guarantee=0, correction_delete_indicatr="")
-    fabs_2 = FABSFactory(assistance_type="F004", face_value_loan_guarantee=20, correction_delete_indicatr="c")
+    fabs_2 = FABSFactory(assistance_type="f004", face_value_loan_guarantee=20, correction_delete_indicatr="c")
     fabs_3 = FABSFactory(assistance_type="F003", face_value_loan_guarantee=5, correction_delete_indicatr="c")
     # Ignore correction delete indicator of D
     fabs_4 = FABSFactory(assistance_type="F004", face_value_loan_guarantee=None, correction_delete_indicatr="d")
@@ -31,7 +31,7 @@ def test_success(database):
 def test_failure(database):
     """FaceValueOfDirectLoanOrLoanGuarantee is required for loans (i.e., when AssistanceType = F003 or F004)."""
 
-    fabs = FABSFactory(assistance_type="F003", face_value_loan_guarantee=None, correction_delete_indicatr=None)
+    fabs = FABSFactory(assistance_type="f003", face_value_loan_guarantee=None, correction_delete_indicatr=None)
     fabs_2 = FABSFactory(assistance_type="F004", face_value_loan_guarantee=None, correction_delete_indicatr="C")
 
     errors = number_of_errors(_FILE, database, models=[fabs, fabs_2])

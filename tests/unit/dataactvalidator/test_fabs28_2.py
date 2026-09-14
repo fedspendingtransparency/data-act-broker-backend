@@ -21,7 +21,7 @@ def test_success(database):
     """
 
     fabs = FABSFactory(assistance_type="F002", face_value_loan_guarantee=None, correction_delete_indicatr="")
-    fabs_2 = FABSFactory(assistance_type="F010", face_value_loan_guarantee=None, correction_delete_indicatr="c")
+    fabs_2 = FABSFactory(assistance_type="f010", face_value_loan_guarantee=None, correction_delete_indicatr="c")
     fabs_3 = FABSFactory(assistance_type="F001", face_value_loan_guarantee=0, correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
     fabs_4 = FABSFactory(assistance_type="F009", face_value_loan_guarantee=20, correction_delete_indicatr="d")
@@ -35,7 +35,7 @@ def test_failure(database):
     (i.e., when AssistanceType is not F003 or F004).
     """
 
-    fabs = FABSFactory(assistance_type="F008", face_value_loan_guarantee=20, correction_delete_indicatr="")
+    fabs = FABSFactory(assistance_type="f008", face_value_loan_guarantee=20, correction_delete_indicatr="")
 
     errors = number_of_errors(_FILE, database, models=[fabs])
     assert errors == 1

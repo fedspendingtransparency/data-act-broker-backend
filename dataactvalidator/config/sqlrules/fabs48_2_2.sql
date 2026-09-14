@@ -11,7 +11,7 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(funding_opportunity_goals, '') = ''
-    AND UPPER(COALESCE(assistance_type, '')) IN ('F001', 'F002')
+    AND UPPER(assistance_type) IN ('F001', 'F002')
     AND UPPER(COALESCE(award_recipient_basis_code, '')) = 'R01'
     AND cast_as_date(action_date) >= '2026/10/01'
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

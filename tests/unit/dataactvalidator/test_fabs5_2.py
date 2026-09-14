@@ -29,7 +29,7 @@ def test_success(database):
         correction_delete_indicatr="",
     )
     fabs_2 = FABSFactory(
-        assistance_type="F002",
+        assistance_type="f002",
         action_date="2026/10/02",
         award_amount_basis_code="A",
         award_recipient_basis_code="B",
@@ -89,7 +89,7 @@ def test_failure(database):
         correction_delete_indicatr="C",
     )
     fabs_2 = FABSFactory(
-        assistance_type="F001",
+        assistance_type="f001",
         action_date="2026/10/02",
         award_amount_basis_code="A",
         award_recipient_basis_code=None,

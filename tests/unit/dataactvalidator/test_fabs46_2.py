@@ -22,7 +22,7 @@ def test_success(database):
     """
 
     fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type="F002", action_date="05/05/2022")
-    fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type="F001", action_date="05/05/2022")
+    fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type="f001", action_date="05/05/2022")
 
     # Doesn't care about other assistance types
     fabs_3 = FABSFactory(indirect_federal_sharing=None, assistance_type="F009", action_date="05/05/2022")
@@ -46,6 +46,6 @@ def test_failure(database):
     """
 
     fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type="F002", action_date="05/05/2022")
-    fabs_2 = FABSFactory(indirect_federal_sharing=None, assistance_type="F001", action_date="05/05/2022")
+    fabs_2 = FABSFactory(indirect_federal_sharing=None, assistance_type="f001", action_date="05/05/2022")
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2

@@ -9,7 +9,7 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND indirect_federal_sharing IS NULL
-    AND COALESCE(assistance_type, '') IN ('F001', 'F002')
+    AND UPPER(assistance_type) IN ('F001', 'F002')
     AND (CASE
             WHEN is_date(COALESCE(action_date, '0'))
             THEN CAST(action_date AS DATE)
