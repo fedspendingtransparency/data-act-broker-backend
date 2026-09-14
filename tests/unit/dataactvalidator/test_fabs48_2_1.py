@@ -18,11 +18,13 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """Test FundingOpportunityGoalsText is required for all grants and cooperative agreements
-    (AssistanceType = F001 or F002).
+    """Test FundingOpportunityGoalsText is required for all competitive, discretionary grants and cooperative agreements
+    (AssistanceType = F001 or F002 and AwardRecipientBasisCode = R01). When ActionDate is prior to October 01, 2026,
+    'Not Applicable' will be accepted for not competitive and discretionary grants and cooperative agreements
+    (AssistanceType = F001 or F002 and AwardRecipientBasisCode is blank).
     """
     fabs_1 = FABSFactory(funding_opportunity_goals="NOT AppLICABLE", action_date="10/01/2025", award_recipient_basis_code='', assistance_type="F002", correction_delete_indicatr="C")
-    fabs_2 = FABSFactory(funding_opportunity_goals="1234", action_date="10/01/2025", award_recipient_basis_code=None, assistance_type="F001", correction_delete_indicatr="C")
+    fabs_2 = FABSFactory(funding_opportunity_goals="1234", action_date="10/01/2025", award_recipient_basis_code=None, assistance_type="f001", correction_delete_indicatr="C")
 
     # Ignored for other assistance types
     fabs_3 = FABSFactory(funding_opportunity_goals="", action_date="10/01/2025", award_recipient_basis_code='', assistance_type="F006", correction_delete_indicatr="C")
@@ -43,11 +45,13 @@ def test_success(database):
 
 
 def test_failure(database):
-    """Test failure FundingOpportunityGoalsText is required for all grants and cooperative agreements
-    (AssistanceType = F001 or F002).
+    """Test failure FundingOpportunityGoalsText is required for all competitive, discretionary grants and cooperative
+    agreements (AssistanceType = F001 or F002 and AwardRecipientBasisCode = R01). When ActionDate is prior to
+    October 01, 2026, 'Not Applicable' will be accepted for not competitive and discretionary grants and cooperative
+    agreements (AssistanceType = F001 or F002 and AwardRecipientBasisCode is blank).
     """
     fabs_1 = FABSFactory(funding_opportunity_goals="", action_date="10/01/2025", award_recipient_basis_code='', assistance_type="F001", correction_delete_indicatr="C")
-    fabs_2 = FABSFactory(funding_opportunity_goals=None, action_date="10/01/2025", award_recipient_basis_code=None, assistance_type="F002", correction_delete_indicatr="C")
+    fabs_2 = FABSFactory(funding_opportunity_goals=None, action_date="10/01/2025", award_recipient_basis_code=None, assistance_type="f002", correction_delete_indicatr="C")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2
