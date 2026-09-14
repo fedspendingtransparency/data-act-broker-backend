@@ -28,9 +28,5 @@ WHERE UPPER(fabs.action_type) IN ('A1', 'A2', 'G1')
             JOIN assistance_listing AS al
                 ON sub_fabs.assistance_listing_number = UPPER(al.program_number)
                 AND al.published_date <= sub_fabs.action_date
-                AND (COALESCE(al.archived_date, '') = ''
-                    OR (sub_fabs.action_date <= al.archived_date
-                        AND COALESCE(al.archived_date, '') <> ''
-                    )
-                )
+                AND (COALESCE(al.archived_date, '') = '' OR sub_fabs.action_date <= al.archived_date)
     );
