@@ -1,7 +1,5 @@
 -- FundingOpportunityGoalsText is required for all competitive, discretionary grants and cooperative agreements
--- (AssistanceType = F001 or F002 and AwardRecipientBasisCode = R01). When ActionDate is prior to October 01, 2026,
--- 'Not Applicable' will be accepted for not competitive and discretionary grants and cooperative agreements
--- (AssistanceType = F001 or F002 and AwardRecipientBasisCode is blank).
+-- (AssistanceType = F001 or F002 and AwardRecipientBasisCode = R01) with an ActionDate on or after October 01, 2026.
 
 SELECT
     row_number,
@@ -14,6 +12,6 @@ FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(funding_opportunity_goals, '') = ''
     AND UPPER(COALESCE(assistance_type, '')) IN ('F001', 'F002')
-    AND COALESCE(award_recipient_basis_code, '') = ''
-    AND cast_as_date(action_date) < '2026/10/01'
+    AND UPPER(COALESCE(award_recipient_basis_code, '')) = 'R01'
+    AND cast_as_date(action_date) >= '2026/10/01'
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
