@@ -1,9 +1,11 @@
 -- Unique FAIN or URI from file D2 should exist in file C, except for:
--- 1) Loans (AssistanceType = 07, 08, F003, or F004) with OriginalLoanSubsidyCost <= 0 in D2;
+-- 1) Loans (AssistanceType = F003 or F004) with OriginalLoanSubsidyCost <= 0 in D2;
 -- or 2) Non-Loans with FederalActionObligation = 0 in D2.
 -- For non-aggregate and PII-redacted non-aggregate records, only the FAIN in D2 will be compared to C.
 -- For aggregate records, only the URI in D2 will be compared to C.
 -- Note that for File C, FAIN and URI cannot be provided on the same row.
+-- Also noting that while the rule text only accounts for new assistance types,
+-- the logic accounts for older assistance types via historical resubmissions that havent updated their FABS/D2 yet.
 SELECT
     afa.row_number AS "source_row_number",
     afa.fain AS "source_value_fain",

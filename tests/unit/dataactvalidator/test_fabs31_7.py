@@ -22,7 +22,7 @@ def test_column_headers(database):
 def test_published_date_success(database):
     """Test success for when ActionDate is after October 1, 2010 and ActionType = B1, C1, C2, C3, C4, D1, E1, EX, or FX,
     AwardeeOrRecipientUEI should (when provided) have an active registration in SAM as of the ActionDate, except where
-    FederalActionObligation is <=0 and ActionType = D1, or, when ActionDate is after October 1, 2024,
+    FederalActionObligation is <=0 and ActionType = D1, or, when ActionDate is after October 1, 2024, and
     LegalEntityCountryCode is a foreign country.
     """
     recipient = SAMRecipient(uei="11111111111E", registration_date="01/01/2017", expiration_date="01/01/2018")
@@ -86,7 +86,7 @@ def test_published_date_success(database):
 def test_published_date_failure(database):
     """Test failure for when ActionDate is after October 1, 2010 and ActionType = B1, C1, C2, C3, C4, D1, E1, EX, or FX,
     AwardeeOrRecipientUEI should (when provided) have an active registration in SAM as of the ActionDate, except where
-    FederalActionObligation is <=0 and ActionType = D1, or, when ActionDate is after October 1, 2024,
+    FederalActionObligation is <=0 and ActionType = D1, or, when ActionDate is after October 1, 2024, and
     LegalEntityCountryCode is a foreign country.
     """
     recipient = SAMRecipient(uei="11111111111E", registration_date="01/01/2017", expiration_date="01/01/2018")
