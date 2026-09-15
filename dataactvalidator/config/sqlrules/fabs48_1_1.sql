@@ -1,13 +1,13 @@
--- FundingOpportunityNumber must be blank for non-grants/non-cooperative agreements
+-- FundingOpportunityGoalsText must be blank for non-grants/non-cooperative agreements
 -- (AssistanceType = F003, F004, F005, F006, F007, F008, F009, or F010).
 
 SELECT
     row_number,
-    funding_opportunity_number,
+    funding_opportunity_goals,
     assistance_type,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs
 WHERE submission_id = {0}
-    AND COALESCE(funding_opportunity_number, '') <> ''
-    AND COALESCE(assistance_type, '') IN ('F003', 'F004', 'F005', 'F006', 'F007', 'F008', 'F009', 'F010')
+    AND COALESCE(funding_opportunity_goals, '') <> ''
+    AND UPPER(assistance_type) IN ('F003', 'F004', 'F005', 'F006', 'F007', 'F008', 'F009', 'F010')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

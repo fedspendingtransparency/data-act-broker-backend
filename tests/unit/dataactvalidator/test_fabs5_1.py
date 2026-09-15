@@ -15,15 +15,15 @@ def test_success(database):
     'F001', 'F002', 'F003', 'F004', 'F005', 'F006', 'F007', 'F008', 'F009', 'F010'
     """
     fabs_1 = FABSFactory(assistance_type="F001", correction_delete_indicatr="")
-    fabs_2 = FABSFactory(assistance_type="F002", correction_delete_indicatr="")
+    fabs_2 = FABSFactory(assistance_type="f002", correction_delete_indicatr="")
     fabs_3 = FABSFactory(assistance_type="F003", correction_delete_indicatr="")
     fabs_4 = FABSFactory(assistance_type="F004", correction_delete_indicatr="")
     fabs_5 = FABSFactory(assistance_type="F005", correction_delete_indicatr="")
-    fabs_6 = FABSFactory(assistance_type="F006", correction_delete_indicatr="")
+    fabs_6 = FABSFactory(assistance_type="f006", correction_delete_indicatr="")
     fabs_7 = FABSFactory(assistance_type="F007", correction_delete_indicatr="")
     fabs_8 = FABSFactory(assistance_type="F008", correction_delete_indicatr="")
     fabs_9 = FABSFactory(assistance_type="F009", correction_delete_indicatr="")
-    fabs_10 = FABSFactory(assistance_type="F010", correction_delete_indicatr="")
+    fabs_10 = FABSFactory(assistance_type="f010", correction_delete_indicatr="")
 
     # Ignore correction delete indicator of D
     fabs_11 = FABSFactory(assistance_type="Thing", correction_delete_indicatr="d")

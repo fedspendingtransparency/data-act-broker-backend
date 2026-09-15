@@ -9,7 +9,7 @@ SELECT
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs
 WHERE submission_id = {0}
-    AND COALESCE(assistance_type, '') IN ('F001', 'F002')
+    AND UPPER(assistance_type) IN ('F001', 'F002')
     AND cast_as_date(action_date) >= '2026/10/01'
     AND (COALESCE(award_amount_basis_code, '') = ''
         OR COALESCE(award_recipient_basis_code, '') = '')

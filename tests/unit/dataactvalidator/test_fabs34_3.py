@@ -29,7 +29,7 @@ def test_success(database):
     fabs_2 = FABSFactory(
         period_of_performance_star="20120724",
         period_of_performance_curr="20120724",
-        assistance_type="F001",
+        assistance_type="f001",
         correction_delete_indicatr="c",
     )
     # Ignore with different assistance type
@@ -64,7 +64,7 @@ def test_failure(database):
     fabs_2 = FABSFactory(
         period_of_performance_star="",
         period_of_performance_curr="20120724",
-        assistance_type="F002",
+        assistance_type="f002",
         correction_delete_indicatr="c",
     )
     fabs_3 = FABSFactory(

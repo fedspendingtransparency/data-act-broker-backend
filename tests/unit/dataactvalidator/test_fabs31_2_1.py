@@ -47,7 +47,7 @@ def test_success(database):
         business_types="aBc",
         uei="test",
         action_date="10/02/2010",
-        assistance_type="F001",
+        assistance_type="f001",
         correction_delete_indicatr="c",
         unique_award_key="after_key",
     )
@@ -67,7 +67,7 @@ def test_success(database):
         business_types="AbC",
         uei=None,
         action_date="10/01/2010",
-        assistance_type="F001",
+        assistance_type="f001",
         correction_delete_indicatr="",
         unique_award_key="after_key",
     )
@@ -163,7 +163,7 @@ def test_failure(database):
         business_types="aBc",
         uei=None,
         action_date="10/02/2010",
-        assistance_type="F007",
+        assistance_type="f007",
         correction_delete_indicatr="C",
         unique_award_key="after_key",
     )

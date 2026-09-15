@@ -19,7 +19,7 @@ def test_success(database):
     """Test IndirectCostFederalShareAmount must be blank or 0 for AssistanceType F003, F004, and F005."""
 
     fabs_1 = FABSFactory(indirect_federal_sharing=None, assistance_type="F003")
-    fabs_2 = FABSFactory(indirect_federal_sharing=0, assistance_type="F005")
+    fabs_2 = FABSFactory(indirect_federal_sharing=0, assistance_type="f005")
 
     # Doesn't care about other assistance types
     fabs_3 = FABSFactory(indirect_federal_sharing=123, assistance_type="F002")
@@ -39,6 +39,6 @@ def test_failure(database):
     """Test failure IndirectCostFederalShareAmount must be blank or 0 for AssistanceType F003, F004, and F005."""
 
     fabs_1 = FABSFactory(indirect_federal_sharing=123, assistance_type="F003")
-    fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type="F004")
+    fabs_2 = FABSFactory(indirect_federal_sharing=123, assistance_type="f004")
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2
