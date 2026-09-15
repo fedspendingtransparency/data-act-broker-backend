@@ -6,6 +6,8 @@ from dataactcore.models.lookups import (
     RECORD_TYPE_DICT,
     BUSINESS_TYPE_DICT,
     BUSINESS_FUNDS_IND_DICT,
+    AWARD_AMOUNT_BASIS_DICT,
+    AWARD_RECIPIENT_BASIS_DICT,
 )
 from dataactcore.models.stagingModels import PublishedFABS
 
@@ -386,6 +388,8 @@ def initialize_test_row(
     assist_type=None,
     busi_type=None,
     busi_fund=None,
+    aabc=None,
+    arbc=None,
     uei=None,
     action_date="2023/02/02",
     submission_id=9999,
@@ -419,11 +423,12 @@ def initialize_test_row(
             legal_entity_zip_last4, record_type, award_modification_amendme, fain, uri, correction_delete_indicatr,
             awarding_office_code, funding_office_code, legal_entity_congressional, place_of_perform_country_c,
             legal_entity_country_code, legal_entity_foreign_city, uei, action_type, assistance_type, business_types,
-            business_funds_indicator, action_date)
+            business_funds_indicator, award_amount_basis_code, award_recipient_basis_code, action_date)
         VALUES ({fao}, {nffa}, {assistance_listing_num}, {sub_tier_code}, {sub_fund_agency_code}, {ppop_code},
             {ppop_zip4a}, {ppop_cd}, {le_zip5}, {le_zip4}, {record_type}, {award_mod_amend}, {fain}, {uri}, {cdi},
             {awarding_office}, {funding_office}, {legal_congr}, {primary_place_country}, {legal_country},
-            {legal_foreign_city}, {uei}, {action_type}, {assist_type}, {busi_type}, {busi_fund}, {action_date})
+            {legal_foreign_city}, {uei}, {action_type}, {assist_type}, {busi_type}, {busi_fund}, {aabc}, {arbc},
+            {action_date})
     """.format(
         submission_id=submission_id,
         fao=fao if fao else "NULL",
@@ -452,6 +457,8 @@ def initialize_test_row(
         assist_type=stringify(assist_type),
         busi_type=stringify(busi_type),
         busi_fund=stringify(busi_fund),
+        aabc=stringify(aabc),
+        arbc=stringify(arbc),
         action_date=stringify(action_date),
     )
     db.session.execute(insert_query)
@@ -1252,10 +1259,20 @@ def test_derive_labels(database):
     assert fabs_obj.correction_delete_ind_desc is None
     assert fabs_obj.business_types_desc is None
     assert fabs_obj.business_funds_ind_desc is None
+    assert fabs_obj.award_amount_basis_name is None
+    assert fabs_obj.award_recipient_basis_name is None
 
     # Testing for valid values of each
     submission_id = initialize_test_row(
-        database, cdi="c", action_type="a1", assist_type="F002", busi_type="d", busi_fund="non", submission_id=3
+        database,
+        cdi="c",
+        action_type="a1",
+        assist_type="F002",
+        busi_type="d",
+        busi_fund="non",
+        aabc="a02",
+        arbc="r03",
+        submission_id=3,
     )
     fabs_derivations(database.session, submission_id)
     database.session.commit()
@@ -1266,6 +1283,8 @@ def test_derive_labels(database):
     assert fabs_obj.record_type_description == RECORD_TYPE_DICT[2]
     assert fabs_obj.business_types_desc == BUSINESS_TYPE_DICT["D"]
     assert fabs_obj.business_funds_ind_desc == BUSINESS_FUNDS_IND_DICT["NON"]
+    assert fabs_obj.award_amount_basis_name == AWARD_AMOUNT_BASIS_DICT["A02"]
+    assert fabs_obj.award_recipient_basis_name == AWARD_RECIPIENT_BASIS_DICT["R03"]
 
     # Testing for invalid values of each
     submission_id = initialize_test_row(
@@ -1276,6 +1295,8 @@ def test_derive_labels(database):
         record_type=5,
         busi_type="Z",
         busi_fund="ab",
+        aabc="AABC",
+        arbc="34",
         submission_id=4,
     )
     fabs_derivations(database.session, submission_id)
@@ -1287,6 +1308,8 @@ def test_derive_labels(database):
     assert fabs_obj.record_type_description is None
     assert fabs_obj.business_types_desc is None
     assert fabs_obj.business_funds_ind_desc is None
+    assert fabs_obj.award_amount_basis_name is None
+    assert fabs_obj.award_recipient_basis_name is None
 
     # Test multiple business types (2 valid, 1 invalid)
     submission_id = initialize_test_row(
