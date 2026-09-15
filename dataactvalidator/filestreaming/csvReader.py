@@ -103,6 +103,13 @@ class CsvReader(object):
         # Storing the flex fields for easy access
         self.flex_fields = [header for header in header_row if header.startswith("flex_")]
         if len(self.flex_fields) > MAX_FLEX_FIELDS:
+            self.write_file_level_error(
+                bucket_name,
+                error_filename,
+                ["Error Type"],
+                [f"Exceeds max flex fields ({MAX_FLEX_FIELDS})"],
+                self.is_local,
+            )
             raise ResponseError(
                 f"CSV file must have at most {MAX_FLEX_FIELDS} flex fields",
                 StatusCode.CLIENT_ERROR,
