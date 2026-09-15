@@ -104,7 +104,7 @@ class CsvReader(object):
         self.flex_fields = [header for header in header_row if header.startswith("flex_")]
         if len(self.flex_fields) > MAX_FLEX_FIELDS:
             raise ResponseError(
-                f"CSV file must have at max {MAX_FLEX_FIELDS} flex fields",
+                f"CSV file must have at most {MAX_FLEX_FIELDS} flex fields",
                 StatusCode.CLIENT_ERROR,
                 ValueError,
                 ValidationError.header_error,
