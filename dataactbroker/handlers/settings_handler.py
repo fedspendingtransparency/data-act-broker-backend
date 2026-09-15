@@ -1,5 +1,6 @@
 import logging
-from sqlalchemy import and_
+from sqlalchemy import and_, func
+from sqlalchemy.dialects.postgresql import insert
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.ResponseError import ResponseError
@@ -158,8 +159,6 @@ def save_rule_settings(agency_code, file, errors, warnings):
     ):
         raise ResponseError("Invalid agency_code: {}".format(agency_code), StatusCode.CLIENT_ERROR)
 
-    has_settings = agency_has_settings(sess=sess, agency_code=agency_code, file=file)
-
     for rule_type, rules in {"fatal": errors, "warning": warnings}.items():
         # Get the rule ids from the labels
         rule_label_query = file_filter(
@@ -189,24 +188,27 @@ def save_rule_settings(agency_code, file, errors, warnings):
             file_id = rule_label_mapping[rule_label]["file_id"]
             target_file_id = rule_label_mapping[rule_label]["target_file_id"]
 
-            if not has_settings:
-                sess.add(
-                    RuleSetting(
-                        agency_code=agency_code,
-                        rule_label=rule_label,
-                        file_id=file_id,
-                        target_file_id=target_file_id,
-                        priority=priority,
-                        impact_id=impact_id,
-                    )
+            statement = (
+                insert(RuleSetting)
+                .values(
+                    agency_code=agency_code,
+                    rule_label=rule_label,
+                    file_id=file_id,
+                    target_file_id=target_file_id,
+                    priority=priority,
+                    impact_id=impact_id,
                 )
-            else:
-                sess.query(RuleSetting).filter(
-                    RuleSetting.agency_code == agency_code,
-                    RuleSetting.rule_label == rule_label,
-                    RuleSetting.file_id == file_id,
-                    RuleSetting.target_file_id == target_file_id,
-                ).update({"priority": priority, "impact_id": impact_id}, synchronize_session=False)
+                .on_conflict_do_update(
+                    index_elements=[
+                        "rule_label",
+                        "file_id",
+                        "agency_code",
+                        func.coalesce(RuleSetting.target_file_id, 0),
+                    ],
+                    set_=dict(priority=priority, impact_id=impact_id),
+                )
+            )
+            sess.execute(statement)
             priority += 1
     sess.commit()
     return JsonResponse.create(StatusCode.OK, {"message": "Agency {} rules saved.".format(agency_code)})
