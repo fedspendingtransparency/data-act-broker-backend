@@ -438,6 +438,8 @@ class FABSFactory(factory.Factory):
     sai_number = fuzzy.FuzzyText()
     uri = fuzzy.FuzzyText()
     is_valid = True
+    award_amount_basis_code = fuzzy.FuzzyText()
+    award_recipient_basis_code = fuzzy.FuzzyText()
 
 
 class PublishedFABSFactory(factory.Factory):

@@ -5,6 +5,8 @@ from datetime import datetime
 from dataactcore.models.lookups import (
     ACTION_TYPE_DICT,
     ASSISTANCE_TYPE_DICT,
+    AWARD_AMOUNT_BASIS_DICT,
+    AWARD_RECIPIENT_BASIS_DICT,
     CORRECTION_DELETE_IND_DICT,
     RECORD_TYPE_DICT,
     BUSINESS_TYPE_DICT,
@@ -1320,6 +1322,44 @@ def derive_labels(sess, submission_id):
     res = sess.execute(query.format(submission_id=submission_id, business_types=business_types_values))
     log_derivation(
         "Completed business type label derivation, " "updated {}".format(res.rowcount), submission_id, query_start
+    )
+
+    query_start = datetime.now()
+    log_derivation("Beginning award amount basis name derivation", submission_id)
+    # Award Amount Basis Code derivation
+    aabs_values = "), (".join("'{}', '{}'".format(name, desc) for name, desc in AWARD_AMOUNT_BASIS_DICT.items())
+    query = """
+        WITH award_amount_bases AS
+            (SELECT *
+            FROM (VALUES ({aabs_values})) as award_amount_bases(code, name))
+        UPDATE tmp_fabs_{submission_id} AS pf
+        SET award_amount_basis_name = aabs.name
+        FROM award_amount_bases AS aabs
+        WHERE aabs.code = UPPER(pf.award_amount_basis_code);
+    """
+    res = sess.execute(query.format(submission_id=submission_id, aabs_values=aabs_values))
+    log_derivation(
+        "Completed award amount basis name derivation, " "updated {}".format(res.rowcount), submission_id, query_start
+    )
+
+    query_start = datetime.now()
+    log_derivation("Beginning award recipient basis name derivation", submission_id)
+    # Award Recipient Basis Code derivation
+    arbs_values = "), (".join("'{}', '{}'".format(name, desc) for name, desc in AWARD_RECIPIENT_BASIS_DICT.items())
+    query = """
+        WITH award_recipient_bases AS
+            (SELECT *
+            FROM (VALUES ({arbs_values})) as award_amount_bases(code, name))
+        UPDATE tmp_fabs_{submission_id} AS pf
+        SET award_recipient_basis_name = arbs.name
+        FROM award_recipient_bases AS arbs
+        WHERE arbs.code = UPPER(pf.award_recipient_basis_code);
+    """
+    res = sess.execute(query.format(submission_id=submission_id, arbs_values=arbs_values))
+    log_derivation(
+        "Completed award recipient basis name derivation, " "updated {}".format(res.rowcount),
+        submission_id,
+        query_start,
     )
 
     log_derivation("Completed label derivation", submission_id, start_time)

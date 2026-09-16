@@ -54,6 +54,7 @@ def test_calculate_remaining_fields(database):
     county_by_code = {"MD": {"024": "JUST ONE MD"}, "GA": {"123": "COUNTY ONE"}, "GU": {"123": "GU COUNTY"}}
     state_codes = {"GA": "GEORGIA", "MD": "MARYLAND", "PR": "PUERTO RICO", "GU": "GUAM"}
     country_list = {"USA": "UNITED STATES"}
+    us_territories = {"USA": "US", "PRI": "PR", "GUM": "GU"}
     exec_comp = {
         "123456ABC": {
             "officer1_name": "officer 1",
@@ -100,6 +101,7 @@ def test_calculate_remaining_fields(database):
         county_by_code,
         state_codes,
         country_list,
+        us_territories,
         exec_comp,
         "award",
     )
@@ -131,6 +133,7 @@ def test_calculate_remaining_fields(database):
         county_by_code,
         state_codes,
         country_list,
+        us_territories,
         exec_comp,
         "award",
     )
@@ -162,6 +165,7 @@ def test_calculate_remaining_fields(database):
         county_by_code,
         state_codes,
         country_list,
+        us_territories,
         exec_comp,
         "award",
     )
@@ -244,6 +248,7 @@ def test_process_data(database):
         county_by_code={},
         state_code_list={},
         country_list={},
+        us_territories={},
         exec_comp_dict={},
     )
     tmp_obj_idv = pull_fpds_data.process_data(
@@ -255,6 +260,7 @@ def test_process_data(database):
         county_by_code={},
         state_code_list={},
         country_list={},
+        us_territories={},
         exec_comp_dict={},
     )
 
