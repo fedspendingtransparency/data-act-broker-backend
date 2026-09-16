@@ -534,8 +534,9 @@ class ErrorWarningTests(BaseTestValidator):
 
         # Read Error
         report_headers, report_content = self.generate_file_report(READ_ERROR, "appropriations", warning=False)
-        appro_count = self.session.query(Appropriation).filter_by(submission_id=self.submission_id).count()
-        assert appro_count == 6
+        appro = self.session.query(Appropriation).filter_by(submission_id=self.submission_id)
+        # Guaranteeing the row numbers are still correct with long and short rows
+        assert sorted(list([r.row_number for r in appro])) == [4, 6, 8, 9, 10, 11]
         flex_count = self.session.query(FlexField).filter_by(submission_id=self.submission_id).count()
         assert flex_count == 12
         assert self.validator.job.number_of_rows == 11
