@@ -41,7 +41,7 @@ def load_object_class(base_path):
     if fapc == "true":
         s3 = boto3.client("s3")
         s3.download_file(
-            Bucket=CONFIG_BROKER["usas_public_reference_url"],
+            Bucket=CONFIG_BROKER["public_files_bucket"],
             Key="broker_reference_data/object_class.csv",
             Filename=filename,
         )
