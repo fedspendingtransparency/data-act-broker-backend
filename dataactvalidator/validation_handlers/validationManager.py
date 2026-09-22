@@ -481,6 +481,16 @@ class ValidationManager:
         self.total_rows = 1 + len(self.long_rows)
         self.total_data_rows = 0
 
+        # Build long_row_increment outside the chunks which will correct row_numbers ignored for being too long
+        self.long_row_df = pd.DataFrame({"row_number": range(2, file_row_count + 1)})
+        self.long_row_df["long_row"] = self.long_row_df["row_number"].isin(self.long_rows)
+        self.long_row_df["long_row_increment"] = self.long_row_df["long_row"].cumsum()
+        self.long_row_df = (
+            self.long_row_df[~self.long_row_df["long_row"]]
+            .drop(columns=["row_number", "long_row"])
+            .reset_index(drop=True)
+        )
+
         # Making base error/warning files
         self.error_file_name = report_file_name(self.submission_id, False, self.file_type.name)
         self.error_file_path = "".join([CONFIG_SERVICES["error_report_path"], self.error_file_name])
@@ -814,10 +824,10 @@ class ValidationManager:
         with lockable:
             shared_data["total_rows"] += len(chunk_df.index)
 
-        # Increment row numbers if any were ignored being too long
-        # This syncs the row numbers back to their original values
-        for row in sorted(self.long_rows):
-            chunk_df.loc[chunk_df["row_number"] >= row, "row_number"] = chunk_df["row_number"] + 1
+        # Increments +1 for every row ignored being too long
+        # which we can add to the row_number to get the original row_number
+        chunk_df = chunk_df.merge(self.long_row_df, how="left", left_index=True, right_index=True)
+        chunk_df["row_number"] = chunk_df["row_number"] + chunk_df["long_row_increment"]
 
         logger.info(
             {
@@ -834,8 +844,8 @@ class ValidationManager:
         # Drop rows that were too short and pandas filled in with Nones
         chunk_df = chunk_df[~chunk_df["row_number"].isin(self.short_rows)]
 
-        # Drop the index column
-        chunk_df = chunk_df.drop(["index"], axis=1)
+        # Drop the index and long_row_increment columns
+        chunk_df = chunk_df.drop(["index", "long_row_increment"], axis=1)
 
         # Drop all rows that have 1 or less filled in values (row_number is always filled in so this is how
         # we have to drop all rows that are just empty)
