@@ -1,13 +1,15 @@
 fieldname,fieldname_short,required,data_type,field_length
 ActionDate,action_date,ASP: Conditional per Validation Rule,string,8
-ActionType,action_type,ASP: Conditional per Validation Rule,string,1
+ActionType,action_type,ASP: Conditional per Validation Rule,string,2
 AssistanceType,assistance_type,ASP: Conditional per Validation Rule,string,4
+AwardAmountBasisCode,award_amount_basis_code,ASP: Conditional per Validation Rule,string,3
 AwardDescription,award_description,ASP: Conditional per Validation Rule,string,18000
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Conditional per Validation Rule,string,120
 AwardeeOrRecipientUEI,awardee_or_recipient_uei,ASP: Conditional per Validation Rule,string,12
 AwardingOfficeCode,awarding_office_code,ASP: Optional,string,6
 AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Conditional per Validation Rule,string,4
 AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25
+AwardRecipientBasisCode,award_recipient_basis_code,ASP: Conditional per Validation Rule,string,3
 BusinessFundsIndicator,business_funds_indicator,ASP: Conditional per Validation Rule,string,3
 BusinessTypes,business_types,ASP: Conditional per Validation Rule,string,3
 AssistanceListingNumber,assistance_listing_number,ASP: Required,string,7

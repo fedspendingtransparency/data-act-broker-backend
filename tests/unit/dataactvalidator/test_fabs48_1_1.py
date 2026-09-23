@@ -1,7 +1,7 @@
 from tests.unit.dataactcore.factories.staging import FABSFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = "fabs48_1"
+_FILE = "fabs48_1_1"
 
 
 def test_column_headers(database):
@@ -17,16 +17,16 @@ def test_column_headers(database):
 
 def test_success(database):
     """Test FundingOpportunityGoalsText must be blank for non-grants/non-cooperative agreements
-    (AssistanceType = 06, 07, 08, 09, 10, 11, F003, F004, F005, F006, F007, F008, F009, or F010).
+    (AssistanceType = F003, F004, F005, F006, F007, F008, F009, or F010).
     """
-    fabs_1 = FABSFactory(funding_opportunity_goals="", assistance_type="06", correction_delete_indicatr="C")
-    fabs_2 = FABSFactory(funding_opportunity_goals=None, assistance_type="F008", correction_delete_indicatr=None)
+    fabs_1 = FABSFactory(funding_opportunity_goals="", assistance_type="F006", correction_delete_indicatr="C")
+    fabs_2 = FABSFactory(funding_opportunity_goals=None, assistance_type="f008", correction_delete_indicatr=None)
 
     # Ignored for other assistance types
-    fabs_3 = FABSFactory(funding_opportunity_goals="123", assistance_type="03", correction_delete_indicatr="C")
+    fabs_3 = FABSFactory(funding_opportunity_goals="123", assistance_type="f001", correction_delete_indicatr="C")
 
     # Ignored for CorrectionDeleteIndicator of D
-    fabs_4 = FABSFactory(funding_opportunity_goals="123", assistance_type="08", correction_delete_indicatr="d")
+    fabs_4 = FABSFactory(funding_opportunity_goals="123", assistance_type="F008", correction_delete_indicatr="d")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2, fabs_3, fabs_4])
     assert errors == 0
@@ -34,10 +34,10 @@ def test_success(database):
 
 def test_failure(database):
     """Test failure FundingOpportunityGoalsText must be blank for non-grants/non-cooperative agreements
-    (AssistanceType = 06, 07, 08, 09, 10, 11, F003, F004, F005, F006, F007, F008, F009, or F010).
+    (AssistanceType = F003, F004, F005, F006, F007, F008, F009, or F010).
     """
-    fabs_1 = FABSFactory(funding_opportunity_goals="123", assistance_type="06", correction_delete_indicatr="C")
-    fabs_2 = FABSFactory(funding_opportunity_goals="123", assistance_type="F010", correction_delete_indicatr="C")
+    fabs_1 = FABSFactory(funding_opportunity_goals="123", assistance_type="F006", correction_delete_indicatr="C")
+    fabs_2 = FABSFactory(funding_opportunity_goals="123", assistance_type="f010", correction_delete_indicatr="C")
 
     errors = number_of_errors(_FILE, database, models=[fabs_1, fabs_2])
     assert errors == 2

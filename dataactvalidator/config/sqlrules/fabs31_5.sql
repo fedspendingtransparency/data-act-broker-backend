@@ -1,5 +1,5 @@
--- When ActionDate is after October 1, 2010 and ActionType = A, AwardeeOrRecipientUEI should (when provided) have an
--- active registration in SAM as of the ActionDate, unless, when ActionDate is after October 1, 2024,
+-- When ActionDate is after October 1, 2010 and ActionType = A1 or A2, AwardeeOrRecipientUEI should (when provided) have an
+-- active registration in SAM as of the ActionDate, unless, when ActionDate is after October 1, 2024, and
 -- LegalEntityCountryCode is a foreign country.
 
 WITH fabs31_5_{0} AS
@@ -14,7 +14,7 @@ WITH fabs31_5_{0} AS
     FROM fabs
     WHERE submission_id = {0}
         AND COALESCE(uei, '') <> ''
-        AND UPPER(action_type) = 'A'
+        AND UPPER(action_type) IN ('A1', 'A2')
         AND (CASE WHEN is_date(COALESCE(action_date, '0'))
              THEN CAST(action_date AS DATE)
              END) > CAST('10/01/2010' AS DATE)

@@ -1,4 +1,4 @@
--- ActionType should be B, C, or D for transactions that modify existing awards.
+-- ActionType should be B1, C1, C2, C3, C4, D1, E1, EX, or FX for transactions that modify existing awards.
 -- For aggregate (RecordType = 1) record transactions, we consider a record a modification if its combination of
 -- URI + AwardingSubTierAgencyCode matches an existing published FABS record of the same RecordType.
 -- For non-aggregate (RecordType = 2 or 3) transactions, we consider a record a modification if its combination of
@@ -15,7 +15,7 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(UPPER(correction_delete_indicatr), '') NOT IN ('C', 'D')
-    AND COALESCE(UPPER(action_type), '') NOT IN ('B', 'C', 'D')
+    AND COALESCE(UPPER(action_type), '') NOT IN ('B1', 'C1', 'C2', 'C3', 'C4', 'D1', 'E1', 'EX', 'FX')
     AND EXISTS (
         SELECT 1
         FROM published_fabs AS pf

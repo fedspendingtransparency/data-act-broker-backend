@@ -20,7 +20,7 @@ def test_column_headers(database):
 
 def test_published_date_success(database):
     """Test success for when provided, AwardeeOrRecipientUEI must be registered (not necessarily active) in SAM,
-    unless the ActionDate is before October 1, 2010, or, when ActionDate is after October 1, 2024,
+    unless the ActionDate is before October 1, 2010, or, when ActionDate is after October 1, 2024, and
     LegalEntityCountryCode is a foreign country.
     """
 
@@ -86,7 +86,7 @@ def test_published_date_success(database):
 
 def test_published_date_failure(database):
     """Test failure for when provided, AwardeeOrRecipientUEI must be registered (not necessarily active) in SAM,
-    unless the ActionDate is before October 1, 2010, or, when ActionDate is after October 1, 2024,
+    unless the ActionDate is before October 1, 2010, or, when ActionDate is after October 1, 2024, and
     LegalEntityCountryCode is a foreign country.
     """
 

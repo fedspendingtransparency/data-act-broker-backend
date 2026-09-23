@@ -182,39 +182,50 @@ SUBMISSION_TYPE = [
 SUBMISSION_TYPE_DICT = {item.name: item.id for item in SUBMISSION_TYPE}
 
 ACTION_TYPE = [
-    LookupType(1, "A", "New"),
-    LookupType(2, "B", "Continuation"),
-    LookupType(3, "C", "Revision"),
-    LookupType(4, "D", "Adjustment to Completed Project"),
-    LookupType(4, "E", "Aggregate Mixed"),
+    LookupType(1, "A1", "New Award"),
+    LookupType(2, "A2", "Renewal Award"),
+    LookupType(3, "B1", "Continuation"),
+    LookupType(4, "C1", "Termination Initiated: Material Failure to Comply"),
+    LookupType(5, "C2", "Termination Initiated: Mutual Consent"),
+    LookupType(6, "C3", "Termination Initiated: Recipient-Initiated"),
+    LookupType(7, "C4", "Termination Initiated: No Longer Effectuates Program Goals or Agency Priorities"),
+    LookupType(8, "D1", "Closeout"),
+    LookupType(9, "E1", "Recipient Change"),
+    LookupType(10, "EX", "Other Action, Non-Financial"),
+    LookupType(11, "FX", "Other Action, Financial"),
+    LookupType(12, "G1", "Mixed Aggregate"),
 ]
 ACTION_TYPE_DICT = {item.name: item.desc for item in ACTION_TYPE}
 
 ASSISTANCE_TYPE = [
-    LookupType(1, "02", "block grant (A)"),
-    LookupType(2, "03", "formula grant (A)"),
-    LookupType(3, "04", "project grant (B)"),
-    LookupType(4, "05", "cooperative agreement (B)"),
-    LookupType(
-        5, "06", "direct payment for specified use, as a subsidy or other non-reimbursable direct financial aid " "(C)"
-    ),
-    LookupType(6, "07", "direct loan (E)"),
-    LookupType(7, "08", "guaranteed/insured loan (F)"),
-    LookupType(8, "09", "insurance (G)"),
-    LookupType(9, "10", "direct payment with unrestricted use (retirement, pension, veterans benefits, etc.) (D)"),
-    LookupType(10, "11", "other reimbursable, contingent, intangible, or indirect financial assistance"),
-    LookupType(11, "F001", "Grant"),
-    LookupType(12, "F002", "Cooperative Agreement"),
-    LookupType(13, "F003", "Direct Loan"),
-    LookupType(14, "F004", "Loan Guarantee"),
-    LookupType(15, "F005", "Indemnity/Insurance (non-loan)"),
-    LookupType(16, "F006", "Direct Payment for Specified Use"),
-    LookupType(17, "F007", "Direct Payment with Unrestricted Use"),
-    LookupType(18, "F008", "Asset Forfeiture/Equitable Sharing"),
-    LookupType(19, "F009", "Sale, Exchange, or Donation of Property and Goods"),
-    LookupType(20, "F010", "Other Financial Assistance"),
+    LookupType(1, "F001", "Grant"),
+    LookupType(2, "F002", "Cooperative Agreement"),
+    LookupType(3, "F003", "Direct Loan"),
+    LookupType(4, "F004", "Loan Guarantee"),
+    LookupType(5, "F005", "Indemnity/Insurance (non-loan)"),
+    LookupType(6, "F006", "Direct Payment for Specified Use"),
+    LookupType(7, "F007", "Direct Payment with Unrestricted Use"),
+    LookupType(8, "F008", "Asset Forfeiture/Equitable Sharing"),
+    LookupType(9, "F009", "Sale, Exchange, or Donation of Property and Goods"),
+    LookupType(10, "F010", "Other Financial Assistance"),
 ]
 ASSISTANCE_TYPE_DICT = {item.name: item.desc for item in ASSISTANCE_TYPE}
+
+AWARD_AMOUNT_BASIS = [
+    LookupType(1, "A01", "Discretionary Award Amount Selection"),
+    LookupType(2, "A02", "Formula Award Amount Selection"),
+    LookupType(3, "A03", "Mandatory Award Amount Selection"),
+    LookupType(4, "A04", "Fixed Award Amount Selection"),
+]
+AWARD_AMOUNT_BASIS_DICT = {item.name: item.desc for item in AWARD_AMOUNT_BASIS}
+
+AWARD_RECIPIENT_BASIS = [
+    LookupType(1, "R01", "Discretionary and Competitive Recipient Selection Award"),
+    LookupType(2, "R02", "Discretionary and Non-Competitive Recipient Selection Award"),
+    LookupType(3, "R03", "Non-Discretionary and Competitive Recipient Selection Award"),
+    LookupType(4, "R04", "Non-Discretionary and Non-Competitive Recipient Selection Award"),
+]
+AWARD_RECIPIENT_BASIS_DICT = {item.name: item.desc for item in AWARD_RECIPIENT_BASIS}
 
 CORRECTION_DELETE_IND = [
     LookupType(1, "C", "Correct an Existing Record"),

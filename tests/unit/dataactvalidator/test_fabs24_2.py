@@ -18,11 +18,11 @@ def test_column_headers(database):
 
 def test_success(database):
     """PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC country code for aggregate or
-    non-aggregate records (RecordType = 1 or 2). U.S. Territories and Freely Associated States must be submitted
-    with country code = USA and their state/territory code; they cannot be submitted with their GENC country code.
+    non-aggregate records (RecordType = 1 or 2). U.S. Territories must be submitted with country code = USA and their
+    state/territory code; they cannot be submitted with their GENC country code.
     """
-    cc_1 = CountryCode(country_code="USA", country_name="United States", territory_free_state=False)
-    cc_2 = CountryCode(country_code="UKR", country_name="Ukraine", territory_free_state=False)
+    cc_1 = CountryCode(country_code="USA", country_name="United States", territory=False)
+    cc_2 = CountryCode(country_code="UKR", country_name="Ukraine", territory=False, free_state=True)
     fabs = FABSFactory(place_of_perform_country_c="USA", record_type=1, correction_delete_indicatr="")
     fabs_2 = FABSFactory(place_of_perform_country_c="uKr", record_type=2, correction_delete_indicatr="C")
     fabs_3 = FABSFactory(place_of_perform_country_c="abc", record_type=3, correction_delete_indicatr=None)
@@ -35,11 +35,11 @@ def test_success(database):
 
 def test_failure(database):
     """PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC country code for aggregate or
-    non-aggregate records (RecordType = 1 or 2). U.S. Territories and Freely Associated States must be submitted
-    with country code = USA and their state/territory code; they cannot be submitted with their GENC country code.
+    non-aggregate records (RecordType = 1 or 2). U.S. Territories must be submitted with country code = USA and their
+    state/territory code; they cannot be submitted with their GENC country code.
     """
 
-    cc_1 = CountryCode(country_code="ASM", country_name="AMERICAN SAMOA", territory_free_state=True)
+    cc_1 = CountryCode(country_code="ASM", country_name="AMERICAN SAMOA", territory=True)
     fabs = FABSFactory(place_of_perform_country_c="xyz", record_type=1, correction_delete_indicatr="")
     fabs_2 = FABSFactory(place_of_perform_country_c="ABCD", record_type=2, correction_delete_indicatr=None)
     fabs_3 = FABSFactory(place_of_perform_country_c="", record_type=2, correction_delete_indicatr="c")

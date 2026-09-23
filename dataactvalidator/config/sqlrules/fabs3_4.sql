@@ -1,4 +1,4 @@
--- ActionType = E is only valid for mixed aggregate records (RecordType = 1).
+-- ActionType = G1 is only valid for mixed aggregate records (RecordType = 1).
 SELECT
     row_number,
     action_type,
@@ -8,5 +8,5 @@ SELECT
 FROM fabs
 WHERE submission_id = {0}
     AND COALESCE(UPPER(correction_delete_indicatr), '') <> 'D'
-    AND COALESCE(UPPER(action_type), '') = 'E'
+    AND COALESCE(UPPER(action_type), '') = 'G1'
     AND record_type <> 1;

@@ -1773,6 +1773,8 @@ class FABS(Base):
     unique_award_key = Column(Text, index=True)
     uei = Column(Text, index=True)
     ultimate_parent_uei = Column(Text)
+    award_amount_basis_code = Column(Text, index=True)
+    award_recipient_basis_code = Column(Text, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1891,6 +1893,10 @@ class PublishedFABS(Base):
     high_comp_officer5_amount = Column(Text)
     uei = Column(Text, index=True)
     ultimate_parent_uei = Column(Text, index=True)
+    award_amount_basis_code = Column(Text)
+    award_amount_basis_name = Column(Text)
+    award_recipient_basis_code = Column(Text)
+    award_recipient_basis_name = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

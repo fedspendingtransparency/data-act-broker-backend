@@ -1,6 +1,6 @@
--- For other assistance awards (ActionType = B, C, or D), the AssistanceListingNumber need NOT be active as of the
--- ActionDate. This does not apply to correction records (those with CorrectionDeleteIndicator = C).
--- Should not be active (action_date <= archived_date and when archived date exists)
+-- For other assistance awards (ActionType = B1, C1, C2, C3, C4, D1, E1, EX, or FX), the AssistanceListingNumber need
+-- NOT be active as of the ActionDate. This does not apply to correction records (those with CorrectionDeleteIndicator
+-- = C). Should not be active (action_date <= archived_date and when archived date exists)
 -- If the ActionDate is < published_date, should trigger a warning.
 WITH fabs37_2_{0} AS
     (SELECT submission_id,
@@ -20,7 +20,7 @@ SELECT
     action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM fabs37_2_{0} AS fabs
-WHERE UPPER(fabs.action_type) IN ('B', 'C', 'D')
+WHERE UPPER(fabs.action_type) IN ('B1', 'C1', 'C2', 'C3', 'C4', 'D1', 'E1', 'EX', 'FX')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) NOT IN ('C', 'D')
     AND fabs.row_number IN (
         SELECT DISTINCT sub_fabs.row_number
