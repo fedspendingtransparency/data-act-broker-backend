@@ -96,7 +96,7 @@ def add_file_routes(app, is_local, server_path):
 
     @app.route("/v1/list_banners/", methods=["GET"])
     @parser.use_kwargs({"login": webargs_fields.Boolean(load_default=False)}, location="query")
-    def get_banner_list(login):
+    def get_banner_list(login, **kwargs):
         return list_banners(login)
 
     @app.route("/v1/list_submissions/", methods=["POST"])
