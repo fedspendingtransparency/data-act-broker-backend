@@ -1,5 +1,5 @@
--- ActionType should be "A" for the initial transaction of a new, non-aggregate award (RecordType = 2 or 3) and
--- "A" or "E" for a new aggregate award (RecordType = 1). An aggregate record transaction is considered the initial
+-- ActionType should be "A1"/"A2" for the initial transaction of a new, non-aggregate award (RecordType = 2 or 3) and
+-- "A1" or "G1" for a new aggregate award (RecordType = 1). An aggregate record transaction is considered the initial
 -- transaction of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when compared to
 -- currently published FABS records of the same RecordType. A non-aggregate (RecordType = 2 or 3) transaction is
 -- considered the initial transaction of a new award if it contains a unique combination of FAIN +
@@ -23,8 +23,9 @@ WHERE submission_id = {0}
         WHERE fabs.unique_award_key = pf.unique_award_key
             AND pf.is_active IS TRUE
     )
-    AND NOT ((COALESCE(UPPER(action_type), '') = 'E'
+    AND NOT ((COALESCE(UPPER(action_type), '') IN ('A1', 'G1')
             AND record_type = 1)
-            OR COALESCE(UPPER(action_type), '') = 'A'
+            OR (COALESCE(UPPER(action_type), '') IN ('A1', 'A2')
+                AND record_type IN (2, 3))
         );
 

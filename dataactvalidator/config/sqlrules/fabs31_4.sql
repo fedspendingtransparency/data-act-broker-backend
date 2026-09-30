@@ -1,5 +1,5 @@
 -- When provided, AwardeeOrRecipientUEI must be registered (not necessarily active) in SAM, unless the ActionDate is
--- before October 1, 2010, or, when ActionDate is after October 1, 2024, LegalEntityCountryCode is a foreign country.
+-- before October 1, 2010, or, when ActionDate is after October 1, 2024, and LegalEntityCountryCode is a foreign country
 
 WITH fabs31_4_1_{0} AS
     (SELECT unique_award_key,

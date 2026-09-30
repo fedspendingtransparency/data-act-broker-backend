@@ -19,22 +19,22 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ActionType should be B, C, or D for transactions that modify existing awards.
+    """ActionType should be B1, C1, C2, C3, C4, D1, E1, EX, or FX for transactions that modify existing awards.
     For aggregate (RecordType = 1) record transactions, we consider a record a modification if its combination of
     URI + AwardingSubTierAgencyCode matches an existing published FABS record of the same RecordType.
     For non-aggregate (RecordType = 2 or 3) transactions, we consider a record a modification if its combination
     of FAIN + AwardingSubTierCode matches those of an existing published non-aggregate FABS record
     (RecordType = 2 or 3) of the same RecordType.
     """
-    fabs_1 = FABSFactory(unique_award_key="unique1", action_type="B", correction_delete_indicatr=None)
-    fabs_2 = FABSFactory(unique_award_key="unique2", action_type="d", correction_delete_indicatr="")
+    fabs_1 = FABSFactory(unique_award_key="unique1", action_type="B1", correction_delete_indicatr=None)
+    fabs_2 = FABSFactory(unique_award_key="unique2", action_type="d1", correction_delete_indicatr="")
 
     # Ignore delete/correction record
     fabs_3 = FABSFactory(unique_award_key="unique2", action_type="A", correction_delete_indicatr="D")
     fabs_4 = FABSFactory(unique_award_key="unique2", action_type="A", correction_delete_indicatr="c")
 
     # This is an inactive award so it will be ignored
-    fabs_5 = FABSFactory(unique_award_key="unique3", action_type="E", correction_delete_indicatr=None)
+    fabs_5 = FABSFactory(unique_award_key="unique3", action_type="E3", correction_delete_indicatr=None)
 
     # This record doesn't have a matching published award at all
     fabs_6 = FABSFactory(unique_award_key="unique4", action_type="A", correction_delete_indicatr="")
@@ -50,15 +50,15 @@ def test_success(database):
 
 
 def test_failure(database):
-    """Fail ActionType should be B, C, or D for transactions that modify existing awards. For aggregate
-    (RecordType = 1) record transactions, we consider a record a modification if its combination of URI +
+    """Fail ActionType should be B1, C1, C2, C3, C4, D1, E1, EX, or FX for transactions that modify existing awards. For
+    aggregate (RecordType = 1) record transactions, we consider a record a modification if its combination of URI +
     AwardingSubTierAgencyCode matches an existing published FABS record of the same RecordType.
     For non-aggregate (RecordType = 2 or 3) transactions, we consider a record a modification if its combination
     of FAIN + AwardingSubTierCode matches those of an existing published non-aggregate FABS record
     (RecordType = 2 or 3) of the same RecordType.
     """
 
-    fabs_1 = FABSFactory(unique_award_key="unique1", action_type="a", correction_delete_indicatr=None)
+    fabs_1 = FABSFactory(unique_award_key="unique1", action_type="a1", correction_delete_indicatr=None)
     fabs_2 = FABSFactory(unique_award_key="unique1", action_type="E", correction_delete_indicatr="")
 
     pub_fabs_1 = PublishedFABSFactory(unique_award_key="unique1", is_active=True)

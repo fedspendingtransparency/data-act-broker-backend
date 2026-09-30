@@ -9,7 +9,7 @@ import datetime
 import json
 
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
-from dataactbroker.helpers.script_helper import list_data, get_xml_with_exception_hand
+from dataactbroker.helpers.script_helper import list_data
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -26,35 +26,35 @@ CC_NAMESPACES = {
     "http://api.nsgreg.nga.mil/schema/genc/3.0/genc-cmn": None,
 }
 
+# Based on https://www.doi.gov/oia/islands
 TERRITORY_LIST = [
-    "ASM",
-    "FSM",
-    "GUM",
-    "MHL",
-    "MNP",
-    "PLW",
-    "PRI",
-    "VIR",
-    "XBK",
-    "XHO",
-    "XJA",
-    "XJV",
-    "XKR",
-    "XMW",
-    "XNV",
-    "XPL",
-    "XWK",
+    "ASM",  # American Samoa
+    "GUM",  # Guam
+    "MNP",  # Mariana Islands
+    "PRI",  # Puerto Rico
+    "VIR",  # Virgin Islands
+    "XBK",  # Baker Island
+    "XHO",  # Howland Island
+    "XJA",  # Johnston Atoll
+    "XJV",  # Jarvis Island
+    "XKR",  # Kingman Reef
+    "XMW",  # Midway Islands
+    "XNV",  # Navassa Island
+    "XPL",  # Palmyra Atoll
+    "XWK",  # Wake Island
+]
+FREELY_ASSOCIATED_STATES = [
+    "FSM",  # Micronesia
+    "MHL",  # Marshall Islands
+    "PLW",  # Palau
 ]
 
 
-def convert_territory_bool_to_str(row):
-    return str(row["territory_free_state"])
-
-
-def load_country_codes(force_reload=False):
+def load_country_codes(base_path=None, force_reload=False):
     """Load Country Codes into the database.
 
     Args:
+        base_path: directory of domain config files
         force_reload: boolean to determine if reload should happen whether there are differences or not
     """
     now = datetime.datetime.now()
@@ -69,13 +69,22 @@ def load_country_codes(force_reload=False):
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-        feed_url = "https://nsgreg-api.nga.mil/geo-political/GENC/3/now"
 
-        resp = get_xml_with_exception_hand(feed_url, CC_NAMESPACES, False)
+        # File copied from https://nsgreg-api.nga.mil/geo-political/GENC/3/now (sitting behind a captcha)
+        genc_file_name = "genc.xml"
+        if CONFIG_BROKER["use_aws"]:
+            s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            s3.download_file(
+                Bucket=CONFIG_BROKER["public_files_bucket"],
+                Key=f"broker_reference_data/{genc_file_name}",
+                Filename=genc_file_name,
+            )
+            cc_file_path = genc_file_name
+        else:
+            cc_file_path = os.path.join(base_path, genc_file_name)
 
-        resp_dict = xmltodict.parse(
-            resp.text.encode("latin1").decode("utf-8"), process_namespaces=True, namespaces=CC_NAMESPACES
-        )
+        with open(cc_file_path, "r") as cc_file:
+            resp_dict = xmltodict.parse(cc_file.read(), process_namespaces=True, namespaces=CC_NAMESPACES)
         country_data = list_data(resp_dict["GENCStandardBaseline"]["GeopoliticalEntityEntry"])
         country_list = []
 
@@ -85,7 +94,8 @@ def load_country_codes(force_reload=False):
                     "country_name": country["name"],
                     "country_code": country["encoding"]["char3Code"],
                     "country_code_2_char": country["encoding"]["char2Code"],
-                    "territory_free_state": country["encoding"]["char3Code"] in TERRITORY_LIST,
+                    "territory": country["encoding"]["char3Code"] in TERRITORY_LIST,
+                    "free_state": country["encoding"]["char3Code"] in FREELY_ASSOCIATED_STATES,
                 }
             )
 
@@ -97,7 +107,8 @@ def load_country_codes(force_reload=False):
                 "country_code": "country_code",
                 "country_name": "country_name",
                 "country_code_2_char": "country_code_2_char",
-                "territory_free_state": "territory_free_state",
+                "territory": "territory",
+                "free_state": "free_state",
             },
             {},
         )
@@ -106,7 +117,10 @@ def load_country_codes(force_reload=False):
             CountryCode,
             ["country_code_id"],
             ["country_code"],
-            lambda_funcs=[("territory_free_state", convert_territory_bool_to_str)],
+            lambda_funcs=[
+                ("territory", lambda row: str(row["territory"])),
+                ("free_state", lambda row: str(row["free_state"])),
+            ],
         )
 
         # insert to db if reload required
@@ -130,7 +144,7 @@ def load_country_codes(force_reload=False):
                     index=False,
                     quoting=csv.QUOTE_ALL,
                     header=True,
-                    columns=["country_code", "country_code_2_char", "country_name", "territory_free_state"],
+                    columns=["country_code", "country_code_2_char", "country_name", "territory", "free_state"],
                 )
 
                 logger.info("Uploading {} to {}".format(cc_filename, CONFIG_BROKER["public_files_bucket"]))

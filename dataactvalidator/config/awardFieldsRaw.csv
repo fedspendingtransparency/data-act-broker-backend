@@ -2,7 +2,7 @@ fieldname,fieldname_short,required,data_type,field_length
 AssistanceTransactionUniqueKey,afa_generated_unique,ASP: Optional,string,
 PrimeAwardUniqueKey,unique_award_key,optional,string,
 ActionDate,action_date,ASP: Required,string,8
-ActionType,action_type,ASP: Conditional per Validation Rule,string,1
+ActionType,action_type,ASP: Conditional per Validation Rule,string,2
 ActionTypeDescriptionTag,action_type_description,ASP: Optional,string,
 AssistanceType,assistance_type,ASP: Required,string,4
 AssistanceTypeDescriptionTag,assistance_type_desc,ASP: Optional,string,
