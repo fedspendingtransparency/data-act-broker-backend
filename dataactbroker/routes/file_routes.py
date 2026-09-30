@@ -198,7 +198,7 @@ def add_file_routes(app, is_local, server_path):
 
     @app.route("/v1/publish_fabs_file/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms("fabs", check_owner=False)
+    @requires_submission_perms("fabs", check_owner=False, lock=True)
     def publish_fabs_file(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.publish_fabs_submission(submission)
@@ -217,7 +217,7 @@ def add_file_routes(app, is_local, server_path):
 
     @app.route("/v1/update_submission_comments/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms("writer")
+    @requires_submission_perms("writer", lock=True)
     def update_sub_comments(submission):
         return update_submission_comments(submission, request.json, is_local)
 
@@ -281,7 +281,7 @@ def add_file_routes(app, is_local, server_path):
 
     @app.route("/v1/delete_submission/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms("writer", check_fabs="editfabs")
+    @requires_submission_perms("writer", check_fabs="editfabs", lock=True)
     def delete_submission(submission):
         """Deletes all data associated with the specified submission
         NOTE: THERE IS NO WAY TO UNDO THIS
@@ -311,33 +311,33 @@ def add_file_routes(app, is_local, server_path):
 
     @app.route("/v1/publish_dabs_submission/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms("submitter", check_owner=False)
+    @requires_submission_perms("submitter", check_owner=False, lock=True)
     def publish_dabs_sub(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return publish_dabs_submission(submission, file_manager)
 
     @app.route("/v1/certify_dabs_submission/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms("submitter", check_owner=False)
+    @requires_submission_perms("submitter", check_owner=False, lock=True)
     def certify_dabs_sub(submission):
         return certify_dabs_submission(submission)
 
     @app.route("/v1/publish_and_certify_dabs_submission/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms("submitter", check_owner=False)
+    @requires_submission_perms("submitter", check_owner=False, lock=True)
     def publish_and_certify_dabs_sub(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return publish_and_certify_dabs_submission(submission, file_manager)
 
     @app.route("/v1/restart_validation/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms("writer", check_fabs="editfabs")
+    @requires_submission_perms("writer", check_fabs="editfabs", lock=True)
     def restart_validation(submission):
         return FileHandler.restart_validation(submission)
 
     @app.route("/v1/revert_submission/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms("submitter")
+    @requires_submission_perms("submitter", lock=True)
     def revert_submission(submission):
         """Revert an updated DABS submission to the state it was when it was last published"""
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
