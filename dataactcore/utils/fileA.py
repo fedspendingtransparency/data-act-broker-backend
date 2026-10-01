@@ -170,7 +170,7 @@ def failed_edits_details(session, tas_gtas, period, year):
                         (
                             and_(
                                 func.upper(grouped_fail.c.severity) == "FATAL",
-                                grouped_fail.c.approved_override_exists.isnot(True),
+                                grouped_fail.c.approved_override_exists.is_(False),
                             ),
                             literal_column("'failed fatal edit - no override'"),
                         ),
