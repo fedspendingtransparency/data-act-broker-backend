@@ -1,7 +1,6 @@
 import os
 import sys
 import logging
-import boto3
 import pandas as pd
 from datetime import datetime
 import urllib.request
@@ -9,6 +8,7 @@ import urllib.request
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date, get_utc_now
@@ -324,7 +324,7 @@ def load_zip_city_data(force_reload):
         force_reload: boolean to determine if reload should happen whether there are differences or not
     """
     if CONFIG_BROKER["use_aws"]:
-        s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+        s3_client = fapc_s3_client()
         citystate_file = s3_client.generate_presigned_url(
             "get_object", {"Bucket": CONFIG_BROKER["sf_133_bucket"], "Key": "ctystate.txt"}, ExpiresIn=600
         )

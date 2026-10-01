@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 import json
 
 import pandas as pd
-import boto3
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
@@ -196,7 +196,7 @@ def load_tas(backfill_historic=False):
     if CONFIG_BROKER["use_aws"]:
         # Storing version dictionaries in the list to prevent getting all the links at once and possibly work with
         # expired AWS links
-        s3connection = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+        s3connection = fapc_s3_client()
         # list_object_versions returns the versions in reverse chronological order
 
         if not backfill_historic:
