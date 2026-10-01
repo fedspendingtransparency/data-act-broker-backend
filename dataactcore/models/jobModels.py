@@ -7,6 +7,8 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    func,
+    Index,
     Integer,
     Text,
     UniqueConstraint,
@@ -19,7 +21,7 @@ from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import SubTierAgency
-from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID
+from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID, PUBLISH_STATUS_DICT
 
 
 def generate_fiscal_year_context(context):
@@ -131,6 +133,18 @@ class Submission(Base):
     publishing_user = relationship("User", foreign_keys=[publishing_user_id])
     test_submission = Column(Boolean, nullable=False, default=False, server_default="False")
     certified = Column(Boolean, nullable=False, default=False, server_default="False")
+
+
+Index(
+    "ix_submission_published_unique",
+    func.coalesce(Submission.cgac_code, Submission.frec_code),
+    Submission.reporting_fiscal_year,
+    Submission.reporting_fiscal_period,
+    postgresql_where=(
+        Submission.is_fabs.is_(False) & Submission.publish_status_id != PUBLISH_STATUS_DICT["unpublished"]
+    ),
+    unique=True,
+)
 
 
 class Job(Base):
