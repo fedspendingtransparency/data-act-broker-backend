@@ -467,7 +467,7 @@ class SAMRecipientUnregistered(Base):
     congressional_district = Column(Text)
 
 
-Index("ix_sam_unreg_uei_upper", sa.func.upper(SAMRecipientUnregistered.uei))
+Index("ix_sam_recipient_unregistered_uei_upper", sa.func.upper(SAMRecipientUnregistered.uei))
 
 
 class HistoricDUNS(Base):
