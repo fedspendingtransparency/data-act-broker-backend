@@ -9,7 +9,7 @@ import urllib.request
 import pandas as pd
 
 from datetime import datetime
-from sqlalchemy import func, update
+from sqlalchemy import func, update, text
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.broker_logging import configure_logging
@@ -469,22 +469,33 @@ def add_to_table(data, sess):
         data: dictionary of dictionaries containing zip data to process and add to the table
         sess: the database connection
     """
-    value_array = []
+
+    cols = ("zip5", "zip_last4", "county_number", "state_abbreviation", "congressional_district_no")
+    cols_str = str(cols)[1:-1].replace("'", "")
+    values_list = []
+    params_dict = {}
+    index = 1
     for _, item in data.items():
         # Taking care of the nulls so they're actually null in the DB
-        zip4 = "'" + item["zip_last4"] + "'" if item["zip_last4"] else "NULL"
-        cd = "'" + item["congressional_district_no"] + "'" if item["congressional_district_no"] else "NULL"
-        value_array.append(
-            "(NOW(), NOW(), '{}', {}, '{}', '{}', {})".format(
-                item["zip5"], zip4, item["county_number"], item["state_abbreviation"], cd
-            )
-        )
+        row_values = []
+        for col in cols:
+            params_dict[f"param{index}"] = str(item[col]) if item[col] else None
+            row_values.append(f":param{index}")
+            index += 1
+        # build the row of *params* that will be populated by the binding params_dict
+        # and then each *row* needs commas in between them
+        values_list.append(f"(NOW(), NOW(), {','.join(row_values)})")
+
     try:
-        if value_array:
+        if values_list:
             sess.execute(
-                "INSERT INTO temp_zips "
-                "(updated_at, created_at, zip5, zip_last4, county_number, state_abbreviation, "
-                "congressional_district_no) VALUES {}".format(", ".join(value_array))
+                text(
+                    f"""
+                    INSERT INTO temp_zips (created_at, updated_at, {cols_str})
+                    VALUES {','.join(values_list)}
+                    """
+                ),
+                params_dict,
             )
             sess.commit()
     except IntegrityError:
@@ -492,13 +503,17 @@ def add_to_table(data, sess):
         logger.error("Attempted to insert duplicate zip. Inserting each row in batch individually.")
 
         i = 0
-        for new_zip in value_array:
+        for value in values_list:
             # create an insert statement that overrides old values if there's a conflict
             sess.execute(
-                "INSERT INTO temp_zips "
-                "(updated_at, created_at, zip5, zip_last4, county_number, state_abbreviation, "
-                "congressional_district_no) VALUES {} "
-                "ON CONFLICT DO NOTHING".format(new_zip)
+                text(
+                    f"""
+                    INSERT INTO temp_zips (created_at, updated_at, {cols_str})
+                    VALUES {value}
+                    ON CONFLICT DO NOTHING
+                    """
+                ),
+                params_dict,
             )
 
             # Printing every 1000 rows in each batch
