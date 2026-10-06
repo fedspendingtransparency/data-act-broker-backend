@@ -89,11 +89,20 @@ def create_submission(user_id, submission_values, existing_submission, test_subm
         submission_values["test_submission"] = test_submission
         submission = Submission(created_at=get_utc_now(), **submission_values)
         submission.user_id = user_id
+        # Not doing the race condition check as this is a new submission
         submission.publish_status_id = PUBLISH_STATUS_DICT["unpublished"]
     else:
         submission = existing_submission
-        if submission.publish_status_id == PUBLISH_STATUS_DICT["published"]:
-            submission.publish_status_id = PUBLISH_STATUS_DICT["updated"]
+        sess = GlobalDB.db().session
+        (
+            sess.query(Submission)
+            .filter(
+                Submission.submission_id == submission.submission_id,
+                Submission.publish_status_id == PUBLISH_STATUS_DICT["published"],
+            )
+            .update({"publish_status_id": PUBLISH_STATUS_DICT["updated"]}, synchronize_session=False)
+        )
+        # not collecting updated_rows as this *can* yield 0 updated records if the submission is already updated
         # submission is being updated, so turn off publishable flag
         submission.publishable = False
         for key in submission_values:
@@ -1010,14 +1019,6 @@ def process_dabs_publish(submission, file_manager):
     sess.add(publish_history)
     sess.commit()
 
-    # get the publish_history entry including the PK
-    publish_history = (
-        sess.query(PublishHistory)
-        .filter_by(submission_id=submission.submission_id)
-        .order_by(PublishHistory.created_at.desc())
-        .first()
-    )
-
     # Move the data to the published table, deleting any old published data in the process
     move_published_data(sess, submission.submission_id)
 
@@ -1026,7 +1027,17 @@ def process_dabs_publish(submission, file_manager):
 
     # set submission contents
     submission.publishing_user_id = active_user_id
-    submission.publish_status_id = PUBLISH_STATUS_DICT["published"]
+    updated_rows = (
+        sess.query(Submission)
+        .filter(
+            Submission.submission_id == submission.submission_id,
+            Submission.publish_status_id == PUBLISH_STATUS_DICT["publishing"],
+        )
+        .update({"publish_status_id": PUBLISH_STATUS_DICT["published"]}, synchronize_session=False)
+    )
+    if updated_rows == 0:
+        sess.rollback()
+        raise ValueError("Submission was updated while publishing. Please try again.")
     publish_history.updated_at = get_utc_now()
     sess.commit()
 
@@ -1085,7 +1096,17 @@ def process_dabs_certify(submission):
     for pub_file in pub_files_history:
         pub_file.certify_history_id = certify_history.certify_history_id
 
-    submission.certified = True
+    updated_rows = (
+        sess.query(Submission)
+        .filter(
+            Submission.submission_id == submission.submission_id,
+            Submission.certified.is_(False),
+        )
+        .update({"certified": True}, synchronize_session=False)
+    )
+    if updated_rows == 0:
+        sess.rollback()
+        raise ValueError("Submission was updated while certifying. Please try again.")
     sess.commit()
 
 
@@ -1239,7 +1260,17 @@ def revert_to_published(submission, file_manager):
         )
 
     sess = GlobalDB.db().session
-    submission.publish_status_id = PUBLISH_STATUS_DICT["reverting"]
+    updated_rows = (
+        sess.query(Submission)
+        .filter(
+            Submission.submission_id == submission.submission_id,
+            Submission.publish_status_id == PUBLISH_STATUS_DICT["updated"],
+        )
+        .update({"publish_status_id": PUBLISH_STATUS_DICT["reverting"]}, synchronize_session=False)
+    )
+    if updated_rows == 0:
+        sess.rollback()
+        raise ValueError("Submission was updated while reverting. Please try again.")
     sess.commit()
     move_published_data(sess, submission.submission_id, direction="revert")
 
@@ -1390,7 +1421,17 @@ def revert_to_published(submission, file_manager):
                 # boto file size
                 job.file_size = S3Handler.get_file_size(job.filename)
     # Set submission to published status
-    submission.publish_status_id = PUBLISH_STATUS_DICT["published"]
+    updated_rows = (
+        sess.query(Submission)
+        .filter(
+            Submission.submission_id == submission.submission_id,
+            Submission.publish_status_id == PUBLISH_STATUS_DICT["reverting"],
+        )
+        .update({"publish_status_id": PUBLISH_STATUS_DICT["published"]}, synchronize_session=False)
+    )
+    if updated_rows == 0:
+        sess.rollback()
+        raise ValueError("Submission was updated while reverting. Please try again.")
     sess.commit()
 
     # Move warning/comment files back non-locally and clear out error files for all environments
