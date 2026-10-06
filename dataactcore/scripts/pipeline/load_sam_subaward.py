@@ -5,6 +5,7 @@ import json
 import logging
 import pandas as pd
 import sys
+import urllib
 from sqlalchemy import column, func
 from dateutil.relativedelta import relativedelta
 
@@ -208,7 +209,7 @@ def load_subawards(
         params[award_id_field] = award_id
 
     # Retrieve the total count of expected records for this pull
-    param_string = "&".join(f"{k}={v}" for k, v in params.items())
+    param_string = urllib.parse.urlencode(params)
     logger.info(
         "Getting the expected count: %s",
         f"{api_url}&{param_string}".replace(CONFIG_BROKER["sam"]["api_key"], "[API_KEY]"),
@@ -289,7 +290,7 @@ def pull_subawards(api_url, params, entries_processed=0):
         for start_offset in range(REQUESTS_AT_ONCE):
             # pageNumber is 0-indexed
             params["pageNumber"] = (entries_already_processed // params.get("pageSize", LIMIT)) + start_offset
-            param_string = "&".join(f"{k}={v}" for k, v in params.items())
+            param_string = urllib.parse.urlencode(params)
             futures.append(loop.run_in_executor(None, get_with_exception_hand, f"{api_url}&{param_string}"))
         for response in await asyncio.gather(*futures):
             response_list.append(response)
