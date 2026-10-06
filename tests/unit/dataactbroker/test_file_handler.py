@@ -968,6 +968,7 @@ bad_dates = [
     ("11/2010", "03/2010", False, None),
     ("10/2017", "12/xyz", True, None),
     ("01/2016", "07/2016", True, None),
+    ("10/2017", "12/2018", True, None),
     (None, "01/1930", False, SubmissionFactory()),
 ]
 

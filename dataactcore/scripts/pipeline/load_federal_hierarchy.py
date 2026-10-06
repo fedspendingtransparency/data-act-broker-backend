@@ -5,6 +5,7 @@ import json
 import logging
 import pandas as pd
 import sys
+import urllib
 
 from datetime import datetime, timedelta
 
@@ -45,6 +46,14 @@ def load_offices(sess, filename, update_db, pull_all, updated_date_from, export_
         export_office: when provided, name of the file to export the office list to
         metrics: an object containing information for the metrics file
     """
+    # Handle a complete data reload
+    if pull_all and update_db:
+        logger.info("Creating temporary Office table for a complete reload.")
+        sess.execute("CREATE TABLE IF NOT EXISTS temp_office (LIKE office INCLUDING ALL);")
+        sess.execute("TRUNCATE TABLE temp_office RESTART IDENTITY")
+        sess.execute("SELECT setval('office_office_id_seq', 1, false);")
+        sess.commit()
+
     logger.info("Starting feed: %s", API_URL.replace(CONFIG_BROKER["sam"]["api_key"], "[API_KEY]"))
 
     if filename:
@@ -118,7 +127,7 @@ def load_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             params["updateddatefrom"] = updated_date_from
 
         # Retrieve the total count of expected records for this pull
-        param_string = "&".join(f"{k}={v}" for k, v in params.items())
+        param_string = urllib.parse.urlencode(params)
         total_expected_records = get_with_exception_hand(f"{API_URL}&{param_string}")["totalrecords"]
         metrics[f"level_{level}_records"] = total_expected_records
         logger.info(f"{total_expected_records} level-{level} record(s) expected")
@@ -187,6 +196,30 @@ def load_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 sys.exit(2)
 
     if update_db:
+        if pull_all:
+            logger.info("Swapping temporary Office table into official Office table.")
+            indexes = Office.__table__.indexes
+            sql_string = """-- Do everything in a transaction so it doesn't affect anything until it's completely done
+                BEGIN;
+
+                -- Make sure the sequence remains
+                ALTER SEQUENCE office_office_id_seq OWNED BY temp_office.office_id;
+
+                -- Drop old office table and rename the temporary one
+                DROP TABLE office;
+                ALTER TABLE temp_office \
+                    RENAME TO office;
+
+                -- Rename the PK to match what it was in the original office table
+                ALTER INDEX temp_office_pkey RENAME TO office_pkey;
+
+                -- Swap out indexes"""
+
+            for index in indexes:
+                index_name = index.name.replace("ix_", "")
+                sql_string += "\nALTER INDEX temp_{}_idx RENAME TO ix_{};".format(index_name, index_name)
+            sql_string += "COMMIT;"
+            sess.execute(sql_string)
         sess.commit()
 
     if export_office:
@@ -219,7 +252,7 @@ def pull_offices(params, entries_processed=0):
         futures = []
         for start_offset in range(REQUESTS_AT_ONCE):
             params["offset"] = str(entries_already_processed + (start_offset * LIMIT))
-            param_string = "&".join(f"{k}={v}" for k, v in params.items())
+            param_string = urllib.parse.urlencode(params)
             futures.append(loop.run_in_executor(None, get_with_exception_hand, f"{API_URL}&{param_string}"))
         for response in await asyncio.gather(*futures):
             response_list.append(response)
@@ -323,8 +356,16 @@ def store_offices(sess, new_offices, pull_all, level):
     shared_df_cols = ["office_code"] + shared_cols
 
     # Pull the relevant office data from the database
-    old_offices = sess.query(Office).filter(Office.office_code.in_(list(new_offices["office_code"])))
-    old_offices_df = pd.read_sql(old_offices.statement, old_offices.session.bind, parse_dates=date_cols)
+    insert_table_name = "office"
+    if not pull_all:
+        old_offices = sess.query(Office).filter(Office.office_code.in_(list(new_offices["office_code"])))
+        old_offices_df = pd.read_sql(old_offices.statement, old_offices.session.bind, parse_dates=date_cols)
+    else:
+        insert_table_name = "temp_office"
+        old_offices_sql = f"SELECT * FROM temp_office WHERE office_code IN {list(new_offices["office_code"])}".replace(
+            "[", "("
+        ).replace("]", ")")
+        old_offices_df = pd.read_sql(old_offices_sql, sess.connection(), parse_dates=date_cols)
     for date_col in date_cols:
         old_offices_df[date_col] = old_offices_df[date_col].dt.strftime("%Y-%m-%d %H:%M")
 
@@ -368,7 +409,7 @@ def store_offices(sess, new_offices, pull_all, level):
                 inactive_params = {"aacofficecode": new_inactive_office_code, "level": level, "status": "all"}
                 # This assumes an office's historical record count is always less than LIMIT
                 # If it's not, use pull_offices instead to multiply it by REQUESTS_AT_ONCE
-                param_string = "&".join(f"{k}={v}" for k, v in inactive_params.items())
+                param_string = urllib.parse.urlencode(inactive_params)
                 office_history = get_with_exception_hand(f"{API_URL}&{param_string}")
                 for org in office_history.get("orglist", []):
                     historical_record = parse_raw_office(org)
@@ -381,8 +422,15 @@ def store_offices(sess, new_offices, pull_all, level):
     merged_offices["created_at"] = datetime.now()
     merged_offices["updated_at"] = datetime.now()
 
-    old_offices.delete(synchronize_session=False)
-    insert_dataframe(merged_offices, "office", sess.connection())
+    if not pull_all:
+        old_offices.delete(synchronize_session=False)
+    else:
+        sess.execute(
+            f"DELETE FROM temp_office WHERE office_code IN {list(new_offices["office_code"])}".replace(
+                "[", "("
+            ).replace("]", ")")
+        )
+    insert_dataframe(merged_offices, insert_table_name, sess.connection())
     sess.commit()
 
 
@@ -483,12 +531,6 @@ def main():
 
     # Handle the export office parameter
     export_office = args.export_office[0] if args.export_office else None
-
-    # Handle a complete data reload
-    if args.all and not args.ignore_db:
-        logger.info("Emptying out the Office table for a complete reload.")
-        sess.execute("""TRUNCATE TABLE office RESTART IDENTITY""")
-        sess.commit()
 
     try:
         load_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office, metrics_json)
