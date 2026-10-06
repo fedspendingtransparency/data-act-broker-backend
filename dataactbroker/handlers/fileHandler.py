@@ -548,7 +548,8 @@ class FileHandler:
         if is_quarter is None:
             is_quarter = existing_submission.is_quarter_format
         if is_quarter:
-            if relativedelta(end_date + relativedelta(months=1), start_date).months != 3:
+            date_diff = relativedelta(end_date + relativedelta(months=1), start_date)
+            if date_diff.months != 3 or date_diff.years != 0:
                 raise ResponseError("Quarterly submission must span 3 months", StatusCode.CLIENT_ERROR)
             if end_date.month % 3 != 0:
                 raise ResponseError(

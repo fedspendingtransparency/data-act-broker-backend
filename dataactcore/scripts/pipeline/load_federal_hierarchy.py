@@ -5,6 +5,7 @@ import json
 import logging
 import pandas as pd
 import sys
+import urllib
 
 from datetime import datetime, timedelta
 
@@ -126,7 +127,7 @@ def load_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             params["updateddatefrom"] = updated_date_from
 
         # Retrieve the total count of expected records for this pull
-        param_string = "&".join(f"{k}={v}" for k, v in params.items())
+        param_string = urllib.parse.urlencode(params)
         total_expected_records = get_with_exception_hand(f"{API_URL}&{param_string}")["totalrecords"]
         metrics[f"level_{level}_records"] = total_expected_records
         logger.info(f"{total_expected_records} level-{level} record(s) expected")
@@ -251,7 +252,7 @@ def pull_offices(params, entries_processed=0):
         futures = []
         for start_offset in range(REQUESTS_AT_ONCE):
             params["offset"] = str(entries_already_processed + (start_offset * LIMIT))
-            param_string = "&".join(f"{k}={v}" for k, v in params.items())
+            param_string = urllib.parse.urlencode(params)
             futures.append(loop.run_in_executor(None, get_with_exception_hand, f"{API_URL}&{param_string}"))
         for response in await asyncio.gather(*futures):
             response_list.append(response)
@@ -408,7 +409,7 @@ def store_offices(sess, new_offices, pull_all, level):
                 inactive_params = {"aacofficecode": new_inactive_office_code, "level": level, "status": "all"}
                 # This assumes an office's historical record count is always less than LIMIT
                 # If it's not, use pull_offices instead to multiply it by REQUESTS_AT_ONCE
-                param_string = "&".join(f"{k}={v}" for k, v in inactive_params.items())
+                param_string = urllib.parse.urlencode(inactive_params)
                 office_history = get_with_exception_hand(f"{API_URL}&{param_string}")
                 for org in office_history.get("orglist", []):
                     historical_record = parse_raw_office(org)
