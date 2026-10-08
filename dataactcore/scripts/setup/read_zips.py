@@ -4,7 +4,6 @@
 import os
 import re
 import logging
-import boto3
 import urllib.request
 import pandas as pd
 
@@ -12,6 +11,7 @@ from datetime import datetime
 from sqlalchemy import func, update, text
 from sqlalchemy.exc import IntegrityError
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -453,7 +453,7 @@ def export_state_congr_table(sess):
     write_query_to_file(sess, query, state_congr_filename, generate_headers=True)
 
     logger.info("Uploading {} to {}".format(state_congr_filename, CONFIG_BROKER["public_files_bucket"]))
-    s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+    s3 = fapc_s3_client()
     s3.upload_file(
         "state_congressional.csv",
         CONFIG_BROKER["public_files_bucket"],
@@ -714,7 +714,7 @@ def read_zips():
 
         if CONFIG_BROKER["use_aws"] and fapc:
             zip_folder = CONFIG_BROKER["zip_folder"] + "/"
-            s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            s3_client = fapc_s3_client()
 
             paginator = s3_client.get_paginator("list_objects_v2")
             pages = paginator.paginate(Bucket=CONFIG_BROKER["sf_133_bucket"], Prefix=zip_folder)
@@ -729,7 +729,7 @@ def read_zips():
             parse_citystate_file(citystate_object["Body"], sess)
         elif CONFIG_BROKER["use_aws"]:
             zip_folder = CONFIG_BROKER["zip_folder"] + "/"
-            s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            s3_client = fapc_s3_client()
 
             response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER["sf_133_bucket"], Prefix=zip_folder)
             for obj in response.get("Contents", []):

@@ -6,7 +6,6 @@ import sys
 import time
 import xmltodict
 import os
-import boto3
 import glob
 from contextlib import contextmanager
 from dateutil.relativedelta import relativedelta
@@ -14,6 +13,7 @@ from collections import namedtuple
 from requests.exceptions import ConnectionError, ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import get_utc_now
@@ -286,7 +286,7 @@ def get_prefixed_file_list(file_path, aws_prefix, bucket_name="sf_133_bucket", f
         logger.info("Loading Files")
         if CONFIG_BROKER["use_aws"]:
             # get list of prefixed files in the config bucket on S3
-            s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            s3_client = fapc_s3_client()
 
             if signed:
                 response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER[bucket_name], Prefix=aws_prefix)

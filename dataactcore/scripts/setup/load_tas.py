@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 import json
 
 import pandas as pd
-import boto3
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
@@ -174,11 +174,12 @@ def update_tas_lookups(sess, csv_path, update_missing=[], metrics=None):
     sess.commit()
 
 
-def load_tas(backfill_historic=False):
+def load_tas(backfill_historic=False, local=False):
     """Load TAS file into broker database.
 
     Args:
         backfill_historic: if set to true, this will only update certain columns if budget_function_code is null
+        local: if set to true, pull the files locally regardless of S3 access
     """
     # read TAS file to dataframe, to make sure all is well with the file before firing up a db transaction
     tas_files = []
@@ -193,10 +194,10 @@ def load_tas(backfill_historic=False):
         "duplicates_dropped": 0,
     }
 
-    if CONFIG_BROKER["use_aws"]:
+    if CONFIG_BROKER["use_aws"] and not local:
         # Storing version dictionaries in the list to prevent getting all the links at once and possibly work with
         # expired AWS links
-        s3connection = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+        s3connection = fapc_s3_client()
         # list_object_versions returns the versions in reverse chronological order
 
         if not backfill_historic:
@@ -218,7 +219,7 @@ def load_tas(backfill_historic=False):
             tas_files = sorted(
                 [tas_file for date, tas_file in tas_files_grouped.items()], key=lambda k: k["LastModified"]
             )
-    elif backfill_historic:
+    elif backfill_historic and not local:
         logger.error("Unable to attain historical versions of cars_tas without aws access.")
         return
     else:
@@ -307,6 +308,7 @@ if __name__ == "__main__":
     with create_app().app_context():
         parser = argparse.ArgumentParser(description="Import data from the cars_tas.csv")
         parser.add_argument("--backfill_historic", "-b", action="store_true", help="Backfill tas with historical data")
+        parser.add_argument("--local", "-l", action="store_true", help="Whether to pull the files locally or remotely")
         args = parser.parse_args()
 
-        load_tas(backfill_historic=args.backfill_historic)
+        load_tas(backfill_historic=args.backfill_historic, local=args.local)

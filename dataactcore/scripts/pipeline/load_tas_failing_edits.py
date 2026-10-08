@@ -7,9 +7,9 @@ import re
 import json
 import argparse
 
-import boto3
 import pandas as pd
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
@@ -82,7 +82,7 @@ def get_tas_failing_edits_file_list(failed_tas_path, aws_prefix="GTAS_FE_DA"):
         logger.info("Loading TAS failing edits")
         if CONFIG_BROKER["use_aws"]:
             # get list of TAS failing edits files in the config bucket on S3
-            s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            s3_client = fapc_s3_client()
             response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER["sf_133_bucket"], Prefix=aws_prefix)
             for obj in response.get("Contents", []):
                 file_url = s3_client.generate_presigned_url(
