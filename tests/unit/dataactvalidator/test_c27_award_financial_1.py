@@ -264,6 +264,7 @@ def test_success(database):
         frec_code=None,
         is_quarter_format=True,
         is_fabs=False,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
     af_fain = AwardFinancialFactory(
         submission_id=sub_q.submission_id,
@@ -479,6 +480,7 @@ def test_success(database):
         frec_code=None,
         is_quarter_format=True,
         is_fabs=False,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
     af_fain = AwardFinancialFactory(
         submission_id=sub_p.submission_id,
@@ -694,6 +696,7 @@ def test_success(database):
         frec_code=None,
         is_quarter_format=True,
         is_fabs=False,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
     af_fain = AwardFinancialFactory(
         submission_id=sub_4.submission_id,
@@ -862,6 +865,7 @@ def test_success(database):
         cgac_code="test",
         frec_code=None,
         is_quarter_format=True,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
 
     errors = number_of_errors(_FILE, database, models=[], submission=sub_5)
@@ -901,6 +905,7 @@ def test_success(database):
         frec_code=None,
         is_quarter_format=False,
         is_fabs=False,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
     af_pacpan_diff = PublishedAwardFinancialFactory(
         submission_id=sub_pacpan_curr.submission_id,
@@ -927,7 +932,7 @@ def test_success(database):
     sub_pya_prev = SubmissionFactory(
         submission_id=8,
         cgac_code="test",
-        reporting_fiscal_year=2018,
+        reporting_fiscal_year=2019,
         reporting_fiscal_period=3,
         frec_code=None,
         publish_status_id=PUBLISH_STATUS_DICT["published"],
@@ -951,12 +956,13 @@ def test_success(database):
 
     sub_pya_curr = SubmissionFactory(
         submission_id=9,
-        reporting_fiscal_year=2018,
+        reporting_fiscal_year=2019,
         reporting_fiscal_period=4,
         cgac_code="test",
         frec_code=None,
         is_quarter_format=False,
         is_fabs=False,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
     af_pya_diff = PublishedAwardFinancialFactory(
         submission_id=sub_pya_curr.submission_id,
@@ -1054,6 +1060,7 @@ def test_failure(database):
         frec_code=None,
         is_quarter_format=False,
         is_fabs=False,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
 
     errors = number_of_errors(_FILE, database, models=[], submission=sub_2)
@@ -1068,6 +1075,7 @@ def test_failure(database):
         frec_code=None,
         is_quarter_format=False,
         is_fabs=False,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
     af_other = AwardFinancialFactory(
         submission_id=sub_3.submission_id,
@@ -1143,6 +1151,7 @@ def test_failure(database):
         frec_code=None,
         is_quarter_format=False,
         is_fabs=False,
+        publish_status_id=PUBLISH_STATUS_DICT["unpublished"],
     )
     af_null = AwardFinancialFactory(
         submission_id=sub_4.submission_id,

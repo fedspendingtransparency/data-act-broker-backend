@@ -9,6 +9,7 @@ import re
 import requests
 import tempfile
 
+from dataactbroker.helpers.script_helper import blue_green_swapper
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import update_external_data_load_date
@@ -63,20 +64,17 @@ def load_from_sam_entity_api(sess, local, metrics=None):
     if not api_csv_zip:
         raise FileNotFoundError(rf"Missing file: {api_csv_zip}")
 
-    logger.info("Truncating sam_recipient_unregistered for a full reload.")
-    sess.query(SAMRecipientUnregistered).delete()
-    index = 0
-    chunk_size = CONFIG_BROKER["validator_batch_size"]
-    with pd.read_csv(api_csv_zip, compression="gzip", chunksize=chunk_size) as reader:
-        logger.info("Starting ingestion of sam entity api csv.")
-        for chunk_df in reader:
-            logger.info(f"Processing chunk {index}-{index + chunk_size}.")
-            load_unregistered_recipients(sess, chunk_df, metrics=metrics, skip_updates=True)
-            index += chunk_size
-    logger.info(
-        f"Loaded {metrics['unregistered_added']} unregistered entities"
-        f" and updated {metrics['unregistered_updated']}."
-    )
+    with blue_green_swapper(sess, SAMRecipientUnregistered) as temp_table:
+        index = 0
+        chunk_size = CONFIG_BROKER["validator_batch_size"]
+        with pd.read_csv(api_csv_zip, compression="gzip", chunksize=chunk_size) as reader:
+            logger.info("Starting ingestion of sam entity api csv.")
+            for chunk_df in reader:
+                logger.info(f"Processing chunk {index}-{index + chunk_size}.")
+                load_unregistered_recipients(sess, chunk_df, table=temp_table, metrics=metrics)
+                index += chunk_size
+
+    logger.info(f"Reloaded {metrics['unregistered_added']} unregistered entities.")
     if not local:
         os.remove(api_csv_zip)
 

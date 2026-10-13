@@ -128,7 +128,7 @@ def active_user_can_on_submission(perm, submission, check_owner=True):
     return (is_owner and check_owner) or user_can
 
 
-def requires_submission_perms(perm, check_owner=True, check_fabs=None):
+def requires_submission_perms(perm, check_owner=True, check_fabs=None, lock=True):
     """Decorator that checks the current user's permissions and validates that the submission exists. It expects a
     submission_id parameter on top of the function arguments.
 
@@ -136,6 +136,7 @@ def requires_submission_perms(perm, check_owner=True, check_fabs=None):
         perm: the type of permission we are checking for
         check_owner: a boolean indicating if we should check whether the user is the owner of the submission
         check_fabs: FABS permission to check if the Submission is FABS; default None
+        lock: whether or not to lock the submission to prevent race conditions
 
     Returns:
         A submission object obtained using the submission_id provided (along with the other args/kwargs that were
@@ -151,7 +152,10 @@ def requires_submission_perms(perm, check_owner=True, check_fabs=None):
         @wraps(fn)
         def wrapped(submission_id, *args, **kwargs):
             sess = GlobalDB.db().session
-            submission = sess.query(Submission).filter_by(submission_id=submission_id).one_or_none()
+            submission = sess.query(Submission).filter_by(submission_id=submission_id)
+            if lock:
+                submission = submission.with_for_update()
+            submission = submission.one_or_none()
 
             if submission is None:
                 # @todo - why don't we use 404s?

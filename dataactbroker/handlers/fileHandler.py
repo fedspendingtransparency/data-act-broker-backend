@@ -548,7 +548,8 @@ class FileHandler:
         if is_quarter is None:
             is_quarter = existing_submission.is_quarter_format
         if is_quarter:
-            if relativedelta(end_date + relativedelta(months=1), start_date).months != 3:
+            date_diff = relativedelta(end_date + relativedelta(months=1), start_date)
+            if date_diff.months != 3 or date_diff.years != 0:
                 raise ResponseError("Quarterly submission must span 3 months", StatusCode.CLIENT_ERROR)
             if end_date.month % 3 != 0:
                 raise ResponseError(
@@ -1345,7 +1346,7 @@ class FileHandler:
                 time_period,
                 publish_history.publish_history_id,
             ]
-        new_route = "/".join([str(var) for var in route_vars]) + "/"
+        new_route = "/".join([str(var) for var in route_vars]) + "/" if not is_local else CONFIG_BROKER["broker_files"]
 
         for job in jobs:
             log_data["job_id"] = job.job_id
@@ -1609,8 +1610,16 @@ def update_submission_comments(submission, comment_request, is_local):
         )
 
     # If the submission has been published, set its status to updated when new comments are made.
-    if submission.publish_status_id == PUBLISH_STATUS_DICT["published"]:
-        submission.publish_status_id = PUBLISH_STATUS_DICT["updated"]
+    # not collecting updated_rows as this *can* yield 0 updated records if the submission is already updated
+    sess = GlobalDB.db().session
+    (
+        sess.query(Submission)
+        .filter(
+            Submission.submission_id == submission.submission_id,
+            Submission.publish_status_id == PUBLISH_STATUS_DICT["published"],
+        )
+        .update({"publish_status_id": PUBLISH_STATUS_DICT["updated"]}, synchronize_session=False)
+    )
 
     json = comment_request or {}
     # clean input
@@ -1620,7 +1629,6 @@ def update_submission_comments(submission, comment_request, is_local):
         if isinstance(value, str) and value.strip()
     }
 
-    sess = GlobalDB.db().session
     # Delete old comments, fetch just in case
     sess.query(Comment).filter_by(submission_id=submission.submission_id).delete(synchronize_session="fetch")
 

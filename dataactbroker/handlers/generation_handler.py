@@ -36,6 +36,12 @@ def generate_file(submission, file_type, start, end, agency_type, file_format):
     if submission.is_fabs:
         error_message = "Cannot generate files for FABS submissions."
 
+    elif submission.publish_status_id in (
+        lookups.PUBLISH_STATUS_DICT["publishing"],
+        lookups.PUBLISH_STATUS_DICT["reverting"],
+    ):
+        error_message = "Cannot generate files for publishing or reverting submissions"
+
     elif file_type in ["D1", "D2"]:
         # D file generation requires start and end date
         if not start or not end:

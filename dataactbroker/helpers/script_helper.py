@@ -8,6 +8,7 @@ import xmltodict
 import os
 import boto3
 import glob
+from contextlib import contextmanager
 from dateutil.relativedelta import relativedelta
 from collections import namedtuple
 from requests.exceptions import ConnectionError, ReadTimeout
@@ -308,3 +309,71 @@ def get_prefixed_file_list(file_path, aws_prefix, bucket_name="sf_133_bucket", f
             file_list = []
 
     return file_list
+
+
+@contextmanager
+def blue_green_swapper(sess, model):
+    """Takes in a model, makes a temp table, yields its name for loading, followed by swapping it with the main table
+
+    Args:
+        sess: the database session
+        model: the model of the main table
+
+    Yields:
+        name of temporary table to load into before swapping
+    """
+    # Get some metadata
+    main_table_name = model.__table__.name
+    id_col = [col.name for col in model.__table__.columns if col.name.endswith("_id")][0]
+    id_seq = sess.execute(f"SELECT pg_get_serial_sequence('{main_table_name}', '{id_col}')").one()
+    id_seq = id_seq[0].split(".", 1)[-1]
+
+    # Prepare the temp table
+    temp_table_name = f"temp_{main_table_name}"
+    logger.info(f"Creating {temp_table_name} for a full reload.")
+    sess.execute(f"CREATE TABLE IF NOT EXISTS {temp_table_name} (LIKE {main_table_name} INCLUDING ALL)")
+    sess.execute(f"TRUNCATE TABLE {temp_table_name} RESTART IDENTITY")
+    sess.execute(f"SELECT setval('{id_seq}', 1, false)")
+    sess.commit()
+
+    # temp_table_name ready to ingest data
+    yield temp_table_name
+
+    logger.info(f"Swapping {temp_table_name} into {main_table_name}.")
+
+    # using PSQL directly to find indexes as it includes keys too
+    list_index_sql = "SELECT indexname FROM pg_indexes WHERE tablename = '{}'"
+    main_indexes_keys = [result[0] for result in sess.execute(list_index_sql.format(main_table_name)).all()]
+    temp_indexes_keys = [result[0] for result in sess.execute(list_index_sql.format(temp_table_name)).all()]
+    # for indexes (not keys), temp table drops 'ix_' and adds '_idx'
+    main_indexes = sorted([index for index in main_indexes_keys if index.startswith("ix_")])
+    temp_indexes = sorted([index for index in temp_indexes_keys if index.endswith("_idx")])
+    main_keys = sorted([index for index in main_indexes_keys if index not in main_indexes])
+    temp_keys = sorted([index for index in temp_indexes_keys if index not in temp_indexes])
+    # by sorting both the main table and the temp table indexes, they should both align despite the temp indexes being
+    # potentially truncated due to length
+    swap_keys = [f"ALTER INDEX {temp_keys[i]} RENAME TO {main_keys[i]}" for i in range(len(main_indexes))]
+    swap_indexes = [f"ALTER INDEX {temp_indexes[i]} RENAME TO {main_indexes[i]}" for i in range(len(main_indexes))]
+
+    sql_string = f"""
+         -- Do everything in a transaction so it doesn't affect anything until it's completely done
+         BEGIN;
+
+         -- Make sure the sequence remains
+         ALTER SEQUENCE {id_seq} OWNED BY {temp_table_name}.{id_col};
+
+         -- Drop main table and rename the temporary one
+         DROP TABLE {main_table_name};
+         ALTER TABLE {temp_table_name} RENAME TO {main_table_name};
+
+         -- Swap out keys (pk and unique constraints)
+         {';\n'.join(swap_keys)};
+
+         -- Swap out indexes
+         {';\n'.join(swap_indexes)};
+
+         COMMIT;
+    """
+    sess.execute(sql_string)
+
+    logger.info(f"Swapped {temp_table_name} into {main_table_name}.")

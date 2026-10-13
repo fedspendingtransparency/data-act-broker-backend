@@ -879,32 +879,28 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None, st
     return r
 
 
-def load_unregistered_recipients(sess, df, skip_updates=False, metrics=None):
-    """Takes in the dataframe containing sam entity API data and stores it in the sam_recipient_unregistered
+def load_unregistered_recipients(sess, df, table=None, metrics=None):
+    """Takes in the dataframe containing sam entity unregistered data and stores it in the table given
 
     Args:
         sess: database connection
         df: the dataframe to process
-        skip_updates: True to skip the process of delete/update (i.e. total backfills)
+        table: the table to load the data into (defaults to SAMRecipientUnregistered)
         metrics: the metrics dict
     """
+    if not table:
+        table = SAMRecipientUnregistered.__table__.name
+
     # looks like the csv version drops the topmost parent section (coreData, entityRegistration)
     mapping_filtered = {k[k.index(".") + 1 :]: v for k, v in SAM_ENTITY_MAPPINGS.items()}
     mapping_filtered = {k: v for k, v in mapping_filtered.items() if k in df.columns}
     df.rename(columns=mapping_filtered, inplace=True)
     df.drop([col for col in df.columns if col not in SAMRecipientUnregistered.__table__.columns], axis=1, inplace=True)
 
-    updated_count = 0
-    if not skip_updates:
-        # delete any that are already in there for updating
-        existing_unreg = sess.query(SAMRecipientUnregistered).filter(SAMRecipientUnregistered.uei.in_(df["uei"]))
-        updated_count = existing_unreg.delete()
-        metrics["unregistered_updated"] += updated_count
-
     df["created_at"] = df["updated_at"] = get_utc_now()
-    insert_dataframe(df, SAMRecipientUnregistered.__table__.name, sess.connection())
+    insert_dataframe(df, table, sess.connection())
     sess.commit()
-    metrics["unregistered_added"] += len(df.index) - updated_count
+    metrics["unregistered_added"] += len(df.index)
 
 
 def get_sam_props(api="entity", **kwargs):
