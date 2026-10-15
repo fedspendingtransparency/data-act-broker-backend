@@ -56,7 +56,7 @@ from dataactcore.models.domainModels import (
     SubTierAgency,
 )
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT, JOB_STATUS_DICT
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.stagingModels import FABS, FlexField, TotalObligations
 from dataactcore.models.errorModels import ErrorMetadata
@@ -1366,8 +1366,23 @@ class ValidationManager:
                 validation_error_type,
             )
 
-        # set job status to running and do validations
-        mark_job_status(job_id, "running")
+        # Atomically claim the job so a redelivered SQS message for an in-flight job is dropped
+        # instead of running a concurrent duplicate (legitimate retries reset the status to waiting
+        # in cleanup_validation before re-dispatching)
+        claimed = (
+            sess.query(Job).filter(Job.job_id == job_id, Job.job_status_id != JOB_STATUS_DICT["running"]).update({Job.job_status_id: JOB_STATUS_DICT["running"]}, synchronize_session=False))
+        sess.commit()
+        if not claimed:
+            logger.warning(
+                {
+                    "message": "Job ID {} is already running; dropping duplicate execution request".format(job_id),
+                    "message_type": "ValidatorInfo",
+                    "job_id": job_id,
+                }
+            )
+            return JsonResponse.create(StatusCode.OK, {"message": "Job is already running"})
+        sess.refresh(job)
+
         if job_type_name == "csv_record_validation":
             self.run_validation(job)
         elif job_type_name == "validation":
