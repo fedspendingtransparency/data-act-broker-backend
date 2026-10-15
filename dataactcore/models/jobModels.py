@@ -413,6 +413,7 @@ class FileGeneration(Base):
     )
     element_numbers = Column(Boolean, nullable=False, default=False, server_default="False")
 
+
 Index(
     "ix_cached_file_generation_unique",
     FileGeneration.start_date,

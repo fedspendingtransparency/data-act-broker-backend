@@ -1370,7 +1370,10 @@ class ValidationManager:
         # instead of running a concurrent duplicate (legitimate retries reset the status to waiting
         # in cleanup_validation before re-dispatching)
         claimed = (
-            sess.query(Job).filter(Job.job_id == job_id, Job.job_status_id != JOB_STATUS_DICT["running"]).update({Job.job_status_id: JOB_STATUS_DICT["running"]}, synchronize_session=False))
+            sess.query(Job)
+            .filter(Job.job_id == job_id, Job.job_status_id != JOB_STATUS_DICT["running"])
+            .update({Job.job_status_id: JOB_STATUS_DICT["running"]}, synchronize_session=False)
+        )
         sess.commit()
         if not claimed:
             logger.warning(
