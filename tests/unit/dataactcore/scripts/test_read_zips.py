@@ -6,11 +6,14 @@ from dataactcore.models.domainModels import (
     CDStateGrouped,
     CDZipsGrouped,
     CDZipsGroupedHistorical,
+    ExternalDataLoadDate,
+    ExternalDataType,
     StateCongressional,
     Zips,
     ZipsGrouped,
     ZipCity,
 )
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactcore.scripts.setup import load_location_data, read_zips
 from dataactcore.scripts.setup.load_location_data import generate_cd_city_grouped
 from dataactcore.scripts.setup.read_zips import (
@@ -458,6 +461,16 @@ def test_group_zips(database, monkeypatch):
     assert len(cds) == 1
     assert cds[0].congressional_district_no == cd_county_grouped_match.congressional_district_no
 
+    sess.execute(
+        """
+        DROP TABLE temp_zips;
+        DROP TABLE temp_zip_city;
+    """
+    )
+    for table in tables:
+        sess.execute(f"DROP TABLE temp_{table};")
+    sess.commit()
+
 
 def test_zips_loader(database):
     sess = database.session
@@ -473,6 +486,19 @@ def test_zips_loader(database):
     # Confirming these are empty beforehand
     for table in tables:
         assert sess.query(table).count() == 0
+
+    zip_edld = ExternalDataLoadDate(
+        external_data_load_date_id=-1,
+        external_data_type_id=EXTERNAL_DATA_TYPE_DICT["zip_code"],
+    )
+    zip_edt = ExternalDataType(external_data_type_id=EXTERNAL_DATA_TYPE_DICT["zip_code"])
+    cd_edld = ExternalDataLoadDate(
+        external_data_load_date_id=-2,
+        external_data_type_id=EXTERNAL_DATA_TYPE_DICT["congressional_district"],
+    )
+    cd_edt = ExternalDataType(external_data_type_id=EXTERNAL_DATA_TYPE_DICT["congressional_district"])
+    sess.add_all([zip_edld, zip_edt, cd_edld, cd_edt])
+
     # Critical to include this commit, otherwise causes a rollback deadlock
     sess.commit()
 
