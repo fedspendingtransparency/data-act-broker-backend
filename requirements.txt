@@ -48,7 +48,7 @@ xmltodict==0.13.0
 
 # implicit
 amqp==5.2.0
-awscli==1.32.58
+awscli==1.46.2
 bcrypt==4.1.2
 billiard==4.2.0
 blinker==1.7.0
