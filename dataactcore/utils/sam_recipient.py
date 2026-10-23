@@ -868,19 +868,28 @@ def download_via_token(local_sam_file_name, request_api_func, filters, max_attem
     def request_sam_token_file():
         logger.info(f"Requesting file: {local_sam_file_name}")
         resp = request_api_func(filters)
-        logger.info(resp.content)
-        resp_content = json.loads(resp.content.decode("utf-8"))
 
-        if resp_content.get("presignedUrl") is None:
-            logger.info(resp_content.get("message"))
-            return None
+        # SAM is inconsistent in their APIs between sending a JSON response vs just a message with the presigned URL
+        # try the JSON approach, fallback on the message approach
+        try:
+            resp_content = json.loads(resp.content.decode("utf-8"))
+            if resp_content.get("presignedUrl") is None:
+                logger.info(resp_content.get("message"))
+                return None
+            presigned_url = resp_content.get("presignedUrl")
+            token = resp_content.get('exportToken')
+        except json.decoder.JSONDecodeError:
+            presigned_url_regex = re.search(r"^.*(https\S+\?token=(\S+))\s+.*$", str(resp.content))
+            # presigned_url _also_ has the token in it. easier for consistency between both apis
+            # could be proper and use the `filters`/`params`, but this works fine
+            presigned_url, token = presigned_url_regex.group(1), presigned_url_regex.group(2)
 
         # just use the presignedUrl provided, includes the params we need (token, api key)
-        logger.info(f"File requested, waiting for file to generate (token: {resp_content.get('exportToken')})")
-        download_url = resp_content.get("presignedUrl").replace("REPLACE_WITH_API_KEY", CONFIG_BROKER["sam"]["api_key"])
+        logger.info(f"File requested, waiting for file to generate (token: {token})")
+        presigned_url = presigned_url.replace("REPLACE_WITH_API_KEY", CONFIG_BROKER["sam"]["api_key"])
 
         return request_api_func(
-            filters=None, download_url=download_url, stream=True, custom_error_check=file_ready_check
+            filters=None, download_url=presigned_url, stream=True, custom_error_check=file_ready_check
         )
 
     # Anytime we request a custom extract from SAM via tokens, the success rate is hit or miss to varying degrees.
