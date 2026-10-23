@@ -868,6 +868,7 @@ def download_via_token(local_sam_file_name, request_api_func, filters, max_attem
     def request_sam_token_file():
         logger.info(f"Requesting file: {local_sam_file_name}")
         resp = request_api_func(filters)
+        logger.info(resp.content)
         resp_content = json.loads(resp.content.decode("utf-8"))
 
         if resp_content.get("presignedUrl") is None:
