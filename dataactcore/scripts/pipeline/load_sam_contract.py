@@ -1031,7 +1031,7 @@ def get_sam_contract_file(
     local_sam_file_path = download_via_token(local_sam_file_name, request_sam_contracts_api, filters)
 
     # Host the file in S3 for traceability
-    if CONFIG_BROKER["use_aws"]:
+    if local_sam_file_path and CONFIG_BROKER["use_aws"]:
         s3 = boto3.client("s3", region_name="us-gov-west-1")
         s3.upload_file(
             local_sam_file_path, S3_ARCHIVE, os.path.join("Contracts", os.path.basename(local_sam_file_path))
