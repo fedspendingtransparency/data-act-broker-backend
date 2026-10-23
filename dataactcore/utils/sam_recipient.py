@@ -728,6 +728,8 @@ def request_sam_entity_api(filters, download_url=None, stream=False, custom_erro
     Args:
         filters: dict of filters to search
         download_url: the generated download_url sent by a previous request (for csvs)
+        stream: whether to stream the contents or not
+        custom_error_check: custom function returning boolean (True - expected, False - retry) based on the data
 
     Returns:
         json list of SAM objects representing entities,
@@ -753,6 +755,7 @@ def request_sam_contracts_api(filters, download_url=None, stream=False, custom_e
         filters: dict of filters to search
         download_url: the generated download_url sent by a previous request (for csvs)
         stream: whether to stream the contents or not
+        custom_error_check: custom function returning boolean (True - expected, False - retry) based on the data
 
     Returns:
         json list of SAM objects representing entities,
