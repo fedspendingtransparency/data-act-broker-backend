@@ -1,19 +1,24 @@
+# TODO: RENAME TO sam.py after testing
+
 import logging
 import os
 import time
 import json
 import zipfile
 import datetime
+import tempfile
 
 import requests
 import numpy as np
 import pandas as pd
-from collections import OrderedDict
-from sqlalchemy import and_, func
-from ratelimit import limits, sleep_and_retry
 from backoff import on_exception, expo
+from collections import OrderedDict
+from ratelimit import limits, sleep_and_retry
+from requests.exceptions import RequestException
+from sqlalchemy import and_, func
 
-from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
+
+from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS, unzip
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
 from dataactcore.interfaces.function_bag import get_utc_now
@@ -717,7 +722,7 @@ def update_missing_parent_names(sess, updated_date=None):
     return total_updated_count
 
 
-def request_sam_entity_api(filters, download_url=None):
+def request_sam_entity_api(filters, download_url=None, stream=False, custom_error_check=None):
     """Calls the SAM entity API to retrieve SAM data by the filters
 
     Args:
@@ -736,7 +741,9 @@ def request_sam_entity_api(filters, download_url=None):
     if not filters:
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["recipient"]["entity_api_url"]
-    return _request_sam_api(url, request_type="post", headers=headers, params=filters)
+    return _request_sam_api(
+        url, request_type="post", headers=headers, params=filters, stream=stream, custom_error_check=custom_error_check
+    )
 
 
 def request_sam_contracts_api(filters, download_url=None, stream=False, custom_error_check=None):
@@ -834,6 +841,83 @@ def give_up(e):
         logger.info("Rate limit hit. Sleeping for {} seconds until the next day where we can continue.".format(wait))
         time.sleep(wait)
     return False
+
+
+def download_via_token(local_sam_file_name, request_api_func, filters, max_attempts=10):
+    """Goes through SAM's token download workflow to request, stream, and extract the requested file
+
+    Args:
+        local_sam_file_name: the desired base name of the extracted file
+        request_api_func: the custom function to request (and download) the file from SAM's API
+        filters: dictionary of the initial filters to request of the API
+        max_attempts: the maximum number of full attempts (both initial request and subsequent pings to download)
+
+    Returns:
+         path to the extracted local file
+    """
+
+    # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
+    # so we don't need to add any additional sleeping here.
+    def file_ready_check(response):
+        if "The specified key does not exist" in response.text:
+            raise RequestException("The specified key does not exist.")
+
+    def request_sam_token_file():
+        logger.info(f"Requesting file: {local_sam_file_name}")
+        resp = request_api_func(filters)
+        resp_content = json.loads(resp.content.decode("utf-8"))
+
+        if resp_content.get("presignedUrl") is None:
+            logger.info(resp_content.get("message"))
+            return None
+
+        # just use the presignedUrl provided, includes the params we need (token, api key)
+        logger.info(f"File requested, waiting for file to generate (token: {resp_content.get('exportToken')})")
+        download_url = resp_content.get("presignedUrl").replace("REPLACE_WITH_API_KEY", CONFIG_BROKER["sam"]["api_key"])
+
+        return request_api_func(
+            filters=None, download_url=download_url, stream=True, custom_error_check=file_ready_check
+        )
+
+    # Anytime we request a custom extract from SAM via tokens, the success rate is hit or miss to varying degrees.
+    # Despite the additional backoff logic when pinging for the downloadable file, this is an attempt to retry the
+    # *whole request* multiple times as sometimes it'll generate in seconds and other times it will not in an hour.
+    attempt_count = 0
+    file_content = None
+    while attempt_count < max_attempts:
+        try:
+            file_content = request_sam_token_file()
+            break
+        except RequestException:
+            attempt_count += 1
+            logger.info(f"Retrying (attempt count: {attempt_count})")
+    if attempt_count == max_attempts and not file_content:
+        raise RequestException(f"Couldn't generate the requested file after {attempt_count} attempts.")
+    elif not file_content:
+        logger.info("No data found for the requested filters.")
+        return None
+
+    logger.info("Downloading zip of request")
+    local_sam_file_zipped = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.zip")
+    try:
+        with open(local_sam_file_zipped, mode="wb") as local_sam_zip:
+            for chunk in file_content.iter_content(chunk_size=8192):
+                if chunk:
+                    local_sam_zip.write(chunk)
+    finally:
+        file_content.close()
+
+    logger.info("Downloaded file. Extracting zip.")
+    local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
+    extracted_files = unzip(local_sam_file_zipped)
+    if len(extracted_files) > 1:
+        raise ValueError(f"Multiple files found in the zip: {extracted_files}")
+    os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
+    os.remove(local_sam_file_zipped)
+
+    logger.info(f"Extracted {local_sam_file_name}.csv")
+
+    return local_sam_file_path
 
 
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
