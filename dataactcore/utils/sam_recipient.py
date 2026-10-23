@@ -7,6 +7,7 @@ import json
 import zipfile
 import datetime
 import tempfile
+import re
 
 import requests
 import numpy as np
