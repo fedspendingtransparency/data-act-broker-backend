@@ -59,7 +59,7 @@ def load_from_sam_entity_api(sess, local, metrics=None):
     filters = {"samRegistered": "No"}
 
     csv_dir = local if local else os.getcwd()
-    csv_name = f"{SAM_ENTITY_API_FILE_NAME}.gz
+    csv_name = f"{SAM_ENTITY_API_FILE_NAME}.gz"
     api_csv_zip = os.path.join(csv_dir, csv_name)
     if not local:
         download_sam_file(csv_dir, csv_name, api="entity", **filters)
