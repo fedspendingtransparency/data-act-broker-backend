@@ -1425,6 +1425,9 @@ def main():
         start_date, end_date = validate_load_dates(
             args.start_date, args.end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
         )
+        if auto and end_date is None:
+            end_date = get_utc_now().date().strftime("%m/%d/%Y")
+
     get_data_params = {
         "sess": sess,
         "sub_tier_df": sub_tier_df,
