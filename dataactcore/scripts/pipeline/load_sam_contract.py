@@ -1033,22 +1033,23 @@ def get_sam_contract_file(
     logger.info(f"Starting requests for file: {local_sam_file_name}")
     local_sam_file_zipped = download_via_token(f"{local_sam_file_name}.zip", request_sam_contracts_api, filters)
 
-    logger.info("Downloaded file. Extracting zip.")
-    local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
-    extracted_files = unzip(local_sam_file_zipped)
-    if len(extracted_files) > 1:
-        raise ValueError(f"Multiple files found in the zip: {extracted_files}")
-    os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
-    os.remove(local_sam_file_zipped)
+    local_sam_file_path = None
+    if not local_sam_file_zipped:
+        logger.info("Downloaded file. Extracting zip.")
+        local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
+        extracted_files = unzip(local_sam_file_zipped)
+        if len(extracted_files) > 1:
+            raise ValueError(f"Multiple files found in the zip: {extracted_files}")
+        os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
+        os.remove(local_sam_file_zipped)
+        logger.info(f"Extracted {local_sam_file_name}.csv")
 
-    logger.info(f"Extracted {local_sam_file_name}.csv")
-
-    # Host the file in S3 for traceability
-    if local_sam_file_path and CONFIG_BROKER["use_aws"]:
-        s3 = boto3.client("s3", region_name="us-gov-west-1")
-        s3.upload_file(
-            local_sam_file_path, S3_ARCHIVE, os.path.join("Contracts", os.path.basename(local_sam_file_path))
-        )
+        # Host the file in S3 for traceability
+        if CONFIG_BROKER["use_aws"]:
+            s3 = boto3.client("s3", region_name="us-gov-west-1")
+            s3.upload_file(
+                local_sam_file_path, S3_ARCHIVE, os.path.join("Contracts", os.path.basename(local_sam_file_path))
+            )
 
     return local_sam_file_path
 
