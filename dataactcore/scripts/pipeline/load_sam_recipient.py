@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import re
 import requests
-import shutil   
+import shutil
 import tempfile
 
 from dataactbroker.helpers.script_helper import blue_green_swapper

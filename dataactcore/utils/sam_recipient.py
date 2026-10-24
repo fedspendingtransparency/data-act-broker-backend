@@ -19,7 +19,7 @@ from requests.exceptions import RequestException
 from sqlalchemy import and_, func
 
 
-from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS, unzip
+from dataactbroker.helpers.generic_helper import batch, RETRY_REQUEST_EXCEPTIONS
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
 from dataactcore.interfaces.function_bag import get_utc_now
@@ -878,7 +878,7 @@ def download_via_token(local_sam_file_name, request_api_func, filters, max_attem
                 logger.info(resp_content.get("message"))
                 return None
             presigned_url = resp_content.get("presignedUrl")
-            token = resp_content.get('exportToken')
+            token = resp_content.get("exportToken")
         except json.decoder.JSONDecodeError:
             presigned_url_regex = re.search(r"^.*(https\S+\?token=(\S+))\s+.*$", str(resp.content))
             # presigned_url _also_ has the token in it. easier for consistency between both apis
