@@ -263,8 +263,11 @@ def download_sam_file(root_dir, file_name, api="extract", **filters):
         request_sam_extracts_api(root_dir, file_name)
     elif api == "entity":
         filters["format"] = "csv"
-        local_sam_file_path = download_via_token(file_name, request_sam_entity_api, filters)
-        os.path.rename(local_sam_file_path, os.path.join(root_dir, file_name))
+
+        logger.info(f"Starting requests for file: {file_name}")
+        local_sam_file_zipped = download_via_token(file_name, request_sam_entity_api, filters)
+
+        os.path.rename(local_sam_file_zipped, os.path.join(root_dir, file_name))
     else:
         s3_client = boto3.client("s3", region_name="us-gov-west-1")
         reverse_map = {v: k for k, v in DATA_TYPES.items()}

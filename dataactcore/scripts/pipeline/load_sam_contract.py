@@ -1028,7 +1028,18 @@ def get_sam_contract_file(
     if extra_filters is not None:
         filters.update(extra_filters)
 
-    local_sam_file_path = download_via_token(local_sam_file_name, request_sam_contracts_api, filters)
+    logger.info(f"Starting requests for file: {local_sam_file_name}")
+    local_sam_file_zipped = download_via_token(f"{local_sam_file_name}.zip", request_sam_contracts_api, filters)
+
+    logger.info("Downloaded file. Extracting zip.")
+    local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
+    extracted_files = unzip(local_sam_file_zipped)
+    if len(extracted_files) > 1:
+        raise ValueError(f"Multiple files found in the zip: {extracted_files}")
+    os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
+    os.remove(local_sam_file_zipped)
+
+    logger.info(f"Extracted {local_sam_file_name}.csv")
 
     # Host the file in S3 for traceability
     if local_sam_file_path and CONFIG_BROKER["use_aws"]:

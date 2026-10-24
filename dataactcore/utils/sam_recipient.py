@@ -911,8 +911,8 @@ def download_via_token(local_sam_file_name, request_api_func, filters, max_attem
         logger.info("No data found for the requested filters.")
         return None
 
-    logger.info("Downloading zip of request")
-    local_sam_file_zipped = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.zip")
+    logger.info(f"Downloading {local_sam_file_name} from response")
+    local_sam_file_zipped = os.path.join(tempfile.gettempdir(), local_sam_file_name)
     try:
         with open(local_sam_file_zipped, mode="wb") as local_sam_zip:
             for chunk in file_content.iter_content(chunk_size=8192):
@@ -921,17 +921,7 @@ def download_via_token(local_sam_file_name, request_api_func, filters, max_attem
     finally:
         file_content.close()
 
-    logger.info("Downloaded file. Extracting zip.")
-    local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
-    extracted_files = unzip(local_sam_file_zipped)
-    if len(extracted_files) > 1:
-        raise ValueError(f"Multiple files found in the zip: {extracted_files}")
-    os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
-    os.remove(local_sam_file_zipped)
-
-    logger.info(f"Extracted {local_sam_file_name}.csv")
-
-    return local_sam_file_path
+    return local_sam_file_zipped
 
 
 @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
