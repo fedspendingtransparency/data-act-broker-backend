@@ -1034,7 +1034,7 @@ def get_sam_contract_file(
     local_sam_file_zipped = download_via_token(f"{local_sam_file_name}.zip", request_sam_contracts_api, filters)
 
     local_sam_file_path = None
-    if not local_sam_file_zipped:
+    if local_sam_file_zipped:
         logger.info("Downloaded file. Extracting zip.")
         local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
         extracted_files = unzip(local_sam_file_zipped)
