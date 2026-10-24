@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import re
 import requests
+import shutil   
 import tempfile
 
 from dataactbroker.helpers.script_helper import blue_green_swapper
@@ -267,7 +268,7 @@ def download_sam_file(root_dir, file_name, api="extract", **filters):
         logger.info(f"Starting requests for file: {file_name}")
         local_sam_file_zipped = download_via_token(file_name, request_sam_entity_api, filters)
 
-        os.rename(local_sam_file_zipped, os.path.join(root_dir, file_name))
+        shutil.move(local_sam_file_zipped, os.path.join(root_dir, file_name))
     else:
         s3_client = boto3.client("s3", region_name="us-gov-west-1")
         reverse_map = {v: k for k, v in DATA_TYPES.items()}
