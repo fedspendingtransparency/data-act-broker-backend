@@ -1042,9 +1042,9 @@ def get_sam_contract_file(
             raise ValueError(f"Multiple files found in the zip: {extracted_files}")
         extracted_name = extracted_files[0]
         if (
-                os.path.isabs(extracted_files)
-                or os.path.basename(extracted_name) != extracted_name
-                or extracted_name in ("", ".", "..")
+            os.path.isabs(extracted_files)
+            or os.path.basename(extracted_name) != extracted_name
+            or extracted_name in ("", ".", "..")
         ):
             raise ValueError(f"Unsafe file name found in the zip: {extracted_name}")
         os.rename(os.path.join(tempfile.gettempdir(), extracted_name), local_sam_file_path)
