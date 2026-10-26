@@ -412,3 +412,17 @@ class FileGeneration(Base):
         server_default="csv",
     )
     element_numbers = Column(Boolean, nullable=False, default=False, server_default="False")
+
+
+Index(
+    "ix_cached_file_generation_unique",
+    FileGeneration.start_date,
+    FileGeneration.end_date,
+    FileGeneration.agency_code,
+    FileGeneration.agency_type,
+    FileGeneration.file_type,
+    FileGeneration.file_format,
+    FileGeneration.element_numbers,
+    postgresql_where=(FileGeneration.is_cached_file.is_(True)),
+    unique=True,
+)

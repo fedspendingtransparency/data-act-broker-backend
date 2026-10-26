@@ -1092,7 +1092,14 @@ def get_sam_contract_file(
     extracted_files = unzip(local_sam_file_zipped)
     if len(extracted_files) > 1:
         raise ValueError(f"Multiple files found in the zip: {extracted_files}")
-    os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
+    extracted_name = extracted_files[0]
+    if (
+        os.path.isabs(extracted_files)
+        or os.path.basename(extracted_name) != extracted_name
+        or extracted_name in ("", ".", "..")
+    ):
+        raise ValueError(f"Unsafe file name found in the zip: {extracted_name}")
+    os.rename(os.path.join(tempfile.gettempdir(), extracted_name), local_sam_file_path)
     os.remove(local_sam_file_zipped)
 
     logger.info(f"Extracted {local_sam_file_name}.csv")
@@ -1425,6 +1432,9 @@ def main():
         start_date, end_date = validate_load_dates(
             args.start_date, args.end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
         )
+        if auto and end_date is None:
+            end_date = get_utc_now().date().strftime("%m/%d/%Y")
+
     get_data_params = {
         "sess": sess,
         "sub_tier_df": sub_tier_df,

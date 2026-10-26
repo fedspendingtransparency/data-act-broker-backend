@@ -192,7 +192,7 @@ def generate_cd_state_grouped(sess):
             SELECT state_abbreviation,
                 congressional_district_no,
                 COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY state_abbreviation)) AS cd_percent
-            FROM zips
+            FROM temp_zips
             WHERE congressional_district_no IS NOT NULL
             GROUP BY state_abbreviation, congressional_district_no
         ),
@@ -233,7 +233,7 @@ def generate_cd_zips_grouped(sess):
                 state_abbreviation,
                 congressional_district_no,
                 COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY zip5, state_abbreviation)) AS cd_percent
-            FROM zips
+            FROM temp_zips
             WHERE congressional_district_no IS NOT NULL
             GROUP BY zip5, state_abbreviation, congressional_district_no
         ),
@@ -318,7 +318,7 @@ def generate_cd_county_grouped(sess):
                 state_abbreviation,
                 congressional_district_no,
                 COUNT(*) / (SUM(COUNT(*)) OVER (PARTITION BY county_number, state_abbreviation)) AS cd_percent
-            FROM zips
+            FROM temp_zips
             WHERE congressional_district_no IS NOT NULL
             GROUP BY county_number, state_abbreviation, congressional_district_no
         ),
