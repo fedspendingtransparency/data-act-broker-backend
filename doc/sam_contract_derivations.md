@@ -1,6 +1,6 @@
-# FPDS Derivations
+# SAM Contract Derivations
 
-The following are explanations of the single and chained derivations used in the logic of [pull\_fpds\_data.py](../dataactcore/scripts/pipeline/pull_fpds_data.py) 
+The following are explanations of the single and chained derivations used in the logic of [load\_sam\_contract.py](../dataactcore/scripts/pipeline/load_sam_contract.py) 
 
 ## Single Derivations
 

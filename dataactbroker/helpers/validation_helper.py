@@ -44,7 +44,7 @@ def is_valid_type(data, data_type):
     if data_type == "DECIMAL":
         try:
             Decimal(data)
-            return True
+            return Decimal(data).is_finite()
         except DecimalException:
             return False
     if data_type == "LONG":
