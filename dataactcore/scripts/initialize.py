@@ -68,7 +68,13 @@ def create_admin():
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
     logger.info("Loading TAS")
-    load_tas()
+    # Unlike other domain value files, TAS data is stored on S3.
+    # If the application's 'use_aws' option is turned off, tell the TAS loader to look for files in the validator's
+    # local config file instead
+    if CONFIG_BROKER["use_aws"]:
+        load_tas()
+    else:
+        load_tas(local=True)
 
 
 def load_failed_tas():
