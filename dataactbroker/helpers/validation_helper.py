@@ -506,7 +506,8 @@ def valid_format(row):
         return False
     # Try to convert it using this specific format. If it doesn't work, it's not formatted right.
     try:
-        datetime.strptime(current_value, "%Y%m%d")
+        if current_value != datetime.strptime(current_value, "%Y%m%d").strftime("%Y%m%d"):
+            raise ValueError
     except ValueError:
         return False
     return True
