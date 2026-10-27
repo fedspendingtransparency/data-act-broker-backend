@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import re
 import requests
+import shutil
 import tempfile
 
 from dataactbroker.helpers.script_helper import blue_green_swapper
@@ -16,6 +17,7 @@ from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
 from dataactcore.utils.sam_recipient import (
+    download_via_token,
     is_nonexistent_file_error,
     load_unregistered_recipients,
     parse_sam_recipient_file,
@@ -58,11 +60,12 @@ def load_from_sam_entity_api(sess, local, metrics=None):
     filters = {"samRegistered": "No"}
 
     csv_dir = local if local else os.getcwd()
-    api_csv_zip = os.path.join(csv_dir, f"{SAM_ENTITY_API_FILE_NAME}.gz")
+    csv_name = f"{SAM_ENTITY_API_FILE_NAME}.gz"
+    api_csv_zip = os.path.join(csv_dir, csv_name)
     if not local:
-        download_sam_file(csv_dir, api_csv_zip, api="entity", **filters)
+        download_sam_file(csv_dir, csv_name, api="entity", **filters)
     if not api_csv_zip:
-        raise FileNotFoundError(rf"Missing file: {api_csv_zip}")
+        raise FileNotFoundError(rf"Missing file: {csv_name}")
 
     with blue_green_swapper(sess, SAMRecipientUnregistered) as temp_table:
         index = 0
@@ -273,23 +276,12 @@ def download_sam_file(root_dir, file_name, api="extract", **filters):
     if api == "extract":
         request_sam_extracts_api(root_dir, file_name)
     elif api == "entity":
-        local_sam_file = os.path.join(root_dir, file_name)
-
-        # request the file
         filters["format"] = "csv"
-        resp = request_sam_entity_api(filters)
-        download_url_regex = re.search(r"^.*(https\S+)\?token=(\S+)\s+.*$", str(resp.content))
-        download_url, token = download_url_regex.group(1), download_url_regex.group(2)
 
-        filters = {"token": token}
-        # Generally for a full dump, it takes at most two minutes.
-        # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
-        # so we don't need to add any additional sleeping here.
-        file_content = request_sam_entity_api(filters, download_url=download_url)
+        logger.info(f"Starting requests for file: {file_name}")
+        local_sam_file_zipped = download_via_token(file_name, request_sam_entity_api, filters)
 
-        # get the generated download
-        with open(local_sam_file, "wb+") as sam_gz:
-            sam_gz.write(file_content.content)
+        shutil.move(local_sam_file_zipped, os.path.join(root_dir, file_name))
     else:
         s3_client = boto3.client("s3", region_name="us-gov-west-1")
         reverse_map = {v: k for k, v in DATA_TYPES.items()}
