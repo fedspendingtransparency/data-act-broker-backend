@@ -1042,7 +1042,7 @@ def get_sam_contract_file(
             raise ValueError(f"Multiple files found in the zip: {extracted_files}")
         extracted_name = extracted_files[0]
         if (
-            os.path.isabs(extracted_files)
+            os.path.isabs(extracted_name)
             or os.path.basename(extracted_name) != extracted_name
             or extracted_name in ("", ".", "..")
         ):
