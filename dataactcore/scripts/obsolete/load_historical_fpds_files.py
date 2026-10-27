@@ -15,6 +15,7 @@ import logging
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.broker_logging import configure_logging
@@ -1037,7 +1038,7 @@ def main():
     logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
     if CONFIG_BROKER["use_aws"]:
         # # get naics dictionary
-        s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+        s3_client = fapc_s3_client()
         agency_list_path = s3_client.generate_presigned_url(
             "get_object", {"Bucket": CONFIG_BROKER["sf_133_bucket"], "Key": "naics.csv"}, ExpiresIn=600
         )

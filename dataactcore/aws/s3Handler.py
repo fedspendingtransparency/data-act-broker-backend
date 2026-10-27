@@ -10,6 +10,18 @@ from dataactcore.config import CONFIG_BROKER
 logger = logging.getLogger(__name__)
 
 
+def fapc_s3_client():
+    """Simple helper function to share among S3 Client instances that involve URL signing"""
+    # TODO remove after fapc
+    fapc = os.environ.get("fapc", "false") == "true"
+    if fapc:
+        # TODO: Remove config=Config(signature_version="s3v4") when updating botocore
+        s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"], config=Config(signature_version="s3v4"))
+    else:
+        s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+    return s3_client
+
+
 class S3Handler:
     """This class acts a wrapper for S3 URL Signing
 
@@ -51,15 +63,7 @@ class S3Handler:
             A string containing the signed URL to the file
         """
         if S3Handler.ENABLE_S3:
-            # TODO remove after fapc
-            fapc = os.environ.get("fapc", "false") == "true"
-            if fapc:
-                # TODO: Remove config=Config(signature_version="s3v4") when updating botocore
-                s3 = boto3.client(
-                    "s3", region_name=CONFIG_BROKER["aws_region"], config=Config(signature_version="s3v4")
-                )
-            else:
-                s3 = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+            s3 = fapc_s3_client()
             s3_params = {"Bucket": bucket_route, "Key": (path + "/" + file_name) if path else file_name}
             presigned_url = s3.generate_presigned_url(method, s3_params, ExpiresIn=S3Handler.URL_LIFETIME)
             if url_mapping:
