@@ -1,6 +1,5 @@
 import os
 import logging
-import boto3
 import urllib.request
 import zipfile
 from collections import OrderedDict
@@ -9,6 +8,7 @@ import pandas as pd
 
 from sqlalchemy import func
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -179,7 +179,7 @@ def main():
     logger.info("Starting updates to FABS data")
 
     if CONFIG_BROKER["use_aws"]:
-        s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+        s3_client = fapc_s3_client()
         new_columns_file = s3_client.generate_presigned_url(
             "get_object",
             {"Bucket": CONFIG_BROKER["archive_bucket"], "Key": "Assistance_DataActFields_2017.csv"},
