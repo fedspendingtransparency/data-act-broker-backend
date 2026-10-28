@@ -1,5 +1,5 @@
 gsdmname,fieldname,fieldname_short,required,data_type,field_length,padded_flag
-ActionDate,actiondate,action_date,FALSE,str,8,
+ActionDate,actiondate,action_date,FALSE,date,8,
 ActionType,actiontype,action_type,FALSE,str,2,
 AssistanceType,assistancetype,assistance_type,FALSE,str,4,
 AwardAmountBasisCode,awardamountbasiscode,award_amount_basis_code,FALSE,str,3,
@@ -33,8 +33,8 @@ LegalEntityZIP5,legalentityzip5,legal_entity_zip5,FALSE,str,5,
 LegalEntityZIPLast4,legalentityziplast4,legal_entity_zip_last4,FALSE,str,4,
 NonFederalFundingAmount,nonfederalfundingamount,non_federal_funding_amount,FALSE,float,20,
 OriginalLoanSubsidyCost,originalloansubsidycost,original_loan_subsidy_cost,FALSE,float,20,
-PeriodOfPerformanceCurrentEndDate,periodofperformancecurrentenddate,period_of_performance_curr,FALSE,str,8,
-PeriodOfPerformanceStartDate,periodofperformancestartdate,period_of_performance_star,FALSE,str,8,
+PeriodOfPerformanceCurrentEndDate,periodofperformancecurrentenddate,period_of_performance_curr,FALSE,date,8,
+PeriodOfPerformanceStartDate,periodofperformancestartdate,period_of_performance_star,FALSE,date,8,
 PrimaryPlaceOfPerformanceCode,primaryplaceofperformancecode,place_of_performance_code,FALSE,str,7,
 PrimaryPlaceOfPerformanceCongressionalDistrict,primaryplaceofperformancecongressionaldistrict,place_of_performance_congr,FALSE,str,2,TRUE
 PrimaryPlaceOfPerformanceCountryCode,primaryplaceofperformancecountrycode,place_of_perform_country_c,FALSE,str,3,
