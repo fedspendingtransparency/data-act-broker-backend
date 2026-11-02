@@ -1,5 +1,5 @@
 fieldname,fieldname_short,required,data_type,field_length
-ActionDate,action_date,ASP: Conditional per Validation Rule,string,8
+ActionDate,action_date,ASP: Conditional per Validation Rule,date,8
 ActionType,action_type,ASP: Conditional per Validation Rule,string,2
 AssistanceType,assistance_type,ASP: Conditional per Validation Rule,string,4
 AwardAmountBasisCode,award_amount_basis_code,ASP: Conditional per Validation Rule,string,3
@@ -33,8 +33,8 @@ LegalEntityZIP5,legal_entity_zip5,ASP: Conditional per Validation Rule,string,5
 LegalEntityZIPLast4,legal_entity_zip_last4,ASP: Conditional per Validation Rule,string,4
 NonFederalFundingAmount,non_federal_funding_amount,ASP: Optional,numeric,20
 OriginalLoanSubsidyCost,original_loan_subsidy_cost,ASP: Conditional per Validation Rule,numeric,20
-PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Conditional per Validation Rule,string,8
-PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Conditional per Validation Rule,string,8
+PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Conditional per Validation Rule,date,8
+PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Conditional per Validation Rule,date,8
 PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Optional,string,7
 PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Conditional per Validation Rule,string,2
 PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Optional,string,3
