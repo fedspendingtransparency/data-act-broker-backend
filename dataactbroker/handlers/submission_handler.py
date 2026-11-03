@@ -1096,17 +1096,7 @@ def process_dabs_certify(submission):
     for pub_file in pub_files_history:
         pub_file.certify_history_id = certify_history.certify_history_id
 
-    updated_rows = (
-        sess.query(Submission)
-        .filter(
-            Submission.submission_id == submission.submission_id,
-            Submission.certified.is_(False),
-        )
-        .update({"certified": True}, synchronize_session=False)
-    )
-    if updated_rows == 0:
-        sess.rollback()
-        raise ValueError("Submission was updated while certifying. Please try again.")
+    submission.certified = True
     sess.commit()
 
 
