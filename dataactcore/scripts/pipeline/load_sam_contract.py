@@ -5,16 +5,14 @@ import logging
 import os
 import tempfile
 
-from requests.exceptions import RequestException
-
 import boto3
 import numpy as np
 import pandas as pd
 
 from sqlalchemy import func, case, types, text, Boolean
 
-from dataactbroker.helpers.script_helper import validate_load_dates
 from dataactbroker.helpers.generic_helper import unzip
+from dataactbroker.helpers.script_helper import validate_load_dates
 
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -33,7 +31,7 @@ from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.userModel import User  # noqa
 from dataactcore.utils.loader_utils import clean_data
-from dataactcore.utils.sam_recipient import request_sam_contracts_api
+from dataactcore.utils.sam_recipient import request_sam_contracts_api, download_via_token
 from dataactcore.utils.business_categories import get_business_categories
 
 from dataactvalidator.health_check import create_app
@@ -1014,8 +1012,6 @@ def get_sam_contract_file(
     if piid:
         filename_list.append(f"PIID_{piid}")
     local_sam_file_name = f"{'_'.join(filename_list)}"
-    local_sam_file_zipped = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.zip")
-    local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
 
     filters = {
         "api_key": CONFIG_BROKER["sam"]["api_key"],
@@ -1034,75 +1030,33 @@ def get_sam_contract_file(
     if extra_filters is not None:
         filters.update(extra_filters)
 
-    # TODO: Refactor with load_sam_recipient.download_sam_file.
-    #       Just needs to account for two separate API urls with different API contracts.
+    logger.info(f"Starting requests for file: {local_sam_file_name}")
+    local_sam_file_zipped = download_via_token(f"{local_sam_file_name}.zip", request_sam_contracts_api, filters)
 
-    # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
-    # so we don't need to add any additional sleeping here.
-    def file_ready_check(response):
-        if "The specified key does not exist" in response.text:
-            raise RequestException("The specified key does not exist.")
+    local_sam_file_path = None
+    if local_sam_file_zipped:
+        logger.info("Downloaded file. Extracting zip.")
+        local_sam_file_path = os.path.join(tempfile.gettempdir(), f"{local_sam_file_name}.csv")
+        extracted_files = unzip(local_sam_file_zipped)
+        if len(extracted_files) > 1:
+            raise ValueError(f"Multiple files found in the zip: {extracted_files}")
+        extracted_name = extracted_files[0]
+        if (
+            os.path.isabs(extracted_name)
+            or os.path.basename(extracted_name) != extracted_name
+            or extracted_name in ("", ".", "..")
+        ):
+            raise ValueError(f"Unsafe file name found in the zip: {extracted_name}")
+        os.rename(os.path.join(tempfile.gettempdir(), extracted_name), local_sam_file_path)
+        os.remove(local_sam_file_zipped)
+        logger.info(f"Extracted {local_sam_file_name}.csv")
 
-    def extract_sam_contracts_file():
-        logger.info(f"Requesting file: {local_sam_file_name}")
-        resp = request_sam_contracts_api(filters)
-        resp_content = json.loads(resp.content.decode("utf-8"))
-
-        if resp_content.get("presignedUrl") is None:
-            logger.info(resp_content.get("message"))
-            return None
-
-        # just use the presignedUrl provided, includes the params we need (token, api key)
-        logger.info(f"File requested, waiting for file to generate (token: {resp_content.get('exportToken')})")
-        download_url = resp_content.get("presignedUrl").replace("REPLACE_WITH_API_KEY", CONFIG_BROKER["sam"]["api_key"])
-
-        return request_sam_contracts_api(
-            filters=None, download_url=download_url, stream=True, custom_error_check=file_ready_check
-        )
-
-    # Anytime we request a custom extract from SAM via tokens, the success rate is hit or miss to varying degrees.
-    # Despite the additional backoff logic when pinging for the downloadable file, this is an attempt to retry the
-    # *whole request* multiple times as sometimes it'll generate in seconds and other times it will not in an hour.
-    attempt_count = 0
-    max_attempts = 10
-    file_content = None
-    while attempt_count < max_attempts:
-        try:
-            file_content = extract_sam_contracts_file()
-            break
-        except RequestException:
-            attempt_count += 1
-            logger.info(f"Retrying (attempt count: {attempt_count})")
-    if attempt_count == max_attempts and not file_content:
-        raise RequestException(f"Couldn't generate the requested file after {attempt_count} attempts.")
-    elif not file_content:
-        logger.info("No data found for the requested filters.")
-        return None
-
-    logger.info("Downloading zip of request")
-    try:
-        with open(local_sam_file_zipped, mode="wb") as local_sam_zip:
-            for chunk in file_content.iter_content(chunk_size=8192):
-                if chunk:
-                    local_sam_zip.write(chunk)
-    finally:
-        file_content.close()
-
-    logger.info("Downloaded file. Extracting zip.")
-    extracted_files = unzip(local_sam_file_zipped)
-    if len(extracted_files) > 1:
-        raise ValueError(f"Multiple files found in the zip: {extracted_files}")
-    os.rename(os.path.join(tempfile.gettempdir(), extracted_files[0]), local_sam_file_path)
-    os.remove(local_sam_file_zipped)
-
-    logger.info(f"Extracted {local_sam_file_name}.csv")
-
-    # Host the file in S3 for traceability
-    if CONFIG_BROKER["use_aws"]:
-        s3 = boto3.client("s3", region_name="us-gov-west-1")
-        s3.upload_file(
-            local_sam_file_path, S3_ARCHIVE, os.path.join("Contracts", os.path.basename(local_sam_file_path))
-        )
+        # Host the file in S3 for traceability
+        if CONFIG_BROKER["use_aws"]:
+            s3 = boto3.client("s3", region_name="us-gov-west-1")
+            s3.upload_file(
+                local_sam_file_path, S3_ARCHIVE, os.path.join("Contracts", os.path.basename(local_sam_file_path))
+            )
 
     return local_sam_file_path
 
@@ -1425,6 +1379,9 @@ def main():
         start_date, end_date = validate_load_dates(
             args.start_date, args.end_date, auto, "fpds", arg_date_format="%Y-%m-%d", output_date_format="%m/%d/%Y"
         )
+        if auto and end_date is None:
+            end_date = get_utc_now().date().strftime("%m/%d/%Y")
+
     get_data_params = {
         "sess": sess,
         "sub_tier_df": sub_tier_df,

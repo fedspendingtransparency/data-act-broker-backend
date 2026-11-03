@@ -44,7 +44,7 @@ def is_valid_type(data, data_type):
     if data_type == "DECIMAL":
         try:
             Decimal(data)
-            return True
+            return Decimal(data).is_finite()
         except DecimalException:
             return False
     if data_type == "LONG":
@@ -506,7 +506,8 @@ def valid_format(row):
         return False
     # Try to convert it using this specific format. If it doesn't work, it's not formatted right.
     try:
-        datetime.strptime(current_value, "%Y%m%d")
+        if current_value != datetime.strptime(current_value, "%Y%m%d").strftime("%Y%m%d"):
+            raise ValueError
     except ValueError:
         return False
     return True

@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import re
 import requests
+import shutil
 import tempfile
 
 from dataactbroker.helpers.script_helper import blue_green_swapper
@@ -16,6 +17,7 @@ from dataactcore.interfaces.function_bag import update_external_data_load_date
 from dataactcore.broker_logging import configure_logging
 from dataactcore.models.domainModels import SAMRecipient, SAMRecipientUnregistered
 from dataactcore.utils.sam_recipient import (
+    download_via_token,
     is_nonexistent_file_error,
     load_unregistered_recipients,
     parse_sam_recipient_file,
@@ -58,11 +60,12 @@ def load_from_sam_entity_api(sess, local, metrics=None):
     filters = {"samRegistered": "No"}
 
     csv_dir = local if local else os.getcwd()
-    api_csv_zip = os.path.join(csv_dir, f"{SAM_ENTITY_API_FILE_NAME}.gz")
+    csv_name = f"{SAM_ENTITY_API_FILE_NAME}.gz"
+    api_csv_zip = os.path.join(csv_dir, csv_name)
     if not local:
-        download_sam_file(csv_dir, api_csv_zip, api="entity", **filters)
+        download_sam_file(csv_dir, csv_name, api="entity", **filters)
     if not api_csv_zip:
-        raise FileNotFoundError(rf"Missing file: {api_csv_zip}")
+        raise FileNotFoundError(rf"Missing file: {csv_name}")
 
     with blue_green_swapper(sess, SAMRecipientUnregistered) as temp_table:
         index = 0
@@ -79,7 +82,7 @@ def load_from_sam_entity_api(sess, local, metrics=None):
         os.remove(api_csv_zip)
 
 
-def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, reload_date=None):
+def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, reload_date=None, ignore_uei=None):
     """Process the script arguments to figure out which files to process from the SAM extracts in which order
 
     Args:
@@ -89,6 +92,7 @@ def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, r
         local: path to local directory to process, if None, it will go though the remote SAM service
         metrics: dictionary representing metrics data for the load
         reload_date: specific date to force reload from
+        ignore_uei: ignore loading in the provided UEI
     """
     if not metrics:
         metrics = {}
@@ -175,16 +179,28 @@ def load_from_sam_extract(data_type, sess, historic, local=None, metrics=None, r
     if historic:
         # load in the earliest monthly file and all daily files after
         version = "v1" if earliest_date in monthly_v1_dates else "v2"
-        process_sam_extract_file(data_type, "MONTHLY", version, earliest_date, sess, local=local, metrics=metrics)
+        process_sam_extract_file(
+            data_type, "MONTHLY", version, earliest_date, sess, local=local, metrics=metrics, ignore_uei=ignore_uei
+        )
     for daily_v1_date in daily_v1_dates:
         process_sam_extract_file(data_type, "DAILY", "v1", daily_v1_date, sess, local=local, metrics=metrics)
     for daily_v2_date in daily_v2_dates:
-        process_sam_extract_file(data_type, "DAILY", "v2", daily_v2_date, sess, local=local, metrics=metrics)
+        process_sam_extract_file(
+            data_type, "DAILY", "v2", daily_v2_date, sess, local=local, metrics=metrics, ignore_uei=ignore_uei
+        )
     if not local:
         for daily_api_v2_date in daily_v2_api_dates:
             try:
                 process_sam_extract_file(
-                    data_type, "DAILY", "v2", daily_api_v2_date, sess, local=local, api="extract", metrics=metrics
+                    data_type,
+                    "DAILY",
+                    "v2",
+                    daily_api_v2_date,
+                    sess,
+                    local=local,
+                    api="extract",
+                    metrics=metrics,
+                    ignore_uei=ignore_uei,
                 )
             except requests.exceptions.HTTPError as e:
                 if is_nonexistent_file_error(e):
@@ -260,23 +276,12 @@ def download_sam_file(root_dir, file_name, api="extract", **filters):
     if api == "extract":
         request_sam_extracts_api(root_dir, file_name)
     elif api == "entity":
-        local_sam_file = os.path.join(root_dir, file_name)
-
-        # request the file
         filters["format"] = "csv"
-        resp = request_sam_entity_api(filters)
-        download_url_regex = re.search(r"^.*(https\S+)\?token=(\S+)\s+.*$", str(resp.content))
-        download_url, token = download_url_regex.group(1), download_url_regex.group(2)
 
-        filters = {"token": token}
-        # Generally for a full dump, it takes at most two minutes.
-        # If the file isn't ready, it returns a 400 which already kicks off a retry after certain time (via ratelimit),
-        # so we don't need to add any additional sleeping here.
-        file_content = request_sam_entity_api(filters, download_url=download_url)
+        logger.info(f"Starting requests for file: {file_name}")
+        local_sam_file_zipped = download_via_token(file_name, request_sam_entity_api, filters)
 
-        # get the generated download
-        with open(local_sam_file, "wb+") as sam_gz:
-            sam_gz.write(file_content.content)
+        shutil.move(local_sam_file_zipped, os.path.join(root_dir, file_name))
     else:
         s3_client = boto3.client("s3", region_name="us-gov-west-1")
         reverse_map = {v: k for k, v in DATA_TYPES.items()}
@@ -287,7 +292,9 @@ def download_sam_file(root_dir, file_name, api="extract", **filters):
     logger.info(f"File downloaded:{os.path.join(root_dir, file_name)}")
 
 
-def process_sam_extract_file(data_type, period, version, date, sess, local=None, api=None, metrics=None):
+def process_sam_extract_file(
+    data_type, period, version, date, sess, local=None, api=None, metrics=None, ignore_uei=None
+):
     """Process the SAM file found locally or remotely
 
     Args:
@@ -298,6 +305,7 @@ def process_sam_extract_file(data_type, period, version, date, sess, local=None,
         local: path to local directory to process, if None, it will go though the remote SAM service
         api: string representing the API to use, or None for buckets
         metrics: dictionary representing metrics data for the load
+        ignore_uei: ignore loading in the provided UEI
 
     Raises:
         requests.exceptions.HTTPError if the SAM HTTP API doesnt have the file requested
@@ -316,7 +324,7 @@ def process_sam_extract_file(data_type, period, version, date, sess, local=None,
     file_path = os.path.join(root_dir, file_name)
     includes_uei = version == "v2"
     if data_type == "recipient":
-        add_update_data, delete_data = parse_sam_recipient_file(file_path, metrics=metrics)
+        add_update_data, delete_data = parse_sam_recipient_file(file_path, metrics=metrics, ignore_uei=ignore_uei)
         if add_update_data is not None:
             update_sam_recipient(sess, add_update_data, metrics=metrics, includes_uei=includes_uei)
         if delete_data is not None:
@@ -350,6 +358,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-f", "--reload_date", type=str, default=None, help="Force update from a specific date" " (YYYY-MM-DD)"
     )
+    parser.add_argument("-i", "--ignore_uei", type=str, default=None, help="Ignore loading the provided UEI")
     args = parser.parse_args()
 
     data_type = args.data_type
@@ -357,6 +366,7 @@ if __name__ == "__main__":
     update = args.update
     local = args.local
     reload_date = args.reload_date
+    ignore_uei = args.ignore_uei
 
     metrics = {
         "script_name": "load_sam_recipient.py",
@@ -381,11 +391,15 @@ if __name__ == "__main__":
         sess = GlobalDB.db().session
         if data_type in ("recipient", "all"):
             start_time = datetime.datetime.now()
-            load_from_sam_extract("recipient", sess, historic, local, metrics=metrics, reload_date=reload_date)
+            load_from_sam_extract(
+                "recipient", sess, historic, local, metrics=metrics, reload_date=reload_date, ignore_uei=ignore_uei
+            )
             update_external_data_load_date(start_time, datetime.datetime.now(), "recipient")
         if data_type in ("exec_comp", "all"):
             start_time = datetime.datetime.now()
-            load_from_sam_extract("exec_comp", sess, historic, local, metrics=metrics, reload_date=reload_date)
+            load_from_sam_extract(
+                "exec_comp", sess, historic, local, metrics=metrics, reload_date=reload_date, ignore_uei=ignore_uei
+            )
             update_external_data_load_date(start_time, datetime.datetime.now(), "executive_compensation")
         if data_type in ("unregistered", "all"):
             start_time = datetime.datetime.now()

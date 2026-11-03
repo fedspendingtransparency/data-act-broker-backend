@@ -5,11 +5,15 @@ from dataactcore.models.domainModels import (
     CDCountyGrouped,
     CDStateGrouped,
     CDZipsGrouped,
+    CDZipsGroupedHistorical,
+    ExternalDataLoadDate,
+    ExternalDataType,
     StateCongressional,
     Zips,
     ZipsGrouped,
     ZipCity,
 )
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactcore.scripts.setup import load_location_data, read_zips
 from dataactcore.scripts.setup.load_location_data import generate_cd_city_grouped
 from dataactcore.scripts.setup.read_zips import (
@@ -18,6 +22,7 @@ from dataactcore.scripts.setup.read_zips import (
     generate_cd_zips_grouped,
     generate_cd_county_grouped,
     update_state_congr_table_census,
+    read_zips as read_zips_function,
 )
 
 
@@ -455,3 +460,113 @@ def test_group_zips(database, monkeypatch):
     )
     assert len(cds) == 1
     assert cds[0].congressional_district_no == cd_county_grouped_match.congressional_district_no
+
+    sess.execute(
+        """
+        DROP TABLE temp_zips;
+        DROP TABLE temp_zip_city;
+    """
+    )
+    for table in tables:
+        sess.execute(f"DROP TABLE temp_{table};")
+    sess.commit()
+
+
+def test_zips_loader(database):
+    sess = database.session
+    tables = [
+        Zips,
+        ZipsGrouped,
+        StateCongressional,
+        CDStateGrouped,
+        CDZipsGrouped,
+        CDZipsGroupedHistorical,
+        CDCountyGrouped,
+    ]
+    # Confirming these are empty beforehand
+    for table in tables:
+        assert sess.query(table).count() == 0
+
+    zip_edld = ExternalDataLoadDate(
+        external_data_load_date_id=-1,
+        external_data_type_id=EXTERNAL_DATA_TYPE_DICT["zip_code"],
+    )
+    zip_edt = ExternalDataType(external_data_type_id=EXTERNAL_DATA_TYPE_DICT["zip_code"])
+    cd_edld = ExternalDataLoadDate(
+        external_data_load_date_id=-2,
+        external_data_type_id=EXTERNAL_DATA_TYPE_DICT["congressional_district"],
+    )
+    cd_edt = ExternalDataType(external_data_type_id=EXTERNAL_DATA_TYPE_DICT["congressional_district"])
+    sess.add_all([zip_edld, zip_edt, cd_edld, cd_edt])
+
+    # Critical to include this commit, otherwise causes a rollback deadlock
+    sess.commit()
+
+    # running locally uses the files in dataactvalidator/config/zips
+    read_zips_function()
+
+    # Populating ZipsHistorical as a copy of Zips and rerunning to have CDZipsGroupedHistorical populated
+    sess.execute(
+        """
+        INSERT INTO zips_historical (zip5, zip_last4, county_number, state_abbreviation, congressional_district_no)
+        SELECT
+            zip5,
+            zip_last4,
+            county_number,
+            state_abbreviation,
+            congressional_district_no
+        FROM zips;
+    """
+    )
+    sess.commit()
+
+    read_zips_function()
+
+    # Confirming there's data after loading
+    assert sess.query(Zips).count() == 42920
+    assert sess.query(ZipsGrouped).count() == 41132
+    assert sess.query(StateCongressional).count() == 89
+    assert sess.query(CDStateGrouped).count() == 17
+    assert sess.query(CDZipsGrouped).count() == 2170
+    assert sess.query(CDZipsGroupedHistorical).count() == 2170
+    assert sess.query(CDCountyGrouped).count() == 278
+
+    # Pull a record from each and ensure the contents match what we expect
+    example = sess.query(Zips).order_by(Zips.zips_id).first()
+    assert example.zip5 == "00501"
+    assert example.zip_last4 == "0002"
+    assert example.county_number == "103"
+    assert example.state_abbreviation == "NY"
+    assert example.congressional_district_no == "01"
+
+    example = sess.query(ZipsGrouped).order_by(ZipsGrouped.zips_grouped_id).first()
+    assert example.zip5 == "37314"
+    assert example.county_number == "123"
+    assert example.state_abbreviation == "TN"
+    assert example.congressional_district_no == "90"
+
+    example = sess.query(StateCongressional).order_by(StateCongressional.state_congressional_id).first()
+    assert example.congressional_district_no == "00"
+    assert example.state_code == "AK"
+    assert example.census_year is None
+
+    example = sess.query(CDStateGrouped).order_by(CDStateGrouped.cd_state_grouped_id).first()
+    assert example.state_abbreviation == "NY"
+    assert example.congressional_district_no == "01"
+
+    example = sess.query(CDZipsGrouped).order_by(CDZipsGrouped.cd_zips_grouped_id).first()
+    assert example.zip5 == "00501"
+    assert example.state_abbreviation == "NY"
+    assert example.congressional_district_no == "01"
+
+    example = (
+        sess.query(CDZipsGroupedHistorical).order_by(CDZipsGroupedHistorical.cd_zips_grouped_historical_id).first()
+    )
+    assert example.zip5 == "00501"
+    assert example.state_abbreviation == "NY"
+    assert example.congressional_district_no == "01"
+
+    example = sess.query(CDCountyGrouped).order_by(CDCountyGrouped.cd_county_grouped_id).first()
+    assert example.county_number == "001"
+    assert example.state_abbreviation == "AS"
+    assert example.congressional_district_no == "98"

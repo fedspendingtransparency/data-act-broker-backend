@@ -1,7 +1,6 @@
 import os
 import re
 import logging
-import boto3
 import urllib.request
 import zipfile
 import numpy as np
@@ -9,6 +8,7 @@ import sys
 import pandas as pd
 from sqlalchemy import func
 
+from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.broker_logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -620,7 +620,7 @@ def main():
         county_code_list[county_code.county_number + "_" + county_code.state_code] = county_code
 
     if CONFIG_BROKER["use_aws"]:
-        s3_client = boto3.client("s3", region_name=CONFIG_BROKER["aws_region"])
+        s3_client = fapc_s3_client()
         file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER["archive_bucket"])
         for obj in file_list.get("Contents", []):
             if re.match(
