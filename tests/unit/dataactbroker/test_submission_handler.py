@@ -1411,6 +1411,7 @@ def test_process_dabs_certify_already_certified(database):
             number_of_errors=0,
             number_of_warnings=200,
             publishing_user_id=None,
+            certified=True,
         )
         sess.add_all([user, cgac, submission])
         sess.commit()
@@ -1440,6 +1441,15 @@ def test_process_dabs_certify_already_certified(database):
             " publication."
         )
 
+        # Testing a normal resubmission by adding a new publish
+        pub_history_2 = PublishHistory(submission_id=submission.submission_id)
+        sess.add_all([pub_history_2])
+        sess.commit()
+
+        process_dabs_certify(submission)
+
+        certify_count = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).count()
+        assert certify_count == 2
 
 @pytest.mark.usefixtures("error_constants")
 @pytest.mark.usefixtures("job_constants")
