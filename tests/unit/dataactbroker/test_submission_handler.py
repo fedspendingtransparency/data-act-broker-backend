@@ -1451,6 +1451,7 @@ def test_process_dabs_certify_already_certified(database):
         certify_count = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).count()
         assert certify_count == 2
 
+
 @pytest.mark.usefixtures("error_constants")
 @pytest.mark.usefixtures("job_constants")
 def test_revert_submission(database, monkeypatch):
