@@ -3,7 +3,9 @@
 -- (award financial assistance). This rule does not apply for rows where the AllocationTransferAgencyIdentifier (ATA)
 -- field is populated and is different from the AgencyIdentifier (AID) field, it only applies when the ATA and AID are
 -- the same, or for the rows without an ATA. Note that this only compares award identifiers when the
--- TransactionObligatedAmount is not null.
+-- TransactionObligatedAmount is not null. For DABS resubmissions, older Assistance Types will still be accepted prior
+-- to 10/01/26.
+
 -- gather the grouped sum for award financial data
 WITH award_financial_c23_4_{0} AS
     (SELECT UPPER(uri) AS uri,
