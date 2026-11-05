@@ -6,7 +6,6 @@ import pandas as pd
 
 from datetime import datetime, timedelta
 
-from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
