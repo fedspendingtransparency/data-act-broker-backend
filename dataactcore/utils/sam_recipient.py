@@ -87,13 +87,13 @@ def clean_sam_data(data):
     return data
 
 
-def parse_sam_recipient_file(file_path, ignore_uei=None, metrics=None):
+def parse_sam_recipient_file(file_path, ignore_ueis=None, metrics=None):
     """Takes in a SAMRecipient file and adds the SAMRecipient data to the database
 
     Args:
         file_path: the path to the SAM file
         metrics: dictionary representing metrics data for the load
-        ignore_uei: ignore loading in the provided UEI
+        ignore_ueis: ignore loading in the provided UEIs
 
     Returns:
         dataframes representing the contents in the file
@@ -189,9 +189,11 @@ def parse_sam_recipient_file(file_path, ignore_uei=None, metrics=None):
     logger.info("%s SAM Recipient records received", rows_received)
 
     # Filter out/ignore any specific recipients
-    if ignore_uei and version == "v2":
-        logger.info(f"Filtering out UEI: {ignore_uei}")
-        total_data = total_data[total_data[key_col].str.strip().str.upper() != ignore_uei.strip().upper()]
+    if ignore_ueis and version == "v2":
+        logger.info(f"Filtering out UEIs: {ignore_ueis}")
+        total_data = total_data[
+            ~total_data[key_col].str.strip().str.upper().isin([uei.strip().upper() for uei in ignore_ueis])
+        ]
 
     total_data = total_data[total_data[key_col].notnull()]
     rows_processed = len(total_data.index)
