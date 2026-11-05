@@ -1,10 +1,11 @@
 import os
 import logging
+import requests
+import boto3
 import pandas as pd
 
 from datetime import datetime, timedelta
 
-from dataactcore.aws.s3Handler import fapc_s3_client
 from dataactcore.broker_logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
@@ -29,17 +30,22 @@ def add_day(row, col):
 
 def load_submission_window_schedule():
     """Loads the submission window schedule data."""
+    filename = "submission_window_schedule.csv"
+    base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
+    sub_schedule_file = os.path.join(base_path, filename)
     if CONFIG_BROKER["use_aws"]:
-        s3_client = fapc_s3_client()
-        sub_schedule_file = s3_client.generate_presigned_url(
-            "get_object",
-            {"Bucket": CONFIG_BROKER["sf_133_bucket"], "Key": "submission_window_schedule.csv"},
-            ExpiresIn=600,
-        )
-    else:
-        sub_schedule_file = os.path.join(
-            CONFIG_BROKER["path"], "dataactvalidator", "config", "submission_window_schedule.csv"
-        )
+        os.remove(sub_schedule_file)
+
+        fapc = os.environ.get("fapc", "false") == "true"
+        if fapc:
+            s3 = boto3.client("s3")
+            bucket = CONFIG_BROKER["public_files_bucket"]
+            key = f"broker_reference_data/{filename}"
+            s3.download_file(Bucket=bucket, Key=key, Filename=sub_schedule_file)
+        else:
+            source = f"{CONFIG_BROKER['usas_public_reference_url']}/{filename}"
+            r = requests.get(source, allow_redirects=True)
+            open(sub_schedule_file, "wb").write(r.content)
 
     logger.info("Loading submission window schedule data")
     with create_app().app_context():
