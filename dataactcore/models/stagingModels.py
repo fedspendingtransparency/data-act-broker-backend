@@ -651,6 +651,10 @@ class AwardFinancialAssistance(Base):
     funding_opportunity_goals = Column(Text)
     funding_opportunity_number = Column(Text)
     indirect_federal_sharing = Column(Numeric)
+    award_amount_basis_code = Column(Text)
+    award_amount_basis_name = Column(Text)
+    award_recipient_basis_code = Column(Text)
+    award_recipient_basis_name = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1060,6 +1064,10 @@ class PublishedAwardFinancialAssistance(Base):
     funding_opportunity_goals = Column(Text)
     funding_opportunity_number = Column(Text)
     indirect_federal_sharing = Column(Numeric)
+    award_amount_basis_code = Column(Text)
+    award_amount_basis_name = Column(Text)
+    award_recipient_basis_code = Column(Text)
+    award_recipient_basis_name = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
