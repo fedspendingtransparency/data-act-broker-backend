@@ -35,40 +35,65 @@ def test_success(database):
     fain_4 = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     sub_id = 1
-    submission = SubmissionFactory(submission_id=sub_id, cgac_code='001')
+    submission = SubmissionFactory(submission_id=sub_id, cgac_code="001")
 
     # Just some basic sums to make sure it works
-    af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, fain=fain_1, allocation_transfer_agency=None, submission_id=sub_id)
+    af_1_row_1 = AwardFinancialFactory(
+        transaction_obligated_amou=1100, fain=fain_1, allocation_transfer_agency=None, submission_id=sub_id
+    )
     af_1_row_2 = AwardFinancialFactory(
         transaction_obligated_amou=11, fain=fain_1.lower(), allocation_transfer_agency=None, submission_id=sub_id
     )
     # Ignored row because it has non-matching ATA/AID but the rest of the sum works
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=99, fain=fain_1, allocation_transfer_agency="good", agency_identifier="bad", submission_id=sub_id
+        transaction_obligated_amou=99,
+        fain=fain_1,
+        allocation_transfer_agency="good",
+        agency_identifier="bad",
+        submission_id=sub_id,
     )
     # Non-ignored rows with a matching ATA/AID
-    af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=9900, fain=fain_2, allocation_transfer_agency=None, submission_id=sub_id)
+    af_2_row_1 = AwardFinancialFactory(
+        transaction_obligated_amou=9900, fain=fain_2, allocation_transfer_agency=None, submission_id=sub_id
+    )
     af_2_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=99, fain=fain_2, allocation_transfer_agency="good", agency_identifier="good", submission_id=sub_id
+        transaction_obligated_amou=99,
+        fain=fain_2,
+        allocation_transfer_agency="good",
+        agency_identifier="good",
+        submission_id=sub_id,
     )
     # Ignored row with non-matching ATA/AID
     af_3 = AwardFinancialFactory(
-        transaction_obligated_amou=8888, fain=fain_3, allocation_transfer_agency="good", agency_identifier="bad", submission_id=sub_id
+        transaction_obligated_amou=8888,
+        fain=fain_3,
+        allocation_transfer_agency="good",
+        agency_identifier="bad",
+        submission_id=sub_id,
     )
     # No TOA in File C, ignored
     af_4 = AwardFinancialFactory(
         transaction_obligated_amou=None,
         fain=fain_4.lower(),
         allocation_transfer_agency="good",
-        agency_identifier="good", submission_id=sub_id
+        agency_identifier="good",
+        submission_id=sub_id,
     )
 
     # Fain sums for AFA
     afa_1_row_1 = AwardFinancialAssistanceFactory(
-        fain=fain_1, federal_action_obligation=-1100, original_loan_subsidy_cost=None, record_type="2", submission_id=sub_id
+        fain=fain_1,
+        federal_action_obligation=-1100,
+        original_loan_subsidy_cost=None,
+        record_type="2",
+        submission_id=sub_id,
     )
     afa_1_row_2 = AwardFinancialAssistanceFactory(
-        fain=fain_1.lower(), federal_action_obligation=-10, original_loan_subsidy_cost=None, record_type="3", submission_id=sub_id
+        fain=fain_1.lower(),
+        federal_action_obligation=-10,
+        original_loan_subsidy_cost=None,
+        record_type="3",
+        submission_id=sub_id,
     )
     # original loan subsidy cost used in this row because assistance type is '08'
     afa_1_row_3 = AwardFinancialAssistanceFactory(
@@ -76,7 +101,8 @@ def test_success(database):
         original_loan_subsidy_cost=-1,
         assistance_type="F003",
         federal_action_obligation=None,
-        record_type="2", submission_id=sub_id
+        record_type="2",
+        submission_id=sub_id,
     )
     # federal action obligation used in this row (it's 0), because assistance type is not 07 and 08
     afa_1_row_4 = AwardFinancialAssistanceFactory(
@@ -84,18 +110,29 @@ def test_success(database):
         original_loan_subsidy_cost=-2222,
         assistance_type="09",
         federal_action_obligation=None,
-        record_type="3", submission_id=sub_id
+        record_type="3",
+        submission_id=sub_id,
     )
     # Ignored because record type 1
     afa_1_row_5 = AwardFinancialAssistanceFactory(
-        fain=fain_1, federal_action_obligation=-1100, original_loan_subsidy_cost=None, record_type="1", submission_id=sub_id
+        fain=fain_1,
+        federal_action_obligation=-1100,
+        original_loan_subsidy_cost=None,
+        record_type="1",
+        submission_id=sub_id,
     )
     # Fain 2 Test for non-ignored ATA
     afa_2 = AwardFinancialAssistanceFactory(
-        fain=fain_2, federal_action_obligation=-9999, original_loan_subsidy_cost=None, record_type="2", submission_id=sub_id
+        fain=fain_2,
+        federal_action_obligation=-9999,
+        original_loan_subsidy_cost=None,
+        record_type="2",
+        submission_id=sub_id,
     )
     # Fain 3 test for ignoring a non-matching ATA/AID
-    afa_3 = AwardFinancialAssistanceFactory(fain=fain_3, federal_action_obligation=-9999, record_type="3", submission_id=sub_id)
+    afa_3 = AwardFinancialAssistanceFactory(
+        fain=fain_3, federal_action_obligation=-9999, record_type="3", submission_id=sub_id
+    )
 
     # This one matches but will be ignored
     afa_4 = AwardFinancialAssistanceFactory(fain=fain_4, federal_action_obligation=-9999, submission_id=sub_id)
@@ -120,7 +157,7 @@ def test_success(database):
             afa_3,
             afa_4,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -137,31 +174,47 @@ def test_success_submitting_ata(database):
 
     # Basic CGAC test
     sub_id = 1
-    submission = SubmissionFactory(submission_id=sub_id, cgac_code='001', frec_code=None)
+    submission = SubmissionFactory(submission_id=sub_id, cgac_code="001", frec_code=None)
     fain = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # First fain rows
     af_1_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, fain=fain, allocation_transfer_agency="001", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=1100,
+        fain=fain,
+        allocation_transfer_agency="001",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
     af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.lower(), allocation_transfer_agency="001", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=11,
+        fain=fain.lower(),
+        allocation_transfer_agency="001",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.upper(), allocation_transfer_agency="003", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=11,
+        fain=fain.upper(),
+        allocation_transfer_agency="003",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first fain
-    afa_1_row_1 = AwardFinancialAssistanceFactory(fain=fain.upper(), federal_action_obligation=-1100,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_1_row_2 = AwardFinancialAssistanceFactory(fain=fain, federal_action_obligation=-10,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_1_row_3 = AwardFinancialAssistanceFactory(fain=fain.lower(), federal_action_obligation=-1,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
+    afa_1_row_1 = AwardFinancialAssistanceFactory(
+        fain=fain.upper(),
+        federal_action_obligation=-1100,
+        assistance_type="F001",
+        record_type="2",
+        submission_id=sub_id,
+    )
+    afa_1_row_2 = AwardFinancialAssistanceFactory(
+        fain=fain, federal_action_obligation=-10, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_1_row_3 = AwardFinancialAssistanceFactory(
+        fain=fain.lower(), federal_action_obligation=-1, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -176,7 +229,7 @@ def test_success_submitting_ata(database):
             afa_1_row_2,
             afa_1_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -187,29 +240,38 @@ def test_success_submitting_ata(database):
 
     # First fain rows
     af_2_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, fain=fain.lower(), allocation_transfer_agency="001",
+        transaction_obligated_amou=1100,
+        fain=fain.lower(),
+        allocation_transfer_agency="001",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_2_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.upper(), allocation_transfer_agency="001",
+        transaction_obligated_amou=11,
+        fain=fain.upper(),
+        allocation_transfer_agency="001",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_2_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain, allocation_transfer_agency="003",
+        transaction_obligated_amou=11,
+        fain=fain,
+        allocation_transfer_agency="003",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first fain
-    afa_2_row_1 = AwardFinancialAssistanceFactory(fain=fain, federal_action_obligation=-1100,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_2_row_2 = AwardFinancialAssistanceFactory(fain=fain.upper(), federal_action_obligation=-10,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_2_row_3 = AwardFinancialAssistanceFactory(fain=fain.lower(), federal_action_obligation=-1,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
+    afa_2_row_1 = AwardFinancialAssistanceFactory(
+        fain=fain, federal_action_obligation=-1100, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_2_row_2 = AwardFinancialAssistanceFactory(
+        fain=fain.upper(), federal_action_obligation=-10, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_2_row_3 = AwardFinancialAssistanceFactory(
+        fain=fain.lower(), federal_action_obligation=-1, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -224,7 +286,7 @@ def test_success_submitting_ata(database):
             afa_2_row_2,
             afa_2_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -235,29 +297,42 @@ def test_success_submitting_ata(database):
 
     # First fain rows
     af_3_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, fain=fain, allocation_transfer_agency="017",
+        transaction_obligated_amou=1100,
+        fain=fain,
+        allocation_transfer_agency="017",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_3_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.lower(), allocation_transfer_agency="057",
+        transaction_obligated_amou=11,
+        fain=fain.lower(),
+        allocation_transfer_agency="057",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_3_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.upper(), allocation_transfer_agency="003",
+        transaction_obligated_amou=11,
+        fain=fain.upper(),
+        allocation_transfer_agency="003",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first fain
-    afa_3_row_1 = AwardFinancialAssistanceFactory(fain=fain.upper(), federal_action_obligation=-1100,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_3_row_2 = AwardFinancialAssistanceFactory(fain=fain.lower(), federal_action_obligation=-10,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_3_row_3 = AwardFinancialAssistanceFactory(fain=fain, federal_action_obligation=-1,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
+    afa_3_row_1 = AwardFinancialAssistanceFactory(
+        fain=fain.upper(),
+        federal_action_obligation=-1100,
+        assistance_type="F001",
+        record_type="2",
+        submission_id=sub_id,
+    )
+    afa_3_row_2 = AwardFinancialAssistanceFactory(
+        fain=fain.lower(), federal_action_obligation=-10, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_3_row_3 = AwardFinancialAssistanceFactory(
+        fain=fain, federal_action_obligation=-1, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -272,7 +347,7 @@ def test_success_submitting_ata(database):
             afa_3_row_2,
             afa_3_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -285,29 +360,42 @@ def test_success_submitting_ata(database):
 
     # First fain rows
     af_4_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, fain=fain, allocation_transfer_agency="256",
+        transaction_obligated_amou=1100,
+        fain=fain,
+        allocation_transfer_agency="256",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_4_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.lower(), allocation_transfer_agency="256",
+        transaction_obligated_amou=11,
+        fain=fain.lower(),
+        allocation_transfer_agency="256",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA even though that ATA matches the FREC table
     af_4_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.upper(), allocation_transfer_agency="005",
+        transaction_obligated_amou=11,
+        fain=fain.upper(),
+        allocation_transfer_agency="005",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first fain
-    afa_4_row_1 = AwardFinancialAssistanceFactory(fain=fain.lower(), federal_action_obligation=-1100,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_4_row_2 = AwardFinancialAssistanceFactory(fain=fain.upper(), federal_action_obligation=-10,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_4_row_3 = AwardFinancialAssistanceFactory(fain=fain, federal_action_obligation=-1,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
+    afa_4_row_1 = AwardFinancialAssistanceFactory(
+        fain=fain.lower(),
+        federal_action_obligation=-1100,
+        assistance_type="F001",
+        record_type="2",
+        submission_id=sub_id,
+    )
+    afa_4_row_2 = AwardFinancialAssistanceFactory(
+        fain=fain.upper(), federal_action_obligation=-10, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_4_row_3 = AwardFinancialAssistanceFactory(
+        fain=fain, federal_action_obligation=-1, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -322,7 +410,7 @@ def test_success_submitting_ata(database):
             afa_4_row_2,
             afa_4_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -339,45 +427,74 @@ def test_failure(database):
     fain_4 = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     sub_id = 1
-    submission = SubmissionFactory(submission_id=sub_id, cgac_code='001')
+    submission = SubmissionFactory(submission_id=sub_id, cgac_code="001")
 
     # Simple addition that doesn't add up right
-    af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, fain=fain_1, allocation_transfer_agency=None, submission_id=sub_id)
+    af_1_row_1 = AwardFinancialFactory(
+        transaction_obligated_amou=1100, fain=fain_1, allocation_transfer_agency=None, submission_id=sub_id
+    )
     af_1_row_2 = AwardFinancialFactory(
         transaction_obligated_amou=9, fain=fain_1.lower(), allocation_transfer_agency=None, submission_id=sub_id
     )
     # Ignore row that would make it add up right if it was counted because of non-matching ATA/AID
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=1, fain=fain_1.lower(), allocation_transfer_agency="good", agency_identifier="bad", submission_id=sub_id
+        transaction_obligated_amou=1,
+        fain=fain_1.lower(),
+        allocation_transfer_agency="good",
+        agency_identifier="bad",
+        submission_id=sub_id,
     )
     # Incorrect addition based on assistance type in AFA
-    af_2 = AwardFinancialFactory(transaction_obligated_amou=9999, fain=fain_2, allocation_transfer_agency=None, submission_id=sub_id)
+    af_2 = AwardFinancialFactory(
+        transaction_obligated_amou=9999, fain=fain_2, allocation_transfer_agency=None, submission_id=sub_id
+    )
     # Don't ignore when ATA and AID match
     af_3 = AwardFinancialFactory(
-        transaction_obligated_amou=1111, fain=fain_3, allocation_transfer_agency="good", agency_identifier="good", submission_id=sub_id
+        transaction_obligated_amou=1111,
+        fain=fain_3,
+        allocation_transfer_agency="good",
+        agency_identifier="good",
+        submission_id=sub_id,
     )
     # Not ignored with TOA of 0
     af_4 = AwardFinancialFactory(
-        transaction_obligated_amou=0, fain=fain_4, allocation_transfer_agency="good", agency_identifier="good", submission_id=sub_id
+        transaction_obligated_amou=0,
+        fain=fain_4,
+        allocation_transfer_agency="good",
+        agency_identifier="good",
+        submission_id=sub_id,
     )
 
     # Sum of this fain doesn't add up to af fain sum
     afa_1_row_1 = AwardFinancialAssistanceFactory(
-        fain=fain_1, federal_action_obligation=-1100, original_loan_subsidy_cost=None, record_type="2", submission_id=sub_id
+        fain=fain_1,
+        federal_action_obligation=-1100,
+        original_loan_subsidy_cost=None,
+        record_type="2",
+        submission_id=sub_id,
     )
     afa_1_row_2 = AwardFinancialAssistanceFactory(
-        fain=fain_1.lower(), federal_action_obligation=-10, original_loan_subsidy_cost=None, record_type="3", submission_id=sub_id
+        fain=fain_1.lower(),
+        federal_action_obligation=-10,
+        original_loan_subsidy_cost=None,
+        record_type="3",
+        submission_id=sub_id,
     )
     # Both of these rows use the column that isn't filled in for summing so neither results in the correct number
     afa_2_row_1 = AwardFinancialAssistanceFactory(
-        fain=fain_2, federal_action_obligation=-9999, original_loan_subsidy_cost=None, record_type="2", submission_id=sub_id
+        fain=fain_2,
+        federal_action_obligation=-9999,
+        original_loan_subsidy_cost=None,
+        record_type="2",
+        submission_id=sub_id,
     )
     afa_2_row_2 = AwardFinancialAssistanceFactory(
         fain=fain_2,
         federal_action_obligation=None,
         original_loan_subsidy_cost=-9999,
         assistance_type="07",
-        record_type="3", submission_id=sub_id
+        record_type="3",
+        submission_id=sub_id,
     )
     # This shouldn't be ignored
     afa_3 = AwardFinancialAssistanceFactory(
@@ -405,7 +522,7 @@ def test_failure(database):
             afa_3,
             afa_4,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 4
 
@@ -422,31 +539,43 @@ def test_failure_submitting_ata(database):
 
     # Basic CGAC test
     sub_id = 1
-    submission = SubmissionFactory(submission_id=sub_id, cgac_code='001', frec_code=None)
+    submission = SubmissionFactory(submission_id=sub_id, cgac_code="001", frec_code=None)
     fain = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # First fain rows
     af_1_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, fain=fain.upper(), allocation_transfer_agency="001", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=1100,
+        fain=fain.upper(),
+        allocation_transfer_agency="001",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
     af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.lower(), allocation_transfer_agency="001", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=11,
+        fain=fain.lower(),
+        allocation_transfer_agency="001",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain, allocation_transfer_agency="003", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=11,
+        fain=fain,
+        allocation_transfer_agency="003",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
 
     # These add up to the sum of all 3, including the one that was ignored
-    afa_1_row_1 = AwardFinancialAssistanceFactory(fain=fain, federal_action_obligation=-1100,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_1_row_2 = AwardFinancialAssistanceFactory(fain=fain.upper(), federal_action_obligation=-10,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_1_row_3 = AwardFinancialAssistanceFactory(fain=fain.lower(), federal_action_obligation=-12,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
+    afa_1_row_1 = AwardFinancialAssistanceFactory(
+        fain=fain, federal_action_obligation=-1100, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_1_row_2 = AwardFinancialAssistanceFactory(
+        fain=fain.upper(), federal_action_obligation=-10, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_1_row_3 = AwardFinancialAssistanceFactory(
+        fain=fain.lower(), federal_action_obligation=-12, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -459,7 +588,7 @@ def test_failure_submitting_ata(database):
             afa_1_row_2,
             afa_1_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 1
 
@@ -470,29 +599,38 @@ def test_failure_submitting_ata(database):
 
     # First fain rows
     af_2_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, fain=fain.lower(), allocation_transfer_agency="001",
+        transaction_obligated_amou=1100,
+        fain=fain.lower(),
+        allocation_transfer_agency="001",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_2_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain, allocation_transfer_agency="001",
+        transaction_obligated_amou=11,
+        fain=fain,
+        allocation_transfer_agency="001",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_2_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.upper(), allocation_transfer_agency="003",
+        transaction_obligated_amou=11,
+        fain=fain.upper(),
+        allocation_transfer_agency="003",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first fain
-    afa_2_row_1 = AwardFinancialAssistanceFactory(fain=fain, federal_action_obligation=-1100,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_2_row_2 = AwardFinancialAssistanceFactory(fain=fain.upper(), federal_action_obligation=-10,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_2_row_3 = AwardFinancialAssistanceFactory(fain=fain.lower(), federal_action_obligation=-12,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
+    afa_2_row_1 = AwardFinancialAssistanceFactory(
+        fain=fain, federal_action_obligation=-1100, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_2_row_2 = AwardFinancialAssistanceFactory(
+        fain=fain.upper(), federal_action_obligation=-10, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_2_row_3 = AwardFinancialAssistanceFactory(
+        fain=fain.lower(), federal_action_obligation=-12, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -507,7 +645,7 @@ def test_failure_submitting_ata(database):
             afa_2_row_2,
             afa_2_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 1
 
@@ -518,29 +656,38 @@ def test_failure_submitting_ata(database):
 
     # First fain rows
     af_3_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, fain=fain.lower(), allocation_transfer_agency="017",
+        transaction_obligated_amou=1100,
+        fain=fain.lower(),
+        allocation_transfer_agency="017",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_3_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.upper(), allocation_transfer_agency="057",
+        transaction_obligated_amou=11,
+        fain=fain.upper(),
+        allocation_transfer_agency="057",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_3_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain, allocation_transfer_agency="003",
+        transaction_obligated_amou=11,
+        fain=fain,
+        allocation_transfer_agency="003",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first fain
-    afa_3_row_1 = AwardFinancialAssistanceFactory(fain=fain, federal_action_obligation=-1100,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_3_row_2 = AwardFinancialAssistanceFactory(fain=fain.lower(), federal_action_obligation=-10,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_3_row_3 = AwardFinancialAssistanceFactory(fain=fain.upper(), federal_action_obligation=-12,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
+    afa_3_row_1 = AwardFinancialAssistanceFactory(
+        fain=fain, federal_action_obligation=-1100, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_3_row_2 = AwardFinancialAssistanceFactory(
+        fain=fain.lower(), federal_action_obligation=-10, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_3_row_3 = AwardFinancialAssistanceFactory(
+        fain=fain.upper(), federal_action_obligation=-12, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -555,7 +702,7 @@ def test_failure_submitting_ata(database):
             afa_3_row_2,
             afa_3_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 1
 
@@ -568,29 +715,42 @@ def test_failure_submitting_ata(database):
 
     # First fain rows
     af_4_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, fain=fain.upper(), allocation_transfer_agency="256",
+        transaction_obligated_amou=1100,
+        fain=fain.upper(),
+        allocation_transfer_agency="256",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_4_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain, allocation_transfer_agency="256",
+        transaction_obligated_amou=11,
+        fain=fain,
+        allocation_transfer_agency="256",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA even though that ATA matches the FREC table
     af_4_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, fain=fain.lower(), allocation_transfer_agency="005",
+        transaction_obligated_amou=11,
+        fain=fain.lower(),
+        allocation_transfer_agency="005",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first fain
-    afa_4_row_1 = AwardFinancialAssistanceFactory(fain=fain.lower(), federal_action_obligation=-1100,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_4_row_2 = AwardFinancialAssistanceFactory(fain=fain.upper(), federal_action_obligation=-10,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
-    afa_4_row_3 = AwardFinancialAssistanceFactory(fain=fain, federal_action_obligation=-12,assistance_type="F001", record_type="2",
-                                         submission_id=sub_id)
+    afa_4_row_1 = AwardFinancialAssistanceFactory(
+        fain=fain.lower(),
+        federal_action_obligation=-1100,
+        assistance_type="F001",
+        record_type="2",
+        submission_id=sub_id,
+    )
+    afa_4_row_2 = AwardFinancialAssistanceFactory(
+        fain=fain.upper(), federal_action_obligation=-10, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
+    afa_4_row_3 = AwardFinancialAssistanceFactory(
+        fain=fain, federal_action_obligation=-12, assistance_type="F001", record_type="2", submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -605,6 +765,6 @@ def test_failure_submitting_ata(database):
             afa_4_row_2,
             afa_4_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 1

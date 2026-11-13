@@ -38,23 +38,36 @@ def test_success(database):
     piid = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     sub_id = 1
-    submission = SubmissionFactory(submission_id=sub_id, cgac_code='001')
+    submission = SubmissionFactory(submission_id=sub_id, cgac_code="001")
 
     af_1_row_1 = AwardFinancialFactory(
         transaction_obligated_amou=1100,
         piid=piid.lower(),
         parent_award_id=paid_1.lower(),
-        allocation_transfer_agency=None, submission_id=sub_id
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid_1, allocation_transfer_agency=None, submission_id=sub_id
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid_1,
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     # next 2 rows ignored because they don't have a PIID
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=None, parent_award_id=paid_1, allocation_transfer_agency=None, submission_id=sub_id
+        transaction_obligated_amou=11,
+        piid=None,
+        parent_award_id=paid_1,
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     af_1_row_4 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid="", parent_award_id=paid_1.upper(), allocation_transfer_agency=None, submission_id=sub_id
+        transaction_obligated_amou=11,
+        piid="",
+        parent_award_id=paid_1.upper(),
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     # row ignored because it has an ata that doesn't match the aid, but the rest of the entry should match
     af_1_row_5 = AwardFinancialFactory(
@@ -62,19 +75,25 @@ def test_success(database):
         piid=piid,
         parent_award_id=paid_1.upper(),
         allocation_transfer_agency="good",
-        agency_identifier="bad", submission_id=sub_id
+        agency_identifier="bad",
+        submission_id=sub_id,
     )
 
     # Two entries that aren't ignored because they have matching ATA/AID or no ATA
     af_2_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=9900, piid=piid, parent_award_id=paid_2, allocation_transfer_agency=None, submission_id=sub_id
+        transaction_obligated_amou=9900,
+        piid=piid,
+        parent_award_id=paid_2,
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     af_2_row_2 = AwardFinancialFactory(
         transaction_obligated_amou=99,
         piid=piid.lower(),
         parent_award_id=paid_2.lower(),
         allocation_transfer_agency="good",
-        agency_identifier="good", submission_id=sub_id
+        agency_identifier="good",
+        submission_id=sub_id,
     )
 
     # Entry that is ignored because the ATA/AID don't match
@@ -83,7 +102,8 @@ def test_success(database):
         piid=piid,
         parent_award_id=paid_3,
         allocation_transfer_agency="good",
-        agency_identifier="bad", submission_id=sub_id
+        agency_identifier="bad",
+        submission_id=sub_id,
     )
 
     # No TOA in File C, ignored
@@ -92,21 +112,32 @@ def test_success(database):
         piid=piid.lower(),
         parent_award_id=paid_4,
         allocation_transfer_agency="good",
-        agency_identifier="good", submission_id=sub_id
+        agency_identifier="good",
+        submission_id=sub_id,
     )
 
     # Combine these to match paid_1
     ap_1_row_1 = AwardProcurementFactory(
         parent_award_id=paid_1.lower(), piid=piid.lower(), federal_action_obligation=-1100, submission_id=sub_id
     )
-    ap_1_row_2 = AwardProcurementFactory(parent_award_id=paid_1.upper(), piid=piid, federal_action_obligation=-10, submission_id=sub_id)
-    ap_1_row_3 = AwardProcurementFactory(parent_award_id=paid_1, piid=piid.upper(), federal_action_obligation=-1, submission_id=sub_id)
+    ap_1_row_2 = AwardProcurementFactory(
+        parent_award_id=paid_1.upper(), piid=piid, federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_1_row_3 = AwardProcurementFactory(
+        parent_award_id=paid_1, piid=piid.upper(), federal_action_obligation=-1, submission_id=sub_id
+    )
     # This one should match because nothing is ignored
-    ap_2 = AwardProcurementFactory(parent_award_id=paid_2, piid=piid, federal_action_obligation=-9999, submission_id=sub_id)
+    ap_2 = AwardProcurementFactory(
+        parent_award_id=paid_2, piid=piid, federal_action_obligation=-9999, submission_id=sub_id
+    )
     # This is ignored because the ATA/AID for this one don't match
-    ap_3 = AwardProcurementFactory(parent_award_id=paid_3, piid=piid, federal_action_obligation=-9999, submission_id=sub_id)
+    ap_3 = AwardProcurementFactory(
+        parent_award_id=paid_3, piid=piid, federal_action_obligation=-9999, submission_id=sub_id
+    )
     # This one matches but will be ignored
-    ap_4 = AwardProcurementFactory(parent_award_id=paid_4, piid=piid, federal_action_obligation=-9999, submission_id=sub_id)
+    ap_4 = AwardProcurementFactory(
+        parent_award_id=paid_4, piid=piid, federal_action_obligation=-9999, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -128,7 +159,7 @@ def test_success(database):
             ap_3,
             ap_4,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -145,32 +176,47 @@ def test_success_submitting_ata(database):
 
     # Basic CGAC test
     sub_id = 1
-    submission = SubmissionFactory(submission_id=sub_id, cgac_code='001', frec_code=None)
+    submission = SubmissionFactory(submission_id=sub_id, cgac_code="001", frec_code=None)
     piid = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     paid = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # First piid/paid rows
     af_1_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid.upper(), allocation_transfer_agency="001", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid.upper(),
+        allocation_transfer_agency="001",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
     af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid.lower(), allocation_transfer_agency="001", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid.lower(),
+        allocation_transfer_agency="001",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=paid, allocation_transfer_agency="003", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=11,
+        piid=piid.upper(),
+        parent_award_id=paid,
+        allocation_transfer_agency="003",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first piid/paid
-    ap_1_row_1 = AwardProcurementFactory(piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-1100,
-                                         submission_id=sub_id)
-    ap_1_row_2 = AwardProcurementFactory(piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10,
-                                         submission_id=sub_id)
-    ap_1_row_3 = AwardProcurementFactory(piid=piid, parent_award_id=paid, federal_action_obligation=-1,
-                                         submission_id=sub_id)
+    ap_1_row_1 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_1_row_2 = AwardProcurementFactory(
+        piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_1_row_3 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid, federal_action_obligation=-1, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -185,7 +231,7 @@ def test_success_submitting_ata(database):
             ap_1_row_2,
             ap_1_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -197,29 +243,41 @@ def test_success_submitting_ata(database):
 
     # First piid/paid rows
     af_2_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid, allocation_transfer_agency="001",
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid,
+        allocation_transfer_agency="001",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_2_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid.lower(), allocation_transfer_agency="001",
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid.lower(),
+        allocation_transfer_agency="001",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_2_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=paid.upper(), allocation_transfer_agency="003",
+        transaction_obligated_amou=11,
+        piid=piid.upper(),
+        parent_award_id=paid.upper(),
+        allocation_transfer_agency="003",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first piid/paid
-    ap_2_row_1 = AwardProcurementFactory(piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-1100,
-                                         submission_id=sub_id)
-    ap_2_row_2 = AwardProcurementFactory(piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10,
-                                         submission_id=sub_id)
-    ap_2_row_3 = AwardProcurementFactory(piid=piid, parent_award_id=paid, federal_action_obligation=-1,
-                                         submission_id=sub_id)
+    ap_2_row_1 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_2_row_2 = AwardProcurementFactory(
+        piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_2_row_3 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid, federal_action_obligation=-1, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -234,7 +292,7 @@ def test_success_submitting_ata(database):
             ap_2_row_2,
             ap_2_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -246,29 +304,41 @@ def test_success_submitting_ata(database):
 
     # First piid/paid rows
     af_3_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid, allocation_transfer_agency="017",
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid,
+        allocation_transfer_agency="017",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_3_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid.lower(), allocation_transfer_agency="057",
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid.lower(),
+        allocation_transfer_agency="057",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_3_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=paid.upper(), allocation_transfer_agency="003",
+        transaction_obligated_amou=11,
+        piid=piid.upper(),
+        parent_award_id=paid.upper(),
+        allocation_transfer_agency="003",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first piid/paid
-    ap_3_row_1 = AwardProcurementFactory(piid=piid, parent_award_id=paid, federal_action_obligation=-1100,
-                                         submission_id=sub_id)
-    ap_3_row_2 = AwardProcurementFactory(piid=piid.lower(), parent_award_id=paid.lower(), federal_action_obligation=-10,
-                                         submission_id=sub_id)
-    ap_3_row_3 = AwardProcurementFactory(piid=piid, parent_award_id=paid.upper(), federal_action_obligation=-1,
-                                         submission_id=sub_id)
+    ap_3_row_1 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid, federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_3_row_2 = AwardProcurementFactory(
+        piid=piid.lower(), parent_award_id=paid.lower(), federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_3_row_3 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid.upper(), federal_action_obligation=-1, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -283,7 +353,7 @@ def test_success_submitting_ata(database):
             ap_3_row_2,
             ap_3_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -297,29 +367,41 @@ def test_success_submitting_ata(database):
 
     # First piid/paid rows
     af_4_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid, allocation_transfer_agency="256",
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid,
+        allocation_transfer_agency="256",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_4_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid.lower(), allocation_transfer_agency="256",
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid.lower(),
+        allocation_transfer_agency="256",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA even though that ATA matches the FREC table
     af_4_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=paid.upper(), allocation_transfer_agency="005",
+        transaction_obligated_amou=11,
+        piid=piid.upper(),
+        parent_award_id=paid.upper(),
+        allocation_transfer_agency="005",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first piid/paid
-    ap_4_row_1 = AwardProcurementFactory(piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-1100,
-                                         submission_id=sub_id)
-    ap_4_row_2 = AwardProcurementFactory(piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10,
-                                         submission_id=sub_id)
-    ap_4_row_3 = AwardProcurementFactory(piid=piid, parent_award_id=paid, federal_action_obligation=-1,
-                                         submission_id=sub_id)
+    ap_4_row_1 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_4_row_2 = AwardProcurementFactory(
+        piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_4_row_3 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid, federal_action_obligation=-1, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -334,7 +416,7 @@ def test_success_submitting_ata(database):
             ap_4_row_2,
             ap_4_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 0
 
@@ -353,36 +435,54 @@ def test_failure(database):
     piid = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     sub_id = 1
-    submission = SubmissionFactory(submission_id=sub_id, cgac_code='001')
+    submission = SubmissionFactory(submission_id=sub_id, cgac_code="001")
 
     # Basic sum, row 3 is ignored in this sum because it doesn't have a paid and 4 is ignored because the ATA/AID don't
     # match
     af_1_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid_1, allocation_transfer_agency=None, submission_id=sub_id
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid_1,
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=9, piid=piid, parent_award_id=paid_1.lower(), allocation_transfer_agency=None, submission_id=sub_id
+        transaction_obligated_amou=9,
+        piid=piid,
+        parent_award_id=paid_1.lower(),
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=1, piid=piid.upper(), parent_award_id=None, allocation_transfer_agency=None, submission_id=sub_id
+        transaction_obligated_amou=1,
+        piid=piid.upper(),
+        parent_award_id=None,
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     af_1_row_4 = AwardFinancialFactory(
         transaction_obligated_amou=1,
         piid=piid,
         parent_award_id=paid_1.upper(),
         allocation_transfer_agency="good",
-        agency_identifier="bad", submission_id=sub_id
+        agency_identifier="bad",
+        submission_id=sub_id,
     )
     # Same ATA/AID or no ATA sum
     af_2_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1111, piid=piid, parent_award_id=paid_2.lower(), allocation_transfer_agency=None, submission_id=sub_id
+        transaction_obligated_amou=1111,
+        piid=piid,
+        parent_award_id=paid_2.lower(),
+        allocation_transfer_agency=None,
+        submission_id=sub_id,
     )
     af_2_row_2 = AwardFinancialFactory(
         transaction_obligated_amou=1111,
         piid=piid.lower(),
         parent_award_id=paid_2,
         allocation_transfer_agency="good",
-        agency_identifier="good", submission_id=sub_id
+        agency_identifier="good",
+        submission_id=sub_id,
     )
     # Not ignored with TOA of 0
     af_3 = AwardFinancialFactory(
@@ -390,15 +490,24 @@ def test_failure(database):
         piid=piid.lower(),
         parent_award_id=paid_3.lower(),
         allocation_transfer_agency="good",
-        agency_identifier="good", submission_id=sub_id
+        agency_identifier="good",
+        submission_id=sub_id,
     )
 
     # Sum of these values doesn't add up (ignoring third one because it has a different paid)
-    ap_1_row_1 = AwardProcurementFactory(parent_award_id=paid_1, piid=piid.lower(), federal_action_obligation=-1100, submission_id=sub_id)
-    ap_1_row_2 = AwardProcurementFactory(parent_award_id=paid_1.lower(), piid=piid, federal_action_obligation=-10, submission_id=sub_id)
-    ap_1_row_3 = AwardProcurementFactory(parent_award_id="1234", piid=piid.upper(), federal_action_obligation=-1, submission_id=sub_id)
+    ap_1_row_1 = AwardProcurementFactory(
+        parent_award_id=paid_1, piid=piid.lower(), federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_1_row_2 = AwardProcurementFactory(
+        parent_award_id=paid_1.lower(), piid=piid, federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_1_row_3 = AwardProcurementFactory(
+        parent_award_id="1234", piid=piid.upper(), federal_action_obligation=-1, submission_id=sub_id
+    )
     # Sum of the two above should be both of them, not just one
-    ap_2 = AwardProcurementFactory(parent_award_id=paid_2, piid=piid, federal_action_obligation=-1111, submission_id=sub_id)
+    ap_2 = AwardProcurementFactory(
+        parent_award_id=paid_2, piid=piid, federal_action_obligation=-1111, submission_id=sub_id
+    )
     # Should not be ignored because TOA is present
     ap_3 = AwardProcurementFactory(parent_award_id=paid_3, piid=piid, federal_action_obligation=1, submission_id=sub_id)
 
@@ -419,7 +528,7 @@ def test_failure(database):
             ap_2,
             ap_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 3
 
@@ -437,32 +546,47 @@ def test_failure_submitting_ata(database):
 
     # Basic CGAC test
     sub_id = 1
-    submission = SubmissionFactory(submission_id=sub_id, cgac_code='001', frec_code=None)
+    submission = SubmissionFactory(submission_id=sub_id, cgac_code="001", frec_code=None)
     piid = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     paid = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # First piid/paid rows
     af_1_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid.upper(), allocation_transfer_agency="001", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid.upper(),
+        allocation_transfer_agency="001",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
     af_1_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid.lower(), allocation_transfer_agency="001", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid.lower(),
+        allocation_transfer_agency="001",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_1_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=paid, allocation_transfer_agency="003", agency_identifier="002",
-        submission_id=sub_id
+        transaction_obligated_amou=11,
+        piid=piid.upper(),
+        parent_award_id=paid,
+        allocation_transfer_agency="003",
+        agency_identifier="002",
+        submission_id=sub_id,
     )
 
     # These add up to the sum of all 3, including the one that was ignored
-    ap_1_row_1 = AwardProcurementFactory(piid=piid, parent_award_id=paid, federal_action_obligation=-1100,
-                                         submission_id=sub_id)
-    ap_1_row_2 = AwardProcurementFactory(piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10,
-                                         submission_id=sub_id)
-    ap_1_row_3 = AwardProcurementFactory(piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-12,
-                                         submission_id=sub_id)
+    ap_1_row_1 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid, federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_1_row_2 = AwardProcurementFactory(
+        piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_1_row_3 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-12, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -475,7 +599,7 @@ def test_failure_submitting_ata(database):
             ap_1_row_2,
             ap_1_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 1
 
@@ -487,29 +611,41 @@ def test_failure_submitting_ata(database):
 
     # First piid/paid rows
     af_2_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid.lower(), allocation_transfer_agency="001",
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid.lower(),
+        allocation_transfer_agency="001",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_2_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid, allocation_transfer_agency="001",
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid,
+        allocation_transfer_agency="001",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_2_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=paid.upper(), allocation_transfer_agency="003",
+        transaction_obligated_amou=11,
+        piid=piid.upper(),
+        parent_award_id=paid.upper(),
+        allocation_transfer_agency="003",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first piid/paid
-    ap_2_row_1 = AwardProcurementFactory(piid=piid, parent_award_id=paid, federal_action_obligation=-1100,
-                                         submission_id=sub_id)
-    ap_2_row_2 = AwardProcurementFactory(piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10,
-                                         submission_id=sub_id)
-    ap_2_row_3 = AwardProcurementFactory(piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-12,
-                                         submission_id=sub_id)
+    ap_2_row_1 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid, federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_2_row_2 = AwardProcurementFactory(
+        piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_2_row_3 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-12, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -524,7 +660,7 @@ def test_failure_submitting_ata(database):
             ap_2_row_2,
             ap_2_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 1
 
@@ -536,29 +672,41 @@ def test_failure_submitting_ata(database):
 
     # First piid/paid rows
     af_3_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid.lower(), allocation_transfer_agency="017",
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid.lower(),
+        allocation_transfer_agency="017",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_3_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid.upper(), allocation_transfer_agency="057",
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid.upper(),
+        allocation_transfer_agency="057",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA
     af_3_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=paid, allocation_transfer_agency="003",
+        transaction_obligated_amou=11,
+        piid=piid.upper(),
+        parent_award_id=paid,
+        allocation_transfer_agency="003",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first piid/paid
-    ap_3_row_1 = AwardProcurementFactory(piid=piid, parent_award_id=paid, federal_action_obligation=-1100,
-                                         submission_id=sub_id)
-    ap_3_row_2 = AwardProcurementFactory(piid=piid.lower(), parent_award_id=paid.lower(), federal_action_obligation=-10,
-                                         submission_id=sub_id)
-    ap_3_row_3 = AwardProcurementFactory(piid=piid, parent_award_id=paid.upper(), federal_action_obligation=-12,
-                                         submission_id=sub_id)
+    ap_3_row_1 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid, federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_3_row_2 = AwardProcurementFactory(
+        piid=piid.lower(), parent_award_id=paid.lower(), federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_3_row_3 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid.upper(), federal_action_obligation=-12, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -573,7 +721,7 @@ def test_failure_submitting_ata(database):
             ap_3_row_2,
             ap_3_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 1
 
@@ -587,29 +735,41 @@ def test_failure_submitting_ata(database):
 
     # First piid/paid rows
     af_4_row_1 = AwardFinancialFactory(
-        transaction_obligated_amou=1100, piid=piid.lower(), parent_award_id=paid.upper(), allocation_transfer_agency="256",
+        transaction_obligated_amou=1100,
+        piid=piid.lower(),
+        parent_award_id=paid.upper(),
+        allocation_transfer_agency="256",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     af_4_row_2 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid, parent_award_id=paid, allocation_transfer_agency="256",
+        transaction_obligated_amou=11,
+        piid=piid,
+        parent_award_id=paid,
+        allocation_transfer_agency="256",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
     # Ignored because it has a different ATA even though that ATA matches the FREC table
     af_4_row_3 = AwardFinancialFactory(
-        transaction_obligated_amou=11, piid=piid.upper(), parent_award_id=paid.lower(), allocation_transfer_agency="005",
+        transaction_obligated_amou=11,
+        piid=piid.upper(),
+        parent_award_id=paid.lower(),
+        allocation_transfer_agency="005",
         agency_identifier="002",
-        submission_id=sub_id
+        submission_id=sub_id,
     )
 
     # Sum all of these should be equal to that of first piid/paid
-    ap_4_row_1 = AwardProcurementFactory(piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-1100,
-                                         submission_id=sub_id)
-    ap_4_row_2 = AwardProcurementFactory(piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10,
-                                         submission_id=sub_id)
-    ap_4_row_3 = AwardProcurementFactory(piid=piid, parent_award_id=paid, federal_action_obligation=-12,
-                                         submission_id=sub_id)
+    ap_4_row_1 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid.lower(), federal_action_obligation=-1100, submission_id=sub_id
+    )
+    ap_4_row_2 = AwardProcurementFactory(
+        piid=piid.lower(), parent_award_id=paid.upper(), federal_action_obligation=-10, submission_id=sub_id
+    )
+    ap_4_row_3 = AwardProcurementFactory(
+        piid=piid, parent_award_id=paid, federal_action_obligation=-12, submission_id=sub_id
+    )
 
     errors = number_of_errors(
         _FILE,
@@ -624,6 +784,6 @@ def test_failure_submitting_ata(database):
             ap_4_row_2,
             ap_4_row_3,
         ],
-        submission=submission
+        submission=submission,
     )
     assert errors == 1
