@@ -24,8 +24,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """Test For each unique PIID in File C, the sum of each TransactionObligatedAmount should match (but with opposite
-    signs) the sum of the FederalActionObligation reported in D1. This rule does not apply if the ATA field is
-    populated and is different from the Agency ID. Ignore rows that contain a PAID.
+    signs) the sum of the FederalActionObligation reported in D1. This rule applies when the ATA and AID are the same,
+    when the ATA is the submitting agency, or when the ATA is blank. Ignore rows that contain a PAID.
     """
     # Create a 12 character random piid
     piid_1 = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
@@ -133,8 +133,8 @@ def test_success(database):
 
 def test_success_submitting_ata(database):
     """Test for each unique PIID in File C, the sum of each TransactionObligatedAmount should match (but with opposite
-    signs) the sum of the FederalActionObligation reported in D1. This rule does not apply if the ATA field is
-    populated and is different from the Agency ID. Ignore rows that contain a PAID.
+    signs) the sum of the FederalActionObligation reported in D1. This rule applies when the ATA and AID are the same,
+    when the ATA is the submitting agency, or when the ATA is blank. Ignore rows that contain a PAID.
     Test CGAC/FREC match the ATA
     """
 
@@ -335,8 +335,8 @@ def test_success_submitting_ata(database):
 
 def test_failure(database):
     """Test failure for each unique PIID in File C, the sum of each TransactionObligatedAmount should match (but with
-    opposite signs) the sum of the FederalActionObligation reported in D1. This rule does not apply if the ATA field
-    is populated and is different from the Agency ID. Ignore rows that contain a PAID.
+    opposite signs) the sum of the FederalActionObligation reported in D1. This rule applies when the ATA and AID are
+    the same, when the ATA is the submitting agency, or when the ATA is blank. Ignore rows that contain a PAID.
     """
     # Create a 12 character random piid
     piid_1 = "".join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
@@ -408,8 +408,8 @@ def test_failure(database):
 
 def test_failure_submitting_ata(database):
     """Test failure for each unique PIID in File C, the sum of each TransactionObligatedAmount should match (but with
-    opposite signs) the sum of the FederalActionObligation reported in D1. This rule does not apply if the ATA field is
-    populated and is different from the Agency ID. Ignore rows that contain a PAID.
+    opposite signs) the sum of the FederalActionObligation reported in D1. This rule applies when the ATA and AID are
+    the same, when the ATA is the submitting agency, or when the ATA is blank. Ignore rows that contain a PAID.
     Test CGAC/FREC match the ATA
     """
 
