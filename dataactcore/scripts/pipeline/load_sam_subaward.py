@@ -69,7 +69,7 @@ def main(
         metrics: an object containing information for the metrics file
     """
     metrics = {} if metrics is None else metrics
-    award_ids = award_ids or [None]
+    award_ids = award_ids or [None]  # still run if award_ids is empty, just run it once with None
     start_ingestion_datetime = get_utc_now()
     pulled_report_nums = {}
 
@@ -501,7 +501,7 @@ if __name__ == "__main__":
         "--award_ids",
         help="Pull in subawards under specific piids/fains. Ignored with unlinked runs.",
         type=str,
-        nargs='+',
+        nargs="+",
     )
     parser.add_argument("--auto", help="Pull records since the last load.", action="store_true")
     parser.add_argument("-i", "--ignore_db", help="Do not update the DB tables", action="store_true")
@@ -530,12 +530,10 @@ if __name__ == "__main__":
                 yesterday = get_utc_now().date() - relativedelta(days=1)
                 end_date = yesterday.strftime("%Y-%m-%d")
 
-            if args.award_ids and args.data_type == "both":
+            if len(args.award_ids) > 0 and args.data_type == "both":
                 raise ValueError(
                     "When using the award_ids argument, specify the data_type to be assistance or contract, not both."
                 )
-            elif args.award_ids:
-                award_ids = args.award_ids
 
         main(
             sess,
@@ -543,7 +541,7 @@ if __name__ == "__main__":
             data_types,
             start_date=start_date,
             end_date=end_date,
-            award_ids=award_ids,
+            award_ids=args.award_ids,
             unlinked=args.unlinked,
             load_missing=args.load_missing,
             ignore_db=args.ignore_db,
