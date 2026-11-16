@@ -530,7 +530,7 @@ if __name__ == "__main__":
                 yesterday = get_utc_now().date() - relativedelta(days=1)
                 end_date = yesterday.strftime("%Y-%m-%d")
 
-            if len(args.award_ids) > 0 and args.data_type == "both":
+            if args.award_ids and args.data_type == "both":
                 raise ValueError(
                     "When using the award_ids argument, specify the data_type to be assistance or contract, not both."
                 )
