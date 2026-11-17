@@ -1120,7 +1120,9 @@ def process_deletes(sess, contract_df):
     # Remove the temporary table. Include IF EXISTS just in case something happened above although this should only
     # be called if there is data in the delete data anyway.
     usas_delete_data = pd.read_sql(
-        "SELECT detached_award_procurement_id, detached_award_proc_unique FROM tmp_contract_delete", sess.connection()
+        "SELECT detached_award_procurement_id, detached_award_proc_unique FROM tmp_contract_delete",
+        sess.connection(),
+        dtype={"detached_award_procurement_id": "Int64", "detached_award_proc_unique": "str"},
     )
     sess.execute("DROP TABLE IF EXISTS tmp_contract_delete")
     logger.info(f"Deletes finished processing at: {str(get_utc_now())}. It took {str(get_utc_now() - delete_start)}")
