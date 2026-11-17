@@ -29,14 +29,16 @@ frec_list AS (
 sub_cgac_{0} AS (
     SELECT
         submission_id,
-        CASE WHEN ce.associated_codes IS NOT NULL THEN ce.associated_codes
-        WHEN COALESCE(sub.frec_code, '') <> '' THEN ARRAY [fl.cgac_code]
-        ELSE ARRAY [sub.cgac_code]
-        END AS cgac_list
+        CASE WHEN ce.associated_codes IS NOT NULL
+            THEN ce.associated_codes
+            WHEN COALESCE(sub.frec_code, '') <> ''
+            THEN ARRAY [fl.cgac_code]
+            ELSE ARRAY [sub.cgac_code]
+            END AS cgac_list
     FROM submission AS sub
     LEFT JOIN cgac_exceptions AS ce
         ON COALESCE(sub.cgac_code, sub.frec_code) = ce.agency_code
-    LEFT JOIN frec_list As fl
+    LEFT JOIN frec_list AS fl
         ON sub.frec_code = fl.frec_code
     WHERE sub.submission_id = {0}
 ),
