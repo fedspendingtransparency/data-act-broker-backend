@@ -196,6 +196,7 @@ def load_subawards(
         metrics = dict()
 
     api_url = SUBAWARD_CONFIG[data_type]["api_url"]
+    sam_subaward_model = SUBAWARD_CONFIG[data_type]["model"]
     logger.info("Starting subaward feed: %s", api_url.replace(CONFIG_BROKER["sam"]["api_key"], "[API_KEY]"))
 
     params = {"pageSize": LIMIT, "status": load_type.capitalize()}
@@ -246,7 +247,6 @@ def load_subawards(
         report_numbers_pulled.extend(new_subawards["subaward_report_number"].tolist())
 
         if update_db and not new_subawards.empty:
-            sam_subaward_model = SUBAWARD_CONFIG[data_type]["model"]
             if load_type == "published":
                 store_subawards(sess, new_subawards, sam_subaward_model)
             if load_type == "deleted":
@@ -271,6 +271,22 @@ def load_subawards(
     if update_db:
         sess.commit()
 
+        # Get discrepancy counts between SAM API and Broker DB
+        if load_type == "published" and not award_id:
+            params = {"pageSize": 1, "status": load_type.capitalize()}
+            param_string = urllib.parse.urlencode(params)
+            subaward_type = "subgrant" if data_type == "assistance" else "subcontract"
+
+            total_expected_records = get_with_exception_hand(f"{api_url}&{param_string}")["totalRecords"]
+            total_broker_records = sess.query(sam_subaward_model).count()
+            metrics[f"sam_total_{subaward_type}_records"] = total_expected_records
+            metrics[f"broker_total_{subaward_type}_records"] = total_broker_records
+            logger.info(
+                f"SAM has a total of {total_expected_records} {subaward_type} records. Broker has "
+                f"{total_broker_records} {subaward_type} records stored. There is a discrepancy of "
+                f"{total_expected_records - total_broker_records} {subaward_type} records."
+            )
+
     return list(set(report_numbers_pulled))
 
 
@@ -278,6 +294,7 @@ def pull_subawards(api_url, params, entries_processed=0):
     """Hit the SAM Subaward API and return the raw json responses
 
     Args:
+        api_url: URL of the API to hit
         params: dict of the current params to lookup
         entries_processed: how many entries have been processed (for offset counting)
 
