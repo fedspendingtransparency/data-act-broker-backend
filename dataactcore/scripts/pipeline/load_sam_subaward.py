@@ -273,14 +273,17 @@ def load_subawards(
         if load_type == "published" and not award_id:
             params = {"pageSize": 1, "status": load_type.capitalize()}
             param_string = urllib.parse.urlencode(params)
+            subaward_type = "subgrant" if data_type == "assistance" else "subcontract"
 
             total_expected_records = get_with_exception_hand(f"{api_url}&{param_string}")["totalRecords"]
             total_broker_records = sess.query(sam_subaward_model).count()
-            metrics[f"sam_total_{data_type}_records"] = total_expected_records
-            metrics[f"broker_total_{data_type}_records"] = total_broker_records
-            logger.info(f"SAM has a total of {total_expected_records} {data_type} subaward records. Broker has "
-                        f"{total_broker_records} {data_type} subaward records stored. There is a discrepancy of "
-                        f"{total_expected_records - total_broker_records} {data_type} subaward records.")
+            metrics[f"sam_total_{subaward_type}_records"] = total_expected_records
+            metrics[f"broker_total_{subaward_type}_records"] = total_broker_records
+            logger.info(
+                f"SAM has a total of {total_expected_records} {subaward_type} records. Broker has "
+                f"{total_broker_records} {subaward_type} records stored. There is a discrepancy of "
+                f"{total_expected_records - total_broker_records} {subaward_type} records."
+            )
 
     return list(set(report_numbers_pulled))
 
