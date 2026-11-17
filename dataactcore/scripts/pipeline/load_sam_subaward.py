@@ -48,7 +48,7 @@ def main(
     data_types,
     start_date=None,
     end_date=None,
-    award_id=None,
+    award_ids=None,
     unlinked=False,
     load_missing=False,
     ignore_db=False,
@@ -62,13 +62,14 @@ def main(
         data_types: list of "contract", "assistance", or both
         start_date: earliest reportUpdatedDate to pull from, None for beginning of time
         end_date: latest reportUpdatedDate to pull from, None for the present
-        award_id: which award id to pull
+        award_ids: which award ids to pull
         unlinked: whether to pull only unlinked records.
         load_missing: whether to skip the raw load and transfer missing raw records into the subaward table
         ignore_db: Boolean; ignore the DB tables with the new data from the API.
         metrics: an object containing information for the metrics file
     """
     metrics = {} if metrics is None else metrics
+    award_ids = award_ids or [None]  # still run if award_ids is empty, just run it once with None
     start_ingestion_datetime = get_utc_now()
     pulled_report_nums = {}
 
@@ -102,7 +103,7 @@ def main(
                             load_type=load_type,
                             start_load_date=start_date,
                             end_load_date=end_date,
-                            award_id=unlinked_id.award_id,
+                            award_ids=unlinked_id.award_id,
                             update_db=not ignore_db,
                             metrics=metrics,
                         )
@@ -110,18 +111,19 @@ def main(
                         logger.info(f"Loaded SAM Subaward reports for {data_type} with award_id {unlinked_id.award_id}")
                 else:
                     logger.info(f"Loading {load_type} SAM Subaward reports for {data_type}")
-                    report_nums = load_subawards(
-                        sess,
-                        data_type,
-                        load_type=load_type,
-                        start_load_date=start_date,
-                        end_load_date=end_date,
-                        award_id=award_id,
-                        update_db=not ignore_db,
-                        metrics=metrics,
-                    )
-                    pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
-                    logger.info(f"Loaded {load_type} SAM Subaward reports for {data_type}")
+                    for award_id in award_ids:
+                        report_nums = load_subawards(
+                            sess,
+                            data_type,
+                            load_type=load_type,
+                            start_load_date=start_date,
+                            end_load_date=end_date,
+                            award_id=award_id,
+                            update_db=not ignore_db,
+                            metrics=metrics,
+                        )
+                        pulled_report_nums[f"{load_type}-{data_type}"] = report_nums
+                        logger.info(f"Loaded {load_type} SAM Subaward reports for {data_type}")
     else:
         # Find the report_nums not in the subaward table and act as if we just loaded them
         for data_type in data_types:
@@ -495,11 +497,11 @@ if __name__ == "__main__":
         "-m", "--load_missing", help="Pull any remaining raw records into the subaward table", action="store_true"
     )
     parser.add_argument(
-        "-aid",
-        "--award_id",
-        help="Pull in subawards under a specific piid/fain. Ignored with unlinked runs.",
+        "-aids",
+        "--award_ids",
+        help="Pull in subawards under specific piids/fains. Ignored with unlinked runs.",
         type=str,
-        nargs=1,
+        nargs="+",
     )
     parser.add_argument("--auto", help="Pull records since the last load.", action="store_true")
     parser.add_argument("-i", "--ignore_db", help="Do not update the DB tables", action="store_true")
@@ -528,12 +530,10 @@ if __name__ == "__main__":
                 yesterday = get_utc_now().date() - relativedelta(days=1)
                 end_date = yesterday.strftime("%Y-%m-%d")
 
-            if args.award_id and args.data_type == "both":
+            if args.award_ids and args.data_type == "both":
                 raise ValueError(
-                    "When using the award_id argument, specify the data_type to be assistance or contract, not both."
+                    "When using the award_ids argument, specify the data_type to be assistance or contract, not both."
                 )
-            elif args.award_id:
-                award_id = args.award_id[0]
 
         main(
             sess,
@@ -541,7 +541,7 @@ if __name__ == "__main__":
             data_types,
             start_date=start_date,
             end_date=end_date,
-            award_id=award_id,
+            award_ids=args.award_ids,
             unlinked=args.unlinked,
             load_missing=args.load_missing,
             ignore_db=args.ignore_db,
