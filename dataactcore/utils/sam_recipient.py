@@ -751,7 +751,7 @@ def request_sam_entity_api(filters, download_url=None, stream=False, custom_erro
         filters = {}
     url = download_url if download_url else CONFIG_BROKER["sam"]["recipient"]["entity_api_url"]
     return _request_sam_api(
-        url, request_type="post", headers=headers, params=filters, stream=stream, custom_error_check=custom_error_check
+        url, request_type="get", headers=headers, params=filters, stream=stream, custom_error_check=custom_error_check
     )
 
 
