@@ -1,8 +1,8 @@
 -- Must be a valid 3-digit object class as defined in OMB Circular A-11 Section 83.6, or a 4-digit code which includes
--- a 1-digit suffix that is typically zero. Do not include decimal points when reporting object classes
--- (e.g., "25.2" would be reported as 252 or 2520). For amounts that cannot yet be allocated to a valid object
--- class, input 000, although note that this will prompt a warning unless all obligation and outlay balances on this
--- row are $0. A fatal error will be given if Object Class is not provided.
+-- a 1-digit suffix that is typically zero (excluding BOC 920/9200). Do not include decimal points when reporting
+-- object classes (e.g., "25.2" would be reported as 252 or 2520). For amounts that cannot yet be allocated to a valid
+-- object class, input 000, although note that this will prompt a warning unless all obligation and outlay balances on
+-- this row are $0. A fatal error will be given if Object Class is not provided.
 SELECT
     row_number,
     object_class,
@@ -12,4 +12,5 @@ FROM object_class_program_activity
 WHERE submission_id = {0}
     AND object_class NOT IN ('0000', '000', '00', '0')
     AND object_class NOT IN (SELECT object_class_code
-                             FROM object_class);
+                             FROM object_class
+                             WHERE object_class_code NOT IN ('920', '9200'));

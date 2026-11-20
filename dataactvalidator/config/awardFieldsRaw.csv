@@ -6,6 +6,10 @@ ActionType,action_type,ASP: Conditional per Validation Rule,string,2
 ActionTypeDescriptionTag,action_type_description,ASP: Optional,string,
 AssistanceType,assistance_type,ASP: Required,string,4
 AssistanceTypeDescriptionTag,assistance_type_desc,ASP: Optional,string,
+AwardAmountBasisCode,award_amount_basis_code,ASP: Optional,string,3
+AwardAmountBasisName,award_amount_basis_name,ASP: Optional,string,50
+AwardRecipientBasisCode,award_recipient_basis_code,ASP: Optional,string,3
+AwardRecipientBasisName,award_recipient_basis_name,ASP: Optional,string,100
 AwardDescription,award_description,ASP: Conditional per Validation Rule,string,4000
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Required,string,120
 AwardeeOrRecipientUEI,awardee_or_recipient_uei,ASP: Conditional per Validation Rule,string,12

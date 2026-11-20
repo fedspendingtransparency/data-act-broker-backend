@@ -24,7 +24,14 @@ def test_success(database):
 def test_failure(database):
     """Test invalid object class code (3 digits)"""
 
-    af = AwardFinancialFactory(object_class="object_class")
-    oc = ObjectClassFactory(object_class_code="object_class_bad")
+    af1 = AwardFinancialFactory(object_class="object_class")
+    oc1 = ObjectClassFactory(object_class_code="object_class_bad")
 
-    assert number_of_errors(_FILE, database, models=[af, oc]) == 1
+    # Should fail even if 920/9200 are loaded codes
+    af2 = AwardFinancialFactory(object_class="920")
+    oc2 = ObjectClassFactory(object_class_code="920")
+
+    af3 = AwardFinancialFactory(object_class="9200")
+    oc3 = ObjectClassFactory(object_class_code="9200")
+
+    assert number_of_errors(_FILE, database, models=[af1, oc1, af2, oc2, af3, oc3]) == 3
