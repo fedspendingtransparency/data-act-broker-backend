@@ -953,7 +953,12 @@ def _request_sam_api(url, request_type, headers=None, params=None, body=None, st
     """
     if request_type not in ["get", "post"]:
         return ValueError("request_type must be 'get' or 'post'")
-    auth = (CONFIG_BROKER["sam"]["account_user_id"], CONFIG_BROKER["sam"]["account_password"])
+
+    # Use the comment below if SAM decides it needs the account username/password again for FOUO data
+    # OR we need to pull in sensitive data
+    # auth = (CONFIG_BROKER["sam"]["account_user_id"], CONFIG_BROKER["sam"]["account_password"])
+    auth = None
+
     r = requests.request(
         request_type.upper(),
         url,
